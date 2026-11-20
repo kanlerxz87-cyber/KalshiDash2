@@ -28,27 +28,28 @@
       The Portfolio page supports signed demo-account reads and V2 order placement when the account owner
       supplies demo credentials.
     </p>
+    <p class="sub small">For exchange behaviour and fields, the evidence column links the official Kalshi documentation. Thresholds, filters, strategies, and the dashboard itself are project choices—not Kalshi recommendations or validated forecasts. The <a href="verification.html">claim register</a> records the source and evidence for each factual claim.</p>
     <div class="table-wrap" style="margin-top:12px">
       <table>
-        <thead><tr><th>Requirement</th><th>Where it is delivered</th><th>State</th></tr></thead>
-        <tbody>
-          <tr><td>Executive summary</td><td>This page</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Highest-dollar live events, five topics only</td><td><a href="index.html">Overview</a> · five <a href="categories/gas.html">category pages</a></td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Track live events until resolved, yes or no</td><td><a href="resolved.html">Resolved</a> — reads the API's own <code>result</code> field</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Portfolio performance on the demo account</td><td><a href="portfolio.html">Portfolio</a> — balance, positions, fills</td><td><span class="tag warn">built, needs a key</span></td></tr>
-          <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — real fills by topic, side and role; separate paper strategies on <a href="alerts.html">Live alerts</a></td><td><span class="tag warn">real-account analysis needs fills</span></td></tr>
-          <tr><td>Execute trades and track performance</td><td><a href="portfolio.html">Portfolio</a> — V2 order endpoint with the market's own price grid</td><td><span class="tag warn">built, unproven (F1)</span></td></tr>
-          <tr><td>Alert on contract moves ≥ $0.10 and test strategies</td><td><a href="alerts.html">Live alerts</a> — All alerts, High-ROI watch, four paper strategies</td><td><span class="tag warn">paper only; model/costs unverified (A1, A5)</span></td></tr>
-          <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Live alerting on swings ≥ $0.10 in either direction, as a scrolling chat</td><td><a href="alerts.html">Live alerts</a> — one chat for every qualifying swing, detected two ways and labelled with the comparison that produced it</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>A second chat filtered to the events the model likes</td><td><a href="alerts.html">Live alerts</a> — High-ROI watch chat, ranked by a transparent tradeability screen</td><td><span class="tag warn">screen, not an edge (F13)</span></td></tr>
-          <tr><td>Every swing readable at a glance, with the official call behind each price</td><td><a href="alerts.html">Live alerts</a> — table view of both feeds, one source link per row</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Automated simulated trades to test different strategies</td><td><a href="simulator.html">Strategy tester</a> — replayed over official candles, scored against real settlement values</td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Charts showing the events and source links behind a ≥ $0.10 jump</td><td><a href="alerts.html">Alerts</a> + category charts — jump markers and Kalshi's own <code>settlement_sources</code></td><td><span class="tag warn">sources, not causes (F14)</span></td></tr>
-          <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td></tr>
-          <tr><td>Every row sourced; unconfirmable values blank and flagged</td><td><a href="verification.html">Verification</a> · <a href="flagged.html">Flagged</a></td><td><span class="tag yes">done</span></td></tr>
+        <thead><tr><th>Requirement</th><th>Where it is delivered</th><th>State</th><th>Official basis / evidence</th></tr></thead>
+        <tbody id="requirement-matrix">
+          <tr><td>Executive summary</td><td>This page</td><td><span class="tag yes">done</span></td><td>Project deliverable; no exchange fact asserted.</td></tr>
+          <tr><td>Highest-dollar live events, five topics only</td><td><a href="index.html">Overview</a> · five <a href="categories/gas.html">category pages</a></td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>. Dollar activity is derived as Σ(volume × last price), not an API notional field.</td></tr>
+          <tr><td>Track live events until resolved, yes or no</td><td><a href="resolved.html">Resolved</a> — reads the API's own <code>result</code> field</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a> · <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market Settlement ↗</a>.</td></tr>
+          <tr><td>Portfolio performance on the demo account</td><td><a href="portfolio.html">Portfolio</a> — balance, positions, fills</td><td><span class="tag warn">built, needs a key</span></td><td><a href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">Get Balance ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">Get Positions ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a>. Account results require the owner's demo key.</td></tr>
+          <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — real fills by topic, side and role; separate paper strategies on <a href="alerts.html">Live alerts</a></td><td><span class="tag warn">real-account analysis needs fills</span></td><td><a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a>. The categories and strategy rules are project-defined.</td></tr>
+          <tr><td>Execute trades and track performance</td><td><a href="portfolio.html">Portfolio</a> — V2 order endpoint with the market's own price grid</td><td><span class="tag warn">built, unproven (F1)</span></td><td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2 ↗</a> · <a href="https://docs.kalshi.com/getting_started/fixed_point_migration" target="_blank" rel="noopener noreferrer">Price grids ↗</a>. No end-to-end order was placed.</td></tr>
+          <tr><td>Alert on contract moves ≥ $0.10 and test strategies</td><td><a href="alerts.html">Live alerts</a> — All alerts, High-ROI watch, four paper strategies</td><td><span class="tag warn">paper only; model/costs unverified (A1, A5)</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a> for last/previous price fields. Threshold and follow/fade rules are project choices.</td></tr>
+          <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks ↗</a>. Short windows are locally sampled, not exchange history.</td></tr>
+          <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook Responses ↗</a>.</td></tr>
+          <tr><td>Live alerting on swings ≥ $0.10 in either direction, as a scrolling chat</td><td><a href="alerts.html">Live alerts</a> — one chat for every qualifying swing, detected two ways and labelled with the comparison that produced it</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. The $0.10 threshold is the brief's rule.</td></tr>
+          <tr><td>A second chat filtered to the events the model likes</td><td><a href="alerts.html">Live alerts</a> — High-ROI watch chat, ranked by a transparent tradeability screen</td><td><span class="tag warn">screen, not an edge (F13)</span></td><td>Project-defined four-rule screen; not a Kalshi model or ROI claim. Input fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>.</td></tr>
+          <tr><td>Every swing readable at a glance, with the official call behind each price</td><td><a href="alerts.html">Live alerts</a> — table view of both feeds, one source link per row</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a> · <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a> (`settlement_sources` are reference links, not causes).</td></tr>
+          <tr><td>Automated simulated trades to test different strategies</td><td><a href="simulator.html">Strategy tester</a> — replayed over official candles, scored against real settlement values</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks ↗</a> · <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market Settlement ↗</a> · <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee Schedule ↗</a>. Strategy assumptions remain hypothetical; fees are not applied.</td></tr>
+          <tr><td>Charts showing the events and source links behind a ≥ $0.10 jump</td><td><a href="alerts.html">Alerts</a> + category charts — jump markers and Kalshi's own <code>settlement_sources</code></td><td><span class="tag warn">sources, not causes (F14)</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks ↗</a> · <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a>. The exchange lists settlement references, not the cause of a price move.</td></tr>
+          <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td><td>Project decision-support content; not an exchange fact or recommendation.</td></tr>
+          <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td><td>Project requirements and open decisions; underlying facts link to official docs in <a href="verification.html">Verification</a>.</td></tr>
+          <tr><td>Every row sourced; unconfirmable values blank and flagged</td><td><a href="verification.html">Verification</a> · <a href="flagged.html">Flagged</a></td><td><span class="tag yes">done</span></td><td>Project verification method; each factual claim has its own evidence and source in the <a href="verification.html">register</a>.</td></tr>
         </tbody>
       </table>
     </div>
@@ -104,26 +105,29 @@
       documentation line by line. All are recorded on <a href="flagged.html">Flagged</a> with evidence and
       have been fixed in this build.</p>
     <div class="table-wrap">
-      <table>
-        <thead><tr><th>ID</th><th>Defect</th><th>Consequence had it shipped</th><th>Fix</th></tr></thead>
+      <table id="defect-matrix">
+        <thead><tr><th>ID</th><th>Defect</th><th>Consequence had it shipped</th><th>Fix</th><th>Official basis / evidence</th></tr></thead>
         <tbody>
           <tr>
             <td><strong>F6</strong></td>
             <td>Private key imported as <code>spki</code>; signed path omitted <code>/trade-api/v2</code></td>
             <td>Every authenticated call returns 401, so portfolio and trading could never work</td>
             <td>PKCS#8/PKCS#1 import; full path signed with the query stripped</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API Keys ↗</a> · <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated Requests ↗</a>; project audit and self-test are listed under <a href="flagged.html#F6">Flagged F6</a>.</td>
           </tr>
           <tr>
             <td><strong>F7</strong></td>
             <td>"Sell Yes (ask)" option — <code>ask</code> actually buys NO</td>
             <td>A user would open the opposite position to the one they chose</td>
             <td>Form asks buying YES or NO; mapping to bid/ask is internal</td>
+            <td><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order Direction ↗</a>; project audit: <a href="flagged.html#F7">Flagged F7</a>.</td>
           </tr>
           <tr>
             <td><strong>F8</strong></td>
             <td>Topic keywords applied to a keyword scan of the full series list</td>
             <td>"Gas" matched Las Vegas; "golf" matched a political market</td>
             <td>Kalshi categories plus scoped series/title patterns; explicit empty states</td>
+            <td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>; observed classification cases: <a href="flagged.html#F8">Flagged F8</a>.</td>
           </tr>
         </tbody>
       </table>
@@ -133,24 +137,29 @@
   <div class="card">
     <h2>5 · Decisions needed, in order</h2>
     <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th></tr></thead>
+      <table id="decision-matrix">
+        <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th><th>Official basis / evidence</th></tr></thead>
         <tbody>
           <tr><td>1</td><td>Supply demo credentials only if account-level tracking or live demo orders are desired</td>
             <td>Authenticated balance, positions, fills, and order execution cannot be validated without the account owner's key</td>
-            <td>F1 — no credential supplied</td></tr>
+            <td>F1 — no credential supplied</td>
+            <td>Project/account-owner decision. API references: <a href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">Get Balance ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">Get Positions ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a> · <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2 ↗</a>.</td></tr>
           <tr><td>2</td><td>Choose which ranking best represents "highest dollar amount"</td>
             <td>The overview exposes a derived volume × last-price metric, contract volume, and open interest; they answer different questions</td>
-            <td>Q1 / F7</td></tr>
+            <td>Q1 / F7</td>
+            <td>Ranking preference is a project choice; source fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. The dollar-volume formula is derived, not an exchange field.</td></tr>
           <tr><td>3</td><td>Replace or accept the High-ROI watch rules</td>
             <td>The current spread/price/open-interest filter is not a measured ROI model</td>
-            <td>A1</td></tr>
+            <td>A1</td>
+            <td>Project rule choice, not a Kalshi forecast; input fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. See <a href="flagged.html#A1">Flagged A1</a>.</td></tr>
           <tr><td>4</td><td>Decide whether alerts must persist while the browser is closed</td>
             <td>Current polling and paper trading run in the open browser tab only</td>
-            <td>A2</td></tr>
+            <td>A2</td>
+            <td>Project operating choice; current page-open limitation is documented in <a href="flagged.html#A2">Flagged A2</a>, not an exchange claim.</td></tr>
           <tr><td>5</td><td>Validate fees and execution assumptions before relying on paper P&amp;L</td>
             <td>Paper fills assume displayed quotes and omit fees, slippage, and queue position</td>
-            <td>A5</td></tr>
+            <td>A5</td>
+            <td>Project simulation assumptions; official references: <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee Schedule ↗</a> · <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook Responses ↗</a>. See <a href="flagged.html#A5">Flagged A5</a>.</td></tr>
         </tbody>
       </table>
     </div>
@@ -198,28 +207,36 @@ import { mountChrome, $, esc } from "./assets/js/ui.js";
 import { CLAIMS } from "./assets/js/claims.js";
 mountChrome({ page: "summary.html", title: "Executive summary" });
 
-/* Counts are derived from the registers themselves so this summary cannot drift
- * out of step with the Verification and Flagged pages: the claim list is the
- * same array the Verification page renders, and the flag count is read from
- * the Flagged page's own markup. */
+/* These figures are derived from their source registers, not a separately
+ * maintained headline. Project decisions count as requirement areas in the
+ * matrix, but are kept distinct from factual Kalshi claims. */
 const VERIFIED = CLAIMS.filter(c => c.status === "verified").length;
 const PARTIAL = CLAIMS.filter(c => c.status === "partially verified").length;
 const UNVERIFIED = CLAIMS.filter(c => c.status === "unverified").length;
-const REQUIREMENTS = 15, EXECUTED_ORDERS = 0;
+const REQUIREMENTS = document.querySelectorAll("#requirement-matrix tr").length;
+const EXECUTED_ORDERS = 0;
 
-let OPEN_FLAGS = "—";
+let FLAG_COUNTS = { open: null, mitigated: null, total: null };
 try {
-  const res = await fetch("flagged.html");
-  const html = await res.text();
-  const open = [...html.matchAll(/<h3>(F\d+)[^<]*<span class="tag warn">open<\/span>/g)].length;
-  const total = [...html.matchAll(/<div class="irregularity" id="(F\d+)"/g)].length;
-  OPEN_FLAGS = open || total;
-} catch { /* the summary still renders without the cross-page count */ }
+  const res = await fetch("flagged.html", { cache: "no-store" });
+  if (!res.ok) throw new Error(`Flagged page returned HTTP ${res.status}`);
+  const flagDoc = new DOMParser().parseFromString(await res.text(), "text/html");
+  const cards = [...flagDoc.querySelectorAll(".irregularity")];
+  FLAG_COUNTS = {
+    open: cards.filter(card => card.querySelector(".tag.warn")).length,
+    mitigated: cards.filter(card => card.querySelector(".tag.yes")).length,
+    total: cards.length
+  };
+} catch { /* the summary still renders when the cross-page count is unavailable */ }
+
+const flagMeta = FLAG_COUNTS.total === null
+  ? "see the Flagged page"
+  : `${FLAG_COUNTS.total} items · ${FLAG_COUNTS.mitigated} mitigated`;
 
 $("#headline").innerHTML = [
-  { k: "Requirement areas", v: REQUIREMENTS, m: "all addressed (table above)" },
-  { k: "Claims verified", v: `${VERIFIED} / ${CLAIMS}`, m: `${PARTIAL} partial · ${UNVERIFIED} unverified` },
-  { k: "Open flags", v: OPEN_FLAGS, m: "on the Flagged page" },
+  { k: "Requirement areas", v: REQUIREMENTS, m: "listed in the matrix below" },
+  { k: "Claims verified", v: `${VERIFIED} / ${CLAIMS.length}`, m: `${PARTIAL} partial · ${UNVERIFIED} unverified` },
+  { k: "Open flags", v: FLAG_COUNTS.open ?? "—", m: flagMeta },
   { k: "Orders executed", v: EXECUTED_ORDERS, m: "no key available — F1" }
 ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 </script>
