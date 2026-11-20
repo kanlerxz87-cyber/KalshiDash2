@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-20T13:42:04.877Z
+- Run at: 2026-11-20T13:53:07.952Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -12,8 +12,8 @@
 
 | Topic | Market | From | To | Δ | Basis | Screen |
 | --- | --- | --- | --- | --- | --- | --- |
-| elections | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 | exchange previous_price_dollars | 50/100 |
 | culture | `KXTVSEASONRELEASEACOURTOFTHORNSANDROSES-30-JAN` | 0.90 | 0.80 | -0.10 | exchange previous_price_dollars | 65/100 |
+| elections | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 | exchange previous_price_dollars | 50/100 |
 
 - Markets with a readable previous price: 2777
 - Largest single move against the exchange's previous price: +0.98 on `KXECCOMPACT-30`
@@ -24,33 +24,23 @@
 | `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
 | `KXTVSEASONRELEASEACOURTOFTHORNSANDROSES-30-JAN` | 0.90 | 0.80 | -0.10 |
 | `KXNEXTSPEAKER-31-HJEF` | 0.97 | 0.99 | +0.02 |
-| `KXNEXTSPEAKER-31-APRE` | 0.00 | 0.01 | +0.00 |
 | `KXNEXTNATOSECGEN-99-KIOH` | 0.02 | 0.02 | 0.00 |
 | `KXNEXTNATOSECGEN-99-KKAL` | 0.15 | 0.15 | 0.00 |
 | `KXNEXTNATOSECGEN-99-BWAL` | 0.11 | 0.11 | 0.00 |
 | `KXNEXTNATOSECGEN-99-MFRE` | 0.50 | 0.50 | 0.00 |
 | `KXNEXTNATOSECGEN-99-ULEY` | 0.01 | 0.01 | 0.00 |
+| `KXNEXTNATOSECGEN-99-PPAV` | 0.15 | 0.15 | 0.00 |
 
 ## 2 · Strategy tester
 
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 4
-- History requests that failed: 2
-- Simulated trades produced: 2
+- Markets with usable one-minute history: 1
+- History requests that failed: 8
+- Simulated trades produced: 0
 
-| Strategy | Trades | Wins | Losses | Hit rate | Avg entry price | P&L / contract | ROI |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Momentum continuation | 1 | 1 | 0 | 100.0% | $0.70 | 0.30 | 42.9% |
-| Round-trip scalper | 1 | 1 | 0 | 100.0% | $0.70 | 0.30 | 42.9% |
-
-### First simulated trades
-
-| Strategy | Market | Side | Entry | Exit | Result | P&L / contract |
-| --- | --- | --- | --- | --- | --- | --- |
-| Momentum continuation | `KXQUICKSETTLE-20NOV26H0800-2` | yes | 0.70 | held to settlement | yes | 0.30 |
-| Round-trip scalper | `KXQUICKSETTLE-20NOV26H0800-2` | yes | 0.70 | held to settlement | yes | 0.30 |
+_No strategy fired in this universe._
 
 ---
 
