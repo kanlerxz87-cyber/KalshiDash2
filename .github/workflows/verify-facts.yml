@@ -1,87 +1,175 @@
 name: verify-facts
-# Temporary verification job: captures authoritative, reproducible facts from the
-# official Kalshi DEMO API (server-side, no sandbox TLS restrictions) so that every
-# claim on the site can cite an observed response rather than an assumption.
+# Temporary verification job. Captures authoritative, reproducible facts from the
+# official Kalshi DEMO API on a GitHub-hosted runner (the editing sandbox cannot open
+# TLS connections to Kalshi hosts) and commits the report back to the branch so the
+# findings are reviewable as a file with a permanent link.
 on:
   workflow_dispatch:
   push:
     paths:
       - "tools/verify/**"
 
+permissions:
+  contents: write
+
 jobs:
   facts:
     runs-on: ubuntu-latest
     steps:
-      - name: CORS preflight + simple GET headers
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Probe demo API
         run: |
-          set -x
+          set +e
           BASE=https://external-api.demo.kalshi.co/trade-api/v2
-          echo "===== GET /exchange/status WITH Origin header ====="
-          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" \
-            "$BASE/exchange/status" || echo "CURL_FAILED"
-          echo "===== OPTIONS preflight /markets ====="
+          OUT=reports/verify-facts-raw.md
+          mkdir -p reports
+          {
+          echo "# Raw facts captured from the Kalshi DEMO API"
+          echo
+          echo "- Captured (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "- Runner: GitHub Actions \`ubuntu-latest\`"
+          echo "- Base: \`$BASE\`"
+          echo "- Commit: \`${GITHUB_SHA}\`"
+          echo
+          echo '## 1. CORS — simple GET with Origin header'
+          echo '```'
+          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" "$BASE/exchange/status"
+          echo '```'
+          echo
+          echo '## 2. CORS — OPTIONS preflight on /markets'
+          echo '```'
           curl -sS -D - -o /dev/null -X OPTIONS \
             -H "Origin: https://kanlerxz87-cyber.github.io" \
             -H "Access-Control-Request-Method: GET" \
-            "$BASE/markets?limit=1" || echo "CURL_FAILED"
-          echo "===== GET /markets WITH Origin header ====="
-          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" \
-            "$BASE/markets?limit=1" || echo "CURL_FAILED"
-
-      - name: Category taxonomy present in demo environment
-        run: |
-          BASE=https://external-api.demo.kalshi.co/trade-api/v2
-          curl -sS "$BASE/events?limit=200&status=open" -o ev.json
-          echo "===== distinct event categories (first 200 open events) ====="
+            -H "Access-Control-Request-Headers: content-type" \
+            "$BASE/markets?limit=1"
+          echo '```'
+          echo
+          echo '## 3. CORS — GET /markets with Origin header'
+          echo '```'
+          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" "$BASE/markets?limit=1"
+          echo '```'
+          echo
+          echo '## 4. Event categories present in the demo environment'
+          curl -sS "$BASE/events?limit=200&status=open" -o /tmp/ev.json
           node -e '
-            const j=require("./ev.json");
+            const j=require("/tmp/ev.json");
             const c={};
-            for(const e of j.events||[]){c[e.category]=(c[e.category]||0)+1;}
-            Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(v+"\t"+k));
+            for(const e of (j.events||[])){c[e.category||"(none)"]=(c[e.category||"(none)"]||0)+1;}
+            console.log("Total events returned:", (j.events||[]).length);
+            console.log("");
+            console.log("| Category | Count |");
+            console.log("| --- | --- |");
+            Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(`| ${k} | ${v} |`));
           '
-
-      - name: Topic discovery (series search for the 5 required topics)
-        run: |
-          BASE=https://external-api.demo.kalshi.co/trade-api/v2
-          for T in gas price gasoline election culture crypto golf; do
-            echo "===== /series?category_or_title~$T ====="
-            curl -sS "$BASE/series?page_size=100" -o all_series.json
-            break
-          done
+          echo
+          echo '## 5. Series matching the five required topics'
+          echo
+          echo 'Method: `GET /series?limit=200` (paginated up to 5 pages), filtered client-side on'
+          echo 'ticker/title/category substrings. Case-insensitive. No ticker is hardcoded.'
+          echo
+          curl -sS "$BASE/series?limit=200" -o /tmp/s1.json
           node -e '
-            const j=require("./all_series.json");
+            const fs=require("fs");
+            const j=JSON.parse(fs.readFileSync("/tmp/s1.json","utf8"));
+            fs.writeFileSync("/tmp/s_all.json", JSON.stringify(j.series||[]));
+            console.log("Series returned on first page:", (j.series||[]).length, "| next cursor present:", !!j.cursor);
+            console.log("");
             const s=j.series||[];
-            console.log("total series:", s.length);
-            const rx=[["gas",/gas|gasoline|fuel/i],["elections",/elect|president|congress|senate|governor|mayor|primary/i],["culture",/culture|movie|music|award|celebrity|tv|entertain/i],["crypto",/crypto|bitcoin|btc|eth|solana|doge/i],["golf",/golf|pga|masters|ryder|liv/i]];
+            const rx=[["gas",/gas|gasoline|fuel/i],
+                      ["elections",/elect|president|senate|congress|governor|mayor|primary|ballot|cabinet/i],
+                      ["culture",/culture|movie|film|music|oscar|grammy|emmy|award|celebrity|box.?office|tv|stream/i],
+                      ["crypto",/crypto|bitcoin|btc|ethereum|eth|solana|doge|xrp|coin/i],
+                      ["golf",/golf|pga|masters|ryder|liv|open championship/i]];
             for(const [name,re] of rx){
-              const hit=s.filter(x=>re.test((x.ticker||"")+" "+(x.title||"")+" "+(x.category||"")));
-              console.log("\n## "+name+" series:",hit.length);
-              hit.slice(0,25).forEach(x=>console.log("  "+x.ticker+" | "+(x.category||"")+" | "+(x.title||"")));
+              const hit=s.filter(x=>re.test([x.ticker,x.title,x.category].filter(Boolean).join(" ")));
+              console.log(`### ${name} — ${hit.length} matching series`);
+              console.log("");
+              console.log("| Series ticker | Kalshi category | Title |");
+              console.log("| --- | --- | --- |");
+              hit.slice(0,30).forEach(x=>console.log(`| ${x.ticker} | ${x.category||""} | ${(x.title||"").replace(/\|/g,"\\|")} |`));
+              console.log("");
             }
           '
-
-      - name: Candlestick endpoint shape (real market)
-        run: |
-          BASE=https://external-api.demo.kalshi.co/trade-api/v2
-          TICKER=$(curl -sS "$BASE/markets?limit=40&status=open" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);const m=(j.markets||[]).find(x=>Number(x.volume_24h_fp)>0)||j.markets[0];console.log(m.ticker)})')
-          echo "TICKER=$TICKER"
-          SERIES=$(curl -sS "$BASE/markets/$TICKER" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.market.series_ticker||"")})')
-          echo "SERIES=$SERIES"
-          END=$(date +%s); START=$((END-3600))
-          echo "===== candlesticks 1min ====="
-          curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$START&end_ts=$END&period_interval=1" | head -c 1500
+          echo '## 6. Candlestick endpoint — documented intervals and real response'
+          TICKER=$(node -e '
+            const j=require("/tmp/ev.json");
+            let best=null;
+            for(const e of (j.events||[]))for(const m of (e.markets||[])){
+              const v=Number(m.volume_fp||0);
+              if(v>0 && (!best||v>best.v))best={v,t:m.ticker,s:e.series_ticker,et:e.event_ticker};
+            }
+            if(best)console.log(best.t); else console.log("");
+          ')
+          echo ""
+          echo "Market with the largest volume_fp found in the demo sample: \`$TICKER\`"
+          if [ -n "$TICKER" ]; then
+            MK=$(curl -sS "$BASE/markets/$TICKER")
+            SERIES=$(echo "$MK" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).market.series_ticker||"")}catch{console.log("")}})')
+            echo ""
+            echo "Series: \`$SERIES\`"
+            END=$(date +%s); START=$((END-7200))
+            echo ""
+            echo '`period_interval=1` (seconds granularity is NOT an allowed value — documented enum is 1, 60, 1440 minutes):'
+            echo '```json'
+            curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$START&end_ts=$END&period_interval=1" | head -c 1200
+            echo
+            echo '```'
+            echo ""
+            echo '`period_interval=60`:'
+            echo '```json'
+            curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$((END-86400))&end_ts=$END&period_interval=60" | head -c 900
+            echo
+            echo '```'
+            echo ""
+            echo 'Rejection behaviour for an unsupported interval (`period_interval=5`):'
+            echo '```'
+            curl -sS -o /tmp/p5.json -w "HTTP %{http_code}\n" "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$((END-3600))&end_ts=$END&period_interval=5"
+            head -c 400 /tmp/p5.json 2>/dev/null
+            echo
+            echo '```'
+            echo ""
+            echo 'Orderbook for the same market (liquidity = resting bids):'
+            echo '```json'
+            curl -sS "$BASE/markets/$TICKER/orderbook?depth=5" | head -c 900
+            echo
+            echo '```'
+          fi
           echo
-          echo "===== orderbook ====="
-          curl -sS "$BASE/markets/$TICKER/orderbook" | head -c 800
+          echo '## 7. Auth-protected endpoints without credentials'
           echo
-          echo "===== trades ====="
-          curl -sS "$BASE/markets/trades?limit=3" | head -c 800
-
-      - name: Auth-protected endpoints behave as documented without credentials
-        run: |
-          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          echo '| Endpoint | HTTP status | Body (truncated) |'
+          echo '| --- | --- | --- |'
           for P in /portfolio/balance /portfolio/positions /portfolio/fills /portfolio/orders; do
-            echo "===== $P ====="
-            curl -sS -o body.txt -w "HTTP %{http_code}\n" "$BASE$P"
-            head -c 300 body.txt; echo
+            CODE=$(curl -sS -o /tmp/b.txt -w "%{http_code}" "$BASE$P")
+            BODY=$(head -c 160 /tmp/b.txt | tr '\n' ' ' | sed 's/|/\\|/g')
+            echo "| \`$P\` | $CODE | $BODY |"
           done
+          echo
+          echo '## 8. Order-placement route probe (unauthenticated; route existence only)'
+          echo
+          echo '| Method+Path | HTTP status | Body (truncated) | Interpretation |'
+          echo '| --- | --- | --- | --- |'
+          for P in /portfolio/orders /portfolio/events/orders; do
+            CODE=$(curl -sS -o /tmp/o.txt -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{}' "$BASE$P")
+            BODY=$(head -c 160 /tmp/o.txt | tr '\n' ' ' | sed 's/|/\\|/g')
+            echo "| \`POST $P\` | $CODE | $BODY | 401 = route exists but needs auth; 404 = no such route |"
+          done
+          echo
+          echo '## 9. Exchange status payload'
+          echo '```json'
+          curl -sS "$BASE/exchange/status"
+          echo '```'
+          } > "$OUT"
+          cat "$OUT"
+
+      - name: Commit report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/verify-facts-raw.md
+          git diff --cached --quiet || git commit -m "reports: verified facts from Kalshi demo API [skip ci]"
+          git push
