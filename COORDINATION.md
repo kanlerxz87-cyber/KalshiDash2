@@ -27,3 +27,9 @@ Status meanings: `unclaimed` / `in progress` / `done` / `needs review`
 
 ## Handoff / conflict log
 - 2026-11-20: Session 4b7b4e2f created this board (did not exist). No conflicts encountered.
+
+## Final integration record (2026-11-20, session 4b7b4e2f)
+- PR #1 created from `arena/4b7b4e2f-kalshidash2` to `main` and **merged**: https://github.com/kanlerxz87-cyber/KalshiDash2/pull/1
+- GitHub Pages deploy workflow run 44724644567: **success**. Pages status: `built`, https://kanlerxz87-cyber.github.io/KalshiDash2/
+- ⚠️ Pages API reports `build_type: legacy`, source `main:/`. If the live site shows only the README instead of `docs/`, set Settings → Pages → Source to **GitHub Actions** (API returned 403 for this integration, so it could not be changed programmatically). Added as F7 on the Flagged page.
+- All tasks 1–8 done. No merge conflicts. No other sessions claimed files.
