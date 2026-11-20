@@ -1,5 +1,14 @@
 # KalshiDash2
 
+> **Two generations of the site live in this repository.**
+>
+> * `docs/` — the site built by the first sessions (`4b7b4e2f`, `210dfcb8`). Live dashboard for the **Kalshi demo** exchange: highest-dollar events in gas prices, elections, culture, crypto, and golf — tracked until they resolve (yes/no), with demo trading and performance analysis.
+> * `site/` — the verified rebuild documented below. It fixes three defects found in `docs/`
+>   (see `site/flagged.html` F6–F8) and is written to be publishable from the repository root.
+>
+> `COORDINATION.md` records which session owns what. Nothing from the earlier generation was
+> deleted by this merge.
+
 A live dashboard for the **Kalshi demo exchange** (`https://external-api.demo.kalshi.co/trade-api/v2`)
 covering five topics — gas prices, elections, culture, crypto and golf — tracked from
 open through resolution, with a demo portfolio, trade analysis and a decision register.
@@ -73,3 +82,11 @@ See `site/verification.html` for the full claim register and
 
 Demo environment only: funds are mock, and demo prices may not reflect production markets.
 Not affiliated with or endorsed by Kalshi.
+Live dashboard for the **Kalshi demo** exchange: highest-dollar events in gas prices, elections, culture, crypto, and golf — tracked until they resolve (yes/no), with demo trading and performance analysis.
+
+**Site:** GitHub Pages from `docs/` (see `.github/workflows/pages.yml`). Pages: Home/executive summary, Live Dashboard, Portfolio & Trading, Resolved Events, Analysis & Strategies, Suggestions, Open Questions, Verification, Flagged for Review.
+
+**Data:** `https://external-api.demo.kalshi.co/trade-api/v2` (public data, no key). Trading needs your own demo API key, entered in the browser only — never commit keys. Docs: https://docs.kalshi.com
+
+**Docs in repo:** `EXECUTIVE_SUMMARY.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `VERIFICATION.md`, `COORDINATION.md` (shared task board).
+
