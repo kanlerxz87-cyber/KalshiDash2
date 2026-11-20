@@ -5,7 +5,7 @@
  * requested time windows, and the liquidity (order-book depth) view.
  */
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineChart } from "./ui.js";
-import { TOPICS, WINDOWS, SOURCES, CANDLE } from "./config.js";
+import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
   bucketCandles, LiveSampler, Watchlist
@@ -49,7 +49,7 @@ async function loadBoard() {
     if (!state.selected && state.markets.length) selectMarket(preferredMarket(state.markets));
   } catch (e) {
     pill($("#board-status"), "err", e.message);
-    $("#board-body").innerHTML = emptyRow(8, "Could not load events: " + e.message);
+    $("#board-body").innerHTML = emptyRow(9, "Could not load events: " + e.message);
   }
 }
 
@@ -87,7 +87,7 @@ function renderBoard() {
   rows.sort(cmp);
 
   if (!rows.length) {
-    $("#board-body").innerHTML = emptyRow(8,
+    $("#board-body").innerHTML = emptyRow(9,
       `The live API returned no ${topic.label} events in this scan. Nothing is invented to fill the table.`);
     return;
   }
@@ -112,6 +112,7 @@ function renderBoard() {
         <button class="secondary tiny" data-chart="${esc(top?.ticker || "")}">Chart</button>
         <button class="secondary tiny" data-watch="${esc(top?.ticker || "")}">Track</button>
       </td>
+      <td><a href="${esc(`${DEMO.rest}/events/${encodeURIComponent(ev.event_ticker)}?with_nested_markets=true`)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td>
     </tr>`;
   }).join("");
 }
@@ -277,15 +278,17 @@ async function loadBook(ticker) {
   try {
     const book = await getOrderbook(ticker, 20);
     const q = deriveQuote(book);
+    const orderbookUrl = `${DEMO.rest}/markets/${encodeURIComponent(ticker)}/orderbook?depth=20`;
     const row = (l, kind) => `<tr><td class="num">${money4(l.p)}</td>
       <td class="num">${int(l.c)}</td>
       <td class="num">${money(l.p * l.c)}</td>
-      <td><span class="tag ${kind === "yes" ? "yes" : "no"}">${kind === "yes" ? "YES bid" : "NO bid"}</span></td></tr>`;
+      <td><span class="tag ${kind === "yes" ? "yes" : "no"}">${kind === "yes" ? "YES bid" : "NO bid"}</span></td>
+      <td><a href="${esc(orderbookUrl)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td></tr>`;
 
     const yesRows = [...q.yes].sort((a, b) => b.p - a.p);
     const noRows = [...q.no].sort((a, b) => b.p - a.p);
-    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(4, "No resting YES bids.");
-    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(4, "No resting NO bids.");
+    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(5, "No resting YES bids.");
+    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(5, "No resting NO bids.");
 
     const yesDepth = yesRows.reduce((a, l) => a + l.c, 0);
     const yesNotional = yesRows.reduce((a, l) => a + l.p * l.c, 0);
@@ -301,8 +304,8 @@ async function loadBook(ticker) {
       YES ask at <em>1 − y</em>. ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
     pill($("#book-status"), "err", e.message);
-    $("#yes-book").innerHTML = emptyRow(4, "Order book unavailable.");
-    $("#no-book").innerHTML = emptyRow(4, "Order book unavailable.");
+    $("#yes-book").innerHTML = emptyRow(5, "Order book unavailable.");
+    $("#no-book").innerHTML = emptyRow(5, "Order book unavailable.");
   }
 }
 $("#book-refresh").addEventListener("click", () => loadBook(state.selected?.ticker));

@@ -417,3 +417,21 @@ Claim recorded `2026-11-20`. Base: `main` at `9c99138` (PR #15 merged). Files ou
 **Irregularities (details on the Flagged page, section 4):** A1 the High-ROI filter is a rule set, not a model; A2 alerts recorded only while a tab is open; A3 alert price is last trade, quote-only moves do not alert; A4 settlement sources are not causes; A5 simulated P&L ignores fees and slippage; A6 universe is partial (top 30/topic); A7 no documented maximum for `tickers` (25 and 100 both worked); A8 no numeric unauthenticated rate limit published; A9 status vocabulary and the S6 entry omits `paused`; R1 the CI link check covers `docs/` only, while the live site is the root.
 
 **Handoff notes:** the brief's `session-<id>/<task>` branch naming was not used; the session is bound to `arena/4208a2dd-kalshidash2`. Not done in this session: chart markers for sharp moves on the category charts, a server-side recorder, and a rewrite of `summary.html` to cover the alerts. These are listed as suggestions, not claimed as done.
+
+---
+
+# Session `5c00f4dd` — integration review and row-source audit (2026-11-20)
+
+Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
+
+| # | Task | Status | Owner | File scope |
+|---|------|--------|-------|-----------|
+| C1 | Reconcile live alerts and paper simulation with the already-merged implementation; avoid duplicate engine | done | `5c00f4dd` | `COORDINATION.md` |
+| C2 | Add official source links per dynamic data row in the published root-site tables | done | `5c00f4dd` | `index.html`, `assets/js/category.js`, `categories/*.html`, `event.html`, `portfolio.html`, `strategies.html`, `resolved.html`, `COORDINATION.md` |
+| C3 | Record the dev-only esbuild advisory found by audit on the Flagged for Review page | done | `5c00f4dd` | `flagged.html`, `COORDINATION.md` |
+
+**Conflict resolution log:** PR #19 (session `4208a2dd`) merged its live alert and simulated strategy implementation while this branch was in progress. Its `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, tests, verification evidence, flags, and navigation are retained as the canonical implementation. This session will not overwrite that work with a duplicate alerts controller. During rebase, `COORDINATION.md` had an add/add conflict; resolved by retaining the complete main board (including session `4208a2dd`) and appending this session record.
+
+**C2 verification and sources:** Added source links to all dynamic table templates in the deployed root site: overview and topic event rows use the official event response; event and resolution detail rows use the nested event response; orderbook levels use the official orderbook response; resolved-market rows use the official market response; personal fills and positions link the official endpoint documentation because their exact signed responses cannot be safely embedded in a public URL. Strategy and aggregate rows link their official input endpoint documentation. References: [Get events](https://docs.kalshi.com/api-reference/events/get-events), [Get market](https://docs.kalshi.com/api-reference/market/get-market), [Get markets](https://docs.kalshi.com/api-reference/market/get-markets), [orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses), [Get fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Get positions](https://docs.kalshi.com/api-reference/portfolio/get-positions). Static check/tests pass on this revision; live public API connectivity was not exercised from this sandbox.
+
+**C3 verification and source:** `npm ci --prefix tests/dom --ignore-scripts` succeeded; `npm audit --prefix tests/dom --json` reported one moderate vulnerability in direct dev dependency `esbuild@0.24.2` (affected range `<=0.24.2`) and `fixAvailable` `0.28.2`. The official advisory is [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99). Flagged as A10. The package is used only by the DOM test harness, not the deployed static site; upgrade not performed in this task to avoid an unverified test-tool migration.
