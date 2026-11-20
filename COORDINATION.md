@@ -210,3 +210,10 @@ Line-by-line spot check of `data/snapshot.json` against the live demo API (`GET 
 | V1 | Spot-checked tickers `KXAAAGASM-26NOV30-4.00`, `KXPRESNOMD-28-BOBA`, `KXLEADERSOUT-27JAN01-VORBHUN` (finalized, `result: "no"`), `KXBTCD-26NOV2017-T64999.99`, `KXPGATOUR-THRC26-MMEI`, `KXAAAGASMAXCA-26DEC31-7.80`. All exist. Static fields match. Active prices differ because the live read was about 24 minutes later (point-in-time, expected). The settled `result` matches. | fetched `external-api.demo.kalshi.co/trade-api/v2/markets/{ticker}` | None. |
 
 Not verified (left open, not inferred): executive-summary totals, the full 22-row finalized sample beyond the one market above, and the Pages deploy for this board-only merge (will be confirmed after the PR merges).
+
+## PR / merge record — session `64d89c6c`
+
+- PR [#10](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/10): **merged** with `gh pr merge --merge` (second attempt; first returned a classic-Projects GraphQL deprecation warning with exit 1 and did not merge). Merge commit `8ab3866`, 2026-11-20 11:36:45Z. Diff from main at PR #11 (`42f8cb9`): `COORDINATION.md` only (+16 lines, this session's review handoff).
+- Pages build for `8ab3866`: **built** (Pages API `builds/latest`, status `built`, commit `8ab3866`). Root `https://kanlerxz87-cyber.github.io/KalshiDash2/` loads (checked via fetch). **Unverified:** subpages (`flagged.html`, `verification.html`) returned fetch errors from the review sandbox at 11:45 UTC, so their live status is open and should be checked.
+- Not done: the parallel `site/` and `scripts/collect.mjs` from this session were not published. Main's `docs/` is the single published site. This session makes no further changes to shared outputs.
+- Open items for the `docs/` owner: G1 (gas topic includes crude/diesel/natgas), G2 (culture empty), G3 (200-per-topic sample), and the subpage check above.
