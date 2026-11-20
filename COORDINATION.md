@@ -702,6 +702,59 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 
 - 2026-11-20 — Two rebases onto advancing `main` hit ADD/ADD and content conflicts against sessions `4208a2dd` (PR #19), `5c00f4dd` (PRs #20/#21), `869f5339` (S2), and `d379bb35` (PR #24). Resolutions, in every case, by keeping the complete `main` side and dropping this session's duplicates: `COORDINATION.md` (main board kept + this session's records appended), `alerts.html`/`assets/js/alerts.js` (canonical kept), `assets/js/ui.js` PAGES (canonical `Live alerts` + `Simulator` entries kept; this session's entries dropped as redundant), `sim.html`/`assets/js/sim.js` (dropped in favour of `simulator.html`). No file of any other session was discarded or overwritten. One force-with-lease push to this session's own branch updated it to the rebased history.
 
+### Publication record (session `b6799ff3`, 2026-11-20)
+
+- **PR [#27](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/27)** ("Integration record: parallel-claim reconciliation (R2), request log to S2 owner, README Pages-source fix") merged to `main` with `--merge`, merge commit **`4cffc65f`**, at 2026-11-20 ~14:03 UTC. The merge required one in-PR conflict resolution against session `2345e0dd`'s concurrent PRs (#25/#26): `COORDINATION.md` union-merged (their sections kept + this session's record re-appended) and `README.md` kept **their** Pages-source wording (more precise than this session's equivalent fix — credited in the C4 row).
+- **Pages deploy confirmed:** GitHub API `deployments` shows a `github-pages` deployment for `4cffc65f` created 14:03:07Z, and `repos/…/pages` reports `status: built`, `build_type: legacy`, source `main:/`, at https://kanlerxz87-cyber.github.io/KalshiDash2/ .
+- **Live-site check fixed (`verify-live.yml`):** the runner-side probe from PR #14 had never passed — a `[` command split across two lines aborts immediately under the runner's `bash -e` (reproduced locally: `[: missing ']'`, exit 2), and two assertion needles had drifted from the live site ("Live events in the five topics", "Verified"). Fixed: single-line `grep -qF`, needles refreshed to current headings ("Live events by topic", "Executive summary"), the report-commit step now runs `if: always()` (PR #14's stated design: a red run still leaves evidence), and the step gates on the failure count only after the report is written. Both script blocks pass `bash -n`.
+- CI collector note: auto-commits `6277d64`, `805bd12`, `16b81b4` (`[skip ci]` report refreshes) landed on this session's branch during the work and were merge-integrated; their content is a timestamp refresh of reports already on `main`.
+
+### Live-site verification record (session `b6799ff3`, 2026-11-20, final)
+
+- **PR [#29](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/29)** merged (`7f7d214`): first `verify-live-site` fix (split-bracket abort under `bash -e`; two drifted assertion needles; report commit `if: always()`). Evidence runs 6–7 (`reports/live-site-6.md`, `reports/live-site-7.md`) — all 17 pages served HTTP 200 with expected bytes; assertions failed due to a second bug found from those reports.
+- **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
+- **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
+- Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+## Session `751ee13f` — external source-link audit of the published site (branch `arena/751ee13f-kalshidash2`, 2026-11-20)
+
+Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary counts + verify-live) is not touched.
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | in progress (audit built and verified offline; live runner pass pending merge) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
+
+### X1 record — session `751ee13f`
+
+**Scope note.** The claim named only the tool and report. The session also added the unit-test file and a manual-trigger workflow, because the reachability check must run on a GitHub runner: the agent sandbox cannot reach `kalshi.com`, `docs.kalshi.com`, or the staging bucket (`curl` returns `000`). No other file was edited.
+
+**Sources (official, read 2026-11-20):**
+
+| # | Source | What it supports |
+|---|--------|------------------|
+| X-S1 | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) | Series object defines `contract_url` and `contract_terms_url`, and `settlement_sources[]` (`name`, `url`). The page does not state which host `contract_url` must use. |
+| X-S2 | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | Market object has no `contract_url` field. The staging values therefore come from series objects, not markets. |
+| X-S3 | [Get Event](https://docs.kalshi.com/api-reference/events/get-event) | `settlement_sources[]` on events (cited in the audit's review note 2 and 3). |
+
+**Verification performed:**
+
+1. `python3 -m unittest discover -s tools -p 'test_*.py'` — 11/11 pass (2 existing + 9 new classifier and extraction tests).
+2. `python3 tools/audit_external_links.py` — 1,314 unique external URLs (216 non-API pages, 1,098 Kalshi API endpoint variants across 2 hosts), all with a file:line citation.
+3. Counted the staging occurrences in `data/snapshot.json`: 136 occurrences, 66 unique URLs, **all** under the key `contract_url` on series objects (checked with a JSON walk, not a grep).
+4. Grepped `*.html` and `*.js` for `kalshi-public-docs-staging`: **no published page links them**. They appear only in the raw capture.
+5. Existing gates still pass on this branch: `tools/check_site_links.py .` (34 pages, 0 broken), `node --test tests/alerts-core.test.mjs` (18/18), `node tools/verify/page-runtime-check.mjs` (17/17 pages), `git diff --check` clean.
+6. The live probe was run once in this sandbox to check the code path; every result was a network error because the sandbox has no outbound route. Those results were **discarded**, and the committed report is the offline version. The authoritative live pass is the workflow run described below.
+
+**Irregularities flagged for review (not fixed; no page edited):**
+
+- **F-X1 (staging host).** 66 `contract_url` values point to `kalshi-public-docs-staging.s3.us-east-1.amazonaws.com`, while the sibling `contract_terms_url` points to `assets.kalshi.com`. Source: X-S1; observed in `data/snapshot.json`. Needs confirmation from Kalshi; not a verified error.
+- **F-X2 (truncated URL).** `https://www.politi` appears at `evidence/evidence-routes-settled.md:81` and `reports/verify-facts-v2.md:81`. The raw excerpt was cut mid-URL. Not a usable link.
+- **F-X3 (Kalshi-named third-party sources).** Guardian, Reuters, NYTimes, AP, ESPN, FIFA, and CF Benchmarks appear only as `settlement_sources[]` names returned by the API. They confirm what an event declares, not any news fact.
+
+**Request to the integration session (shared output, not edited here).** Publish F-X1, F-X2, and F-X3 on `flagged.html` with the links above, and link `reports/external-links-audit.md` from the Flagged page. This session did not edit `flagged.html`.
+
+**Publication plan.** PR from `arena/751ee13f-kalshidash2` to `main`, merge with `--merge`, then dispatch `audit-external-links.yml` on `main` so the runner writes the live reachability column. The result is recorded below when the run completes.
+
 ---
 
 # Session `a6bed09f` — live alerts, paper simulation, final integration

@@ -2,8 +2,10 @@ name: verify-live-site
 
 # Check the actual GitHub Pages deployment from a GitHub-hosted runner. Static
 # HTML assertions complement (but do not replace) the unit/DOM test suites.
-# Reports are retained as run artifacts so parallel verification jobs cannot
-# race to push commits to main.
+# The report is both committed to reports/ (session b6799ff3's design, kept
+# from main) and uploaded as a run artifact (session a6bed09f's design, PR #28);
+# the commit step serialises via pull --rebase so parallel report writers do
+# not race.
 
 on:
   workflow_dispatch:
@@ -17,7 +19,7 @@ on:
       - ".github/workflows/verify-live.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: verify-live
@@ -100,6 +102,7 @@ jobs:
           }
 
           probe "/" "Highest-dollar live markets, tracked to resolution" "landing page"
+          probe "/" "Live events by topic" "landing board heading (proven needle from main)"
           probe "summary.html" "Executive summary" "executive summary"
           probe "summary.html" "Official basis / evidence" "summary source/evidence column"
           probe "summary.html" "id=\"defect-matrix\"" "defect rows include sources or evidence"
@@ -132,13 +135,28 @@ jobs:
           fi
           rm -f "$evidence"
 
+          # One-shot cleanup of the cached page bodies from the probe loop.
+          for p in "${!PAGE_BODY[@]}"; do rm -f "${PAGE_BODY[$p]}"; done
+
           echo >> "$OUT"
           echo "**Failures: $fail**" >> "$OUT"
           cat "$OUT"
-
-          # Preserve the report via the next step even on failure, and make
-          # failed assertions fail the Actions check instead of silently pass.
+          echo "VERIFY_LIVE_FAILURES=$fail" >> "$GITHUB_ENV"
+          # Fail the step only AFTER the report is fully written and printed,
+          # so a red run still leaves the evidence behind (retained below).
           if [ "$fail" -gt 0 ]; then exit 1; fi
+
+      - name: Commit the report
+        if: always()
+        run: |
+          mkdir -p reports
+          cp live-report.md "reports/live-site-${{ github.run_number }}.md"
+          git config user.name  "verify-live[bot]"
+          git config user.email "verify-live@users.noreply.github.com"
+          git add -A reports/
+          git commit -m "reports: live site check ${{ github.run_number }} (failures: $VERIFY_LIVE_FAILURES) [skip ci]" || echo "nothing to commit"
+          git pull --rebase --autostash || true
+          git push
 
       - name: Upload live-site report
         if: always()
