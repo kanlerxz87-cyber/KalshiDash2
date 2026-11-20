@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const { AlertEngine } = await import(path.join(ROOT, "assets/js/alerts.js"));
+const { AlertEngine } = await import(path.join(ROOT, "assets/js/alert-engine.js"));
 const { loadSettledUniverse, loadHistory, toSeries, replayAll, aggregate } =
   await import(path.join(ROOT, "assets/js/simulator.js"));
 const { ALERT, TRADE_SCREEN, STRATEGIES } = await import(path.join(ROOT, "assets/js/config.js"));

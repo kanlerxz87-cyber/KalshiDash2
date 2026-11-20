@@ -1,0 +1,30 @@
+name: Static site link check
+
+# Checks the published site itself (the repository root is what GitHub Pages
+# serves) and runs the page-runtime harness that executes every page's
+# JavaScript against a DOM shim with live-shaped API fixtures.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test link checker
+        run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Validate local links and anchors in the published site
+        run: python tools/check_site_links.py .
+      - name: Alert engine unit tests
+        run: node --test tests/alerts-core.test.mjs
+      - name: Page runtime and local-link check
+        run: node tools/verify/page-runtime-check.mjs

@@ -241,14 +241,20 @@
     <div class="irregularity" id="F16">
       <h3>F16 — The alert scan is bounded, so some swings are never reported <span class="tag warn">open</span></h3>
       <p><strong>What is unverified:</strong> that the alert feed has seen every open market on the demo
-        exchange. Each poll reads at most six pages of 200 open events — 1,200 events — because the
-        unauthenticated request budget is not published and must not be guessed at.</p>
+        exchange. Two bounds apply, both because the unauthenticated request budget is not published and must
+        not be guessed at:</p>
+      <ul style="margin:6px 0 6px 18px">
+        <li>the <a href="alerts.html">Live alerts</a> page keeps the <strong>top 30 markets per topic</strong>
+          by money traded, and rescans the open-event list every 10 minutes;</li>
+        <li>the reusable engine behind the <a href="simulator.html">paper trader</a> reads at most
+          <strong>six pages of 200 open events — 1,200 events</strong> per poll.</li>
+      </ul>
       <p><strong>Impact:</strong> a swing in a market outside the scanned window is not posted, and the
         "all events" chat is therefore "all qualifying swings <em>within the scanned window</em>", not "all
         qualifying swings on the exchange".</p>
-      <p><strong>Status here:</strong> the bound and the number of events actually scanned are shown in the
-        feed's footer on every poll, so the coverage of the feed is always visible. The scan size is a
-        constant in <code>assets/js/config.js</code> and can be raised.</p>
+      <p><strong>Status here:</strong> the bound and the number of events actually scanned are shown on the
+        Live alerts page — under the feeds and in the scan summary line — so the coverage of the feed is
+        always visible. The scan sizes are constants in <code>assets/js/config.js</code> and can be raised.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
@@ -285,6 +291,79 @@
         Pages configuration change, which also avoids racing another session over the same setting.</p>
       <p class="small"><strong>Evidence:</strong>
         <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">Pages publishing source ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4 · Live alerts page (session <code>4208a2dd</code>, added 2026-11-20)</h2>
+    <p class="sub" style="margin-bottom:8px">Items that need your review on <a href="alerts.html">Live alerts</a>. None of them is a verified forecast.</p>
+
+    <div class="irregularity" id="A1">
+      <h3>A1 — The "High-ROI" filter is a rule set, not your model <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the brief asks for alerts that "our model likes as high ROI". No model was supplied, so the page uses four transparent rules: a two-sided quote, a spread of at most $0.05, a price after the move between $0.10 and $0.90, and open interest of at least one contract. Expected return is never computed.</p>
+      <p><strong>Decision needed:</strong> replace the rules in <code>assets/js/alerts-core.js</code> (<code>WATCH_RULES</code>, <code>watchCheck</code>) with your model, or confirm these rules.</p>
+      <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> (quote, price and open-interest fields)</p>
+    </div>
+
+    <div class="irregularity" id="A2">
+      <h3>A2 — Alerts are only recorded while the page is open <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> polling runs in the browser tab. A move that happens while no tab is open is not recorded, and nothing is stored server-side. The poll interval is 5–60 seconds, so a move that starts and reverts between polls is not seen.</p>
+      <p><strong>Decision needed:</strong> accept browser-only polling, or add a scheduled server-side recorder (GitHub Actions cron has a 5-minute minimum interval, so it cannot match 5-second polling).</p>
+    </div>
+
+    <div class="irregularity" id="A3">
+      <h3>A3 — Alert price is the last traded price, and moves inside one poll are combined <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the alert compares <code>last_price_dollars</code> between two polls. Quote-only moves (bid or ask without a trade) do not alert, and a move that goes up and back down within one interval produces no alert.</p>
+      <p><strong>Status here:</strong> the rule is stated on the page and unit-tested. Quote-mid alerts are not implemented.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A4">
+      <h3>A4 — "Settlement sources" are not causes of a price move <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the brief asks for links that may have caused a sharp jump. The API does not report the cause of a move. The page links the sources the event record lists under <code>settlement_sources</code>, which is where the outcome is determined. Those links show where to check news on the same subject. They do not prove the cause.</p>
+      <p><strong>Live check:</strong> whether the event record returns <code>settlement_sources</code> is recorded in <code>reports/alerts-live-check.md</code> §4 by the verify-alerts workflow.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A5">
+      <h3>A5 — Simulated trades ignore fees, slippage and queue position <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the paper strategies enter at the displayed ask for one contract, mark at the best bid, and settle at $1 or $0. Kalshi fees are not deducted, and a real order may not fill at the displayed ask. Simulated P&amp;L is therefore optimistic.</p>
+      <p><strong>Source for fees:</strong> <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Kalshi fee schedule (PDF) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A6">
+      <h3>A6 — The alert universe is partial by design <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the page watches the top 30 open markets per topic by money traded, and scans at most 12 pages of 200 open events. A market outside the top 30 can move ≥ $0.10 without an alert.</p>
+      <p><strong>Status here:</strong> the page states the universe, the scanned event count, and a warning when the scan may have hit its page limit.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A7">
+      <h3>A7 — The batch size of 25 tickers is not a documented limit <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the Get Markets page documents <code>tickers</code> as a comma-separated list, but it publishes no maximum length. The page sends 25 per request. On 2026-11-20 a GitHub-runner read of 25 tickers and of 100 tickers each returned every requested market (<code>reports/alerts-live-check.md</code> §2–3). Those two observations do not establish a maximum.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A8">
+      <h3>A8 — No numeric rate limit is published for unauthenticated reads <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the Rate Limits page says unauthenticated requests have separate limits and tells clients to back off on HTTP 429. It gives no number for those limits.</p>
+      <p><strong>Status here:</strong> on a 429 the poll interval doubles, capped at five minutes, until a poll succeeds.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A9">
+      <h3>A9 — Two status vocabularies, and the sources register is missing <code>paused</code> <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter lists <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code> and <code>settled</code>. The board's source entry S6 lists the filter values without <code>paused</code>. The page treats <code>active</code> and <code>open</code> as live.</p>
+      <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest.</p>
+      <p><strong>Decision needed:</strong> confirm the mapping and correct S6 in <code>docs/sources.html</code> if you want it corrected.</p>
+      <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="R1">
+      <h3>R1 — The Pages link check covers <code>docs/</code>, not the root site that visitors see <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>.github/workflows/site-check.yml</code> runs <code>tools/check_site_links.py docs</code>. GitHub Pages is configured with source <code>main:/</code>, so the root site (<code>index.html</code>, <code>alerts.html</code> and the rest) is what visitors see, and CI does not check it.</p>
+      <p><strong>Checked here:</strong> running the same checker on the repository root passes (33 HTML files, no broken local links or anchors), including the new page. CI is unchanged.</p>
+      <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">Pages publishing source ↗</a></p>
     </div>
   </div>
 

@@ -1,0 +1,60 @@
+name: verify-alerts
+
+# Verifies the live alerts page (alerts.html) on a GitHub-hosted runner:
+#   1. unit tests for the alert engine (no network),
+#   2. DOM end-to-end test of the page with scripted fixtures (no network),
+#   3. a read-only check of the live Kalshi DEMO API calls the page makes,
+#      written to reports/alerts-live-check.md and committed back to the branch.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "alerts.html"
+      - "simulator.html"
+      - "assets/js/alerts*.js"
+      - "assets/js/alert-engine.js"
+      - "assets/js/config.js"
+      - "assets/js/market.js"
+      - "tests/**"
+      - ".github/workflows/verify-alerts.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: verify-alerts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unit tests (alert engine)
+        run: node --test tests/alerts-core.test.mjs
+
+      - name: DOM end-to-end test (alerts.html with fixtures)
+        working-directory: tests/dom
+        run: |
+          npm ci
+          node alerts-dom.mjs
+
+      - name: Live read-only check (Kalshi DEMO API)
+        run: node tests/live-alerts-check.mjs
+
+      - name: Commit live-check report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/alerts-live-check.md
+          if git diff --staged --quiet; then
+            echo "no change"
+          else
+            git commit -m "reports: live alerts check from Kalshi demo API [skip ci]"
+            git push || echo "push skipped"
+          fi

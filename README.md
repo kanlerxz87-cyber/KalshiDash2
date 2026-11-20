@@ -39,14 +39,16 @@ fetched in the browser and never transcribed into the repo.
 - **Overview** — every live event in the five topics, ranked by money traded, open interest or
   contract volume, with the formula for each shown inline, plus the biggest $0.10+ swings in
   the current scan.
-- **Live alerts** — a scrolling chat of every contract-price swing of **$0.10 or more in either
-  direction**, and a second chat filtered to the moves the model screen likes. Every message
-  carries the exact API response, the score breakdown, and the sources Kalshi publishes for
-  deciding that market.
+- **Live alerts** — two scrolling chats: every contract-price swing of **$0.10 or more in either
+  direction**, and a **High-ROI watch** of the moves that pass a transparent rule set (a
+  placeholder for a model, not an edge). Swings are detected two ways — against the exchange's own
+  `previous_price_dollars` and between two consecutive polls — and every message is labelled with
+  the comparison that produced it. A table view of the same events carries one official API link
+  per row. Four paper strategies run automatically on the alerts; no orders are placed.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
   simulated trade is scored against the market's own `settlement_value_dollars`, with the
   assumptions (no fees, no spread, no slippage) stated above the results. Includes a live
-  paper-trading book.
+  paper-trading book driven by the same alert engine as the Live alerts page.
 - **Category pages** (gas, elections, culture, crypto, golf) — the live board for that topic,
   a price chart with 10s → 7d windows, markers on every ≥$0.10 jump inside the official candle
   series, and order-book depth showing how many contracts rest at each price.
@@ -75,8 +77,8 @@ fetched in the browser and never transcribed into the repo.
 ```
 index.html                overview board            <- published site root (Pages: main:/)
   summary.html            executive summary
-  alerts.html             live price alerts (two scrolling chats)
-  simulator.html          strategy tester + live paper trading
+  alerts.html             live alerts: $0.10+ swings, High-ROI watch, paper strategies
+  simulator.html          strategy tester (backtest over official candles)
   categories/*.html       one page per topic
   event.html              single-event detail
   resolved.html           resolution tracking
@@ -106,8 +108,16 @@ python3 -m http.server 8080
 
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
-node tools/verify/page-runtime-check.mjs  # every published page executes cleanly
+node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
+node --test tests/alerts-core.test.mjs    # alert engine unit tests
+(cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures
+python3 tools/check_site_links.py .       # local links and anchors in the published site
+python3 -m unittest discover -s tools     # link-checker tests
 ```
+
+The live-API checks run on GitHub runners, because the build sandbox cannot open TLS to
+Kalshi hosts: `verify-alerts` writes `reports/alerts-live-check.md`, and `live-engine-check`
+writes `reports/live-engine-check.md`.
 
 See `verification.html` for the full claim register and `flagged.html` for everything
 that could not be confirmed.

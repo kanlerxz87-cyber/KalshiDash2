@@ -495,46 +495,10 @@ export function detectJumps(points, threshold = 0.10) {
  * component breakdown so the UI can show exactly why a market was surfaced.
  * Every input is a documented market field; nothing is inferred.
  */
-export function screenMarket(market, { now = Date.now(), components } = {}) {
-  const comps = components || [];
-  const last = num(market.last_price_dollars);
-  const bid = num(market.yes_bid_dollars);
-  const ask = num(market.yes_ask_dollars);
-  const bidSize = num(market.yes_bid_size_fp);
-  const askSize = num(market.yes_ask_size_fp);
-  const oi = num(market.open_interest_fp);
-  const vol24 = num(market.volume_24h_fp);
-  const close = market.close_time ? Date.parse(market.close_time) : null;
-  const hoursLeft = close && Number.isFinite(close) ? (close - now) / 3600000 : null;
-
-  const spread = (bid !== null && ask !== null) ? Number((ask - bid).toFixed(4)) : null;
-  const depth = (bidSize !== null || askSize !== null) ? (bidSize || 0) + (askSize || 0) : null;
-
-  const inputs = {
-    open_interest_fp: oi,
-    "yes_ask_dollars − yes_bid_dollars": spread,
-    "yes_bid_size_fp + yes_ask_size_fp": depth,
-    last_price_dollars: last,
-    close_time: hoursLeft,
-    volume_24h_fp: vol24
-  };
-
-  const parts = [];
-  let score = 0;
-  for (const c of comps) {
-    const raw = inputs[c.field];
-    let got = 0;
-    if (raw === null || raw === undefined) {
-      got = 0;                       // a field the API did not return scores nothing
-    } else {
-      got = c.score(raw);
-    }
-    parts.push({ key: c.key, label: c.label, rule: c.rule, max: c.max, got, input: raw });
-    score += got;
-  }
-  const max = comps.reduce((a, c) => a + c.max, 0) || 100;
-  return { score: Math.round(score), max, parts, spread, depth, hoursLeft, last, bid, ask };
-}
+/* The tradeability screen lives in alerts-core.js so the browser and the Node
+ * tests read one implementation. Re-exported here because the data layer is
+ * where the market object it scores comes from. */
+export { screenMarket } from "./alerts-core.js";
 
 /* ---------------- event context ----------------
  *
