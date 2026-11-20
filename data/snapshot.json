@@ -1,0 +1,741 @@
+{
+  "captured_on": "2026-11-20",
+  "capture_method": "Every value below was copied from a JSON response or official page returned by the fetch tool on 2026-11-20. The exact response time is not returned by the tool. Kalshi values are live and can change; re-check the linked URL before relying on a value.",
+  "sandbox_limit": "The build sandbox cannot reach Kalshi or EIA directly (outbound allow-list only). Values were collected through the page-fetch tool, so this is a sample, not a full dump of every Kalshi market.",
+  "topics": {
+    "gas": {
+      "label": "Gas prices",
+      "kalshi_filter": "series?tags=Gas (category Economics)",
+      "intro": "Kalshi's gas-tagged contracts are two US diesel series. Their contract terms reference EIA data. Retail and spot reference prices are listed from EIA's official tables."
+    },
+    "elections": {
+      "label": "Elections",
+      "kalshi_filter": "series?category=Elections",
+      "intro": "Election series returned by the Kalshi API, with the market rows that were captured."
+    },
+    "culture": {
+      "label": "Culture",
+      "kalshi_filter": "series?category=Culture",
+      "intro": "Culture series returned by the Kalshi API. Neither series returned any markets when queried."
+    },
+    "crypto": {
+      "label": "Crypto",
+      "kalshi_filter": "series?category=Crypto",
+      "intro": "Crypto series and the Bitcoin $100k ladder, including finalized outcomes."
+    },
+    "golf": {
+      "label": "Golf",
+      "kalshi_filter": "series?tags=Golf (category Sports)",
+      "intro": "Golf series returned by the Kalshi API, and the captured 2nd-round PGA 3-ball markets."
+    }
+  },
+  "series": [
+    {
+      "id": "S-GAS-01",
+      "topic": "gas",
+      "ticker": "DIESEL",
+      "title": "Diesel price this week",
+      "category": "Economics",
+      "tags": "Gas",
+      "frequency": "weekly",
+      "settlement_sources": "Energy Information Administration (eia.gov PET_PRI_SPT_S1_D, per API). Contract PDF names a different EIA table; see F-02.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Gas&limit=5",
+      "flags": [
+        "F-02",
+        "F-01"
+      ]
+    },
+    {
+      "id": "S-GAS-02",
+      "topic": "gas",
+      "ticker": "DIESELM",
+      "title": "Diesel price this month",
+      "category": "Economics",
+      "tags": "Gas",
+      "frequency": "monthly",
+      "settlement_sources": "Energy Information Administration (eia.gov PET_PRI_SPT_S1_D, per API)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Gas&limit=5",
+      "flags": [
+        "F-01"
+      ]
+    },
+    {
+      "id": "S-ELEC-01",
+      "topic": "elections",
+      "ticker": "KXSNAPELECTION",
+      "title": "fdajkladfsjklasdfjkl;adfsljk;afds",
+      "category": "Elections",
+      "tags": "",
+      "frequency": "one_off",
+      "settlement_sources": "ABC, Fox News, MSNBC, The Guardian, WSJ, Semafor, BBC, Bloomberg, and others (list per API)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "flags": [
+        "F-05"
+      ]
+    },
+    {
+      "id": "S-ELEC-02",
+      "topic": "elections",
+      "ticker": "KXSENATELAR",
+      "title": "LAR",
+      "category": "Elections",
+      "tags": "Primaries",
+      "frequency": "one_off",
+      "settlement_sources": "Republican Party (gop.com); Democratic Party (democrats.org)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "flags": [
+        "F-06"
+      ]
+    },
+    {
+      "id": "S-ELEC-03",
+      "topic": "elections",
+      "ticker": "PRESPARTYOH",
+      "title": "Ohio presidential winner",
+      "category": "Elections",
+      "tags": "US Elections",
+      "frequency": "custom",
+      "settlement_sources": "Library of Congress (congress.gov)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-ELEC-04",
+      "topic": "elections",
+      "ticker": "KXSAANICHMAYOR",
+      "title": "Saanich mayoral election winner",
+      "category": "Elections",
+      "tags": "International elections",
+      "frequency": "one_off",
+      "settlement_sources": "District of Saanich Chief Election Officer (saanich.ca)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-CULT-01",
+      "topic": "culture",
+      "ticker": "KXXBANNEDMURRAYHILLGUY1",
+      "title": "Will @MurrayHillGuy1 get banned from X this year?",
+      "category": "Culture",
+      "tags": "",
+      "frequency": "one_off",
+      "settlement_sources": "Long list per API, including Google search URLs and the placeholder text \"account holder of \"",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Culture&limit=5",
+      "flags": [
+        "F-08"
+      ]
+    },
+    {
+      "id": "S-CULT-02",
+      "topic": "culture",
+      "ticker": "KXXBANNEDGROK",
+      "title": "Will Grok be banned this year",
+      "category": "Culture",
+      "tags": "AI",
+      "frequency": "one_off",
+      "settlement_sources": "Same long list as KXXBANNEDMURRAYHILLGUY1, per API",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Culture&limit=5",
+      "flags": [
+        "F-07",
+        "F-08"
+      ]
+    },
+    {
+      "id": "S-CRYP-01",
+      "topic": "crypto",
+      "ticker": "KXBTCMAX100",
+      "title": "When will bitcoin hit 100k?",
+      "category": "Crypto",
+      "tags": "Crypto, BTC, Bitcoin",
+      "frequency": "annual",
+      "settlement_sources": "CF Benchmarks (BRTI)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series/KXBTCMAX100",
+      "flags": [
+        "F-09"
+      ]
+    },
+    {
+      "id": "S-CRYP-02",
+      "topic": "crypto",
+      "ticker": "KXBTCMINMAXY",
+      "title": "Bitcoin min/max",
+      "category": "Crypto",
+      "tags": "BTC",
+      "frequency": "annual",
+      "settlement_sources": "CF Benchmarks (BRTI)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-CRYP-03",
+      "topic": "crypto",
+      "ticker": "ETHMAXY",
+      "title": "How high will Ethereum get this year?",
+      "category": "Crypto",
+      "tags": "ETH",
+      "frequency": "annual",
+      "settlement_sources": "CF Benchmarks (ETHUSD RTI)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-CRYP-04",
+      "topic": "crypto",
+      "ticker": "KXBTCD-B",
+      "title": "Bitcoin on election day",
+      "category": "Crypto",
+      "tags": "BTC",
+      "frequency": "custom",
+      "settlement_sources": "CF Benchmarks (BRTI)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-CRYP-05",
+      "topic": "crypto",
+      "ticker": "KXNEARMAXMON",
+      "title": "NEAR Max Monthly",
+      "category": "Crypto",
+      "tags": "",
+      "frequency": "monthly",
+      "settlement_sources": "CF Benchmarks",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-CRYP-06",
+      "topic": "crypto",
+      "ticker": "KXWAL25",
+      "title": "Wal $1 2025",
+      "category": "Crypto",
+      "tags": "",
+      "frequency": "one_off",
+      "settlement_sources": "CoinMarketCap USD price; CoinGecko USD price",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": [
+        "F-11"
+      ]
+    },
+    {
+      "id": "S-CRYP-07",
+      "topic": "crypto",
+      "ticker": "KXAIRDROPHYPE",
+      "title": "HYPE airdrop",
+      "category": "Crypto",
+      "tags": "Crypto, HYPE, Pre-Market",
+      "frequency": "custom",
+      "settlement_sources": "Long list per API, including \"CoinTelegraph\" linked to https://bitchat.free/",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": [
+        "F-10"
+      ]
+    },
+    {
+      "id": "S-CRYP-08",
+      "topic": "crypto",
+      "ticker": "KXFDVFOOTBALLFUN",
+      "title": "Football Fun",
+      "category": "Crypto",
+      "tags": "Crypto, Pre-Market",
+      "frequency": "one_off",
+      "settlement_sources": "CoinGecko",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "flags": [
+        "F-12"
+      ]
+    },
+    {
+      "id": "S-GOLF-01",
+      "topic": "golf",
+      "ticker": "KXPGA3BALL",
+      "title": "PGA 3-Ball",
+      "category": "Sports",
+      "tags": "Golf",
+      "frequency": "custom",
+      "settlement_sources": "Fox Sports; ESPN; the Governing League (pgatour.com); Golf Channel",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "flags": [
+        "F-13"
+      ]
+    },
+    {
+      "id": "S-GOLF-02",
+      "topic": "golf",
+      "ticker": "KXPGAH2H",
+      "title": "PGA Head-to-Head Matchups",
+      "category": "Sports",
+      "tags": "Golf",
+      "frequency": "custom",
+      "settlement_sources": "Fox Sports; NBC Sports; The Wall Street Journal; ESPN; the Associated Press; the Governing League (pgatour.com); Golf Channel",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-GOLF-03",
+      "topic": "golf",
+      "ticker": "KXPGASOLHEIM",
+      "title": "Solheim Cup",
+      "category": "Sports",
+      "tags": "Golf",
+      "frequency": "annual",
+      "settlement_sources": "The Wall Street Journal; ESPN; Fox Sports",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "flags": []
+    },
+    {
+      "id": "S-GOLF-04",
+      "topic": "golf",
+      "ticker": "KXDPWORLDTOUR",
+      "title": "DP World Tour Tournament Winner",
+      "category": "Sports",
+      "tags": "Golf",
+      "frequency": "annual",
+      "settlement_sources": "DP World Tour (europeantour.com/dpworld-tour/schedule)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "flags": [
+        "F-14"
+      ]
+    },
+    {
+      "id": "S-GOLF-05",
+      "topic": "golf",
+      "ticker": "KXBRYSONCOURSERECORDS",
+      "title": "Bryson Course Records",
+      "category": "Sports",
+      "tags": "Golf",
+      "frequency": "custom",
+      "settlement_sources": "Bryson DeChambeau's YouTube channel (youtube.com/@brysondechambeau)",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "flags": [
+        "F-15"
+      ]
+    }
+  ],
+  "markets": [
+    {
+      "id": "M-ELEC-01",
+      "topic": "elections",
+      "ticker": "KXNEXTNATOSECGEN-99-KKAL",
+      "title": "Will Kaja Kallas be the next Secretary General of NATO?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.1300",
+      "yes_bid": "0.1200",
+      "yes_ask": "0.1900",
+      "volume_contracts": "1962.46",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "1168.68",
+      "close_time": "2099-01-08T15:00:00Z",
+      "source_url": "https://api.elections.kalshi.com/trade-api/v2/events?status=open&limit=5&with_nested_markets=true",
+      "flags": []
+    },
+    {
+      "id": "M-ELEC-02",
+      "topic": "elections",
+      "ticker": "KXNEXTNATOSECGEN-99-KIOH",
+      "title": "Will Klaus Iohannis be the next Secretary General of NATO?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0400",
+      "yes_bid": "0.0200",
+      "yes_ask": "0.0400",
+      "volume_contracts": "383.36",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "95.00",
+      "close_time": "2099-01-08T15:00:00Z",
+      "source_url": "https://api.elections.kalshi.com/trade-api/v2/events?status=open&limit=5&with_nested_markets=true",
+      "flags": []
+    },
+    {
+      "id": "M-CRYP-01",
+      "topic": "crypto",
+      "ticker": "KXBTCMAX100-26-DEC",
+      "title": "Will Bitcoin be above $100000.00 by Jan 1, 2027 at 12:00AM ET?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0200",
+      "yes_bid": "0.0200",
+      "yes_ask": "0.0300",
+      "volume_contracts": "1839068.31",
+      "volume_24h_contracts": "23277.66",
+      "open_interest_contracts": "623350.72",
+      "close_time": "2027-01-01T05:00:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMAX100-26-DEC",
+      "flags": []
+    },
+    {
+      "id": "M-CRYP-02",
+      "topic": "crypto",
+      "ticker": "KXBTCMAX100-26-NOV",
+      "title": "Will Bitcoin be above $100000 by December 1, 2026 at 12:00AM ET?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0100",
+      "yes_bid": "0.0000",
+      "yes_ask": "0.0100",
+      "volume_contracts": "470187.57",
+      "volume_24h_contracts": "11171.81",
+      "open_interest_contracts": "246563.50",
+      "close_time": "2026-12-01T05:00:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&status=open&limit=20",
+      "flags": [
+        "F-09"
+      ]
+    },
+    {
+      "id": "M-CRYP-03",
+      "topic": "crypto",
+      "ticker": "KXBTCMAX100-26-SEP",
+      "title": "Will Bitcoin be above $100000 by October 1, 2026 at 12:00AM ET?",
+      "status": "finalized",
+      "result": "no",
+      "last_price": "0.0100",
+      "yes_bid": "",
+      "yes_ask": "",
+      "volume_contracts": "1920697.52",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "1022099.10",
+      "close_time": "2026-10-01T04:00:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&status=settled&limit=5",
+      "flags": [],
+      "settled_at": "2026-10-03T16:25:37Z",
+      "settlement_value_dollars": "0.0000"
+    },
+    {
+      "id": "M-CRYP-04",
+      "topic": "crypto",
+      "ticker": "KXBTCMAX100-26-OCT",
+      "title": "Will Bitcoin be above $100000 by November 1, 2026 at 12:00AM ET?",
+      "status": "finalized",
+      "result": "no",
+      "last_price": "0.0100",
+      "yes_bid": "",
+      "yes_ask": "",
+      "volume_contracts": "482855.68",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "187051.45",
+      "close_time": "2026-11-01T04:00:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&status=settled&limit=5",
+      "flags": [],
+      "settled_at": "2026-11-01T18:17:58Z",
+      "settlement_value_dollars": "0.0000"
+    },
+    {
+      "id": "M-GOLF-01",
+      "topic": "golf",
+      "ticker": "KXPGA3BALL-THRC26R2MATKJPAURHOS-RHOS",
+      "title": "Will Rikuya Hoshino win the 2nd round 3-ball matchup?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0000",
+      "yes_bid": "0.3400",
+      "yes_ask": "0.3700",
+      "volume_contracts": "0.00",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "0.00",
+      "close_time": "2026-12-04T15:42:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXPGA3BALL&status=open&limit=20",
+      "flags": [
+        "F-13"
+      ]
+    },
+    {
+      "id": "M-GOLF-02",
+      "topic": "golf",
+      "ticker": "KXPGA3BALL-THRC26R2MATKJPAURHOS-MATK",
+      "title": "Will Matt Atkins win the 2nd round 3-ball matchup?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0000",
+      "yes_bid": "0.2900",
+      "yes_ask": "0.3100",
+      "volume_contracts": "0.00",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "0.00",
+      "close_time": "2026-12-04T15:42:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXPGA3BALL&status=open&limit=20",
+      "flags": [
+        "F-13"
+      ]
+    },
+    {
+      "id": "M-GOLF-03",
+      "topic": "golf",
+      "ticker": "KXPGA3BALL-THRC26R2MATKJPAURHOS-JPAU",
+      "title": "Will Jeremy Paul win the 2nd round 3-ball matchup?",
+      "status": "active",
+      "result": "",
+      "last_price": "0.0000",
+      "yes_bid": "0.3400",
+      "yes_ask": "0.3700",
+      "volume_contracts": "0.00",
+      "volume_24h_contracts": "0.00",
+      "open_interest_contracts": "0.00",
+      "close_time": "2026-12-04T15:42:00Z",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXPGA3BALL&status=open&limit=20",
+      "flags": [
+        "F-13"
+      ]
+    }
+  ],
+  "reference_prices": [
+    {
+      "id": "R-GAS-01",
+      "topic": "gas",
+      "name": "Diesel (On-Highway), All Types - U.S. retail, week of 11/16/26",
+      "value": "5.937",
+      "unit": "$/gallon incl. taxes",
+      "date": "2026-11-16",
+      "source_url": "https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm",
+      "note": "Table named in the DIESEL contract terms. Latest week shown on the page at capture.",
+      "comparison": "6.127 (11/09/26)"
+    },
+    {
+      "id": "R-GAS-02",
+      "topic": "gas",
+      "name": "Gasoline, All Grades - U.S. retail, week of 11/16/26",
+      "value": "3.945",
+      "unit": "$/gallon incl. taxes",
+      "date": "2026-11-16",
+      "source_url": "https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm",
+      "note": "U.S. area only. California and San Francisco were not captured.",
+      "comparison": "4.134 (11/09/26)"
+    },
+    {
+      "id": "R-GAS-03",
+      "topic": "gas",
+      "name": "Gasoline, Regular - U.S. retail, week of 11/16/26",
+      "value": "3.805",
+      "unit": "$/gallon incl. taxes",
+      "date": "2026-11-16",
+      "source_url": "https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm",
+      "note": "",
+      "comparison": "3.995 (11/09/26)"
+    },
+    {
+      "id": "R-GAS-04",
+      "topic": "gas",
+      "name": "Ultra-Low-Sulfur Diesel, New York Harbor (spot) - 11/18/26",
+      "value": "3.999",
+      "unit": "$/gallon",
+      "date": "2026-11-18",
+      "source_url": "https://www.eia.gov/petroleum/prices/table.php?show_by=12_series&period=D&table_key=PET_PRI_SPT_S1_D",
+      "note": "Spot (wholesale) table. This is the EIA table the API lists as the DIESEL settlement source; see F-02.",
+      "comparison": "4.345 (11/13/26)"
+    },
+    {
+      "id": "R-GAS-05",
+      "topic": "gas",
+      "name": "Ultra-Low-Sulfur Diesel, U.S. Gulf Coast (spot) - 11/18/26",
+      "value": "3.895",
+      "unit": "$/gallon",
+      "date": "2026-11-18",
+      "source_url": "https://www.eia.gov/petroleum/prices/table.php?show_by=12_series&period=D&table_key=PET_PRI_SPT_S1_D",
+      "note": "Spot table.",
+      "comparison": "4.233 (11/13/26)"
+    },
+    {
+      "id": "R-GAS-06",
+      "topic": "gas",
+      "name": "Conventional Gasoline, New York Harbor, Regular (spot) - 11/18/26",
+      "value": "2.270",
+      "unit": "$/gallon",
+      "date": "2026-11-18",
+      "source_url": "https://www.eia.gov/petroleum/prices/table.php?show_by=12_series&period=D&table_key=PET_PRI_SPT_S1_D",
+      "note": "Spot table.",
+      "comparison": "2.418 (11/13/26)"
+    },
+    {
+      "id": "R-GAS-07",
+      "topic": "gas",
+      "name": "WTI - Cushing, Oklahoma (crude, spot) - 11/18/26",
+      "value": "86.81",
+      "unit": "$/barrel",
+      "date": "2026-11-18",
+      "source_url": "https://www.eia.gov/petroleum/prices/table.php?show_by=12_series&period=D&table_key=PET_PRI_SPT_S1_D",
+      "note": "Spot table.",
+      "comparison": "91.96 (11/13/26)"
+    },
+    {
+      "id": "R-GAS-08",
+      "topic": "gas",
+      "name": "Brent - Europe (crude, spot) - 11/18/26",
+      "value": "92.88",
+      "unit": "$/barrel",
+      "date": "2026-11-18",
+      "source_url": "https://www.eia.gov/petroleum/prices/table.php?show_by=12_series&period=D&table_key=PET_PRI_SPT_S1_D",
+      "note": "Spot table.",
+      "comparison": "95.17 (11/13/26)"
+    }
+  ],
+  "flags": [
+    {
+      "id": "F-01",
+      "topic": "gas",
+      "subject": "DIESEL, DIESELM",
+      "issue": "Queried for open markets (DIESEL, status=open) and for any status (DIESELM); both returned an empty markets list. No Kalshi price was captured for either series.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=DIESEL&status=open&limit=20",
+      "severity": "High"
+    },
+    {
+      "id": "F-02",
+      "topic": "gas",
+      "subject": "DIESEL settlement source",
+      "issue": "The API lists the EIA spot table (PET_PRI_SPT_S1_D). The DIESEL contract terms say the underlying is 'Diesel (On Highway) - All Types' from EIA's Weekly Retail Gasoline and Diesel Prices table (PET_PRI_GND_DCUS_NUS_W). The two EIA tables are different. Needs manual confirmation against the official contract terms.",
+      "source_url": "https://assets.kalshi.com/contract_terms/DIESEL.pdf",
+      "severity": "High"
+    },
+    {
+      "id": "F-03",
+      "topic": "gas",
+      "subject": "Gasoline coverage",
+      "issue": "Querying series by tag Gas returned only two series (both diesel). No Kalshi retail gasoline series was found by this query. The check was tag-based and may miss series with other tags.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Gas&limit=5",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-04",
+      "topic": "gas",
+      "subject": "EIA area coverage",
+      "issue": "The EIA retail table was captured for the default U.S. area. California and San Francisco prices were not captured, so local gas prices are not in this snapshot.",
+      "source_url": "https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm",
+      "severity": "Low"
+    },
+    {
+      "id": "F-05",
+      "topic": "elections",
+      "subject": "KXSNAPELECTION",
+      "issue": "The series title reads 'fdajkladfsjklasdfjkl;adfsljk;afds', which looks like placeholder or test text in the production API. Its settlement sources are a generic list. Not a real-world event title. Excluded from analysis.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "severity": "High"
+    },
+    {
+      "id": "F-06",
+      "topic": "elections",
+      "subject": "KXSENATELAR",
+      "issue": "The series title is only 'LAR', so the event being priced is not stated in the title. The contract must be read to know what it is. Not interpreted here.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Elections&limit=5",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-07",
+      "topic": "culture",
+      "subject": "KXXBANNEDGROK",
+      "issue": "The series is listed, but a markets query returned an empty list. No price was captured.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXXBANNEDGROK&limit=5",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-08",
+      "topic": "culture",
+      "subject": "KXXBANNEDMURRAYHILLGUY1, KXXBANNEDGROK",
+      "issue": "Settlement sources include the placeholder text 'account holder of ', Google search URLs (for example, 'Ars Technica' and 'Engadget'), and Elon Musk's X profile. Several entries are not publisher home pages. Not an official resolution source.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Culture&limit=5",
+      "severity": "High"
+    },
+    {
+      "id": "F-09",
+      "topic": "crypto",
+      "subject": "KXBTCMAX100-26-NOV (and the series)",
+      "issue": "Both open Bitcoin $100k markets captured (KXBTCMAX100-26-NOV and -DEC) show updated_time 2026-09-08 while status is 'active'. The data may be stale. Compare against the live endpoint before relying on it.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&status=open&limit=20",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-10",
+      "topic": "crypto",
+      "subject": "KXAIRDROPHYPE",
+      "issue": "The settlement list names 'CoinTelegraph' but links to https://bitchat.free/, which does not match the publisher's name. Verify before use.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-11",
+      "topic": "crypto",
+      "subject": "KXWAL25",
+      "issue": "Title says 2025, but it is in the 2026 data set with last_updated_ts 2026-10-15. Status and relevance should be confirmed.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "severity": "Low"
+    },
+    {
+      "id": "F-12",
+      "topic": "crypto",
+      "subject": "KXFDVFOOTBALLFUN",
+      "issue": "Title 'Football Fun' does not say what is measured, and the series sits in the Crypto category with a CoinGecko settlement source. Contract terms should be read before classifying it.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?category=Crypto&limit=5",
+      "severity": "Low"
+    },
+    {
+      "id": "F-13",
+      "topic": "golf",
+      "subject": "KXPGA3BALL 2nd-round markets",
+      "issue": "All three captured markets show volume 0, open interest 0, and last_price 0.0000, but a non-zero two-sided quote (for example bid 0.34 / ask 0.37). The quote has not traded. Treat the price as a quote, not a traded price.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXPGA3BALL&status=open&limit=20",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-14",
+      "topic": "golf",
+      "subject": "KXDPWORLDTOUR",
+      "issue": "The series is listed, but an open-markets query returned an empty list.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXDPWORLDTOUR&status=open&limit=5",
+      "severity": "Low"
+    },
+    {
+      "id": "F-15",
+      "topic": "golf",
+      "subject": "KXBRYSONCOURSERECORDS",
+      "issue": "The only settlement source is a YouTube channel named after a participant (DeChambeau's own channel). This is not an independent source, so the resolution process should be checked before any use.",
+      "source_url": "https://external-api.kalshi.com/trade-api/v2/series?tags=Golf&limit=5",
+      "severity": "High"
+    },
+    {
+      "id": "F-16",
+      "topic": "all",
+      "subject": "Status naming",
+      "issue": "The get-markets documentation lists status values unopened, open, closed, and settled. Responses in this capture label open markets 'active' and settled markets 'finalized'. The filter names and response values do not match.",
+      "source_url": "https://docs.kalshi.com/api-reference/market/get-markets",
+      "severity": "Medium"
+    },
+    {
+      "id": "F-17",
+      "topic": "all",
+      "subject": "Dollar volume",
+      "issue": "Volume fields are contract counts (volume_fp, volume_24h_fp, open_interest_fp). The market schema in the docs has no dollar-volume field. 'Highest dollar amount' therefore cannot be shown as reported dollars. Rankings here use contract counts.",
+      "source_url": "https://docs.kalshi.com/api-reference/market/get-markets",
+      "severity": "High"
+    },
+    {
+      "id": "F-18",
+      "topic": "all",
+      "subject": "Live dashboard browser access",
+      "issue": "The live dashboard reads the public Kalshi API from the visitor's browser. Whether the API accepts browser requests from GitHub Pages (CORS) could not be tested from the build sandbox. Unverified until tested after publish.",
+      "source_url": "https://docs.kalshi.com/getting_started/api_environments",
+      "severity": "High"
+    },
+    {
+      "id": "F-19",
+      "topic": "all",
+      "subject": "Trading and demo portfolio",
+      "issue": "No demo account credentials or API key were available. The sandbox cannot reach the demo API. No trades were placed, and no portfolio data was pulled. The portfolio, trade log, and strategy sections are blocked until a demo key is supplied.",
+      "source_url": "https://docs.kalshi.com/getting_started/api_keys",
+      "severity": "High"
+    },
+    {
+      "id": "F-20",
+      "topic": "repo",
+      "subject": "README and repo hygiene",
+      "issue": "README.md contained only the title '# KalshiDash2' at the start of this session. No LICENSE, .gitignore, or CI configuration was present in the repository.",
+      "source_url": "https://github.com/kanlerxz87-cyber/KalshiDash2",
+      "severity": "Low"
+    },
+    {
+      "id": "F-21",
+      "topic": "repo",
+      "subject": "GitHub Pages config",
+      "issue": "GitHub Pages is set to build legacy from branch main, path /. The site is served from the repository root, which is why the site files live there. Verified through the GitHub API.",
+      "source_url": "https://api.github.com/repos/kanlerxz87-cyber/KalshiDash2/pages",
+      "severity": "Low"
+    }
+  ]
+}
