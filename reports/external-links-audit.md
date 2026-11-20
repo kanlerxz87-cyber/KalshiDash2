@@ -1,13 +1,13 @@
 # External link audit
 
-Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751ee13f`).
+Generated 2026-11-20 19:19 UTC by `tools/audit_external_links.py` (session `751ee13f`).
 
 **What this is.** Every external `http(s)` URL found in tracked text files, classified by host.
 **What this is not.** A verdict on whether a cited fact is true. A host being official does not make a claim on the page correct.
 
-- Unique external URLs: **1314** (216 non-API, 1098 Kalshi API endpoint variants)
+- Unique external URLs: **1327** (229 non-API, 1098 Kalshi API endpoint variants)
 - Live HTTP check: **performed**
-- Flagged URLs: **67**
+- Flagged URLs: **68**
 
 ## Counts by class
 
@@ -19,11 +19,12 @@ Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751e
 | Kalshi asset host | 79 |
 | Kalshi demo site | 3 |
 | Kalshi help centre | 1 |
-| Kalshi official docs | 36 |
-| Kalshi official site | 2 |
-| Kalshi-named settlement source (news) | 4 |
+| Kalshi official docs | 37 |
+| Kalshi official site | 3 |
+| Kalshi-named settlement source (news) | 6 |
 | Kalshi-named settlement source (sports) | 2 |
-| OTHER (unclassified) | 1 |
+| OTHER (unclassified) | 9 |
+| Origin string (not a link) | 1 |
 | STAGING bucket (flag) | 66 |
 | Test fixture (reserved domain) | 3 |
 | This project's Pages site | 4 |
@@ -34,6 +35,7 @@ Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751e
 | URL | Flag | Note |
 | --- | --- | --- |
 | 66 URLs on `kalshi-public-docs-staging.s3.us-east-1.amazonaws.com` (e.g. <https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/AAADIESEL.pdf>, <https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/AAAGAS.pdf>) | staging host | Kalshi 'staging' S3 bucket; observed as the contract_url field in data/snapshot.json (market data) |
+| <https://www.abc.net.au/> | unrecognised TLD '.au' (possibly truncated) | Not in the host list; a reviewer must confirm it |
 | <https://www.politi> | unrecognised TLD '.politi' (possibly truncated) | Not in the host list; a reviewer must confirm it |
 
 ## Review notes (what each flag means)
@@ -50,16 +52,16 @@ Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751e
 | --- | --- | --- | --- | --- |
 | <https://github.com/advisories/GHSA-67mh-4wv8-2f99> | GitHub | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:38`, `flagged.html:373`, `reports/external-links-audit.md:51` |
 | <https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745300283> | GitHub | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:46`, `reports/external-links-audit.md:52` |
-| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/js/alert-engine.js> | GitHub | yes | HTTP 200 | `assets/js/claims.js:300`, `reports/external-links-audit.md:53` |
-| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/docs/assets/app.js> | GitHub | yes | HTTP 200 | `assets/js/claims.js:212`, `reports/external-links-audit.md:54` |
-| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/tools/verify/page-runtime-check.mjs> | GitHub | yes | HTTP 200 | `assets/js/claims.js:252`, `reports/external-links-audit.md:55` |
+| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/js/alert-engine.js> | GitHub | yes | HTTP 503 | `assets/js/claims.js:301`, `reports/external-links-audit.md:53` |
+| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/docs/assets/app.js> | GitHub | yes | HTTP 503 | `assets/js/claims.js:213`, `reports/external-links-audit.md:54` |
+| <https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/tools/verify/page-runtime-check.mjs> | GitHub | yes | HTTP 503 | `assets/js/claims.js:253`, `reports/external-links-audit.md:55` |
 | <https://github.com/kanlerxz87-cyber/KalshiDash2/branches> | GitHub | yes | HTTP 200 | `flagged.html:288`, `questions.html:241`, `reports/external-links-audit.md:56`, `suggestions.html:193` |
-| <https://github.com/kanlerxz87-cyber/KalshiDash2/commit/6081bb7> | GitHub | yes | HTTP 200 | `assets/js/claims.js:204`, `reports/external-links-audit.md:57` |
+| <https://github.com/kanlerxz87-cyber/KalshiDash2/commit/6081bb7> | GitHub | yes | HTTP 200 | `assets/js/claims.js:205`, `reports/external-links-audit.md:57` |
 | <https://github.com/kanlerxz87-cyber/KalshiDash2/commits/main> | GitHub | yes | HTTP 200 | `flagged.html:289`, `reports/external-links-audit.md:58` |
 | <https://github.com/kanlerxz87-cyber/KalshiDash2/pull/20> | GitHub | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:44`, `reports/external-links-audit.md:59` |
 | <https://github.com/kanlerxz87-cyber/KalshiDash2/pull/21> | GitHub | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:45`, `reports/external-links-audit.md:60` |
-| <https://github.com/kanlerxz87-cyber/KalshiDash2/tree/main/reports> | GitHub | yes | HTTP 200 | `assets/js/claims.js:220`, `reports/external-links-audit.md:61`, `suggestions.html:127` |
-| <https://docs.github.com/en/pages> | GitHub docs | yes | HTTP 200 | `assets/js/claims.js:208`, `questions.html:232`, `reports/external-links-audit.md:62` |
+| <https://github.com/kanlerxz87-cyber/KalshiDash2/tree/main/reports> | GitHub | yes | HTTP 200 | `assets/js/claims.js:221`, `reports/external-links-audit.md:61`, `suggestions.html:127` |
+| <https://docs.github.com/en/pages> | GitHub docs | yes | HTTP 200 | `assets/js/claims.js:209`, `questions.html:232`, `reports/external-links-audit.md:62` |
 | <https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site> | GitHub docs | yes | HTTP 200 | `docs/flagged.html:16`, `flagged.html:300`, `flagged.html:380`, `reports/external-links-audit.md:63` |
 | <https://assets.kalshi.com/contract_terms/AAADIESEL.pdf> | Kalshi asset host | yes | HTTP 200 | `data/snapshot.json:474`, `data/snapshot.json:688`, `data/snapshot.json:728`, `reports/external-links-audit.md:64` |
 | <https://assets.kalshi.com/contract_terms/AAAGAS.pdf> | Kalshi asset host | yes | HTTP 200 | `data/snapshot.json:300`, `data/snapshot.json:320`, `data/snapshot.json:398`, `data/snapshot.json:570` (+6 more) |
@@ -144,51 +146,64 @@ Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751e
 | <https://demo.kalshi.co/> | Kalshi demo site | yes | HTTP 200 | `docs/sources.html:9`, `reports/external-links-audit.md:144` |
 | <https://demo.kalshi.co/account/profile> | Kalshi demo site | yes | HTTP 200 | `portfolio.html:23`, `questions.html:63`, `reports/external-links-audit.md:145` |
 | <https://help.kalshi.com/en/articles/13823775-creating-and-using-a-demo-account> | Kalshi help centre | yes | HTTP 200 | `docs/sources.html:29`, `reports/external-links-audit.md:146` |
-| <https://docs.kalshi.com> | Kalshi official docs | yes | HTTP 200 | `README.md:23`, `assets/js/claims.js:13`, `assets/js/ui.js:152`, `data/snapshot.json:7` (+24 more) |
-| <https://docs.kalshi.com/api-reference/events/get-event> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `alerts.html:194`, `flagged.html:332`, `reports/external-links-audit.md:148` (+1 more) |
-| <https://docs.kalshi.com/api-reference/events/get-events> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `assets/js/alert-engine.js:198`, `assets/js/config.js:32`, `assets/js/market.js:517` (+13 more) |
+| <https://docs.kalshi.com> | Kalshi official docs | yes | HTTP 200 | `README.md:23`, `assets/js/claims.js:13`, `assets/js/ui.js:152`, `data/snapshot.json:7` (+25 more) |
+| <https://docs.kalshi.com/api-reference/events/get-event> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `alerts.html:194`, `flagged.html:332`, `flagged.html:438` (+4 more) |
+| <https://docs.kalshi.com/api-reference/events/get-events> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `assets/js/alert-engine.js:198`, `assets/js/config.js:32`, `assets/js/market.js:517` (+15 more) |
 | <https://docs.kalshi.com/api-reference/exchange/get-exchange-status> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:35`, `reports/external-links-audit.md:150` |
 | <https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:20`, `docs/category-crypto.html:21`, `docs/category-culture.html:21`, `docs/category-elections.html:21` (+9 more) |
-| <https://docs.kalshi.com/api-reference/market/get-market> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:17`, `alerts.html:131`, `assets/js/alert-engine.js:10`, `assets/js/alerts-core.js:125` (+21 more) |
-| <https://docs.kalshi.com/api-reference/market/get-market-candlesticks> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:23`, `VERIFICATION.md:19`, `assets/js/config.js:30`, `assets/js/simulator.js:14` (+14 more) |
+| <https://docs.kalshi.com/api-reference/market/get-market> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:17`, `alerts.html:131`, `assets/js/alert-engine.js:10`, `assets/js/alerts-core.js:125` (+28 more) |
+| <https://docs.kalshi.com/api-reference/market/get-market-candlesticks> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:23`, `VERIFICATION.md:19`, `assets/js/config.js:30`, `assets/js/simulator.js:14` (+17 more) |
 | <https://docs.kalshi.com/api-reference/market/get-market-orderbook> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:21`, `docs/category-crypto.html:26`, `docs/category-culture.html:26`, `docs/category-elections.html:26` (+6 more) |
-| <https://docs.kalshi.com/api-reference/market/get-markets> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `VERIFICATION.md:16`, `alerts.html:193`, `assets/js/config.js:31` (+16 more) |
+| <https://docs.kalshi.com/api-reference/market/get-markets> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `VERIFICATION.md:16`, `alerts.html:193`, `assets/js/config.js:31` (+18 more) |
 | <https://docs.kalshi.com/api-reference/market/get-series> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:34`, `reports/external-links-audit.md:156` |
-| <https://docs.kalshi.com/api-reference/market/get-series-list> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:18`, `assets/js/config.js:33`, `data/snapshot.json:11482`, `data/snapshot.json:22452` (+18 more) |
-| <https://docs.kalshi.com/api-reference/orders/> | Kalshi official docs | yes | HTTP 200 | `reports/external-links-audit.md:158`, `reports/verify-facts-v3.md:135` |
+| <https://docs.kalshi.com/api-reference/market/get-series-list> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:18`, `assets/js/config.js:33`, `data/snapshot.json:11482`, `data/snapshot.json:22452` (+20 more) |
+| <https://docs.kalshi.com/api-reference/orders/> | Kalshi official docs | yes | HTTP 200 | `reports/external-links-audit.md:158`, `reports/verify-facts-v3.md:130` |
 | <https://docs.kalshi.com/api-reference/orders/create-ord> | Kalshi official docs | yes | HTTP 404 | `evidence/evidence-cors-taxonomy.md:278`, `reports/external-links-audit.md:159`, `reports/verify-facts-raw.md:278` |
-| <https://docs.kalshi.com/api-reference/orders/create-order-v2> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:12`, `assets/js/config.js:27`, `docs/portfolio.html:25` (+7 more) |
-| <https://docs.kalshi.com/api-reference/portfolio/get-balance> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:37`, `portfolio.html:129`, `reports/external-links-audit.md:161` |
-| <https://docs.kalshi.com/api-reference/portfolio/get-fills> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:25`, `assets/js/config.js:38`, `docs/analysis.html:7` (+10 more) |
-| <https://docs.kalshi.com/api-reference/portfolio/get-orders> | Kalshi official docs | yes | HTTP 404 | `assets/js/config.js:40`, `reports/external-links-audit.md:163` |
-| <https://docs.kalshi.com/api-reference/portfolio/get-positions> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:26`, `assets/js/config.js:39`, `docs/portfolio.html:18` (+7 more) |
+| <https://docs.kalshi.com/api-reference/orders/create-order-v2> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:12`, `assets/js/config.js:27`, `docs/portfolio.html:25` (+9 more) |
+| <https://docs.kalshi.com/api-reference/orders/get-orders> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:40` |
+| <https://docs.kalshi.com/api-reference/portfolio/get-balance> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:37`, `portfolio.html:129`, `reports/external-links-audit.md:161`, `summary.html:147` (+1 more) |
+| <https://docs.kalshi.com/api-reference/portfolio/get-fills> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:25`, `assets/js/config.js:38`, `docs/analysis.html:7` (+13 more) |
+| <https://docs.kalshi.com/api-reference/portfolio/get-orders> | Kalshi official docs | yes | HTTP 404 | `reports/external-links-audit.md:163` |
+| <https://docs.kalshi.com/api-reference/portfolio/get-positions> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:28`, `VERIFICATION.md:26`, `assets/js/config.js:39`, `docs/portfolio.html:18` (+9 more) |
 | <https://docs.kalshi.com/api-reference/portfolio/get-settlements> | Kalshi official docs | yes | HTTP 200 | `docs/analysis.html:36`, `docs/flagged.html:14`, `docs/questions.html:15`, `docs/sources.html:26` (+2 more) |
 | <https://docs.kalshi.com/getting_started/api_environments> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `assets/js/config.js:23`, `docs/sources.html:10`, `reports/external-links-audit.md:166` |
-| <https://docs.kalshi.com/getting_started/api_keys> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:24`, `docs/sources.html:11`, `evidence/auth-sign-test.mjs:2`, `flagged.html:59` (+4 more) |
+| <https://docs.kalshi.com/getting_started/api_keys> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:24`, `docs/sources.html:11`, `evidence/auth-sign-test.mjs:2`, `flagged.html:59` (+5 more) |
 | <https://docs.kalshi.com/getting_started/demo_env> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `VERIFICATION.md:27`, `VERIFICATION.md:7`, `VERIFICATION.md:8` (+18 more) |
 | <https://docs.kalshi.com/getting_started/exchange_sharding> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:47`, `reports/external-links-audit.md:169` |
 | <https://docs.kalshi.com/getting_started/fee_rounding> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:48`, `reports/external-links-audit.md:170` |
-| <https://docs.kalshi.com/getting_started/fixed_point_migration> | Kalshi official docs | yes | HTTP 200 | `QUESTIONS.md:16`, `VERIFICATION.md:23`, `assets/js/config.js:43`, `docs/category-crypto.html:14` (+12 more) |
+| <https://docs.kalshi.com/getting_started/fixed_point_migration> | Kalshi official docs | yes | HTTP 200 | `QUESTIONS.md:16`, `VERIFICATION.md:23`, `assets/js/config.js:43`, `docs/category-crypto.html:14` (+13 more) |
 | <https://docs.kalshi.com/getting_started/historical_data> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:46`, `docs/questions.html:12`, `reports/external-links-audit.md:172` |
 | <https://docs.kalshi.com/getting_started/market_lifecycle> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `VERIFICATION.md:24`, `alerts.html:195`, `assets/js/config.js:45` (+5 more) |
-| <https://docs.kalshi.com/getting_started/market_settlement> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `alerts.html:196`, `assets/js/config.js:44`, `docs/resolved.html:7` (+10 more) |
-| <https://docs.kalshi.com/getting_started/order_direction> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:28`, `flagged.html:76`, `reports/external-links-audit.md:175`, `strategies.html:29` |
+| <https://docs.kalshi.com/getting_started/market_settlement> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:18`, `alerts.html:196`, `assets/js/config.js:44`, `docs/resolved.html:7` (+12 more) |
+| <https://docs.kalshi.com/getting_started/order_direction> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:28`, `flagged.html:76`, `reports/external-links-audit.md:175`, `strategies.html:29` (+1 more) |
 | <https://docs.kalshi.com/getting_started/order_errors> | Kalshi official docs | yes | HTTP 200 | `portfolio.html:304`, `reports/external-links-audit.md:176` |
-| <https://docs.kalshi.com/getting_started/orderbook_responses> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:23`, `VERIFICATION.md:22`, `assets/js/config.js:29`, `docs/dashboard.html:27` (+5 more) |
-| <https://docs.kalshi.com/getting_started/quick_start_authenticated_requests> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:13`, `VERIFICATION.md:14`, `VERIFICATION.md:15`, `assets/js/config.js:25` (+14 more) |
+| <https://docs.kalshi.com/getting_started/orderbook_responses> | Kalshi official docs | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:23`, `VERIFICATION.md:22`, `assets/js/config.js:29`, `docs/dashboard.html:27` (+7 more) |
+| <https://docs.kalshi.com/getting_started/quick_start_authenticated_requests> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:13`, `VERIFICATION.md:14`, `VERIFICATION.md:15`, `assets/js/config.js:25` (+15 more) |
 | <https://docs.kalshi.com/getting_started/quick_start_create_order> | Kalshi official docs | yes | HTTP 200 | `VERIFICATION.md:10`, `VERIFICATION.md:11`, `assets/js/config.js:26`, `docs/flagged.html:9` (+8 more) |
 | <https://docs.kalshi.com/getting_started/quick_start_websockets> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:42`, `flagged.html:197`, `reports/external-links-audit.md:180` |
 | <https://docs.kalshi.com/getting_started/rate_limits> | Kalshi official docs | yes | HTTP 200 | `alerts.html:197`, `assets/js/config.js:204`, `assets/js/config.js:41`, `flagged.html:145` (+3 more) |
 | <https://docs.kalshi.com/getting_started/terms> | Kalshi official docs | yes | HTTP 200 | `assets/js/config.js:49`, `reports/external-links-audit.md:182` |
+| <https://kalshi.com> | Kalshi official site | yes | HTTP 429 | `tests/dom/summary-dom.mjs:81` |
 | <https://kalshi.com/> | Kalshi official site | yes | HTTP 429 | `evidence/evidence-routes-settled.md:81` ×4, `reports/external-links-audit.md:183`, `reports/verify-facts-v2.md:81` ×4 |
-| <https://kalshi.com/docs/kalshi-fee-schedule.pdf> | Kalshi official site | yes | HTTP 429 | `VERIFICATION.md:28`, `assets/js/claims.js:248`, `docs/sources.html:28`, `docs/verification.html:30` (+6 more) |
+| <https://kalshi.com/docs/kalshi-fee-schedule.pdf> | Kalshi official site | yes | HTTP 429 | `VERIFICATION.md:28`, `assets/js/claims.js:249`, `docs/sources.html:28`, `docs/verification.html:30` (+8 more) |
 | <https://www.ap.org> | Kalshi-named settlement source (news) | no | HTTP 200 | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:185`, `reports/verify-facts-v2.md:81` |
-| <https://www.nytimes.com> | Kalshi-named settlement source (news) | no | HTTP 200 | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:186`, `reports/verify-facts-v2.md:81` |
+| <https://www.nytimes.com> | Kalshi-named settlement source (news) | no | HTTP 403 | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:186`, `reports/verify-facts-v2.md:81` |
+| <https://www.nytimes.com/> | Kalshi-named settlement source (news) | no | HTTP 403 | `reports/alerts-live-check.md:32` |
 | <https://www.reuters.com> | Kalshi-named settlement source (news) | no | HTTP 401 | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:187`, `reports/verify-facts-v2.md:81` |
+| <https://www.reuters.com/> | Kalshi-named settlement source (news) | no | HTTP 401 | `reports/alerts-live-check.md:34` |
 | <https://www.theguardian.com> | Kalshi-named settlement source (news) | no | HTTP 200 | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:188`, `reports/verify-facts-v2.md:81` |
-| <https://www.espn.com> | Kalshi-named settlement source (sports) | no | HTTP 200 | `reports/alerts-live-check.md:33`, `reports/external-links-audit.md:189` |
-| <https://www.fifa.com> | Kalshi-named settlement source (sports) | no | HTTP 200 | `reports/alerts-live-check.md:32`, `reports/external-links-audit.md:190` |
-| <https://www.politi> | OTHER (unclassified) | unknown | error: gaierror | `evidence/evidence-routes-settled.md:81`, `reports/external-links-audit.md:191`, `reports/external-links-audit.md:37`, `reports/external-links-audit.md:42` (+1 more) |
+| <https://www.espn.com> | Kalshi-named settlement source (sports) | no | HTTP 200 | `reports/external-links-audit.md:189` |
+| <https://www.fifa.com> | Kalshi-named settlement source (sports) | no | HTTP 200 | `reports/external-links-audit.md:190` |
+| <https://apnews.com/> | OTHER (unclassified) | unknown | HTTP 403 | `reports/alerts-live-check.md:33` |
+| <https://www.abc.net.au/> | OTHER (unclassified) | unknown | HTTP 200 | `reports/alerts-live-check.md:38` |
+| <https://www.axios.com/> | OTHER (unclassified) | unknown | HTTP 403 | `reports/alerts-live-check.md:35` |
+| <https://www.cbsnews.com/> | OTHER (unclassified) | unknown | HTTP 200 | `reports/alerts-live-check.md:39` |
+| <https://www.cnn.com/> | OTHER (unclassified) | unknown | HTTP 200 | `reports/alerts-live-check.md:40` |
+| <https://www.foxnews.com/> | OTHER (unclassified) | unknown | HTTP 200 | `reports/alerts-live-check.md:41` |
+| <https://www.msnbc.com/> | OTHER (unclassified) | unknown | HTTP 200 | `reports/alerts-live-check.md:42` |
+| <https://www.politi> | OTHER (unclassified) | unknown | error: gaierror | `evidence/evidence-routes-settled.md:81`, `flagged.html:420`, `reports/external-links-audit.md:191`, `reports/external-links-audit.md:37` (+2 more) |
+| <https://www.wsj.com/> | OTHER (unclassified) | unknown | HTTP 401 | `reports/alerts-live-check.md:36`, `reports/alerts-live-check.md:37` |
+| <https://kanlerxz87-cyber.github.io> | Origin string (not a link) | unknown | HTTP 404 | `assets/js/claims.js:45`, `docs/flagged.html:9`, `evidence/evidence-cors-taxonomy.md:12`, `evidence/evidence-cors-taxonomy.md:31` (+15 more) |
 | <https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/AAADIESEL.pdf> | STAGING bucket (flag) | no | HTTP 403 | `data/snapshot.json:473`, `data/snapshot.json:687`, `data/snapshot.json:727`, `reports/external-links-audit.md:192` (+1 more) |
 | <https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/AAAGAS.pdf> | STAGING bucket (flag) | no | HTTP 403 | `data/snapshot.json:299`, `data/snapshot.json:319`, `data/snapshot.json:397`, `data/snapshot.json:569` (+6 more) |
 | <https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/AAAGASMINMAX.pdf> | STAGING bucket (flag) | no | HTTP 403 | `data/snapshot.json:648`, `data/snapshot.json:707`, `data/snapshot.json:787`, `data/snapshot.json:807` (+1 more) |
@@ -258,12 +273,12 @@ Generated 2026-11-20 19:11 UTC by `tools/audit_external_links.py` (session `751e
 | <https://example.com/news> | Test fixture (reserved domain) | no | HTTP 404 | `reports/external-links-audit.md:258`, `tools/verify/page-runtime-check.mjs:87` |
 | <https://example.com/results> | Test fixture (reserved domain) | no | HTTP 404 | `reports/external-links-audit.md:259`, `tools/verify/page-runtime-check.mjs:88` |
 | <https://example.org/fixture-> | Test fixture (reserved domain) | no | HTTP 404 | `reports/external-links-audit.md:260`, `tests/dom/alerts-dom.mjs:74` |
-| <https://kanlerxz87-cyber.github.io> | This project's Pages site | yes | HTTP 404 | `assets/js/claims.js:45`, `docs/flagged.html:9`, `evidence/evidence-cors-taxonomy.md:12`, `evidence/evidence-cors-taxonomy.md:31` (+15 more) |
-| <https://kanlerxz87-cyber.github.io/KalshiDash2/> | This project's Pages site | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:9`, `README.md:11`, `evidence/README.md:4`, `reports/external-links-audit.md:262` (+4 more) |
+| <https://kanlerxz87-cyber.github.io/KalshiDash2/> | This project's Pages site | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:9`, `README.md:11`, `evidence/README.md:4`, `reports/external-links-audit.md:262` (+5 more) |
 | <https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html> | This project's Pages site | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:10`, `EXECUTIVE_SUMMARY.md:25`, `reports/external-links-audit.md:263`, `tests/dom/alerts-dom.mjs:84` |
 | <https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html> | This project's Pages site | yes | HTTP 200 | `EXECUTIVE_SUMMARY.md:11`, `EXECUTIVE_SUMMARY.md:47`, `reports/external-links-audit.md:264` |
+| <https://kanlerxz87-cyber.github.io/KalshiDash2/summary.html> | This project's Pages site | yes | HTTP 200 | `tests/dom/summary-dom.mjs:30` |
 | <http://www.w3.org/2000/svg> | W3C standard | yes | HTTP 200 | `index.html:8`, `reports/external-links-audit.md:265` |
-| <https://www.w3.org/TR/WebCryptoAPI/> | W3C standard | yes | HTTP 200 | `assets/js/claims.js:120`, `reports/external-links-audit.md:266` |
+| <https://www.w3.org/TR/WebCryptoAPI/> | W3C standard | yes | HTTP 200 | `assets/js/claims.js:121`, `reports/external-links-audit.md:266` |
 
 ## Kalshi API endpoints (not fetched as pages)
 
