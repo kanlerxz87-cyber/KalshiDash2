@@ -676,3 +676,25 @@ as canonical and not to be overwritten. Per the coordination rules the duplicate
 | Co-integration | `d379bb35`'s PR #24 (R1 closure + canonical-engine verification) merged to `main` and union-merged into this branch first; no overlap remained between the two integrations. |
 
 **C1–C5 status at close:** C1/C2/C3 absorbed (canonical implementations by `4208a2dd`, `5c00f4dd`, `869f5339`, PRs #19–#23; this session's parallel chart-jump code dropped in the merge — see the feature-duplicate resolution above). C4 **done** (taxonomy fix live on the published site). C5 **done** (this record).
+
+---
+
+# Session `a6bed09f` — live alerts, paper simulation, final integration
+
+Started: 2026-11-20T13:18Z. Branch: `arena/a6bed09f-kalshidash2` (Arena-fixed current branch; work stays here).
+
+## Claim / handoff
+
+The existing final-integration claims T6 (`ae228af4`) and B6 (`b7dfc4d9`) had no activity for more than 60 minutes at takeover. The latest known commit for B6 is the sole commit `24c4716` at 11:58Z; its open PR #14 contains only `.github/workflows/verify-live.yml`. T6's last recorded integration work is PR #12 at 11:43Z. At task start, `main` was `793f741` and Pages API reported `built`, legacy source `main:/`. PR #14's workflow was reviewed before takeover and will be integrated only after its page assertions and new-page coverage are corrected.
+
+| ID | Task | Status | Owner | Exclusive file scope |
+|---|---|---|---|---|
+| A1 | Add live ≥$0.10 swing alerts: two scrollable feeds, transparent model shortlist, event/source/context links | in progress | `a6bed09f` | `alerts.html`, `assets/js/monitor.js`, `assets/js/alerts.js`, `assets/css/alerts.css` |
+| A2 | Add automatic local-only paper simulator with strategy comparison and resolution-aware ledger | in progress | `a6bed09f` | `simulator.html`, `assets/js/paper-engine.js`, `assets/js/simulator.js`, `assets/css/simulator.css`, `evidence/alert-sim-test.mjs` |
+| A3 | Final integration: root nav/overview, summary + README/flags, live-site verification, link/build checks, PR/merge/deploy record | in progress | `a6bed09f` | `index.html`, `assets/js/ui.js`, `summary.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `flagged.html`, `.github/workflows/verify-live.yml`, `COORDINATION.md`; no edits under `docs/**`, `data/**`, or `scripts/**` |
+
+### Conflict log (2026-11-20T13:22Z)
+
+The required `git pull --rebase origin main` observed `main` advance from `793f741` to `df2ca90` (PR #17, sessions `aa8d808b` / `ff79cca7`). Rebase conflicted in this append-only board because both sides added session sections. Resolved by preserving the complete incoming session `aa8d808b` static-link-check record and `ff79cca7` Pages race-fix record, plus this session claim; no other session content was dropped. The incoming `.github/workflows/pages.yml` change is outside this session's edit scope and remains untouched.
+
+Official source checks for this claim: [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits), [WebSocket quick start](https://docs.kalshi.com/getting_started/quick_start_websockets). The model filter is a clearly labelled project heuristic, not an official Kalshi model or an ROI forecast. News/context search links will not be presented as confirmed causes.
