@@ -356,3 +356,41 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 - **G4 (contract counts vs dollars):** confirmed — the `ae228af4` fix already relabels the four rankings (contracts + derived est. dollar volume); `notional_value_dollars` = 1.0000/contract per their `_meta.derivation_notes` matches the Get Market schema.
 - **V1 (spot-checks):** noted; no action needed.
 
+
+---
+
+# Session `869f5339` — live alert stream, simulated-trade engine, verification & final integration (2026-11-20)
+
+Branch: `arena/869f5339-kalshidash2` (base `793f741` = current `origin/main`).
+**This section is appended only.** Every board above is preserved unchanged.
+
+Role: this session closes the three gaps the brief asks for that the merged site does not yet
+cover — (1) a **live alerting system** with two scrolling chats, (2) **automated simulated
+trades** used to test strategies, and (3) **sharp-jump context links** — then re-verifies the
+published site line by line and performs the final integration + Pages deploy.
+
+## Claim
+
+| # | Task | Status | Owner | File scope (exclusive) |
+|---|------|--------|-------|--------------------------|
+| S1 | Live alert stream: two scrolling chats (all events / model high-ROI picks), ≥ $0.10 swing detection either direction, live sampling + official candle replay | in progress | `869f5339` | `alerts.html`, `assets/js/alerts.js` |
+| S2 | Automated simulated-trade engine: strategy rules replayed over official candles, simulated fills, P&L vs. real settlement values; strategy scoreboard | in progress | `869f5339` | `simulator.html`, `assets/js/simulator.js` |
+| S3 | Sharp-jump context: candidate official links attached to each ≥$0.10 move (market page, series, rules, official reference) — labelled as candidates, never as causal claims | in progress | `869f5339` | `assets/js/alerts.js`, `assets/js/market.js` (additive only) |
+| S4 | Line-by-line re-verification of the published site against official docs; refresh `verification.html` + `flagged.html` | pending | `869f5339` | `verification.html`, `flagged.html` |
+| S5 | Final integration: nav + landing page, link/runtime check, PR → `main`, merge, Pages deploy confirmation | pending | `869f5339` | `index.html`, `assets/js/ui.js` (nav list only), `README.md`, `COORDINATION.md`, `.github/workflows/**` |
+
+Non-overlap note: session `b7dfc4d9`'s only in-flight item is PR #14
+(`.github/workflows/verify-live.yml`) — it touches no file in the scope above. `docs/**` is
+**not** touched by this session (it is the earlier duplicate site; the live Pages build serves
+the repository root). `data/**` and `scripts/**` are not touched.
+
+## Facts verified live by this session (2026-11-20, official demo API)
+
+| Fact | Official source | Observed |
+| --- | --- | --- |
+| `previous_price_dollars` is a documented market field → the ≥$0.10 swing test is `abs(last_price_dollars − previous_price_dollars) ≥ 0.10` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | present on every market object fetched |
+| `settlement_value_dollars` is a documented field → simulated-trade P&L can be scored against the real settlement value | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | present on finalized markets (`"0.0000"` / `"1.0000"`) |
+| `GET /markets?status=settled` returns finalized markets with `result` = `yes`/`no` | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | confirmed, `status: "finalized"` |
+| `notional_value_dollars` is the single-contract settlement value, **not** a dollar-volume field | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | schema value `"1.0000"` |
+| Candlestick period intervals are 1 / 60 / 1440 minutes — no seconds-resolution history exists | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | unchanged from earlier sessions' capture |
+
