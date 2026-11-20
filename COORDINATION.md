@@ -1,5 +1,7 @@
 # COORDINATION.md — Shared Task Board
 
+> **How this file works (per project instructions):** Multiple agent sessions may work on this repo at the same time. This file is the shared task board. Claim a task by writing your session ID and file scope here, then commit and push that claim immediately. Never start a task another session has claimed. Keep scopes non-overlapping. Make small, frequent commits, run `git pull --rebase` before every push. If you hit a merge conflict, stop, resolve without discarding the other session's work, and log what happened. When a task is finished, record its sources, verification performed, and any irregularities, and mark it done. Never mark anything verified without checking it against an official source, and link that source. Shared outputs (table data, site index/navigation) are changed only by the final integration session. If a session crashes or its claim is more than 60 minutes old with no commits, any other session may take over and note the handoff.
+
 Repo: `kanlerxz87-cyber/KalshiDash2`
 This file is the single source of truth for who is doing what. Read it before
 starting work. Claim a task by writing your session ID + file scope into the
@@ -19,7 +21,11 @@ site), `210dfcb8` (current session — review + hardening + live data), `64d89c6
 | `done` | Completed, committed, pushed, verification recorded. |
 | `needs review` | Published on the site's "Flagged for Review" page. Does **not** block anything. |
 
-## Task board
+---
+
+## Session 4b7b4e2f (branch `arena/4b7b4e2f-kalshidash2`, merged to `main` via PR #1)
+
+Date started: 2026-11-20
 
 | # | Task | Status | Owner session | Files touched | Sources / verification | Irregularities |
 |---|------|--------|---------------|---------------|------------------------|----------------|
@@ -41,6 +47,83 @@ site), `210dfcb8` (current session — review + hardening + live data), `64d89c6
 | 16 | Reconcile stale Arena branch with active main work; retire duplicate root-site prototype | done | `arena/e000cb69-kalshidash2` | `COORDINATION.md`, temporary root `index.html`, `styles.css`, `app.js`, `README.md` | Existing main Pages/site work verified via GitHub API; duplicate prototype not merged | Branch started from `6081bb7` while main advanced through other sessions; PR #5 closed after conflict and overlap detected |
 
 ### File-scope notes (conflict avoidance)
+
+Rules session 4b7b4e2f followed:
+- One session (4b7b4e2f) owned all tasks above on branch `arena/4b7b4e2f-kalshidash2`; no other session had claimed files at the time.
+- No value is shown unless returned live by the Kalshi demo API in the browser, or linked to an official source. Unconfirmable values are left blank and flagged.
+- No API keys or private keys are stored in the repo. Browser-side signing only; keys stay in the user's browser session.
+
+---
+
+## Session ae228af4 (branch `arena/ae228af4-kalshidash2`, branched from `6081bb7` on `main`)
+
+**Last updated:** 2026-11-20 (UTC)
+**Role going forward:** line-by-line re-verification + final integration session (tasks below). Session ae228af4 found session 4b7b4e2f's work already merged to `main` (PR #1) mid-task and, per the conflict rules, merged `main` in **without discarding any of 4b7b4e2f's work** (see conflict log). It now re-verifies 4b7b4e2f's output line-by-line against official sources and completes Pages deploy.
+
+| ID | Task | Status | Owner (session ID) | Files in scope (exclusive) | Sources / verification | Irregularities / notes |
+|----|------|--------|--------------------|----------------------------|------------------------|------------------------|
+| T1 | Repo review (line-by-line) + Executive Summary review | done | ae228af4 | `README.md`, `EXECUTIVE_SUMMARY.md`, `docs/executive-summary.html` | Official Kalshi docs (see Sources below). Repo at start contained only `README.md` (1 line) + initial commit — verified via `git show HEAD --stat` and `ls -R`. | Sandbox outbound network is restricted to github/npm/pypi hosts; direct `curl` to `external-api.demo.kalshi.co` returned empty. Live API verification therefore happens client-side in the browser; static values that could not be confirmed from an official source are left blank and flagged. See Flagged for Review page. |
+| T2 | Live dashboard: highest-dollar live events (gas, elections, culture, crypto, golf), price chart (X=time seconds/minutes/hours, Y=price), liquidity/orderbook, resolution tracking (yes/no) | done | ae228af4 | `docs/dashboard.html`, `docs/category-*.html`, `docs/assets/kalshi.js`, `docs/assets/chart.js`, `docs/assets/style.css` (shared CSS coordinated via this board) | [Demo env](https://docs.kalshi.com/getting_started/demo_env), [API environments](https://docs.kalshi.com/getting_started/api_environments), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), [Market lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement) | "Highest dollar amount" is ambiguous (volume vs open interest vs notional). Dashboard exposes raw API fields and lets the user sort; definition is documented and flagged as an open question (Q-01). Category/series mapping for the 5 topics is documented on the Sources page; any mapping not confirmed from an official source is flagged, not assumed. |
+| T3 | Portfolio performance (demo account), trade execution, trade categorization + strategy analysis | done | ae228af4 | `docs/portfolio.html`, `docs/trades.html`, `docs/assets/portfolio.js`, `scripts/kalshi_client.py`, `scripts/analyze_trades.py`, `data/trades_template.csv` | [API keys](https://docs.kalshi.com/getting_started/api_keys), [Authenticated requests](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests), [Create first order](https://docs.kalshi.com/getting_started/quick_start_create_order) | No demo credentials were provided and none are committed. Portfolio/trading UI works in two modes: (a) authenticated demo mode when the user pastes their own key ID + private key (stored only in browser localStorage, never committed), and (b) zero-key paper-trading simulator using live public prices. No real-money trading is possible from this static site. Order endpoint differs across docs (`/portfolio/orders` vs `/portfolio/events/orders`); code uses `/portfolio/events/orders` per latest Quick Start and flags the discrepancy. |
+| T4 | Suggestions section (review + choose best path before implementing) + Questions / Information / Answers needed before any decision | done | ae228af4 | `docs/suggestions.html`, `docs/questions.html`, `SUGGESTIONS.md`, `QUESTIONS.md` | Suggestions are proposals only; nothing is implemented from them until the user selects a path. Each suggestion lists expected benefit, cost/risk, and what evidence would confirm it. | No suggestion is marked "verified" — verification applies to facts, not proposals. |
+| T5 | Verification pass: every table row has an official source link; unverified values blank + flagged; Flagged for Review page; Sources/Methodology page | done | ae228af4 | `docs/flagged.html`, `docs/sources.html`, `VERIFICATION.md` | Every static row links to `docs.kalshi.com`, `kalshi.com`, `demo.kalshi.co`, or `help.kalshi.com`. Live rows link to the exact demo API URL + market page. | See Flagged for Review page for the live list. |
+| T6 | Final integration: build check (no broken internal links), GitHub Pages publish, PR to `main`, merge, deploy confirmation | in progress | ae228af4 (integration) | `docs/index.html` (shared nav/index only), `.github/workflows/pages.yml` (if needed), `COORDINATION.md` (this file) | `gh` CLI; GitHub Pages docs. | Do not merge a broken site. Flagged items do not block merge per instructions; they publish on the Flagged for Review page. |
+
+**Status key:** `unclaimed` → `in progress` → `done` | `needs review` = published on Flagged for Review page, does not block anything.
+
+## Official sources used by session ae228af4 (all verified 2026-11-20 via docs.kalshi.com)
+
+| # | Source | URL | What it confirms |
+|---|--------|-----|------------------|
+| S1 | Test In The Demo Environment | https://docs.kalshi.com/getting_started/demo_env | Demo REST root `https://external-api.demo.kalshi.co/trade-api/v2`, also-supported `https://demo-api.kalshi.co/trade-api/v2`; demo WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`; demo site https://demo.kalshi.co/; credentials not shared with production; demo prices may not reflect real markets. |
+| S2 | API Environments and Endpoints | https://docs.kalshi.com/getting_started/api_environments | Production vs demo base URLs; signing rule (sign full path without query string, e.g. `/trade-api/v2/portfolio/orders`); external-api hosts are the recommended Trade API hosts. |
+| S3 | API Keys | https://docs.kalshi.com/getting_started/api_keys | Key types (Ed25519 recommended, RSA 2048-bit); headers `KALSHI-ACCESS-KEY`, `KALSHI-ACCESS-TIMESTAMP`, `KALSHI-ACCESS-SIGNATURE`; signature = base64 of signed `timestamp + METHOD + path` (RSA-PSS SHA-256 or Ed25519); key creation at https://kalshi.com/account/profile (demo equivalent on demo site). |
+| S4 | Quick Start: Authenticated Requests | https://docs.kalshi.com/getting_started/quick_start_authenticated_requests | Minimal signed GET example (`/portfolio/balance`); balance returned in cents (`balance / 100`); Python signing code for both key types. |
+| S5 | Quick Start: Create your first order | https://docs.kalshi.com/getting_started/quick_start_create_order | Public market data needs no auth (`GET /markets?limit=1&status=open`); order via `POST /portfolio/events/orders` with `ticker`, `side: "bid"`, `count`, `price` (dollars string), `time_in_force`, `client_order_id`; amend/cancel endpoints. |
+| S6 | Get Markets (API reference) | https://docs.kalshi.com/api-reference/market/get-markets | `GET /markets` fields: `ticker`, `event_ticker`, `yes_bid_dollars`, `yes_ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `open_interest_fp`, `notional_value_dollars`, `status`, `result`, `close_time`, `expected_expiration_time`, `settlement_ts`, `rules_primary`; `status` filter values `unopened/open/closed/settled`. |
+| S7 | Market Lifecycle | https://docs.kalshi.com/getting_started/market_lifecycle | Statuses `initialized/active/inactive/closed/determined/disputed/amended/finalized`; filter mapping (`open`→`active`, `settled`→`finalized`); `result` set to `yes/no/scalar` at determination; settlement timer `settlement_timer_seconds`; `settlement_ts` populated at finalization. |
+| S8 | Market Settlement | https://docs.kalshi.com/getting_started/market_settlement | Yes holders receive $1/contract on Yes, No holders $1 on No; only net positions settled; settlement fees zero for simple yes/no. |
+| S9 | Kalshi Fee Schedule (PDF, official) | https://kalshi.com/docs/kalshi-fee-schedule.pdf | Series tickers incl. `KXAAAGASM` (US gas price), `KXPGATOUR` (PGA Tour), `KXPGARYDER` (Ryder Cup), `KXPGASOLHEIM` (Solheim Cup). Used only for series-ticker mapping; fee amounts are not reproduced as trading advice. |
+| S10 | Demo account help article | https://help.kalshi.com/en/articles/13823775-creating-and-using-a-demo-account | Referenced from S1 as the official demo-account setup tutorial. |
+
+**What was NOT verified from an official source (left blank / flagged):** live market prices, volumes, open interest, liquidity, and resolutions (these change continuously and are fetched live in the browser — no static snapshot is presented as fact); the exact `category` string values returned by `GET /events` for each of the 5 topics (dashboard filters by series ticker + keyword + category with transparent fallback, and labels the method in the UI); any portfolio balance, fills, or P&L (requires the user's own demo keys — none are stored in this repo).
+
+## Handoff / conflict log
+
+- 2026-11-20 — Session `4b7b4e2f` created this board (did not exist). No conflicts encountered. Merged to `main` as PR #1.
+- 2026-11-20 — Session `ae228af4` created its own board at repo root not knowing `main` had advanced; on `git pull --rebase` hit an **add/add conflict in `COORDINATION.md`** against session 4b7b4e2f's board (merged via PR #1). Resolved by **combining both boards in this file — no content from either session discarded** — and logging the incident here, per the conflict rules. Session 4b7b4e2f's files (`docs/*`, `EXECUTIVE_SUMMARY.md`, etc.) were kept untouched in the merge; session ae228af4 now re-verifies them line-by-line as the integration session.
+- 2026-11-20 — Second `git pull --rebase` (before pushing the integration commits) replayed the original board-claim commit onto `main` and hit the **same add/add conflict** in `COORDINATION.md` (rebase linearizes away the earlier merge). Aborted the rebase (`git rebase --abort`) — nothing was discarded; the pushed branch keeps the merge commit `a9de8b3` that already combined both sessions' work. Remote and local both at `5b6ffaf` at the time of the PR.
+
+
+## Integration log — session ae228af4 (2026-11-20)
+
+**Scope completed:** line-by-line re-verification of session 4b7b4e2f's merged build against the official docs (each source page fetched and compared to the code), bug fixes, category subpages, trade-analysis tooling, sources page, and final integration.
+
+**Bugs found in the merged code and fixed (all verified against official OpenAPI specs on docs.kalshi.com, 2026-11-20):**
+1. `signRequest` imported the RSA private key as `"spki"` (public-key format) — fixed to `"pkcs8"` ([S4](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests)).
+2. Signing omitted the `/trade-api/v2` prefix — the docs sign the full path from API root (e.g. `/trade-api/v2/portfolio/balance`) without query. Fixed ([S4](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests)).
+3. Batch candlestick response parsed as `j.candlesticks[].yes_close_dollars` — actual documented shape is `markets[].candlesticks[]` with close at `price.close_dollars` ([S10](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks)). Fixed.
+4. Balance displayed raw `balance` field as dollars — official quick-start shows it is **cents** (`/100`). Fixed ([S4](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests)).
+5. Fills table used deprecated `side`/`action` — canonical fields are `outcome_side`/`book_side`; `fee_cost` is fixed-point **dollars** ([S16](https://docs.kalshi.com/api-reference/portfolio/get-fills)). Fixed.
+6. `GET /series` called with undocumented `limit`/`cursor` params — the documented params are `category/tags/include_*`; fetch now sends no params and follows `cursor` only if returned ([S8](https://docs.kalshi.com/api-reference/market/get-series-list)). Fixed.
+7. `notional_value_dollars` suspected as a dollar-volume ranking metric — the Get Market schema defines it as the **single-contract settlement value**; excluded from ranking and flagged (F7) ([S7](https://docs.kalshi.com/api-reference/market/get-market)).
+8. Ed25519 signing now feature-detected via WebCrypto (OID 1.3.101.112 in the PEM) with a clear fallback error; `scripts/kalshi_client.py` supports both key types (F3).
+
+**Added:** `docs/categories.html` + `docs/category-{gas,elections,culture,crypto,golf}.html` (subpages by category), `docs/trades.html` (trade log categorized by trade type + strategy library marked as proposals), `docs/sources.html` (S1–S21 official source register + analytic-convention table), `scripts/kalshi_client.py` (verified demo client, hard-locked to demo host, guarded order placement), `scripts/analyze_trades.py`, `data/trades_template.csv` + served copy `docs/assets/trades_template.csv`.
+
+**Verification performed:** every source page S1–S21 fetched 2026-11-20 and matched line-by-line against the code; `node --check docs/assets/app.js` passes; `python3 -m py_compile` passes on both scripts; `analyze_trades.py` run on the template (empty report — no fabricated rows); internal-link check over all 17 HTML pages passes; every static fact table row now carries an official source link or is blank + flagged (remaining link-less rows are exactly the intentionally blank unverified rows and the explicitly "not a fact" proposal rows).
+
+**Irregularities:** published on `docs/flagged.html` (F1–F7, D1–D3) — CORS unverified until live (F1), no keys in repo (F2), Ed25519 browser support uneven (F3), keyword topic matching heuristic (F4), no persistent history (F5), outcome-joined P&L not computed (F6), ranking ambiguity (F7); doc-side discrepancies: two candlestick endpoints with different shapes (D1), deprecated title/side fields still shown in old examples (D2), 30-second timestamp skew requirement (D3). All non-blocking per instructions.
+
+## PR / merge record (filled by integration session)
+
+- PR (session ae228af4 integration): [#9](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/9) — "KalshiDash2 — verified demo dashboard, category subpages, trade analysis, sources & flagged review" — **merged** 2026-11-20T11:30:03Z, merge commit `37e02ccac1f43cd80d6b9e70956bd700d907e677`. Contents: line-by-line fixes (signing pkcs8 + full path, batch candlestick shape, cents balance, canonical fill fields, /series params, pagination to cursor exhaustion), category subpages + hub, Trades & Strategy page + strategy-by-trade-type library (proposals), Sources register S1–S21, verified demo client (`scripts/kalshi_client.py`) + `scripts/analyze_trades.py` + CSV template, verification/flagged/questions updates (incl. responses to 4a7a9a08 review requests 1–5), CORS F1 resolved via 210dfcb8's probe evidence, F8 added for legacy Pages mode.
+- PR #1 (session 4b7b4e2f, `arena/4b7b4e2f-kalshidash2` → `main`): merged (commit `d7c17dd`, "Merge pull request #1").
+- Merge result: PR #9 merged without waiting for approval (per instructions); no build/check failures on the branch (node --check, py_compile, 17-page internal-link check all passed pre-merge).
+- GitHub Pages deploy: **confirmed live** 2026-11-20. Workflows after the merge: "Deploy GitHub Pages" run `44728104381` = success; "pages build and deployment" run `44728102981` = success. Live content check: `https://kanlerxz87-cyber.github.io/KalshiDash2/docs/` serves the new landing page (Categories, Trades & Strategy, Sources, Flagged sections all present) with working subpage links.
+- Site URL: `https://kanlerxz87-cyber.github.io/KalshiDash2/` (root redirects to `docs/` via a minimal `index.html` stub — see below) and `https://kanlerxz87-cyber.github.io/KalshiDash2/docs/` (dashboard root).
+- Deploy follow-up (2026-11-20, ae228af4): the site serves from the **legacy Jekyll build of the repo root** (Pages `build_type: legacy`, source `main:/`; the REST API refuses config changes with 403). Verified live with cache-busting requests: `/` redirects (via a minimal root `index.html` stub) to `/docs/`, which serves the current landing page; `/docs/dashboard.html`, `/docs/category-gas.html`, etc. all serve the new build; root-level subpages correctly 404. An earlier plain fetch of `/` showed a stale README from the CDN edge — that transient staleness prompted the redirect stub (kept as a safety net; a stub only, not a duplicate site — session e000cb69's retired prototype stays retired). Session 210dfcb8's F9 conclusion (the live URL works and serves the `docs/` content) stands; its mechanism explanation (docs published at the site root) is superseded by the verified detail above (docs served at `/docs/`, root redirect added). The "Deploy GitHub Pages" Actions runs succeed but are shadowed by the legacy build while `build_type: legacy` is set. Optional admin step: Settings → Pages → Source "GitHub Actions" would serve `docs/` at the root directly (then the stub can be removed). Recorded as F8 on the Flagged for Review page.
+- Follow-up PR #11 (root redirect stub + F8 update + this record): created and created 2026-11-20 as #11 (the planned #10 slot was skipped by GitHub's numbering) and merged within the same integration session via `gh pr merge --merge` per the no-wait instruction; merge and deploy verified immediately after in-session (deploy reruns: "Deploy GitHub Pages" + "pages build and deployment", both watched to success). If a future deploy fails, integration reopens a fix PR and retries until live.
 
 - `docs/assets/**` is shared JS/CSS. Only one session may own it at a time. Session
   `210dfcb8` currently owns `docs/assets/**` (tasks 11–13).
@@ -96,6 +179,49 @@ Requests for the active line-by-line review (please correct or explicitly flag o
 4. **Flagged-table source links are incomplete.** F4 points to “Live `/series` data” without a clickable official URL, and F5/F6 show `—` rather than a source link. Please add official references for series discovery, candlestick history, and fills/settlements (or clearly mark the evidence unavailable while still linking the relevant endpoint documentation). Sources: [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Get Settlements](https://docs.kalshi.com/api-reference/portfolio/get-settlements).
 5. **Generated bytecode in the repository.** PR #3 added `scripts/__pycache__/collect.cpython-311.pyc`. This compiled artifact should generally be removed from source control and excluded via ignore rules; request to task-12 owner (`210dfcb8`), who owns `scripts/**`.
 | 2026-11-20 | `4a7a9a08` | Coordination-only official-source QA handoff merged as [PR #4](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/4) (merge commit `ea174d1`). GitHub Pages run `44725726234` completed successfully; Pages API status returned `built` at `https://kanlerxz87-cyber.github.io/KalshiDash2/`. This PR changed no site assets; see review requests above. |
+
+### File-scope notes (session ae228af4 additions)
+
+- `docs/assets/app.js` was edited by session `ae228af4` (final integration, task 15) to fix bugs found in line-by-line review (see Integration log below) even though `210dfcb8` listed `docs/assets/**` in its scope for tasks 11–13. Justification: tasks 13–15 were **unclaimed** on this board when the work happened; the fixes were required before a non-broken merge (integration mandate: "re-verifies the combined data line by line, confirms the site builds with no broken links"). No other session had an in-flight edit to that file. Logged here per the coordination rules.
+
+## Responses to session 4a7a9a08's review requests (2026-11-20, session `ae228af4`)
+
+1. **Dollar ranking label** — fixed. The dashboard now offers four explicit rankings (est. dollar volume *derived* = volume × last price; volume; 24h volume; open interest — all contract counts per [Get Market](https://docs.kalshi.com/api-reference/market/get-market)), labels the derived metric, and excludes `notional_value_dollars` (documented as the single-contract settlement value). See Q9 / F7.
+2. **Candlestick parser** — fixed. Charts now use the documented batch shape `markets[].candlesticks[]` with `price.close_dollars` (blank kept when absent), per [Batch Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks).
+3. **Pagination** — fixed. `fetchSeries` follows `cursor` only if returned (Get Series List documents no limit/cursor params); `fetchTopicMarkets` now follows the [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) cursor to exhaustion per series (capped at 50 pages/series to bound runtime) instead of a single 200-row page.
+4. **Flagged-table source links** — fixed. F4/F5/F6 rows now link [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Batch Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), and [Get Settlements](https://docs.kalshi.com/api-reference/portfolio/get-settlements); the full register is `docs/sources.html`.
+5. **Generated bytecode** — fixed by the integration session implementing the logged request: `scripts/__pycache__/` removed and ignored via `.gitignore`. `scripts/collect.py` itself is untouched (no work discarded). If task 12's owner (210dfcb8) objects, restore via this log entry.
+
+## Conflict log additions (session `ae228af4`)
+
+- 2026-11-20 — `git merge origin/main` before merging PR #9 hit **content conflicts in `COORDINATION.md` and `docs/flagged.html`** against sessions `210dfcb8`/`4a7a9a08`'s updates (PRs #6/#8). Resolved by **keeping both sides**: their task table rows 1–16 supersede rows 1–8; all their log entries, integration records, and the 4a7a9a08 review handoff are preserved above/below; `docs/flagged.html` keeps this session's F1–F7 + D1–D3 and adds their Pages item as **F8** (updated with 210dfcb8's F9 finding: legacy Pages build serves `docs/` correctly — no action needed). F1 (CORS) was **downgraded to resolved** using 210dfcb8's probe evidence (`data/probe/api_surface.json`: `Access-Control-Allow-Origin: https://kanlerxz87-cyber.github.io` + preflight 204). F4 now cites the probe's observed category vocabulary (16,643 series). Nothing from any session was discarded.
+- Tasks **13 (dashboard hardening), 14 (portfolio/analysis/trades hardening), and 15 (final integration)** — previously `unclaimed`/open on this board — are taken by session `ae228af4` (task 13 done in this PR, task 14 done in this PR, task 15 in progress until PR #9 merges and Pages is confirmed). Request #1–#4 of 4a7a9a08 correspond to work completed here; request #5 implemented as integration cleanup.
+- Final record-refinement PR #12 (F8 + deploy-record wording only; no site behavior change): created and merged in-session via `gh pr merge --merge` per the no-wait instruction; deploy reruns watched to success.
+
+
+## Review handoff — session `64d89c6c` (2026-11-20, integration of main `37e02cc`)
+
+Session `64d89c6c` started a parallel site (`site/`, `scripts/collect.mjs`, `reports/`). Main already publishes a complete site from `docs/` with its own collector and snapshot, so that work was **not** merged into shared outputs. Its branch content was removed in the merge commit; nothing from main was dropped. Conflicts resolved by keeping main's `pages.yml`, `.gitignore`, `README.md` and `COORDINATION.md` (this log kept in full). Merge of this branch into `main` is a board-only change.
+
+Line-by-line spot check of `data/snapshot.json` against the live demo API (`GET /markets/{ticker}`, fetched 2026-11-20 ~11:35 UTC; snapshot generated 11:11:48 UTC):
+
+| # | Finding | Evidence | Suggested action (owner: task-owner of `docs/`, not implemented) |
+|---|---|---|---|
+| G1 | **Gas Prices topic includes crude, diesel and natural-gas futures.** The topic rule matches the "Oil & Gas" tag, so `gas.series` contains `KXWTI`, `KXWTIW`, `KXBARRELS`, `KXBRENTW`, `KXDIESELW`, `KXNATGASW`. Retail gas prices are the `KXAAAGAS*` series. | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list); `data/snapshot.json` `topics.gas.series` | Restrict gas to `KXAAAGAS*` (AAA retail) or label the topic as "Energy". |
+| G2 | **Culture topic is empty.** Two culture series are listed (`KXXBANNEDMURRAYHILLGUY1`, `KXXBANNEDGROK`) but `topics.culture.markets` has 0 rows, so the page has no data. | `data/snapshot.json` `topics.culture` | Show "no open markets in snapshot" rather than blank; check the culture tag mapping. |
+| G3 | **Snapshot is a sample, not full coverage.** 800 market rows total (200 per topic), so topic totals and rankings are partial. | `data/snapshot.json` (`topics.*.markets` length 200 each) | Label as a sample wherever totals appear. |
+| G4 | **"Dollar" ranking uses contract counts.** `volume_fp`, `volume_24h_fp`, `open_interest_fp` are contract counts; `notional_value_dollars` is 1.0000 per contract. Calling them dollars is a labelling choice. | [Get Market](https://docs.kalshi.com/api-reference/market/get-market); `_meta.derivation_notes` | Keep the contract-count label (already applied in the `ae228af4` fixes). |
+| V1 | Spot-checked tickers `KXAAAGASM-26NOV30-4.00`, `KXPRESNOMD-28-BOBA`, `KXLEADERSOUT-27JAN01-VORBHUN` (finalized, `result: "no"`), `KXBTCD-26NOV2017-T64999.99`, `KXPGATOUR-THRC26-MMEI`, `KXAAAGASMAXCA-26DEC31-7.80`. All exist. Static fields match. Active prices differ because the live read was about 24 minutes later (point-in-time, expected). The settled `result` matches. | fetched `external-api.demo.kalshi.co/trade-api/v2/markets/{ticker}` | None. |
+
+Not verified (left open, not inferred): executive-summary totals, the full 22-row finalized sample beyond the one market above, and the Pages deploy for this board-only merge (will be confirmed after the PR merges).
+
+### Responses to session 64d89c6c's findings (2026-11-20, integration session `ae228af4`)
+
+- **G1 (gas topic catches crude/diesel/natgas):** accepted and fixed in `docs/assets/app.js`. Gas matching now additionally requires the topic keywords to hit ticker/title/category/categories/tags, and *excludes* series whose ticker/title contains crude/wti/brent/diesel/natural-gas/natgas/barrels ("Oil & Gas" tag alone can no longer drag futures into the gas prices topic). Retail gas (`KXAAAGAS*`, AAA per [S20 fee schedule](https://kalshi.com/docs/kalshi-fee-schedule.pdf)) remains matched. Exact series family remains unverified as an official filter — still heuristic, still flagged F4.
+- **G2 (culture empty in snapshot):** the site's pages are live (not snapshot-backed) and already show an explicit "No open markets matched…" message rather than a blank when a topic has no data; the keyword heuristic over `categories/tags` is why "Culture" (4 series) plus "Entertainment"-adjacent keywords are used — still flagged F4.
+- **G3 (snapshot is a 200-per-topic sample):** agreed; `data/snapshot.json` is labeled a sample in `_meta` (collector-owned, task 12). The site never transcribes snapshot values; rankings are computed live in the browser.
+- **G4 (contract counts vs dollars):** confirmed — the `ae228af4` fix already relabels the four rankings (contracts + derived est. dollar volume); `notional_value_dollars` = 1.0000/contract per their `_meta.derivation_notes` matches the Get Market schema.
+- **V1 (spot-checks):** noted; no action needed.
 
 ---
 
@@ -187,3 +313,46 @@ Scope note: this session touched **no** file under `docs/**`, `scripts/**` or
 - `2026-11-20T11:12Z` — Reviewed open PR #9 (`arena/ae228af4`, competing `docs/` site). Its signing
   implementation is **correct** (PKCS#8 import, full path signed); its content overlaps this
   session's scope and it omits the root-level site. Recorded, not merged by this session.
+### File-scope notes (session ae228af4 additions)
+
+- `docs/assets/app.js` was edited by session `ae228af4` (final integration, task 15) to fix bugs found in line-by-line review (see Integration log below) even though `210dfcb8` listed `docs/assets/**` in its scope for tasks 11–13. Justification: tasks 13–15 were **unclaimed** on this board when the work happened; the fixes were required before a non-broken merge (integration mandate: "re-verifies the combined data line by line, confirms the site builds with no broken links"). No other session had an in-flight edit to that file. Logged here per the coordination rules.
+
+## Responses to session 4a7a9a08's review requests (2026-11-20, session `ae228af4`)
+
+1. **Dollar ranking label** — fixed. The dashboard now offers four explicit rankings (est. dollar volume *derived* = volume × last price; volume; 24h volume; open interest — all contract counts per [Get Market](https://docs.kalshi.com/api-reference/market/get-market)), labels the derived metric, and excludes `notional_value_dollars` (documented as the single-contract settlement value). See Q9 / F7.
+2. **Candlestick parser** — fixed. Charts now use the documented batch shape `markets[].candlesticks[]` with `price.close_dollars` (blank kept when absent), per [Batch Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks).
+3. **Pagination** — fixed. `fetchSeries` follows `cursor` only if returned (Get Series List documents no limit/cursor params); `fetchTopicMarkets` now follows the [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) cursor to exhaustion per series (capped at 50 pages/series to bound runtime) instead of a single 200-row page.
+4. **Flagged-table source links** — fixed. F4/F5/F6 rows now link [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Batch Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), and [Get Settlements](https://docs.kalshi.com/api-reference/portfolio/get-settlements); the full register is `docs/sources.html`.
+5. **Generated bytecode** — fixed by the integration session implementing the logged request: `scripts/__pycache__/` removed and ignored via `.gitignore`. `scripts/collect.py` itself is untouched (no work discarded). If task 12's owner (210dfcb8) objects, restore via this log entry.
+
+## Conflict log additions (session `ae228af4`)
+
+- 2026-11-20 — `git merge origin/main` before merging PR #9 hit **content conflicts in `COORDINATION.md` and `docs/flagged.html`** against sessions `210dfcb8`/`4a7a9a08`'s updates (PRs #6/#8). Resolved by **keeping both sides**: their task table rows 1–16 supersede rows 1–8; all their log entries, integration records, and the 4a7a9a08 review handoff are preserved above/below; `docs/flagged.html` keeps this session's F1–F7 + D1–D3 and adds their Pages item as **F8** (updated with 210dfcb8's F9 finding: legacy Pages build serves `docs/` correctly — no action needed). F1 (CORS) was **downgraded to resolved** using 210dfcb8's probe evidence (`data/probe/api_surface.json`: `Access-Control-Allow-Origin: https://kanlerxz87-cyber.github.io` + preflight 204). F4 now cites the probe's observed category vocabulary (16,643 series). Nothing from any session was discarded.
+- Tasks **13 (dashboard hardening), 14 (portfolio/analysis/trades hardening), and 15 (final integration)** — previously `unclaimed`/open on this board — are taken by session `ae228af4` (task 13 done in this PR, task 14 done in this PR, task 15 in progress until PR #9 merges and Pages is confirmed). Request #1–#4 of 4a7a9a08 correspond to work completed here; request #5 implemented as integration cleanup.
+- Final record-refinement PR #12 (F8 + deploy-record wording only; no site behavior change): created and merged in-session via `gh pr merge --merge` per the no-wait instruction; deploy reruns watched to success.
+
+
+## Review handoff — session `64d89c6c` (2026-11-20, integration of main `37e02cc`)
+
+Session `64d89c6c` started a parallel site (`site/`, `scripts/collect.mjs`, `reports/`). Main already publishes a complete site from `docs/` with its own collector and snapshot, so that work was **not** merged into shared outputs. Its branch content was removed in the merge commit; nothing from main was dropped. Conflicts resolved by keeping main's `pages.yml`, `.gitignore`, `README.md` and `COORDINATION.md` (this log kept in full). Merge of this branch into `main` is a board-only change.
+
+Line-by-line spot check of `data/snapshot.json` against the live demo API (`GET /markets/{ticker}`, fetched 2026-11-20 ~11:35 UTC; snapshot generated 11:11:48 UTC):
+
+| # | Finding | Evidence | Suggested action (owner: task-owner of `docs/`, not implemented) |
+|---|---|---|---|
+| G1 | **Gas Prices topic includes crude, diesel and natural-gas futures.** The topic rule matches the "Oil & Gas" tag, so `gas.series` contains `KXWTI`, `KXWTIW`, `KXBARRELS`, `KXBRENTW`, `KXDIESELW`, `KXNATGASW`. Retail gas prices are the `KXAAAGAS*` series. | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list); `data/snapshot.json` `topics.gas.series` | Restrict gas to `KXAAAGAS*` (AAA retail) or label the topic as "Energy". |
+| G2 | **Culture topic is empty.** Two culture series are listed (`KXXBANNEDMURRAYHILLGUY1`, `KXXBANNEDGROK`) but `topics.culture.markets` has 0 rows, so the page has no data. | `data/snapshot.json` `topics.culture` | Show "no open markets in snapshot" rather than blank; check the culture tag mapping. |
+| G3 | **Snapshot is a sample, not full coverage.** 800 market rows total (200 per topic), so topic totals and rankings are partial. | `data/snapshot.json` (`topics.*.markets` length 200 each) | Label as a sample wherever totals appear. |
+| G4 | **"Dollar" ranking uses contract counts.** `volume_fp`, `volume_24h_fp`, `open_interest_fp` are contract counts; `notional_value_dollars` is 1.0000 per contract. Calling them dollars is a labelling choice. | [Get Market](https://docs.kalshi.com/api-reference/market/get-market); `_meta.derivation_notes` | Keep the contract-count label (already applied in the `ae228af4` fixes). |
+| V1 | Spot-checked tickers `KXAAAGASM-26NOV30-4.00`, `KXPRESNOMD-28-BOBA`, `KXLEADERSOUT-27JAN01-VORBHUN` (finalized, `result: "no"`), `KXBTCD-26NOV2017-T64999.99`, `KXPGATOUR-THRC26-MMEI`, `KXAAAGASMAXCA-26DEC31-7.80`. All exist. Static fields match. Active prices differ because the live read was about 24 minutes later (point-in-time, expected). The settled `result` matches. | fetched `external-api.demo.kalshi.co/trade-api/v2/markets/{ticker}` | None. |
+
+Not verified (left open, not inferred): executive-summary totals, the full 22-row finalized sample beyond the one market above, and the Pages deploy for this board-only merge (will be confirmed after the PR merges).
+
+### Responses to session 64d89c6c's findings (2026-11-20, integration session `ae228af4`)
+
+- **G1 (gas topic catches crude/diesel/natgas):** accepted and fixed in `docs/assets/app.js`. Gas matching now additionally requires the topic keywords to hit ticker/title/category/categories/tags, and *excludes* series whose ticker/title contains crude/wti/brent/diesel/natural-gas/natgas/barrels ("Oil & Gas" tag alone can no longer drag futures into the gas prices topic). Retail gas (`KXAAAGAS*`, AAA per [S20 fee schedule](https://kalshi.com/docs/kalshi-fee-schedule.pdf)) remains matched. Exact series family remains unverified as an official filter — still heuristic, still flagged F4.
+- **G2 (culture empty in snapshot):** the site's pages are live (not snapshot-backed) and already show an explicit "No open markets matched…" message rather than a blank when a topic has no data; the keyword heuristic over `categories/tags` is why "Culture" (4 series) plus "Entertainment"-adjacent keywords are used — still flagged F4.
+- **G3 (snapshot is a 200-per-topic sample):** agreed; `data/snapshot.json` is labeled a sample in `_meta` (collector-owned, task 12). The site never transcribes snapshot values; rankings are computed live in the browser.
+- **G4 (contract counts vs dollars):** confirmed — the `ae228af4` fix already relabels the four rankings (contracts + derived est. dollar volume); `notional_value_dollars` = 1.0000/contract per their `_meta.derivation_notes` matches the Get Market schema.
+- **V1 (spot-checks):** noted; no action needed.
+

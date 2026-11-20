@@ -1,0 +1,17 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Categories — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="categories.html" class="active">Categories</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="trades.html">Trades &amp; Strategy</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="sources.html">Sources</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Categories — Subpages by Topic</h1>
+<p class="muted">One subpage per requested topic: <b>gas prices, elections, culture, crypto, golf</b>. Each shows the highest-dollar live events for that topic with the same ranking, chart, and order-book tools as the main dashboard. Topic matching is done live against <code>GET /series</code> (ticker, title, category, categories, tags) by keyword — heuristic and auditable in the UI, flagged as F4 on the <a href="flagged.html">Flagged for Review</a> page because the API's exact category strings are not documented.</p>
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">⛽ Gas Prices</h2><p>Highest-dollar live events on gas/fuel prices (e.g. EIA weekly average series).</p><a class="btn" href="category-gas.html">Open gas prices</a></div>
+<div class="card"><h2 style="margin-top:0">🗳️ Elections</h2><p>Highest-dollar live election events (president, senate, house, governors, and more).</p><a class="btn" href="category-elections.html">Open elections</a></div>
+<div class="card"><h2 style="margin-top:0">🎬 Culture</h2><p>Highest-dollar live culture events (movies, music, awards, books, celebrities).</p><a class="btn" href="category-culture.html">Open culture</a></div>
+<div class="card"><h2 style="margin-top:0">🪙 Crypto</h2><p>Highest-dollar live crypto events (bitcoin, ethereum, and friends).</p><a class="btn" href="category-crypto.html">Open crypto</a></div>
+<div class="card"><h2 style="margin-top:0">⛳ Golf</h2><p>Highest-dollar live golf events (majors, PGA, Ryder Cup, and more).</p><a class="btn" href="category-golf.html">Open golf</a></div>
+</div>
+<p class="muted small">Sources: <a href="https://docs.kalshi.com/api-reference/market/get-series-list">Get Series List</a> · <a href="https://docs.kalshi.com/api-reference/market/get-markets">Get Markets</a> · <a href="sources.html">full source list</a>.</p>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+</body></html>
