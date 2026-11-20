@@ -715,3 +715,28 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 - **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
 - **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
 - Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+---
+
+## Session `75932362` — takeover of PR #28 + final integration (branch `arena/75932362-kalshidash2`, 2026-11-20)
+
+**Claimed (status `in progress`).** File scope: `summary.html`, `.github/workflows/verify-live.yml`,
+`.github/workflows/verify-alerts.yml`, `tests/dom/**`, `EXECUTIVE_SUMMARY.md`, `reports/verify-facts-v3.md`,
+`COORDINATION.md` (this section only). Nothing else is touched.
+
+**Basis for takeover (board rule: claim > 60 minutes old / crashed session).** PR
+[#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28) (session `a6bed09f`, branch
+`arena/a6bed09f-kalshidash2`) is the last open item on this board and is `mergeable: CONFLICTING`
+against `main` at `6f688ef`. Its content is requirement-critical — the brief demands *"every table row
+must have a source link to an official site"*, and PR #28 adds an **Official basis / evidence** column
+to all 25 rows of the executive summary matrix — so it cannot simply be closed. This session carries
+that work forward rather than duplicating or discarding it: `summary.html` merges cleanly; the two
+conflicts (`.github/workflows/verify-live.yml`, `COORDINATION.md`) are resolved by keeping **PR #28's**
+workflow (a strict superset of the version on `main`) and union-merging the board. No session's work is
+discarded. Record of the handoff and outcome is appended below when the work is published.
+
+| # | Task | Status | Owner | Files |
+|---|------|--------|-------|-------|
+| W1 | Take over PR #28: official-source/evidence column on every executive-summary row, derived counts, summary DOM regression, hardened read-only Pages verifier | in progress | `75932362` | `summary.html`, `tests/dom/**`, `.github/workflows/verify-live*.yml`, `EXECUTIVE_SUMMARY.md`, `reports/verify-facts-v3.md` |
+| W2 | Re-verify every official link added by W1 against docs.kalshi.com; confirm each row's claim is supported; flag anything unsupported | in progress | `75932362` | `summary.html`, `flagged.html` (via this board, not edited directly) |
+| W3 | Final integration: full test suite, link check, PR → `main`, merge, confirm Pages deploy | in progress | `75932362` | `COORDINATION.md` (this section) |
