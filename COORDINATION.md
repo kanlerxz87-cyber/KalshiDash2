@@ -363,3 +363,16 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 - **Task 17: done.** Added `.github/workflows/site-check.yml` and `tools/check_site_links.py` with isolated tests in `tools/test_check_site_links.py`.
 - **Verification:** `python -m unittest discover -s tools -p 'test_*.py'` passed (2 tests); `python tools/check_site_links.py docs` passed against all 17 published HTML pages; `git diff --check` passed.
 - **Scope and limitations:** checks only local URLs/targets/fragments in the GitHub Pages `docs/` directory. It does not claim that external URLs, live Kalshi responses, or current market data are valid; those require network/API verification outside this check.
+
+## Session `4208a2dd` — live alerts, two scrolling chats, simulated strategies (2026-11-20)
+
+Branch: `arena/4208a2dd-kalshidash2` (the session's assigned branch; the `session-<id>/<task>` naming in the brief is not used because the session is bound to this branch name).
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| 18 | Live alert feed: sudden contract-price swings ≥ $0.10 (either direction) shown as two scrolling chats: **All alerts** and a **High-ROI watch** (rule-based filter, see Flagged) | in progress | `4208a2dd` | `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, `tests/alerts-core.test.mjs`, `.github/workflows/verify-alerts.yml`, `reports/alerts-live-check.md` | Polls official `GET /markets?tickers=` (batch) every N s. Price = `last_price_dollars`. |
+| 19 | Automated simulated (paper) strategies run on each alert; per-strategy P&L and resolution yes/no tracking | in progress | `4208a2dd` | same as 18 | No orders are placed. Fills assumed at displayed ask/bid; no fees or slippage modelled — flagged. |
+| 20 | Shared outputs: nav entry for the alerts page; flagged-for-review additions | in progress | `4208a2dd` | `assets/js/ui.js` (PAGES array only), `flagged.html` (append rows only) | Single-session integration of shared outputs; no other session has an open claim on these files. |
+| 21 | Verification (unit tests, syntax, link check, live batch-endpoint check on a GitHub runner), PR to `main`, merge, Pages deploy confirmation | unclaimed → in progress | `4208a2dd` | `COORDINATION.md` (this section) | — |
+
+Claim recorded `2026-11-20`. Base: `main` at `9c99138` (PR #15 merged). Files outside the table are not edited.
