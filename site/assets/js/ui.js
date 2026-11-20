@@ -88,6 +88,7 @@ export function emptyRow(cols, text) {
 
 export const PAGES = [
   { href: "index.html", label: "Overview" },
+  { href: "summary.html", label: "Summary" },
   { href: "categories/gas.html", label: "Gas", topic: "gas" },
   { href: "categories/elections.html", label: "Elections", topic: "elections" },
   { href: "categories/culture.html", label: "Culture", topic: "culture" },
@@ -175,8 +176,6 @@ export function lineChart(canvas, series, opts = {}) {
   const w = cssW - pad.l - pad.r;
   const h = cssH - pad.t - pad.b;
 
-  const all = series.flatMap(s => s.points.filter(p => p.y !== null));
-  const hasY = series.some(s => s.points.some(p => p.y !== null || p.bid !== undefined));
   const allX = series.flatMap(s => s.points.map(p => p.t)).filter(Number.isFinite);
 
   const panel = (msg) => {
@@ -252,7 +251,6 @@ export function lineChart(canvas, series, opts = {}) {
   // series
   for (const s of series) {
     if (opts.include && !opts.include.includes(s.key)) continue;
-    const pts = s.points.filter(p => v => v);
     ctx.strokeStyle = s.color;
     ctx.fillStyle = s.color;
     ctx.lineWidth = s.width || 1.8;

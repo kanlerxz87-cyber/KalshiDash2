@@ -4,8 +4,8 @@
  * in `data-topic` on <body>. Contains the live board, the price chart with the
  * requested time windows, and the liquidity (order-book depth) view.
  */
-import { mountChrome, esc, money, money4, int, dec, dt, pill, $, $$, emptyRow, src, lineChart, relTime } from "./ui.js";
-import { TOPICS, WINDOWS, SOURCES, DEMO, CANDLE } from "./config.js";
+import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineChart } from "./ui.js";
+import { TOPICS, WINDOWS, SOURCES, CANDLE } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
   bucketCandles, LiveSampler, Watchlist
@@ -163,7 +163,6 @@ async function drawWindow() {
   stopLive();
   pill($("#chart-status"), "warn", "loading…");
 
-  const laneY = [];
   if (win.granularity === "live" || (win.seconds <= 300)) {
     // Seconds-scale: accumulate live samples. No seconds-resolution history exists.
     startLive(win);
@@ -289,7 +288,6 @@ async function loadBook(ticker) {
     $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(4, "No resting NO bids.");
 
     const yesDepth = yesRows.reduce((a, l) => a + l.c, 0);
-    const noDepth = noRows.reduce((a, l) => a + l.c, 0);
     const yesNotional = yesRows.reduce((a, l) => a + l.p * l.c, 0);
     $("#book-summary").innerHTML = `
       <div class="grid cols-4">

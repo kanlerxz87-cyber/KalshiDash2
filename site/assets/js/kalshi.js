@@ -169,7 +169,7 @@ export class KalshiClient {
 
   async request(method, path, body) {
     const auth = await this._authHeaders(method, path);
-    const { alg, ...headers } = auth;
+    const { alg: _alg, ...headers } = auth;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const res = await fetch(this.base + path, {
       method,

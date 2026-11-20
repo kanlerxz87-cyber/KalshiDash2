@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suggestions — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Suggestions for better decisions</h1>
+    <p>
+      Proposals to improve how this dashboard supports decisions. <strong>Nothing here is implemented.</strong>
+      Each suggestion states the decision it improves, the evidence behind it, its cost and risk, and the
+      information still missing before it could be chosen. Pick a path; the site will not pick one for you.
+    </p>
+  </div>
+
+  <div class="callout info">
+    <h3>How to choose</h3>
+    <p style="margin:0 0 6px" class="small">
+      The order below is deliberate: items that make the <em>data trustworthy</em> come before items that make
+      it <em>richer</em>, which come before items that make it <em>prettier</em>. A suggestion is only
+      actionable when its "missing information" is closed — those are cross-referenced to the
+      <a href="questions.html">questions page</a>.
+    </p>
+    <p style="margin:0" class="small">Filter by status, then read the evidence column before deciding.</p>
+  </div>
+
+  <div class="grid cols-4" id="counts" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Decision board</h2>
+    <div class="toolbar">
+      <label class="inline">Filter
+        <select id="filter">
+          <option value="all">All suggestions</option>
+          <option value="trust">1 · Make the data trustworthy</option>
+          <option value="insight">2 · Improve the analysis</option>
+          <option value="ops">3 · Operational hardening</option>
+          <option value="ux">4 · Presentation</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span id="shown" class="pill idle"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Suggestion</th><th>Decision it improves</th><th>Evidence</th>
+          <th>Missing before deciding</th><th>Cost</th><th>Risk</th><th>Recommended</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>The four that matter most</h2>
+    <div class="grid cols-2">
+      <div class="callout ok" style="margin:0">
+        <h3>S1 — Prove one real order end to end</h3>
+        <p style="margin:0" class="small">
+          Everything about trading is currently inferred from documentation. One deliberate 1-contract demo
+          order, followed by a fill appearing in <code>/portfolio/fills</code>, converts the largest block of
+          the site from <em>unverified</em> to <em>verified</em>. Nothing else on this page improves
+          trust as much for as little effort.
+        </p>
+      </div>
+      <div class="callout ok" style="margin:0">
+        <h3>S3 — Pair fills into round trips</h3>
+        <p style="margin:0" class="small">
+          Premium paid is not performance. Pairing each fill into an entry and exit (or holding to
+          settlement) is what turns the Strategies page from a catalogue into a scoreboard. It needs fills
+          first, so it follows S1.
+        </p>
+      </div>
+      <div class="callout warn" style="margin:0">
+        <h3>S5 — Publish a data-freshness clock</h3>
+        <p style="margin:0" class="small">
+          REST quotes are cached for a few seconds, and the demo exchange is not production. Showing how stale
+          each number is prevents a viewer from acting on a price that moved. Cheap, and it removes a real
+          misreading risk.
+        </p>
+      </div>
+      <div class="callout warn" style="margin:0">
+        <h3>S8 — Resolve the multi-session overlap</h3>
+        <p style="margin:0" class="small">
+          Seven branches wrote to this repository concurrently. Until one owner performs the integration,
+          any page may be replaced by another session's work. This is an operational risk to everything else
+          on this list.
+        </p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, $, int } from "./assets/js/ui.js";
+mountChrome({ page: "suggestions.html", title: "Suggestions" });
+
+const D = "https://docs.kalshi.com";
+
+const S = [
+  {
+    id: "S1", cat: "trust", rec: "yes",
+    title: "Prove one real order end to end",
+    decision: "Can this dashboard be trusted to trade at all?",
+    evidence: "The V2 route exists (401 unauthenticated), the schema matches, but no order has ever been sent from this site. Flagged F1.",
+    missing: "A demo API key pair — Q8.",
+    cost: "Low — minutes",
+    risk: "A single small demo order costs mock funds only",
+    sources: [`${D}/api-reference/orders/create-order-v2`]
+  },
+  {
+    id: "S2", cat: "trust", rec: "yes",
+    title: "Keep a versioned evidence file for every captured API fact",
+    decision: "Can a reviewer re-check a claim without trusting the site?",
+    evidence: "reports/verify-facts-*.md already hold raw responses; they were the only reason three prior-site defects were provable.",
+    missing: "Nothing — this is a process commitment.",
+    cost: "Low",
+    risk: "Adds repository weight if capture runs too often",
+    sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/tree/main/reports"]
+  },
+  {
+    id: "S3", cat: "insight", rec: "yes",
+    title: "Pair fills into round trips and compute realised P&L",
+    decision: "Which strategy actually makes money?",
+    evidence: "Fills carry count, YES/NO price, fee, role and outcome side — enough to build entries; positions carry realised P&L to reconcile against.",
+    missing: "Fills on the account — Q9.",
+    cost: "Medium — matching logic plus reconciliation",
+    risk: "Partial fills and multi-fill entries can be paired incorrectly if the matching rule is naive",
+    sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`]
+  },
+  {
+    id: "S4", cat: "insight", rec: "yes",
+    title: "Show implied probability next to every price",
+    decision: "Is this contract cheap or expensive?",
+    evidence: "In a binary market the price is the market's probability; the reciprocal rule makes YES and NO prices two views of one number.",
+    missing: "Nothing.",
+    cost: "Low",
+    risk: "None material; must be labelled as an implied probability, not a forecast",
+    sources: [`${D}/getting_started/orderbook_responses`]
+  },
+  {
+    id: "S5", cat: "trust", rec: "yes",
+    title: "Publish a data-freshness clock per panel",
+    decision: "Am I looking at a price that has already moved?",
+    evidence: "REST responses are cached for a few seconds and filtered listings lag longer; the demo exchange is explicitly not reflective of production.",
+    missing: "Nothing.",
+    cost: "Low",
+    risk: "None",
+    sources: [`${D}/api-reference/market/get-markets`, `${D}/getting_started/demo_env`]
+  },
+  {
+    id: "S6", cat: "insight", rec: "maybe",
+    title: "Rank by a definable \"dollars traded\" and let the reader switch definition",
+    decision: "What does \"highest dollar amount\" mean for us?",
+    evidence: "Three defensible definitions rank differently, and no API field settles it.",
+    missing: "A business definition — Q1.",
+    cost: "Low",
+    risk: "Readers may assume the default ranking is the official one",
+    sources: [`${D}/api-reference/market/get-markets`]
+  },
+  {
+    id: "S7", cat: "insight", rec: "maybe",
+    title: "Add an event-level exposure view across mutually-exclusive markets",
+    decision: "Am I taking one bet or several correlated ones?",
+    evidence: "Events group related markets, and mutually_exclusive is a documented field.",
+    missing: "Positions data — Q9.",
+    cost: "Medium",
+    risk: "Easy to over-hedge into a guaranteed loss if the sum of prices exceeds $1",
+    sources: [`${D}/api-reference/events/get-events`]
+  },
+  {
+    id: "S8", cat: "ops", rec: "yes",
+    title: "Name a single integration owner for shared outputs",
+    decision: "Whose version of the site is the site?",
+    evidence: "Seven arena/* branches exist and main advanced during this session; the brief reserves shared outputs for a final integration session.",
+    missing: "The maintainer's choice of owner — Q14.",
+    cost: "Low",
+    risk: "None, other than requiring one decision",
+    sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]
+  },
+  {
+    id: "S9", cat: "ops", rec: "maybe",
+    title: "Confirm a browser-authenticated WebSocket before promising streaming",
+    decision: "Is polling fast enough, or do we need a stream?",
+    evidence: "A WebSocket API exists but its handshake needs headers a browser WebSocket cannot set; unproven — F10.",
+    missing: "A browser handshake test — Q10.",
+    cost: "Medium",
+    risk: "Could force a relay service, which adds a deployment surface and a secret to protect",
+    sources: [`${D}/getting_started/quick_start_websockets`]
+  },
+  {
+    id: "S10", cat: "ops", rec: "maybe",
+    title: "Cache public reads to stay clear of rate limits",
+    decision: "Will the dashboard keep working when many tabs are open?",
+    evidence: "Authenticated calls draw a token bucket; the public budget is unpublished — Q11.",
+    missing: "Observed 429 behaviour under load — Q11.",
+    cost: "Low",
+    risk: "Caching too long makes the \"live\" label a lie",
+    sources: [`${D}/getting_started/rate_limits`]
+  },
+  {
+    id: "S11", cat: "ux", rec: "maybe",
+    title: "Add keyboard navigation and a compact table mode",
+    decision: "Can someone scan 25 events quickly?",
+    evidence: "The board is already tabular and sortable by three metrics; density is the remaining friction.",
+    missing: "User feedback on the current density.",
+    cost: "Low",
+    risk: "None material",
+    sources: []
+  },
+  {
+    id: "S12", cat: "ux", rec: "no",
+    title: "Add a bespoke colour theme and illustrations",
+    decision: "Does the site feel like a product?",
+    evidence: "Presentation does not change a single decision; the data-trust items do.",
+    missing: "Nothing — but it competes for effort with S1 and S3.",
+    cost: "Low",
+    risk: "Effort spent here delays the two items that change decision quality",
+    sources: []
+  }
+];
+
+const recTag = r => r === "yes" ? `<span class="tag yes">recommended</span>`
+  : r === "maybe" ? `<span class="tag warn">optional</span>`
+  : `<span class="tag no">later</span>`;
+
+function render() {
+  const f = $("#filter").value;
+  const rows = f === "all" ? S : S.filter(s => s.cat === f);
+  $("#rows").innerHTML = rows.map(s => `<tr>
+    <td><strong>${esc(s.title)}</strong><div class="mono small muted">${s.id}</div></td>
+    <td class="small">${esc(s.decision)}</td>
+    <td class="small">${esc(s.evidence)}${s.sources.length ? `<div style="margin-top:4px">${s.sources.map(u => `<a class="src-link" href="${esc(u)}" target="_blank" rel="noopener noreferrer">source</a>`).join(" ")}</div>` : ""}</td>
+    <td class="small">${esc(s.missing)}</td>
+    <td class="small nowrap">${esc(s.cost)}</td>
+    <td class="small">${esc(s.risk)}</td>
+    <td>${recTag(s.rec)}</td>
+  </tr>`).join("");
+  $("#shown").textContent = `${rows.length} of ${S.length} suggestions`;
+}
+
+$("#filter").addEventListener("change", render);
+
+$("#counts").innerHTML = [
+  { k: "Suggestions", v: int(S.length), m: "none implemented" },
+  { k: "Recommended", v: int(S.filter(s => s.rec === "yes").length), m: "highest decision value per effort" },
+  { k: "Optional", v: int(S.filter(s => s.rec === "maybe").length), m: "worth it once trust items close" },
+  { k: "Later", v: int(S.filter(s => s.rec === "no").length), m: "cosmetic, competes for effort" }
+].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
+
+render();
+</script>
+</body>
+</html>
