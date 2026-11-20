@@ -956,3 +956,37 @@ This session's work is complete. No further claims are held by `75932362`.
 | Flags on the site | `flagged.html` X1–X4 were published by session `75932362` in [PR #32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32). Confirmed by reading the file on `main`. |
 | Still open (not this session's to fix) | Truncated `…/orders/create-ord` in two raw captures (X4): not edited, because the captures are historical. Staging-bucket 403s: awaiting Kalshi's answer (X1). |
 | Tests on the final tree | `python3 -m unittest discover -s tools -p 'test_*.py'` 18/18 · `python3 tools/check_site_links.py .` 34 pages 0 broken · `node --test tests/alerts-core.test.mjs` 18/18 · `node tools/verify/page-runtime-check.mjs` 17/17 pages (run before PR #35) |
+
+---
+
+## Session `53975890` — simulator trade-analysis upgrades + final integration (branch `arena/53975890-kalshidash2`, 2026-11-20)
+
+Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules).
+
+**Takeovers under the 60-minute stale-claim rule (verified `date -u` = 2026-11-20 19:09 UTC; no commits on either claim in >5 hours):**
+- **S2 request-log items** (`b6799ff3` → `869f5339`, request log in the section above; owner's last commit `112d82d` at 13:40 UTC): CSV export of the simulated trade ledger, a random control-baseline strategy, and rollups by direction (YES/NO) and by topic. Files: `simulator.html`, `assets/js/simulator.js` (+ tests for the new pure functions).
+- **PR [#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28)** (`a6bed09f`, last commit `1420ac4` at 14:06 UTC, PR `CONFLICTING`): conflict resolution only — their executive-summary/verification work is preserved; conflicts resolved against the `verify-live.yml` fixes of PRs #29/#30 and concurrent `COORDINATION.md` appends. Handoff noted here.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| K1 | Simulator trade-analysis upgrades: CSV export of simulated ledger, random control-baseline strategy, rollups by direction and topic | **absorbed — done by `e266d2e8` PR #34**; verified here by `53975890` | `e266d2e8` (delivered), `53975890` (verified) | `simulator.html`, `assets/js/simulator.js`, `tests/simulator-core.test.mjs` (owned by PR #34; not edited here) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`settlement_value_dollars`), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement); `node --test tests/simulator-core.test.mjs` **5/5** on this branch | The `b6799ff3` request-log items landed via PR #34 while this session was taking them over — no duplicate implementation shipped; NO-side P&L (`payout = 1 − settle` for NO) spot-checked against settlement rules and its two dedicated tests |
+| K2 | PR #28 conflict resolution without discarding `a6bed09f`'s work; merge PR #28 | **done** — conflict resolution landed on `arena/a6bed09f-kalshidash2` (`6d1c135`); PR #28 then **superseded and closed** after `75932362`'s PR #32 took it over in full and merged | `53975890` (resolution), `75932362` (takeover PR #32) | `arena/a6bed09f-kalshidash2` (their branch, merge commit only) | On `6d1c135`: alerts-core 18/18, alerts DOM 16/16, summary DOM 5/5, page-runtime 17/17 + 34 links, static links 34 pages, python tools 11/11, signing 6/6, YAML+bash -n clean | Nothing discarded: `verify-live.yml` union (a6bed09f's rewrite + main's report-commit step + write permission + proven needles), `COORDINATION.md` union. PR #32 later chose the read-only artifact design for `verify-live.yml` on main — recorded here so the divergence is visible |
+| K3 | Final integration: full verification suite, line-by-line spot re-verification, PR → `main`, merge, Pages deploy confirmation, records | in progress | `53975890` | `COORDINATION.md` (this section), integration branch | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge |
+
+**Irregularity noted for review (not yet actioned):** `assets/js/jumps.js` is tracked but no published page imports it (the canonical jump detection lives in `assets/js/market.js` / `assets/js/category.js` per session `869f5339` S3). Will flag/remove only if the link/runtime checks confirm it is dead and no other session claims it.
+
+**Line-by-line spot re-verification at integration (session `53975890`, 2026-11-20):**
+
+| # | What was checked | Method | Result |
+|---|---|---|---|
+| S-1 | PR #34 NO-side P&L: `payout = side === "yes" ? settle : 1 - settle`, NO entry = `1 − yesPrice` | read `assets/js/simulator.js` L168–225 + [Market settlement](https://docs.kalshi.com/getting_started/market_settlement) ($1/contract on the correct side) | Correct; matches the two dedicated tests (NO win pays 1, NO loss costs the NO entry) |
+| S-2 | CSV export formula-injection guard, official-source columns | `tests/simulator-core.test.mjs` test 5 (asserts `market_source`/`event_source` URLs and `'=HYPERLINK` escaping) + run | Pass |
+| S-3 | Seeded random control determinism and side-specific entry | simulator-core test 3 + read `seededRandom`/`replayRandomControl` | Pass; labelled on-page as a baseline, not a forecast |
+| S-4 | Topic/direction rollups | simulator-core test 4 + `aggregateBreakdowns` read | Independent topic and YES/NO aggregates; ROI = pnl/capital |
+| S-5 | Flagged X4 (truncated docs URL): no suffix inferred, sources linked | read `flagged.html` `id="X4"` | Correct: captured excerpts + official [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) labelled "for review only, not a reconstruction" |
+| S-6 | Flagged X1 staging-403 note: scope limited to runner observation | read `flagged.html` staging entry | Correct: "describes those requests only… not labelled a verified defect"; official [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) linked |
+| S-7 | Executive-summary evidence column | `node tests/dom/summary-dom.mjs` | 17 requirement rows, 59/67 claims (6 partial, 2 unverified), 25 open / 8 mitigated / 33 total flags, 25 sourced/project-labelled rows |
+
+**Full suite on this branch (= `main` + this board record), 2026-11-20:** `node --test tests/alerts-core.test.mjs` 18/18 · `node --test tests/simulator-core.test.mjs` 5/5 · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` pass · `node tools/verify/page-runtime-check.mjs` 17/17 pages + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` OK · `node evidence/auth-sign-test.mjs` 6/6 · YAML parse of all 10 workflows OK · `git diff --check` clean.
+
+**K3 record:** integration PR opened from `arena/53975890-kalshidash2` → `main` (link below). Merge result and Pages deploy confirmation are appended after the merge in the same section.
