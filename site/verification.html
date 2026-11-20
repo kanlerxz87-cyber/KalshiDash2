@@ -88,16 +88,16 @@
       <table>
         <thead><tr><th>File</th><th>What it records</th><th>Captured</th></tr></thead>
         <tbody>
-          <tr><td class="mono small">reports/verify-facts-raw.md</td>
+          <tr><td class="mono small"><a href="tools/evidence-cors-taxonomy.md">tools/evidence-cors-taxonomy.md</a></td>
               <td>CORS behaviour, category counts, series taxonomy, auth-route probes on the demo API</td>
               <td>2026-11-20 11:08 UTC</td></tr>
-          <tr><td class="mono small">reports/verify-facts-v2.md</td>
+          <tr><td class="mono small"><a href="tools/evidence-routes-settled.md">tools/evidence-routes-settled.md</a></td>
               <td>Deprecated-order-route response, top markets by volume, settled-market results, price grid</td>
               <td>2026-11-20 11:08 UTC</td></tr>
-          <tr><td class="mono small">reports/verify-facts-v3.md</td>
+          <tr><td class="mono small"><a href="tools/evidence-cors-taxonomy.md">tools/evidence-cors-taxonomy.md</a></td>
               <td>Per-endpoint CORS matrix, market→event→series lookup path, candlestick intervals, cancel routes</td>
               <td>2026-11-20 11:10 UTC</td></tr>
-          <tr><td class="mono small">tools/verify/auth-sign-test.mjs</td>
+          <tr><td class="mono small"><a href="tools/auth-sign-test.mjs">tools/auth-sign-test.mjs</a></td>
               <td>Deterministic self-test of the documented signing rules (6 checks, all passing)</td>
               <td>Run locally, no credentials</td></tr>
         </tbody>
@@ -113,7 +113,7 @@ import { SOURCES, CANDLE } from "./assets/js/config.js";
 mountChrome({ page: "verification.html", title: "Verification" });
 
 const D = "https://docs.kalshi.com";
-const R = "https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/";
+const R = "tools/";
 
 const CLAIMS = [
   // ---- environment ----
