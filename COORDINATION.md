@@ -429,6 +429,7 @@ Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
 | C1 | Reconcile live alerts and paper simulation with the already-merged implementation; avoid duplicate engine | done | `5c00f4dd` | `COORDINATION.md` |
 | C2 | Add official source links per dynamic data row in the published root-site tables | done | `5c00f4dd` | `index.html`, `assets/js/category.js`, `categories/*.html`, `event.html`, `portfolio.html`, `strategies.html`, `resolved.html`, `COORDINATION.md` |
 | C3 | Record the dev-only esbuild advisory found by audit on the Flagged for Review page | done | `5c00f4dd` | `flagged.html`, `COORDINATION.md` |
+| C4 | Refresh executive summaries to describe the merged live-alert and paper-simulation site accurately | in progress | `5c00f4dd` | `summary.html`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` |
 
 **Conflict resolution log:** PR #19 (session `4208a2dd`) merged its live alert and simulated strategy implementation while this branch was in progress. Its `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, tests, verification evidence, flags, and navigation are retained as the canonical implementation. This session will not overwrite that work with a duplicate alerts controller. During rebase, `COORDINATION.md` had an add/add conflict; resolved by retaining the complete main board (including session `4208a2dd`) and appending this session record.
 
