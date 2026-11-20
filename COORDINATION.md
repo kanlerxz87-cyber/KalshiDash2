@@ -54,4 +54,4 @@ See the Flagged for Review page for full text and links. Headlines: diesel contr
 
 ## PR and merge
 
-Pending: PR from `arena/9a4750fd-kalshidash2` to `main`. Link and merge result will be recorded here.
+PR: https://github.com/kanlerxz87-cyber/KalshiDash2/pull/7 (`arena/9a4750fd-kalshidash2` → `main`). Merge result and Pages deploy status are recorded in the PR thread after the merge (the merge commit cannot record its own result).
