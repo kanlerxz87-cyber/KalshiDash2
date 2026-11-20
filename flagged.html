@@ -270,7 +270,7 @@
 
     <div class="irregularity" id="A7">
       <h3>A7 — The batch size of 25 tickers is not a documented limit <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> the Get Markets page documents <code>tickers</code> as a comma-separated list, but it publishes no maximum length. The page sends 25 per request. The verify-alerts workflow records the response for 25 and, separately, for 100 (§2–3 of the live report).</p>
+      <p><strong>What was found:</strong> the Get Markets page documents <code>tickers</code> as a comma-separated list, but it publishes no maximum length. The page sends 25 per request. On 2026-11-20 a GitHub-runner read of 25 tickers and of 100 tickers each returned every requested market (<code>reports/alerts-live-check.md</code> §2–3). Those two observations do not establish a maximum.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a></p>
     </div>
 
@@ -284,7 +284,8 @@
     <div class="irregularity" id="A9">
       <h3>A9 — Two status vocabularies, and the sources register is missing <code>paused</code> <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter lists <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code> and <code>settled</code>. The board's source entry S6 lists the filter values without <code>paused</code>. The page treats <code>active</code> and <code>open</code> as live.</p>
-      <p><strong>Decision needed:</strong> confirm the mapping against the live demo data (<code>reports/alerts-live-check.md</code> §1 records the status values seen) and correct S6 in <code>docs/sources.html</code> if you want it corrected.</p>
+      <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest.</p>
+      <p><strong>Decision needed:</strong> confirm the mapping and correct S6 in <code>docs/sources.html</code> if you want it corrected.</p>
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
     </div>
 

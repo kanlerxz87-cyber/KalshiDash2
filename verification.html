@@ -332,14 +332,14 @@ const CLAIMS = [
     detail: "Separate limits apply to unauthenticated requests; clients are told to back off on HTTP 429",
     source: `${D}/getting_started/rate_limits`,
     ev: "Documented text (fetched 2026-11-20); no numeric value given", status: "verified", flag: "A8" },
-  { cat: "limits", claim: "Maximum tickers per batch read",
-    detail: "No maximum is documented; the page sends 25 per request",
+  { cat: "limits", claim: "Batch reads of 25 and 100 tickers",
+    detail: "Both returned every requested market. No maximum is documented, so the limit is not known.",
     source: `${D}/api-reference/market/get-markets`,
-    ev: "Pending: GitHub runner check in reports/alerts-live-check.md", status: "unverified", flag: "A7" },
+    ev: "Live, GitHub runner, 2026-11-20: reports/alerts-live-check.md §2–3", status: "partially verified", flag: "A7" },
   { cat: "api", claim: "Market status filter values",
     detail: "Status filter lists unopened, open, paused, closed, settled; lifecycle page lists the object statuses",
     source: `${D}/getting_started/market_lifecycle`,
-    ev: "Documented (fetched 2026-11-20). Mapping of object status to live trading is partially verified.", status: "partially verified", flag: "A9" }
+    ev: "Documented (fetched 2026-11-20). Live: 2,157 markets 'active' and 14 'finalized' in the open-events scan (reports/alerts-live-check.md §1).", status: "partially verified", flag: "A9" }
 ];
 
 const statusTag = s => s === "verified" ? `<span class="tag yes">verified</span>`
