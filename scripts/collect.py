@@ -47,9 +47,16 @@ DOCS = "https://docs.kalshi.com"
 TOPICS = {
     "gas": {
         "label": "Gas Prices",
-        # Official Kalshi tag for gasoline / oil-and-gas markets.
-        "series_filter": {"tags": ["Gas", "Oil & Gas", "Oil and energy"]},
-        "note": "Selected by the official Kalshi tag(s) Gas / Oil & Gas / Oil and energy.",
+        # Official Kalshi tags for gasoline / oil-and-gas markets. The broader
+        # "Oil and energy" tag (184 series) is deliberately excluded because it
+        # contains crude-oil benchmarks such as WTI and Brent, which are not
+        # gas prices. Tag counts come from data/probe/api_surface.json.
+        "series_filter": {"tags": ["Gas", "Oil & Gas"]},
+        "note": (
+            "Selected by the official Kalshi tags 'Gas' and 'Oil & Gas'. "
+            "The broader 'Oil and energy' tag is excluded (it contains crude-oil "
+            "benchmarks such as WTI/Brent, not gas prices)."
+        ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "elections": {
@@ -61,8 +68,27 @@ TOPICS = {
     },
     "culture": {
         "label": "Culture",
-        "series_filter": {"category": "Culture"},
-        "note": "Selected by the official Kalshi category 'Culture'.",
+        # The official "Culture" category exists but holds only 2 series on the
+        # demo API (both with zero volume), so pop-culture markets are also
+        # selected by Kalshi's own "Entertainment" category and by the
+        # culture tags below. Tag names and counts were enumerated live from
+        # GET /series?include_volume=true (see data/probe/api_surface.json).
+        "series_filter": {
+            "category": "Culture",
+            "extra_categories": ["Entertainment"],
+            "tags": [
+                "Culture war", "Movies", "Movie Charts", "Music", "Music charts",
+                "Music Streams", "Live Music", "Music Industry", "New Music",
+                "Awards", "Oscars", "Grammys", "Emmys", "Reality TV", "TV Charts",
+                "Critics Choice Awards", "Anime Awards", "CMA Awards",
+                "The Game Awards", "Streamer Awards", "Netflix", "Billboard charts",
+                "Entertainment",
+            ],
+        },
+        "note": (
+            "Selected by the official Kalshi categories 'Culture' / 'Entertainment' "
+            "and Kalshi's own culture tags (Movies, Music, Awards, Oscars, ...)."
+        ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "crypto": {
@@ -96,8 +122,14 @@ MARKET_FIELDS = (
     "open_time", "close_time", "expected_expiration_time",
     "latest_expiration_time", "updated_time", "created_time",
     "price_level_structure", "price_ranges", "can_close_early",
-    "settlement_timer_seconds", "early_close_condition", "rules_primary",
+    "settlement_timer_seconds",
 )
+
+# Long free-text fields are stored as a clearly-labelled excerpt so the
+# snapshot stays a readable size. The full text is always available live from
+# GET /markets/{ticker}.
+EXCERPT_FIELDS = ("rules_primary", "early_close_condition")
+EXCERPT_LEN = 260
 
 # Fields copied verbatim from the API for an event.
 EVENT_FIELDS = (
@@ -184,12 +216,13 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
     flt = spec["series_filter"]
     got: dict[str, dict] = {}
     urls: list[str] = []
-    cats = flt.get("category")
+    cats = [flt["category"]] if flt.get("category") else []
+    cats += list(flt.get("extra_categories") or [])
     tags = flt.get("tags") or []
     # The official filters are `category` (exact, case-sensitive) and `tags`.
     queries: list[dict] = []
-    if cats:
-        queries.append({"category": cats})
+    for c in cats:
+        queries.append({"category": c})
     for t in tags:
         queries.append({"tags": t})
     for q in queries:
@@ -212,6 +245,7 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/snapshot.json")
+    ap.add_argument("--seed-out", default="data/seed.json")
     ap.add_argument("--top-series", type=int, default=40)
     ap.add_argument("--top-book", type=int, default=20)
     ap.add_argument("--sleep", type=float, default=0.25)
@@ -266,13 +300,18 @@ def main() -> int:
                 e["_series_ticker"] = s["ticker"]
                 e["_series_title"] = s.get("title", "")
                 e["_source"] = f"{BASE}/events?series_ticker={s['ticker']}&status=open&with_nested_markets=true"
+                e["_market_tickers"] = []
                 for m in ev.get("markets") or []:
                     mm = markets.setdefault(m["ticker"], pick(m, MARKET_FIELDS))
+                    for f in EXCERPT_FIELDS:
+                        if m.get(f):
+                            mm[f + "_excerpt"] = str(m[f])[:EXCERPT_LEN]
                     mm["_topics"] = sorted(set(mm.get("_topics", []) + [key]))
                     mm["_series_ticker"] = s["ticker"]
                     mm["_event_ticker"] = et
                     mm["_event_title"] = ev.get("title", "")
                     mm["_source"] = f"{BASE}/markets/{m['ticker']}"
+                    e["_market_tickers"].append(m["ticker"])
 
     # ------------------------------------------------------- traded notional
     # Exact traded notional from the official trades feed:
@@ -427,6 +466,45 @@ def main() -> int:
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(snapshot, fh, indent=1, sort_keys=False)
     print(f"wrote {args.out} ({os.path.getsize(args.out)} bytes, {client.calls} API calls)",
+          file=sys.stderr)
+
+    # ------------------------------------------------------------ site seed
+    # A trimmed, small file the site can load instantly (and use as an offline
+    # fallback) before / while it refreshes from the live API.
+    seed = {
+        "_meta": {
+            "generated_at": snapshot["_meta"]["generated_at"],
+            "base_url": BASE,
+            "api_docs": DOCS,
+            "note": (
+                "Trimmed snapshot of the Kalshi DEMO API. Every value is verbatim "
+                "from the API response; ranking fields are the official "
+                "volume_24h_fp / volume_fp fixed-point contract counts, which are "
+                "numerically equal to gross dollar notional because every market "
+                "reports notional_value_dollars = 1.0000."
+            ),
+            "source_urls": {
+                "series": sorted({u for v in series_urls.values() for u in v}),
+                "events": sorted(set(event_urls)),
+            },
+        },
+        "topics": {},
+    }
+    for key in TOPICS:
+        t = topic_payload[key]
+        seed["topics"][key] = {
+            "label": t["label"],
+            "rule": t["rule"],
+            "source": t["source"],
+            "series_count": t["series_count"],
+            "series": t["series"][:60],
+            "events": t["events"][:60],
+            "markets": t["markets"][:80],
+        }
+    os.makedirs(os.path.dirname(args.seed_out) or ".", exist_ok=True)
+    with open(args.seed_out, "w", encoding="utf-8") as fh:
+        json.dump(seed, fh, indent=1, sort_keys=False)
+    print(f"wrote {args.seed_out} ({os.path.getsize(args.seed_out)} bytes)",
           file=sys.stderr)
     return 0
 
