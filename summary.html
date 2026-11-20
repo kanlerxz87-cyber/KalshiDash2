@@ -19,11 +19,14 @@
   <div class="card">
     <h2>1 · What was built</h2>
     <p>
-      A live, no-build dashboard for the Kalshi demo exchange covering the five requested topics — gas prices,
-      elections, culture, crypto and golf. It discovers markets from the live API, ranks them by money traded,
-      follows each one until the exchange reports a <em>yes</em> or <em>no</em> result, charts contract price
-      against time, and shows resting liquidity at every price level. A separate portfolio page can read the
-      demo account and place orders, and a strategies page categorises whatever fills actually exist.
+      A live, no-build dashboard for the Kalshi demo exchange covering gas prices, elections, culture, crypto
+      and golf. It ranks the currently discovered events by a derived volume × last-price metric (not an
+      API-provided dollar-notional field), contract volume, or open interest; tracks official yes/no settlement; and charts price and
+      order-book liquidity, and offers a dedicated <a href="alerts.html">Live alerts</a> page with two
+      scrolling feeds for moves of at least $0.10 and automatic browser-local paper strategies. Alerts use
+      last-traded prices between polls; the High-ROI watch is a transparent rule set, not a validated forecast.
+      The Portfolio page supports signed demo-account reads and V2 order placement when the account owner
+      supplies demo credentials.
     </p>
     <div class="table-wrap" style="margin-top:12px">
       <table>
@@ -33,8 +36,9 @@
           <tr><td>Highest-dollar live events, five topics only</td><td><a href="index.html">Overview</a> · five <a href="categories/gas.html">category pages</a></td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Track live events until resolved, yes or no</td><td><a href="resolved.html">Resolved</a> — reads the API's own <code>result</code> field</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Portfolio performance on the demo account</td><td><a href="portfolio.html">Portfolio</a> — balance, positions, fills</td><td><span class="tag warn">built, needs a key</span></td></tr>
-          <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — by topic, side, role, plus six rules</td><td><span class="tag warn">built, needs fills</span></td></tr>
+          <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — real fills by topic, side and role; separate paper strategies on <a href="alerts.html">Live alerts</a></td><td><span class="tag warn">real-account analysis needs fills</span></td></tr>
           <tr><td>Execute trades and track performance</td><td><a href="portfolio.html">Portfolio</a> — V2 order endpoint with the market's own price grid</td><td><span class="tag warn">built, unproven (F1)</span></td></tr>
+          <tr><td>Alert on contract moves ≥ $0.10 and test strategies</td><td><a href="alerts.html">Live alerts</a> — All alerts, High-ROI watch, four paper strategies</td><td><span class="tag warn">paper only; model/costs unverified (A1, A5)</span></td></tr>
           <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td></tr>
@@ -68,12 +72,16 @@
       <ul class="small" style="margin:0;padding-left:18px;line-height:1.9">
         <li><strong>No order has ever been executed</strong> from this site — no demo key was available.
           Route existence and schema are verified; the end-to-end fill is not (F1).</li>
-        <li><strong>No performance figure exists.</strong> With no fills there is no realised P&amp;L, no win
-          rate and no ranking of the six strategies (F2).</li>
-        <li><strong>The gas topic is empty</strong> in the demo environment — zero open gas-price events in a
-          1,000-event scan (F4).</li>
-        <li><strong>Streaming is unconfirmed</strong> in a browser; polling is used and labelled (F10).</li>
+        <li><strong>No account-based performance figure exists.</strong> No signed-account fills were supplied;
+          paper results are hypothetical and do not model fees, slippage or queue position (F2, A5).</li>
+        <li><strong>High-ROI is not a validated model.</strong> It is a rule-based filter; no expected return or
+          external news cause is proven (A1, A4).</li>
+        <li><strong>Alert coverage is partial.</strong> The browser watches a limited open-market universe and
+          only records while the page is open (A2, A6).</li>
+        <li><strong>The gas topic was empty</strong> in the demo environment's 1,000-event scan on 2026-11-20 (F4).</li>
+        <li><strong>Streaming is unconfirmed</strong> in a browser; configurable polling is used (F10).</li>
         <li><strong>The public rate-limit budget is unpublished</strong> (F3).</li>
+        <li><strong>A test-only dependency has a moderate advisory</strong>; see A10. The static site has no runtime npm dependency.</li>
       </ul>
     </div>
   </div>
@@ -116,21 +124,21 @@
       <table>
         <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td>Provide a demo API key and run one 1-contract order</td>
-            <td>Converts the largest unverified area into verified, at the lowest cost</td>
-            <td>Nothing — account owner action</td></tr>
-          <tr><td>2</td><td>Define "highest dollar amount" for the business</td>
-            <td>Three defensible definitions rank markets differently</td>
-            <td>Q1</td></tr>
-          <tr><td>3</td><td>Accumulate deliberate demo trades</td>
-            <td>Makes the strategies page a scoreboard instead of a catalogue</td>
-            <td>Decision 1</td></tr>
-          <tr><td>4</td><td>Choose one integration owner for shared outputs</td>
-            <td>Seven branches are writing to this repository concurrently</td>
-            <td>Q14</td></tr>
-          <tr><td>5</td><td>Decide whether streaming is required</td>
-            <td>Only matters if 2-second polling is too coarse for the intended use</td>
-            <td>Q10</td></tr>
+          <tr><td>1</td><td>Supply demo credentials only if account-level tracking or live demo orders are desired</td>
+            <td>Authenticated balance, positions, fills, and order execution cannot be validated without the account owner's key</td>
+            <td>F1 — no credential supplied</td></tr>
+          <tr><td>2</td><td>Choose which ranking best represents "highest dollar amount"</td>
+            <td>The overview exposes a derived volume × last-price metric, contract volume, and open interest; they answer different questions</td>
+            <td>Q1 / F7</td></tr>
+          <tr><td>3</td><td>Replace or accept the High-ROI watch rules</td>
+            <td>The current spread/price/open-interest filter is not a measured ROI model</td>
+            <td>A1</td></tr>
+          <tr><td>4</td><td>Decide whether alerts must persist while the browser is closed</td>
+            <td>Current polling and paper trading run in the open browser tab only</td>
+            <td>A2</td></tr>
+          <tr><td>5</td><td>Validate fees and execution assumptions before relying on paper P&amp;L</td>
+            <td>Paper fills assume displayed quotes and omit fees, slippage, and queue position</td>
+            <td>A5</td></tr>
         </tbody>
       </table>
     </div>
