@@ -104,13 +104,14 @@
       <h3>F17 — The Get Orders documentation link pointed at a path that does not exist <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the source registry in <code>assets/js/config.js</code> mapped
         <code>SOURCES.orders</code> to <code>https://docs.kalshi.com/api-reference/portfolio/get-orders</code>.
-        That path is not in the official documentation index — Get Orders is published under the
-        <code>orders</code> section, not <code>portfolio</code> — so the link returned a 404 rather than
-        the reference page.</p>
+        That <em>documentation page path</em> is not in the official documentation index — the Get Orders
+        reference is published under the <code>orders</code> section, not <code>portfolio</code> — so the
+        link returned a 404 rather than the reference page.</p>
       <p><strong>Status here:</strong> corrected to
-        <code>https://docs.kalshi.com/api-reference/orders/get-orders</code>, which resolves. Every
-        documentation link the site renders was then re-checked against the official index
-        (<code>docs.kalshi.com/llms.txt</code>); the other 32 resolve as written.</p>
+        <code>https://docs.kalshi.com/api-reference/orders/get-orders</code>, which resolves. The
+        <em>API route</em> the client calls, <code>GET /portfolio/orders</code>, was never wrong and is
+        unchanged. Every documentation link the site renders was then re-checked against the official
+        index (<code>docs.kalshi.com/llms.txt</code>); the other 32 resolve as written.</p>
       <p class="small"><strong>Evidence:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/get-orders" target="_blank" rel="noopener noreferrer">Get Orders ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">official documentation index ↗</a></p>
@@ -267,14 +268,17 @@
     </div>
 
     <div class="irregularity" id="F15">
-      <h3>F15 — Simulated trades carry no fees, spread or slippage <span class="tag warn">open</span></h3>
+      <h3>F15 — Simulated trades ignore the spread and slippage <span class="tag warn">open</span></h3>
       <p><strong>What is unverified:</strong> the true profitability of any strategy. A simulated fill is
         placed at the trade-close price of the candle that fired the signal, so it ignores the bid–ask
-        spread, the size available at that price, and the fee schedule.</p>
+        spread, the size available at that price, and the queue position.</p>
       <p><strong>Impact:</strong> every simulated result on the <a href="simulator.html">Strategy Tester</a>
-        page is <strong>optimistic</strong> by an amount this site cannot quantify.</p>
-      <p><strong>Status here:</strong> the assumption is printed in a warning panel above every backtest
-        result, the fee schedule is linked from that panel, and no live strategy comparison is published.</p>
+        page is still <strong>optimistic</strong> by an amount this site cannot quantify — the fee is now
+        deducted, but the spread is not.</p>
+      <p><strong>Status here:</strong> the published taker fee is deducted from every simulated fill using
+        Kalshi's own formula and rounding rules (reproduced against the worked example in the official fee
+        rounding page), the assumptions are printed in a warning panel above every backtest result, and no
+        live strategy comparison is published.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee schedule (PDF) ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Order-book responses ↗</a></p>
@@ -382,9 +386,20 @@
     </div>
 
     <div class="irregularity" id="A5">
-      <h3>A5 — Simulated trades ignore fees, slippage and queue position <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> the paper strategies enter at the displayed ask for one contract, mark at the best bid, and settle at $1 or $0. Kalshi fees are not deducted, and a real order may not fill at the displayed ask. Simulated P&amp;L is therefore optimistic.</p>
-      <p><strong>Source for fees:</strong> <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Kalshi fee schedule (PDF) ↗</a></p>
+      <h3>A5 — The live paper book ignores fees, slippage and queue position <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the paper strategies on the <a href="alerts.html">Live alerts</a>
+        page enter at the displayed ask for one contract, mark at the best bid, and settle at $1 or $0.
+        Kalshi fees are not deducted there, and a real order may not fill at the displayed ask. That paper
+        P&amp;L is therefore optimistic.</p>
+      <p><strong>Status here:</strong> the <em>backtest</em> on the
+        <a href="simulator.html">Strategy Tester</a> now deducts the published taker fee on every simulated
+        fill, using Kalshi's own formula and rounding rules, and shows the fee as its own column. The
+        live paper book on the alerts page still does not deduct it — it marks against live quotes rather
+        than settling, so the fee is not charged there. Slippage, queue position and the size available at
+        the displayed price are still not modelled on either page.</p>
+      <p><strong>Sources:</strong>
+        <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Kalshi fee schedule (PDF) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a></p>
     </div>
 
     <div class="irregularity" id="A6">

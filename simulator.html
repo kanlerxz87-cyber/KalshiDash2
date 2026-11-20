@@ -23,9 +23,14 @@
     <h3>Simulation assumptions — read before reading the numbers</h3>
     <ul>
       <li>A signal is filled at the <strong>trade-close price of the candle that fired it</strong>. No
-        spread, no slippage, no fees. Fees are therefore missing from every result below, which makes each
-        strategy look better than a live trade would be. Official fee schedule:
-        <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a>.</li>
+        spread and no slippage are applied, so a real fill would often be worse than the one shown.</li>
+      <li><strong>Fees are applied</strong>, using Kalshi's published taker formula
+        <code>round_up(M × 0.07 × C × P × (1 − P))</code> and the documented rounding rules
+        (<a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a> ·
+        <a href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">fee rounding ↗</a>).
+        The contract multiplier <code>M</code> is assumed to be 1 because the responses this page reads do not
+        publish it, and the fill is treated as a <em>taker</em> fill at the displayed price. A position held
+        to settlement pays no settlement fee, so only the entry leg is charged there.</li>
       <li>One trade per market per strategy, taken at the <strong>first</strong> signal.</li>
       <li>A position held to settlement pays the market's own
         <code>settlement_value_dollars</code> — 1.0000 for YES, 0.0000 for NO
@@ -83,14 +88,15 @@
         <thead><tr>
           <th>Strategy</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
           <th class="num">Hit rate</th><th class="num">Avg entry price</th>
-          <th class="num">Total P&amp;L / contract</th><th class="num">Capital / contract</th>
+          <th class="num">Total P&amp;L / contract</th><th class="num">Fees paid</th><th class="num">Capital / contract</th>
           <th class="num">ROI</th><th>Official source</th>
         </tr></thead>
-        <tbody id="scoreboard"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
+        <tbody id="scoreboard"><tr><td colspan="11"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
       </table>
       <div class="table-note" id="score-note">
-        P&amp;L per contract = payout − entry price. Payout is the exit price for a round-trip, otherwise the
-        market's own settlement value for the side held. ROI = total P&amp;L ÷ total capital deployed.
+        P&amp;L per contract = payout − entry price − fees. Payout is the exit price for a round-trip, otherwise the
+        market's own settlement value for the side held. Fees use Kalshi's published taker formula and
+        rounding rules. ROI = total P&amp;L ÷ total capital deployed.
       </div>
     </div>
   </div>
@@ -108,9 +114,9 @@
         <thead><tr>
           <th>Strategy</th><th>Market</th><th>Topic</th><th>Side</th>
           <th class="num">Entry price</th><th>Entry time</th><th>Exit</th>
-          <th>Result</th><th class="num">P&amp;L / contract</th><th>Official source</th>
+          <th>Result</th><th class="num">Fees</th><th class="num">P&amp;L / contract</th><th>Official source</th>
         </tr></thead>
-        <tbody id="ledger"><tr><td colspan="10"><div class="empty">No simulated trades yet.</div></td></tr></tbody>
+        <tbody id="ledger"><tr><td colspan="11"><div class="empty">No simulated trades yet.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -134,10 +140,10 @@
         <thead><tr>
           <th>Trade type</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
           <th class="num">Hit rate</th><th class="num">Avg entry</th>
-          <th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
+          <th class="num">Fees</th><th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
           <th>Official source</th>
         </tr></thead>
-        <tbody id="rollup-side"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
+        <tbody id="rollup-side"><tr><td colspan="11"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
       </table>
     </div>
     <h3 style="margin-top:18px">By topic</h3>
@@ -146,10 +152,10 @@
         <thead><tr>
           <th>Topic</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
           <th class="num">Hit rate</th><th class="num">Avg entry</th>
-          <th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
+          <th class="num">Fees</th><th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
           <th>Official source</th>
         </tr></thead>
-        <tbody id="rollup-topic"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
+        <tbody id="rollup-topic"><tr><td colspan="11"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -210,9 +216,13 @@
           <tr><td>Settlement mechanics ($1 per winning contract)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a></td>
             <td class="mono small">—</td></tr>
-          <tr><td>Fee schedule (not applied in the simulation)</td>
-            <td><a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">PDF ↗</a></td>
-            <td class="mono small">—</td></tr>
+          <tr><td>Taker fee applied to every simulated fill</td>
+            <td><a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a> ·
+              <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">fee rounding ↗</a></td>
+            <td class="mono small">round_up(M × 0.07 × C × P × (1 − P)), M = 1</td></tr>
+          <tr><td>Settlement fee</td>
+            <td><a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a></td>
+            <td class="mono small">none — a position held to settlement pays no exit fee</td></tr>
         </tbody>
       </table>
     </div>
@@ -241,8 +251,8 @@ $("#run").addEventListener("click", async () => {
   const topic = $("#topic").value;
 
   pill($("#status"), "warn", "loading universe…");
-  $("#scoreboard").innerHTML = emptyRow(10, "Loading finalized markets…");
-  $("#ledger").innerHTML = emptyRow(10, "Loading…");
+  $("#scoreboard").innerHTML = emptyRow(11, "Loading finalized markets…");
+  $("#ledger").innerHTML = emptyRow(11, "Loading…");
 
   try {
     const universe = await loadSettledUniverse({
@@ -280,7 +290,7 @@ $("#run").addEventListener("click", async () => {
       `${trades.length} simulated trades · ${withHistory}/${scoped.length} markets had price history`);
   } catch (e) {
     pill($("#status"), "err", e.message);
-    $("#scoreboard").innerHTML = emptyRow(10, "Backtest failed: " + e.message);
+    $("#scoreboard").innerHTML = emptyRow(11, "Backtest failed: " + e.message);
   }
 });
 
@@ -314,7 +324,7 @@ function renderScoreboard() {
         <td><strong>${esc(s.name)}</strong><div class="small muted">${esc(s.rule)}</div></td>
         <td class="num">0</td><td class="num">—</td><td class="num">—</td>
         <td class="num"><span class="unv">n/a</span></td><td class="num"><span class="unv">n/a</span></td>
-        <td class="num">$0.00</td><td class="num">$0.00</td><td class="num"><span class="unv">n/a</span></td>
+        <td class="num">$0.00</td><td class="num">$0.00</td><td class="num">$0.00</td><td class="num"><span class="unv">n/a</span></td>
         <td class="small">${esc(s.evidence || "no trade fired in this universe")}</td>
       </tr>`);
       continue;
@@ -327,6 +337,7 @@ function renderScoreboard() {
       <td class="num">${g.winRate === null ? `<span class="unv">n/a</span>` : (g.winRate * 100).toFixed(1) + "%"}</td>
       <td class="num">${g.avgEntry === null ? `<span class="unv">n/a</span>` : "$" + g.avgEntry.toFixed(2)}</td>
       <td class="num">${money(g.pnl)}</td>
+      <td class="num">${money4(g.fees)}</td>
       <td class="num">${money(g.capital)}</td>
       <td class="num">${g.roi === null ? `<span class="unv">n/a</span>` : (g.roi * 100).toFixed(1) + "%"}</td>
       <td class="small">
@@ -349,7 +360,7 @@ function renderLedger() {
   const rows = lastRun.trades.slice().sort((a, b) => (b.pnlPerContract ?? -9) - (a.pnlPerContract ?? -9));
   $("#ledger-count").textContent = `${rows.length} trade${rows.length === 1 ? "" : "s"}`;
   if (!rows.length) {
-    $("#ledger").innerHTML = emptyRow(10, "No strategy fired in this universe.");
+    $("#ledger").innerHTML = emptyRow(11, "No strategy fired in this universe.");
     return;
   }
   $("#ledger").innerHTML = rows.map(t => `<tr>
@@ -361,6 +372,7 @@ function renderLedger() {
     <td class="small nowrap">${t.entryTs ? dt(new Date(t.entryTs).toISOString()) : `<span class="unv">n/a</span>`}</td>
     <td class="small">${esc(t.exitReason)}${t.exitPrice !== null && t.exitPrice !== undefined ? ` @ ${money4(t.exitPrice)}` : ""}</td>
     <td>${t.result === "yes" ? `<span class="tag yes">yes</span>` : t.result === "no" ? `<span class="tag no">no</span>` : `<span class="unv">n/a</span>`}</td>
+    <td class="num">${t.feePaid === null || t.feePaid === undefined ? `<span class="unv">n/a</span>` : money4(t.feePaid)}</td>
     <td class="num">${t.pnlPerContract === null ? `<span class="unv">n/a</span>` : money(t.pnlPerContract)}</td>
     <td class="small nowrap">
       <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(t.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
@@ -396,11 +408,13 @@ function renderRollups() {
     <td class="num">${int(g.losses)}</td>
     <td class="num">${g.winRate === null ? `<span class="unv">n/a</span>` : (g.winRate * 100).toFixed(1) + "%"}</td>
     <td class="num">${g.avgEntry === null ? `<span class="unv">n/a</span>` : "$" + g.avgEntry.toFixed(2)}</td>
+    <td class="num">${money4(g.fees)}</td>
     <td class="num">${money(g.pnl)}</td>
     <td class="num">${money(g.capital)}</td>
     <td class="num">${g.roi === null ? `<span class="unv">n/a</span>` : (g.roi * 100).toFixed(1) + "%"}</td>
     <td class="small nowrap">
-      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">settlement ↗</a>
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">settlement ↗</a> ·
+      <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fees ↗</a>
     </td>
   </tr>`;
 
@@ -408,10 +422,10 @@ function renderRollups() {
 
   $("#rollup-side").innerHTML = sideRows.length
     ? sideRows.map(g => cell(g, g.label)).join("")
-    : empty(10, "No simulated trades to group yet.");
+    : empty(11, "No simulated trades to group yet.");
   $("#rollup-topic").innerHTML = topicRows.length
     ? topicRows.map(g => cell(g, g.label)).join("")
-    : empty(10, "No simulated trades to group yet.");
+    : empty(11, "No simulated trades to group yet.");
   $("#rollup-count").textContent = `${trades.length} trade${trades.length === 1 ? "" : "s"}`;
 }
 

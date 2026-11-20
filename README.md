@@ -48,13 +48,15 @@ fetched in the browser and never transcribed into the repo.
   the comparison that produced it. A table view of the same events carries one official API link
   per row. Four paper strategies run automatically on the alerts; no orders are placed.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
-  simulated trade is scored against the market's own `settlement_value_dollars`, with the
-  assumptions (no fees, no spread, no slippage) stated above the results. A **chance
-  baseline** ("Random entry") enters once at a seeded pseudo-random point in the same window,
-  so a rule only shows an edge if it beats that row. The same trades are re-cut into
-  **rollups by direction (YES/NO) and by topic**, and both the backtest ledger and the live
-  paper book export to CSV. Includes a live paper-trading book driven by the same alert engine
-  as the Live alerts page.
+  simulated trade is scored against the market's own `settlement_value_dollars` **and the
+  published taker fee** (`round_up(M × 0.07 × C × P × (1 − P))`, with Kalshi's documented
+  rounding rules), so the numbers are net of the exchange's own cost model. The remaining
+  assumptions (no spread, no slippage) are stated above the results. A **chance baseline**
+  ("Random entry") enters once at a seeded pseudo-random point in the same window, so a rule
+  only shows an edge if it beats that row. The same trades are re-cut into **rollups by
+  direction (YES/NO) and by topic**, and both the backtest ledger and the live paper book
+  export to CSV. Includes a live paper-trading book driven by the same alert engine as the
+  Live alerts page.
 - **Category pages** (gas, elections, culture, crypto, golf) — the live board for that topic,
   a price chart with 10s → 7d windows, markers on every ≥$0.10 jump inside the official candle
   series, and order-book depth showing how many contracts rest at each price.

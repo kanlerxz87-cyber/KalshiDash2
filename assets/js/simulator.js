@@ -17,9 +17,9 @@
  *
  * Simulation assumptions — stated on the page, never hidden:
  *   - A signal is filled at the trade-close price of the candle that fired it.
- *     No spread, no slippage and no fees are applied. Fees therefore make
- *     every result here look better than a live trade would be; the official
- *     fee schedule is linked from the page.
+ *     No spread and no slippage are applied. The published taker fee IS
+ *     applied, using the official formula and rounding rules, so the results
+ *     are still optimistic where the market was thin.
  *   - A position held to settlement pays the market's own
  *     `settlement_value_dollars` (1.0000 for YES, 0.0000 for NO).
  *   - One trade per market per strategy, taken at the first signal.
@@ -208,14 +208,25 @@ export function replayStrategy(strategy, series, market) {
 
   let pnl = null;
   let payout = null;
+  let exitFee = 0;
   if (exitPrice !== null) {
     payout = side === "yes" ? exitPrice : 1 - exitPrice;
-    pnl = payout - entry.price;
   } else if (settle !== null) {
     payout = side === "yes" ? settle : 1 - settle;
-    pnl = payout - entry.price;
     exitReason = "held to settlement";
     exitTs = market.settlement_ts ? Date.parse(market.settlement_ts) : null;
+    /* The official schedule states there is no settlement fee, so the exit leg
+     * costs nothing when the position is held to settlement. */
+  }
+  if (payout !== null) {
+    /* The entry is a taker fill at the price the rule fired on. */
+    const entryFee = sideFee(side, entry.price, 1);
+    const entryFeeCost = entryFee ? entryFee.netFee : 0;
+    if (exitPrice !== null) {
+      const f = sideFee(side, exitPrice, 1);
+      exitFee = f ? f.netFee : 0;
+    }
+    pnl = payout - entry.price - entryFeeCost - exitFee;
   }
 
   return {
@@ -233,6 +244,8 @@ export function replayStrategy(strategy, series, market) {
     exitTs,
     payout,
     pnlPerContract: pnl,
+    pnlBeforeFees: payout === null ? null : payout - entry.price,
+    feePaid: payout === null ? null : (pnl === null ? null : (payout - entry.price) - pnl),
     capitalPerContract: entry.price,
     result: (market.result || "").toLowerCase(),
     settlementValue: settle,
@@ -260,7 +273,7 @@ export function aggregate(trades) {
   for (const t of trades) {
     if (!groups.has(t.strategyKey)) {
       groups.set(t.strategyKey, {
-        key: t.strategyKey, name: t.strategyName, trades: [], pnl: 0, capital: 0, wins: 0, losses: 0, flat: 0
+        key: t.strategyKey, name: t.strategyName, trades: [], pnl: 0, capital: 0, fees: 0, wins: 0, losses: 0, flat: 0
       });
     }
     const g = groups.get(t.strategyKey);
@@ -268,6 +281,7 @@ export function aggregate(trades) {
     if (t.pnlPerContract !== null) {
       g.pnl += t.pnlPerContract;
       g.capital += t.capitalPerContract;
+      g.fees += t.feePaid || 0;
       if (t.pnlPerContract > 0) g.wins++;
       else if (t.pnlPerContract < 0) g.losses++;
       else g.flat++;
@@ -299,13 +313,14 @@ export function rollup(trades, keyFn, labelFn) {
   for (const t of trades) {
     const key = keyFn(t);
     if (!groups.has(key)) {
-      groups.set(key, { key, label: labelFn ? labelFn(t, key) : String(key), trades: [], pnl: 0, capital: 0, wins: 0, losses: 0, flat: 0 });
+      groups.set(key, { key, label: labelFn ? labelFn(t, key) : String(key), trades: [], pnl: 0, capital: 0, fees: 0, wins: 0, losses: 0, flat: 0 });
     }
     const g = groups.get(key);
     g.trades.push(t);
     if (t.pnlPerContract !== null && t.pnlPerContract !== undefined) {
       g.pnl += t.pnlPerContract;
       g.capital += t.capitalPerContract;
+      g.fees += t.feePaid || 0;
       if (t.pnlPerContract > 0) g.wins++;
       else if (t.pnlPerContract < 0) g.losses++;
       else g.flat++;
@@ -323,6 +338,91 @@ export function rollup(trades, keyFn, labelFn) {
       avgPnl: n ? g.pnl / n : null
     };
   }).sort((a, b) => b.pnl - a.pnl);
+}
+
+/* --------------------------------------------------------------------------
+ * Fees
+ * ----------------------------------------------------------------------- */
+
+/* Kalshi's published fee schedule (https://kalshi.com/docs/kalshi-fee-schedule.pdf):
+ *
+ *   taker: fees = round_up(M × 0.07  × C × P × (1 − P))
+ *   maker: fees = round_up(M × 0.0175 × C × P × (1 − P))
+ *
+ * where P is the price of the contract in dollars, C the number of contracts
+ * and M the contract multiplier (1 unless the series says otherwise).
+ *
+ * The rounding is documented at
+ * https://docs.kalshi.com/getting_started/fee_rounding:
+ *   trade_fee    = ceil_6dp(model_fee)
+ *   aligned      = floor_4dp(revenue − trade_fee)   (direct-member precision)
+ *   rounding_fee = (revenue − trade_fee) − aligned
+ *   net_fee      = trade_fee + rounding_fee         (no rebate on a single fill)
+ *
+ * `precision` selects the balance grid: 4 for a direct member ($0.0001) and 2
+ * for a non-direct member ($0.01). The published worked example uses the
+ * non-direct grid, and is reproduced exactly by `fillFee(0.055, 1,
+ * { precision: 2 })`.
+ *
+ * A simulated entry is filled at the displayed price, so it is treated as a
+ * TAKER fill. The series multiplier is not published per market in the
+ * responses this page reads, so M = 1 is used and the assumption is printed
+ * above the results.
+ */
+
+const FEE_RATE = { taker: 0.07, maker: 0.0175 };
+const DIRECT_MEMBER_PRECISION = 4;   // $0.0001
+const FEE_PRECISION = 6;             // $0.000001
+
+/* ceil to n decimal places, without float noise from the multiplication. */
+function ceilTo(value, dp) {
+  const scale = 10 ** dp;
+  const scaled = Number((value * scale).toFixed(dp));
+  return Math.ceil(scaled) / scale;
+}
+
+/* floor to n decimal places, without float noise. */
+function floorTo(value, dp) {
+  const scale = 10 ** dp;
+  const scaled = Number((value * scale).toFixed(dp));
+  return Math.floor(scaled) / scale;
+}
+
+/* The fee for one fill.
+ *
+ *   price      — the contract price in dollars (the side being traded)
+ *   count      — number of contracts
+ *   role       — "taker" (default) or "maker"
+ *   multiplier — the series multiplier M (1 unless published otherwise)
+ *
+ * Returns { modelFee, tradeFee, roundingFee, netFee }. */
+export function fillFee(price, count = 1, { role = "taker", multiplier = 1, precision = DIRECT_MEMBER_PRECISION } = {}) {
+  const rate = FEE_RATE[role] ?? FEE_RATE.taker;
+  const modelFee = multiplier * rate * count * price * (1 - price);
+  const tradeFee = ceilTo(modelFee, FEE_PRECISION);
+  const revenue = -(price * count);
+  const aligned = floorTo(revenue - tradeFee, precision);
+  const roundingFee = (revenue - tradeFee) - aligned;
+  return {
+    modelFee: roundTo(modelFee, FEE_PRECISION),
+    tradeFee: roundTo(tradeFee, FEE_PRECISION),
+    roundingFee: roundTo(roundingFee, FEE_PRECISION),
+    netFee: roundTo(tradeFee + roundingFee, FEE_PRECISION)
+  };
+}
+
+/* The fee on the leg that is being scored. A YES trade is priced on the YES
+ * side, a NO trade on the NO side (price 1 − yes price). */
+export function sideFee(side, sidePrice, count = 1, options = {}) {
+  if (sidePrice === null || sidePrice === undefined || !Number.isFinite(sidePrice)) return null;
+  const price = side === "no" ? 1 - sidePrice : sidePrice;
+  if (!(price > 0 && price < 1)) return null;
+  return fillFee(price, count, options);
+}
+
+function roundTo(value, dp) {
+  const scale = 10 ** dp;
+  return Number((value * scale).toFixed(dp)) / scale;
 }
 
 /* --------------------------------------------------------------------------
@@ -345,6 +445,8 @@ const CSV_COLUMNS = [
   ["result", t => t.result],
   ["settlement_value", t => (t.settlementValue === null || t.settlementValue === undefined ? "" : t.settlementValue)],
   ["pnl_per_contract", t => (t.pnlPerContract === null || t.pnlPerContract === undefined ? "" : t.pnlPerContract)],
+  ["pnl_before_fees", t => (t.pnlBeforeFees === null || t.pnlBeforeFees === undefined ? "" : t.pnlBeforeFees)],
+  ["fee_paid", t => (t.feePaid === null || t.feePaid === undefined ? "" : t.feePaid)],
   ["capital_per_contract", t => t.capitalPerContract],
   ["category", t => t.category || ""],
   ["series_ticker", t => t.seriesTicker || ""],

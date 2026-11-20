@@ -6,7 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   replayStrategy, replayAll, aggregate, rollup,
-  baselineIndex, hashString, tradesToCsv, paperToCsv, toSeries
+  baselineIndex, hashString, tradesToCsv, paperToCsv, toSeries,
+  fillFee, sideFee
 } from "../assets/js/simulator.js";
 import { STRATEGIES } from "../assets/js/config.js";
 
@@ -67,8 +68,11 @@ test("the baseline is scored against the market's own settlement value", () => {
   const t = replayStrategy(RANDOM, makeSeries(), MARKET);
   assert.equal(t.result, "yes");
   assert.equal(t.settlementValue, 1);
-  assert.ok(Math.abs(t.pnlPerContract - (1 - t.entryPrice)) < 1e-9,
-    `pnl ${t.pnlPerContract} = 1 − ${t.entryPrice}`);
+  const gross = 1 - t.entryPrice;
+  assert.ok(Math.abs(t.pnlBeforeFees - gross) < 1e-9,
+    `gross pnl ${t.pnlBeforeFees} = 1 − ${t.entryPrice}`);
+  assert.ok(Math.abs(t.pnlPerContract - (gross - t.feePaid)) < 1e-9,
+    `net pnl ${t.pnlPerContract} = gross − fee`);
 });
 
 test("rollup groups the same trades by direction and by topic", () => {
@@ -151,4 +155,75 @@ test("paperToCsv marks open and closed positions", () => {
   assert.ok(lines[1].includes(",open,"), lines[1]);
   assert.ok(lines[2].includes(",closed,"), lines[2]);
   assert.ok(lines[2].includes(",yes,"), "the settled outcome is exported");
+});
+
+/* -------------------------------------------------------------------------
+ * Fees — checked against the published worked example.
+ *
+ * Source: https://docs.kalshi.com/getting_started/fee_rounding
+ *   "FCM-cleared fill … suppose a buy has -$0.055000 of signed revenue and a
+ *    model fee of $0.00363825:
+ *      trade fee = ceil_6dp($0.00363825) = $0.003639
+ *      aligned change = floor_cent(-$0.055 - $0.003639) = -$0.060000
+ *      rounding fee = (-$0.055 - $0.003639) - -$0.06 = $0.001361
+ *    The balance changes by -$0.06; the trade fee plus rounding fee is
+ *    exactly $0.005."
+ *
+ * The example uses a non-direct member's $0.01 balance grid, so it is
+ * reproduced with precision: 2.
+ * ---------------------------------------------------------------------- */
+test("the taker fee reproduces the published worked example exactly", () => {
+  const f = fillFee(0.055, 1, { role: "taker", precision: 2 });
+  assert.equal(f.modelFee, 0.00363825, "model fee");
+  assert.equal(f.tradeFee, 0.003639, "trade fee is ceiled to 6dp");
+  assert.equal(f.roundingFee, 0.001361, "rounding fee restores the $0.01 grid");
+  assert.equal(f.netFee, 0.005, "trade fee plus rounding fee is exactly $0.005");
+});
+
+test("the maker rate is a quarter of the taker rate", () => {
+  const taker = fillFee(0.40, 10, { role: "taker" });
+  const maker = fillFee(0.40, 10, { role: "maker" });
+  assert.ok(Math.abs(taker.modelFee / maker.modelFee - 4) < 1e-9,
+    `taker ${taker.modelFee} is 4x maker ${maker.modelFee}`);
+  assert.ok(Math.abs(maker.modelFee - 1 * 0.0175 * 10 * 0.40 * 0.60) < 1e-12);
+});
+
+test("the multiplier scales the fee linearly", () => {
+  const one = fillFee(0.40, 1, { multiplier: 1 });
+  const two = fillFee(0.40, 1, { multiplier: 2 });
+  assert.ok(Math.abs(two.modelFee - one.modelFee * 2) < 1e-9);
+});
+
+test("a NO-side fee is priced on the NO price", () => {
+  const no = sideFee("no", 0.40, 1);
+  const expected = fillFee(0.60, 1).modelFee;   // NO price = 1 − 0.40
+  assert.ok(Math.abs(no.modelFee - expected) < 1e-12,
+    `no-side fee ${no.modelFee} uses the NO price 0.60`);
+  /* The published formula is a function of the implied probability, so the
+   * YES and NO fees at complementary prices are equal by construction. */
+  const yes = sideFee("yes", 0.40, 1);
+  assert.ok(Math.abs(yes.modelFee - no.modelFee) < 1e-12,
+    "P(1−P) is symmetric, so YES and NO at complementary prices cost the same");
+});
+
+test("a fee is not computed for a price outside (0, 1)", () => {
+  assert.equal(sideFee("yes", null, 1), null);
+  assert.equal(sideFee("yes", 0, 1), null);
+  assert.equal(sideFee("yes", 1, 1), null);
+});
+
+test("a simulated trade's P&L is net of the published fee", () => {
+  const t = replayStrategy(RANDOM, makeSeries(), MARKET);
+  const gross = t.payout - t.entryPrice;
+  assert.ok(t.feePaid > 0, "a fee was charged");
+  assert.ok(Math.abs(t.pnlBeforeFees - gross) < 1e-9, "gross P&L is payout − entry");
+  assert.ok(Math.abs(t.pnlPerContract - (gross - t.feePaid)) < 1e-9, "net P&L is gross − fee");
+  assert.ok(t.pnlPerContract < t.pnlBeforeFees, "fees make the result worse");
+});
+
+test("holding to settlement pays out with no exit fee", () => {
+  const t = replayStrategy(RANDOM, makeSeries(), MARKET);
+  assert.equal(t.exitReason, "held to settlement");
+  const entryFee = sideFee(t.side, t.entryPrice, 1).netFee;
+  assert.ok(Math.abs(t.feePaid - entryFee) < 1e-9, "only the entry leg is charged");
 });
