@@ -1,0 +1,104 @@
+name: verify-live-site
+
+# The Pages site is built by GitHub itself from main:/ (legacy Jekyll). This
+# workflow proves, from a machine that can actually reach github.io, that every
+# published page is served with a 200 and that the key content is in the HTML.
+#
+# Runs on demand and on push to the published tree.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "categories/**"
+      - "assets/**"
+      - "evidence/**"
+      - ".github/workflows/verify-live.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: verify-live
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for the Pages build to settle, then probe every page
+        run: |
+          set -uo pipefail
+          BASE="https://kanlerxz87-cyber.github.io/KalshiDash2"
+          PAGES="index.html summary.html event.html resolved.html portfolio.html strategies.html resolved.html suggestions.html questions.html verification.html flagged.html categories/gas.html categories/elections.html categories/culture.html categories/crypto.html categories/golf.html"
+          OUT="$GITHUB_WORKSPACE/live-report.md"
+          echo "# Live site check — $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUT"
+          echo "" >> "$OUT"
+          echo "Target: $BASE/" >> "$OUT"
+          echo "" >> "$OUT"
+
+          # The Pages builder sometimes needs a minute after a merge; retry the
+          # first probe before giving up so we do not record a false failure.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 "$BASE/" || echo 000)
+            echo "probe $attempt: / -> $code"
+            [ "$code" = "200" ] && break
+            sleep 15
+          done
+
+          echo "| Path | HTTP | Bytes | Key content present |" >> "$OUT"
+          echo "| --- | --- | --- | --- |" >> "$OUT"
+          fail=0
+          for p in $PAGES; do
+            body=$(mktemp)
+            code=$(curl -s -o "$body" -w '%{http_code}' -L --max-time 20 "$BASE/$p" || echo 000)
+            bytes=$(wc -c < "$body")
+            [
+              -n "$(grep -o 'KalshiDash2' "$body" | head -1)" ] && has="yes" || has="no"
+            if [ "$code" != "200" ] || [ "$bytes" -lt 500 ]; then fail=$((fail+1)); fi
+            echo "| \`$p\` | $code | $bytes | $has |" >> "$OUT"
+            rm -f "$body"
+          done
+
+          echo "" >> "$OUT"
+          echo "## Content assertions" >> "$OUT"
+          echo "" >> "$OUT"
+
+          probe () {
+            local url="$1" needle="$2" label="$3"
+            if curl -s -L --max-time 20 "$url" | grep -qF -- "$needle"; then
+              echo "- PASS  $label  (\`$needle\`)" >> "$OUT"
+            else
+              echo "- FAIL  $label  (missing \`$needle\`)" >> "$OUT"
+              fail=$((fail+1))
+            fi
+          }
+
+          probe "$BASE/" "Live events in the five topics" "landing board heading"
+          probe "$BASE/summary.html" "Verified"            "executive summary renders"
+          probe "$BASE/verification.html" "claims"          "claim register renders"
+          probe "$BASE/flagged.html" "Flagged"             "flag register renders"
+          probe "$BASE/questions.html" "questions"         "question register renders"
+          probe "$BASE/suggestions.html" "Suggestions"     "decision board renders"
+          probe "$BASE/categories/gas.html" "Gas"           "gas page renders"
+          probe "$BASE/categories/golf.html" "Golf"         "golf page renders"
+          probe "$BASE/evidence/auth-sign-test.mjs" "checks passed" "signing evidence served"
+
+          echo "" >> "$OUT"
+          echo "**Failures: $fail**" >> "$OUT"
+          cat "$OUT"
+          echo "VERIFY_LIVE_FAILURES=$fail" >> "$GITHUB_ENV"
+
+      - name: Commit the report
+        run: |
+          mkdir -p reports
+          cp live-report.md "reports/live-site-${{ github.run_number }}.md"
+          git config user.name  "verify-live[bot]"
+          git config user.email "verify-live@users.noreply.github.com"
+          git add -A reports/
+          git commit -m "reports: live site check ${{ github.run_number }} (failures: $VERIFY_LIVE_FAILURES) [skip ci]" || echo "nothing to commit"
+          git push
