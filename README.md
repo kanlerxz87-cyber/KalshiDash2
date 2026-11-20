@@ -48,6 +48,7 @@ fetched in the browser and never transcribed into the repo.
   to each market's own published price grid. The API key stays in the browser tab.
 - **Strategies** — fills categorised by topic, side and maker/taker role, plus six strategy
   rules that are marked *untested* until real fills exist to score them.
+- **Live alerts** — every swing of $0.10 or more in an open market's last traded price, between polls, in two scrolling feeds: all alerts, and a High-ROI watch that passes a transparent rule set (a placeholder for a model). Four paper strategies run automatically on the alerts; no orders are placed.
 - **Suggestions · Questions · Verification · Flagged** — the decision register: what is proven,
   what is not, what to decide next, and every source link.
 
@@ -64,6 +65,7 @@ fetched in the browser and never transcribed into the repo.
 ```
 index.html                overview board            <- published site root (Pages: main:/)
   summary.html            executive summary
+  alerts.html             live alerts: $0.10+ swings, High-ROI watch, paper strategies
   categories/*.html       one page per topic
   event.html              single-event detail
   resolved.html           resolution tracking

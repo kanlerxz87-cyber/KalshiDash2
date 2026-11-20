@@ -317,7 +317,29 @@ const CLAIMS = [
   { cat: "repo", claim: "Sandbox cannot reach Kalshi hosts",
     detail: "TLS handshake fails from the build sandbox; data capture ran in GitHub Actions",
     source: "https://github.com/kanlerxz87-cyber/KalshiDash2/tree/main/reports",
-    ev: "openSSL SSL_ERROR_SYSCALL locally; identical calls succeeded in CI", status: "verified" }
+    ev: "openSSL SSL_ERROR_SYSCALL locally; identical calls succeeded in CI", status: "verified" },
+
+  // ---- live alerts page (session 4208a2dd) ----
+  { cat: "api", claim: "Batch price read by ticker list",
+    detail: "GET /markets accepts a comma-separated tickers filter; limit maximum 1000",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Documented query parameters (fetched 2026-11-20)", status: "verified", flag: "A7" },
+  { cat: "api", claim: "Event record lists settlement sources",
+    detail: "GET /events/{event_ticker} returns settlement_sources as objects with name and url",
+    source: `${D}/api-reference/events/get-event`,
+    ev: "Documented response schema (fetched 2026-11-20)", status: "verified", flag: "A4" },
+  { cat: "limits", claim: "Unauthenticated limits are not published as numbers",
+    detail: "Separate limits apply to unauthenticated requests; clients are told to back off on HTTP 429",
+    source: `${D}/getting_started/rate_limits`,
+    ev: "Documented text (fetched 2026-11-20); no numeric value given", status: "verified", flag: "A8" },
+  { cat: "limits", claim: "Maximum tickers per batch read",
+    detail: "No maximum is documented; the page sends 25 per request",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Pending: GitHub runner check in reports/alerts-live-check.md", status: "unverified", flag: "A7" },
+  { cat: "api", claim: "Market status filter values",
+    detail: "Status filter lists unopened, open, paused, closed, settled; lifecycle page lists the object statuses",
+    source: `${D}/getting_started/market_lifecycle`,
+    ev: "Documented (fetched 2026-11-20). Mapping of object status to live trading is partially verified.", status: "partially verified", flag: "A9" }
 ];
 
 const statusTag = s => s === "verified" ? `<span class="tag yes">verified</span>`
