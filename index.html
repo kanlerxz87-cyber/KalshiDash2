@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101923" />
+    <meta
+      name="description"
+      content="Evidence-first Kalshi demo market monitor: live markets, prices, order books, resolution, portfolio readiness, and decision-support questions."
+    />
+    <title>Kalshi Demo | Market Monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="Kalshi demo dashboard home"
+        ><span class="brand-mark">K</span
+        ><span
+          ><strong>Kalshi demo</strong><small>MARKET MONITOR</small></span
+        ></a
+      >
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="nav-link active" href="#dashboard" data-page="dashboard"
+          ><span>▦</span> Overview</a
+        >
+        <div class="nav-label">TOPICS</div>
+        <a class="nav-link" href="#gas" data-topic="Gas prices"
+          ><span>◉</span> Gas prices</a
+        >
+        <a class="nav-link" href="#elections" data-topic="Elections"
+          ><span>◉</span> Elections</a
+        >
+        <a class="nav-link" href="#culture" data-topic="Culture"
+          ><span>◉</span> Culture</a
+        >
+        <a class="nav-link" href="#crypto" data-topic="Crypto"
+          ><span>◉</span> Crypto</a
+        >
+        <a class="nav-link" href="#golf" data-topic="Golf"
+          ><span>◉</span> Golf</a
+        >
+        <div class="nav-label">RESEARCH</div>
+        <a class="nav-link" href="#resolved" data-page="resolved"
+          ><span>✓</span> Resolved markets</a
+        >
+        <a class="nav-link" href="#portfolio" data-page="portfolio"
+          ><span>▤</span> Portfolio</a
+        >
+        <a class="nav-link" href="#strategies" data-page="strategies"
+          ><span>⌁</span> Trade analysis</a
+        >
+        <a class="nav-link" href="#questions" data-page="questions"
+          ><span>?</span> Decision checklist</a
+        >
+        <a class="nav-link" href="#suggestions" data-page="suggestions"
+          ><span>✳</span> Suggestions</a
+        >
+        <a class="nav-link" href="#review" data-page="review"
+          ><span>⚑</span> Flagged for review</a
+        >
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="status-dot"></span><span>Demo environment</span
+        ><a
+          href="https://docs.kalshi.com/getting_started/demo_env"
+          target="_blank"
+          rel="noopener"
+          >Official guide ↗</a
+        >
+      </div>
+    </aside>
+
+    <main class="main-shell">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" aria-label="Open menu">
+          ☰
+        </button>
+        <div class="breadcrumb">
+          Workspace <span>/</span> <b id="breadcrumb-current">Overview</b>
+        </div>
+        <div class="topbar-right">
+          <span class="environment-pill"><i></i> DEMO</span
+          ><button
+            class="icon-button"
+            id="refresh-button"
+            aria-label="Refresh public data"
+            title="Refresh public data"
+          >
+            ↻</button
+          ><span class="clock" id="clock">—</span>
+        </div>
+      </header>
+
+      <section class="page active" id="page-dashboard">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">MARKET INTELLIGENCE / DEMO</p>
+            <h1>Executive summary</h1>
+            <p class="subheading">
+              This static monitor covers five requested topics. Public quotes
+              and order books may load from Kalshi demo; dollar-volume ranking,
+              account performance, and trade execution remain unverified or
+              require secure authenticated infrastructure.
+            </p>
+          </div>
+          <div class="heading-actions">
+            <span class="live-badge"
+              ><i></i> <span id="live-label">Connecting</span></span
+            ><button class="button button-secondary" id="refresh-top">
+              Refresh data
+            </button>
+          </div>
+        </div>
+        <div class="notice notice-blue" id="connection-notice">
+          <span class="notice-icon">i</span>
+          <div>
+            <strong>Live data status</strong>
+            <p id="connection-message">
+              Connecting to the public Kalshi demo API. Values remain blank
+              until the API returns verifiable data.
+            </p>
+          </div>
+          <a
+            class="text-link"
+            href="https://docs.kalshi.com/api-reference/market/get-markets"
+            target="_blank"
+            rel="noopener"
+            >API docs ↗</a
+          >
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card">
+            <div class="metric-label">
+              OPEN MATCHED MARKETS
+              <span
+                class="info-dot"
+                title="Status=open from the demo markets endpoint"
+                >i</span
+              >
+            </div>
+            <div class="metric-value" id="metric-markets">—</div>
+            <div class="metric-foot" id="metric-markets-note">
+              Waiting for source data
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">TOPIC MATCHES</div>
+            <div class="metric-value" id="metric-topics">—</div>
+            <div class="metric-foot">
+              Keyword matches; classification needs review
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">MARKETS WITH LIVE PRICE</div>
+            <div class="metric-value" id="metric-priced">—</div>
+            <div class="metric-foot">Returned market records with a price</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">DEMO PORTFOLIO</div>
+            <div class="metric-value metric-muted">Not connected</div>
+            <div class="metric-foot">
+              Requires private-key server integration
+            </div>
+          </article>
+        </div>
+        <div class="section-heading">
+          <div>
+            <h2>Markets to watch</h2>
+            <p>
+              Filtered to your five requested topics. Rank: reported 24-hour
+              contract volume, not dollar value.
+            </p>
+          </div>
+          <div class="table-tools">
+            <label class="search-wrap"
+              ><span>⌕</span
+              ><input
+                type="search"
+                id="market-search"
+                placeholder="Search market title or ticker"
+                aria-label="Search markets"
+            /></label>
+          </div>
+        </div>
+        <div class="topic-chips" id="topic-chips">
+          <button class="chip selected" data-chip="All topics">
+            All topics</button
+          ><button class="chip" data-chip="Gas prices">Gas prices</button
+          ><button class="chip" data-chip="Elections">Elections</button
+          ><button class="chip" data-chip="Culture">Culture</button
+          ><button class="chip" data-chip="Crypto">Crypto</button
+          ><button class="chip" data-chip="Golf">Golf</button>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>MARKET / EVENT</th>
+                  <th>TOPIC MATCH</th>
+                  <th>STATUS</th>
+                  <th>YES PRICE</th>
+                  <th>24H VOLUME<br /><small>contracts</small></th>
+                  <th>OPEN INTEREST<br /><small>contracts</small></th>
+                  <th>SOURCE</th>
+                </tr>
+              </thead>
+              <tbody id="market-rows">
+                <tr>
+                  <td colspan="7" class="empty-cell">
+                    Awaiting public demo API response. No sample values are
+                    shown.
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Official API schema ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="table-summary">0 records · values not yet verified</span
+            ><span>Each record links to Kalshi's official API.</span>
+          </div>
+        </div>
+        <div class="two-column detail-layout">
+          <section class="panel chart-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">SELECTED MARKET</p>
+                <h2 id="selected-market-title">Select a market to inspect</h2>
+              </div>
+              <button id="open-market-source" class="button-link" disabled>
+                Open source ↗
+              </button>
+            </div>
+            <div class="chart-controls">
+              <div
+                class="range-switch"
+                role="group"
+                aria-label="Chart time range"
+              >
+                <button class="range-button selected" data-range="1m">
+                  Seconds</button
+                ><button class="range-button" data-range="1h">Minutes</button
+                ><button class="range-button" data-range="24h">Hours</button>
+              </div>
+              <span id="chart-price" class="chart-current">YES —</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas
+                id="price-chart"
+                aria-label="Observed yes contract price over time"
+              ></canvas>
+              <div id="chart-empty" class="chart-empty">
+                Choose a live market to begin collecting price observations.
+              </div>
+            </div>
+            <div class="chart-legend">
+              <span><i class="legend-line"></i>Observed YES price</span
+              ><span id="chart-unit">X: time · Y: contract price (USD)</span>
+            </div>
+            <p class="chart-disclaimer">
+              Browser-observed price samples are not exchange historical
+              candles. Page refresh clears this in-memory sample series.
+              Historical candles are available in 1-minute, 1-hour, or 1-day
+              intervals where supported.
+            </p>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">CURRENT ORDER BOOK</p>
+                <h2>Available contracts by price</h2>
+              </div>
+              <span id="orderbook-updated" class="subtle-tag">Not loaded</span>
+            </div>
+            <p class="panel-description">
+              Public order-book bids by outcome. Displayed contract sizes are
+              API values; asks are not synthesized.
+            </p>
+            <div class="book-head">
+              <span>YES PRICE</span><span>CONTRACTS</span><span>NO PRICE</span
+              ><span>CONTRACTS</span>
+            </div>
+            <div id="orderbook-levels" class="orderbook-levels">
+              <p class="empty-inline">
+                Select a market to request its public order book.
+              </p>
+            </div>
+            <a
+              class="panel-source"
+              id="orderbook-doc-link"
+              href="https://docs.kalshi.com/api-reference/market/get-market-orderbook"
+              target="_blank"
+              rel="noopener"
+              >Order book API reference ↗</a
+            >
+          </section>
+        </div>
+        <div class="notice notice-amber">
+          <span class="notice-icon">!</span>
+          <div>
+            <strong>Dollar-volume caveat</strong>
+            <p>
+              The REST market-list figures shown here are contract counts, not a
+              verified dollar-volume ranking. Kalshi documents a
+              <code>dollar_volume</code> field in authenticated ticker WebSocket
+              messages, but this static site does not establish an authenticated
+              stream or event-level aggregation. See
+              <a href="#review">Flagged for review</a>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-resolved">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">SETTLEMENT TRACKING</p>
+            <h1>Resolved markets</h1>
+            <p class="subheading">
+              Official API result values only. Resolution is not inferred from
+              price, time, or market title.
+            </p>
+          </div>
+          <button class="button button-secondary" data-refresh>
+            Refresh results
+          </button>
+        </div>
+        <div class="notice notice-blue">
+          <span class="notice-icon">i</span>
+          <div>
+            <strong>Outcome source</strong>
+            <p>
+              Settled market records may report result as <code>yes</code> or
+              <code>no</code>. The exact market rules and settlement details
+              remain the controlling source.
+            </p>
+          </div>
+          <a
+            class="text-link"
+            href="https://docs.kalshi.com/api-reference/market/get-markets"
+            target="_blank"
+            rel="noopener"
+            >Market API ↗</a
+          >
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>MARKET</th>
+                  <th>OFFICIAL STATUS</th>
+                  <th>OFFICIAL RESULT</th>
+                  <th>SETTLEMENT TIME</th>
+                  <th>RULES / SOURCE</th>
+                </tr>
+              </thead>
+              <tbody id="resolved-rows">
+                <tr>
+                  <td colspan="5" class="empty-cell">
+                    No settled markets loaded yet.
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Official API schema ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="resolved-summary"
+              >Settlement data has not been requested.</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-portfolio">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">ACCOUNT ANALYTICS</p>
+            <h1>Demo portfolio</h1>
+            <p class="subheading">
+              Portfolio and trade outcomes must come from the authenticated
+              Kalshi demo account.
+            </p>
+          </div>
+        </div>
+        <div class="notice notice-amber">
+          <span class="notice-icon">!</span>
+          <div>
+            <strong>Not connected — no account values available</strong>
+            <p>
+              This static GitHub Pages site cannot safely store or sign requests
+              with a private API key. Never paste a private key into browser
+              storage or a public site. A trusted server-side signer and account
+              authorization are required. All performance fields are left blank;
+              no simulated trades or portfolio figures are displayed.
+            </p>
+          </div>
+        </div>
+        <div class="metric-grid portfolio-metrics">
+          <article class="metric-card">
+            <div class="metric-label">REALIZED P&amp;L</div>
+            <div class="metric-value metric-muted">—</div>
+            <div class="metric-foot">Unverified: account not linked</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">UNREALIZED P&amp;L</div>
+            <div class="metric-value metric-muted">—</div>
+            <div class="metric-foot">Unverified: account not linked</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">OPEN POSITIONS</div>
+            <div class="metric-value metric-muted">—</div>
+            <div class="metric-foot">Unverified: account not linked</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">FILL RATE / FEES</div>
+            <div class="metric-value metric-muted">—</div>
+            <div class="metric-foot">Unverified: account not linked</div>
+          </article>
+        </div>
+        <div class="section-heading">
+          <div>
+            <h2>What is required to connect safely?</h2>
+            <p>
+              Implementation checklist — no credentials are requested or stored
+              by this demo site.
+            </p>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>REQUIREMENT</th>
+                  <th>WHY IT IS NEEDED</th>
+                  <th>STATUS</th>
+                  <th>OFFICIAL REFERENCE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Demo API key and private signing key</td>
+                  <td>
+                    Authenticate private portfolio, fills, and order requests.
+                  </td>
+                  <td>
+                    <span class="status-pill status-unknown"
+                      >Not provided / unverified</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/api_keys"
+                      target="_blank"
+                      rel="noopener"
+                      >Kalshi key guide ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Backend key custody and request signing</td>
+                  <td>
+                    Keep the private key out of browser code, static assets, and
+                    logs.
+                  </td>
+                  <td>
+                    <span class="status-pill status-unknown"
+                      >Not implemented</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/api_keys"
+                      target="_blank"
+                      rel="noopener"
+                      >Signing documentation ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Demo-only order authorization and risk limits</td>
+                  <td>
+                    Prevent accidental live-market orders; define exposure,
+                    size, and approval controls.
+                  </td>
+                  <td>
+                    <span class="status-pill status-unknown"
+                      >Decision required</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/quick_start_create_order"
+                      target="_blank"
+                      rel="noopener"
+                      >Create-order quick start ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Portfolio and fills endpoints</td>
+                  <td>
+                    Reconcile positions, realized P&amp;L, fees, and matched
+                    trades from source records.
+                  </td>
+                  <td>
+                    <span class="status-pill status-ready">API documented</span>
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-positions"
+                      target="_blank"
+                      rel="noopener"
+                      >Positions ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+                      target="_blank"
+                      rel="noopener"
+                      >Fills ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-strategies">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">TRADE RESEARCH</p>
+            <h1>Trade analysis &amp; strategies</h1>
+            <p class="subheading">
+              Use attributed fills and resolved outcomes to evaluate hypotheses;
+              no strategy is represented as tested here.
+            </p>
+          </div>
+        </div>
+        <div class="notice notice-blue">
+          <span class="notice-icon">i</span>
+          <div>
+            <strong>Analysis is pending authenticated account data</strong>
+            <p>
+              Classify each fill using sourced fields, preserve raw trade
+              details, and compare results only after enough verified
+              observations and fees are included.
+            </p>
+          </div>
+          <a
+            class="text-link"
+            href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+            target="_blank"
+            rel="noopener"
+            >Fills API ↗</a
+          >
+        </div>
+        <div class="section-heading">
+          <div>
+            <h2>Suggested analysis framework</h2>
+            <p>
+              Questions and candidate breakdowns—not conclusions or financial
+              advice.
+            </p>
+          </div>
+        </div>
+        <div class="strategy-grid">
+          <article class="strategy-card">
+            <span class="strategy-icon blue">01</span>
+            <h3>Trade intent</h3>
+            <p>
+              Tag topic, event, market, YES/NO exposure, buy/sell action,
+              limit/market order, and whether the fill was maker or taker.
+            </p>
+            <span class="tagline">Source: fills + event metadata</span>
+          </article>
+          <article class="strategy-card">
+            <span class="strategy-icon violet">02</span>
+            <h3>Execution quality</h3>
+            <p>
+              Compare submitted order price with matched fill price; include
+              fees, slippage, partial fills, and order cancellations.
+            </p>
+            <span class="tagline">Source: orders + fills + order book</span>
+          </article>
+          <article class="strategy-card">
+            <span class="strategy-icon green">03</span>
+            <h3>Outcome &amp; risk</h3>
+            <p>
+              Measure realized P&amp;L only after official settlement,
+              separately from marked value; track maximum exposure and
+              concentration.
+            </p>
+            <span class="tagline">Source: positions + official result</span>
+          </article>
+          <article class="strategy-card">
+            <span class="strategy-icon amber">04</span>
+            <h3>Hypothesis review</h3>
+            <p>
+              Record entry rationale and intended holding period before testing;
+              compare matched cohorts, report sample size, and avoid
+              survivorship bias.
+            </p>
+            <span class="tagline">Requires decision and trade journal</span>
+          </article>
+        </div>
+        <div class="table-card strategy-table">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>PROPOSED BREAKDOWN</th>
+                  <th>REQUIRED DATA</th>
+                  <th>STATUS</th>
+                  <th>OFFICIAL SOURCES</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Performance by requested topic</td>
+                  <td>Fills, market/event metadata, settlement result, fees</td>
+                  <td>Unverified — no account link</td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+                      target="_blank"
+                      rel="noopener"
+                      >Fills ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Markets ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>YES vs NO; entry price bands</td>
+                  <td>
+                    Fill side, price, count, realized P&amp;L, sample size
+                  </td>
+                  <td>Unverified — no account link</td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+                      target="_blank"
+                      rel="noopener"
+                      >Fills ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-positions"
+                      target="_blank"
+                      rel="noopener"
+                      >Positions ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Maker / taker and cost outcomes</td>
+                  <td>
+                    Fill maker/taker flag, fee, action, side, matched price
+                  </td>
+                  <td>Documented fields; no observations loaded</td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+                      target="_blank"
+                      rel="noopener"
+                      >Fills ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-questions">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">DECISION READINESS</p>
+            <h1>Questions to resolve</h1>
+            <p class="subheading">
+              Knowns and unknowns that materially affect a reasonable
+              implementation or trading decision.
+            </p>
+          </div>
+        </div>
+        <div class="notice notice-amber">
+          <span class="notice-icon">!</span>
+          <div>
+            <strong>Do not treat unknowns as favorable assumptions</strong>
+            <p>
+              Blank means not verified from information currently available.
+              Source documentation does not reveal this account's settings,
+              balances, objectives, or trading permissions.
+            </p>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>QUESTION / INFORMATION</th>
+                  <th>WHAT IS KNOWN</th>
+                  <th>MISSING / DECISION NEEDED</th>
+                  <th>STATUS</th>
+                  <th>OFFICIAL SOURCE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    Which market categories count as gas prices, elections,
+                    culture, crypto, and golf?
+                  </td>
+                  <td>Five requested topic names.</td>
+                  <td>
+                    Approved inclusion rules and treatment of ambiguous topics.
+                    Current live filter uses title/subtitle/ticker keyword
+                    matches only.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review"
+                      >Needs definition</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Market fields ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>What does “highest dollar amount” mean?</td>
+                  <td>
+                    The REST market schema documents contract volume/open
+                    interest and a notional_value_dollars field; the ticker
+                    WebSocket message documents dollar_volume.
+                  </td>
+                  <td>
+                    Choose 24h traded dollar notional, total volume, or
+                    order-book depth at a specified price range; define
+                    event-level aggregation and confirm the authenticated ticker
+                    field and units. Do not treat contracts as dollars.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review">Unresolved</span>
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Market schema ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/websockets/market-ticker"
+                      target="_blank"
+                      rel="noopener"
+                      >Ticker schema ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Which demo account and permissions are authorized?</td>
+                  <td>Demo REST and WebSocket endpoints are documented.</td>
+                  <td>
+                    Account owner, account availability, API-key creation,
+                    scopes/permissions, and sign-off for actions are not
+                    supplied.
+                  </td>
+                  <td>
+                    <span class="status-pill status-unknown">Not provided</span>
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/demo_env"
+                      target="_blank"
+                      rel="noopener"
+                      >Demo guide ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>May this dashboard submit orders?</td>
+                  <td>
+                    Create-order API is documented and requires authenticated
+                    requests.
+                  </td>
+                  <td>
+                    Explicit order types, size/exposure ceilings,
+                    review/confirmation policy, kill switch, and demo-only
+                    environment controls are not defined. Order placement is not
+                    implemented.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review"
+                      >Decision required</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/quick_start_create_order"
+                      target="_blank"
+                      rel="noopener"
+                      >Create-order quick start ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>How should account performance be calculated?</td>
+                  <td>
+                    Positions API documents realized P&amp;L, exposure, fees and
+                    contract position fields.
+                  </td>
+                  <td>
+                    Reporting period, cash/deposit treatment, mark methodology,
+                    open exposure, fees, withdrawals, and reconciliation policy
+                    need agreement.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review"
+                      >Define methodology</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/portfolio/get-positions"
+                      target="_blank"
+                      rel="noopener"
+                      >Positions ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>When is a market considered resolved?</td>
+                  <td>
+                    Markets API includes status/result/rules fields in its
+                    documented response.
+                  </td>
+                  <td>
+                    How to handle closed-but-unsettled markets, corrections,
+                    provisional results, and rule-based disputes. UI should show
+                    official result only after API reports it.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review">Needs policy</span>
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Market API ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>What update latency and chart intervals are required?</td>
+                  <td>
+                    Documented candlestick intervals are 1 minute, 60 minutes,
+                    and 1440 minutes.
+                  </td>
+                  <td>
+                    Seconds-level exchange history, real-time update limits,
+                    retention, and acceptable staleness must be verified; the
+                    in-page chart is browser-observed REST polling only
+                    (15-second refresh), not exchange WebSocket history.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review">Confirm</span>
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks"
+                      target="_blank"
+                      rel="noopener"
+                      >Candlesticks ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    How to identify source of truth, rate limits, and outage
+                    behavior?
+                  </td>
+                  <td>API docs provide endpoint references and responses.</td>
+                  <td>
+                    Chosen demo hostname, rate limits, retry/backoff, stale-data
+                    display, retention, and status monitoring require current
+                    operational confirmation.
+                  </td>
+                  <td>
+                    <span class="status-pill status-review"
+                      >Confirm before launch</span
+                    >
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/websockets/market-ticker"
+                      target="_blank"
+                      rel="noopener"
+                      >Ticker schema ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/api_keys"
+                      target="_blank"
+                      rel="noopener"
+                      >API key authentication ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span
+              >Answers reflect only evidence available in this repository and
+              official documentation links.</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-suggestions">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">HUMAN REVIEW BEFORE CHANGES</p>
+            <h1>Suggestions</h1>
+            <p class="subheading">
+              Prioritized decision-support improvements. Review and record a
+              preference before implementation; these controls do not change the
+              code.
+            </p>
+          </div>
+        </div>
+        <div class="suggestion-list" id="suggestion-list">
+          <article class="suggestion">
+            <div class="suggestion-priority">P1</div>
+            <div class="suggestion-body">
+              <div class="suggestion-top">
+                <h2>Define an auditable dollar-liquidity ranking</h2>
+                <span class="status-pill status-review">Decision needed</span>
+              </div>
+              <p>
+                Select the exact measure (for example, confirmed USD traded in a
+                time window or order-book depth at chosen price levels). Specify
+                event aggregation, timezone, contract units, and tie handling.
+              </p>
+              <div class="suggestion-meta">
+                <a
+                  href="https://docs.kalshi.com/api-reference/market/get-markets"
+                  target="_blank"
+                  rel="noopener"
+                  >Official markets schema ↗</a
+                >
+                ·
+                <a
+                  href="https://docs.kalshi.com/api-reference/market/get-market-orderbook"
+                  target="_blank"
+                  rel="noopener"
+                  >Orderbook schema ↗</a
+                >
+              </div>
+              <div class="suggestion-actions">
+                <button class="button button-small" data-vote="liquidity">
+                  Review / recommend</button
+                ><span class="review-state" data-state="liquidity"
+                  >No review recorded</span
+                >
+              </div>
+            </div>
+          </article>
+          <article class="suggestion">
+            <div class="suggestion-priority">P1</div>
+            <div class="suggestion-body">
+              <div class="suggestion-top">
+                <h2>Add secure demo-account backend</h2>
+                <span class="status-pill status-review"
+                  >Required for portfolio / orders</span
+                >
+              </div>
+              <p>
+                Use a trusted server-side signing service with isolated demo
+                credentials, audited access, least privilege, order caps,
+                explicit demo-host allowlisting, and a kill switch. Keep secrets
+                out of GitHub Pages and browser storage.
+              </p>
+              <div class="suggestion-meta">
+                <a
+                  href="https://docs.kalshi.com/getting_started/api_keys"
+                  target="_blank"
+                  rel="noopener"
+                  >Official key guide ↗</a
+                >
+                ·
+                <a
+                  href="https://docs.kalshi.com/getting_started/quick_start_create_order"
+                  target="_blank"
+                  rel="noopener"
+                  >Order endpoint ↗</a
+                >
+              </div>
+              <div class="suggestion-actions">
+                <button class="button button-small" data-vote="backend">
+                  Review / recommend</button
+                ><span class="review-state" data-state="backend"
+                  >No review recorded</span
+                >
+              </div>
+            </div>
+          </article>
+          <article class="suggestion">
+            <div class="suggestion-priority">P2</div>
+            <div class="suggestion-body">
+              <div class="suggestion-top">
+                <h2>Make topic tagging transparent</h2>
+                <span class="status-pill status-review"
+                  >Current tags are keyword-only</span
+                >
+              </div>
+              <p>
+                Agree category rules, maintain a reviewed exception list,
+                display matching terms, and separate ambiguous cross-category
+                events rather than asserting inferred labels.
+              </p>
+              <div class="suggestion-meta">
+                <a
+                  href="https://docs.kalshi.com/api-reference/market/get-markets"
+                  target="_blank"
+                  rel="noopener"
+                  >Official market fields ↗</a
+                >
+              </div>
+              <div class="suggestion-actions">
+                <button class="button button-small" data-vote="topics">
+                  Review / recommend</button
+                ><span class="review-state" data-state="topics"
+                  >No review recorded</span
+                >
+              </div>
+            </div>
+          </article>
+          <article class="suggestion">
+            <div class="suggestion-priority">P2</div>
+            <div class="suggestion-body">
+              <div class="suggestion-top">
+                <h2>Persist audit-grade price and decision history</h2>
+                <span class="status-pill status-review"
+                  >Retention policy needed</span
+                >
+              </div>
+              <p>
+                Store timestamped, source-attributed observations and decisions
+                in a backend with defined retention, clock handling, backfill
+                strategy, access controls, and deletion policy.
+              </p>
+              <div class="suggestion-meta">
+                <a
+                  href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks"
+                  target="_blank"
+                  rel="noopener"
+                  >Official candles API ↗</a
+                >
+              </div>
+              <div class="suggestion-actions">
+                <button class="button button-small" data-vote="history">
+                  Review / recommend</button
+                ><span class="review-state" data-state="history"
+                  >No review recorded</span
+                >
+              </div>
+            </div>
+          </article>
+        </div>
+        <p class="local-note">
+          Review choices are saved only in this browser (local storage); they
+          are not sent to Kalshi or shared with collaborators.
+        </p>
+      </section>
+
+      <section class="page" id="page-review">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">EVIDENCE GAPS / IRREGULARITIES</p>
+            <h1>Flagged for review</h1>
+            <p class="subheading">
+              Unverified facts and implementation limits are exposed here rather
+              than silently filled in.
+            </p>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>FLAG</th>
+                  <th>WHAT IS NOT VERIFIED / IRREGULARITY</th>
+                  <th>WHY IT MATTERS</th>
+                  <th>SOURCE / NEXT CHECK</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="flag-code">R-01</span> Dollar ranking</td>
+                  <td>
+                    Requested “highest dollar amount” is ambiguous. REST list
+                    displays contract volume; Kalshi documents dollar_volume in
+                    ticker WebSocket messages, which require API-key
+                    authentication. Event aggregation is also unresolved.
+                  </td>
+                  <td>
+                    Ranking contract count as dollars would be misleading. No
+                    money ranking is presented.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Market schema ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/websockets/market-ticker"
+                      target="_blank"
+                      rel="noopener"
+                      >Ticker schema ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-02</span> Demo account</td>
+                  <td>
+                    No demo-account authorization, API-key identity, private
+                    key, or balances were supplied.
+                  </td>
+                  <td>
+                    Portfolio, performance, fills, and trading are
+                    blank/unavailable. No credentials are embedded.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/demo_env"
+                      target="_blank"
+                      rel="noopener"
+                      >Official demo guide ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-03</span> Browser/API CORS</td>
+                  <td>
+                    Repository environment cannot verify client browser access
+                    to the demo API or GitHub Pages cross-origin policy. Runtime
+                    fetch may be blocked.
+                  </td>
+                  <td>
+                    If unavailable, the UI reports the error and keeps data
+                    blank; no proxy or fallback values are invented.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://external-api.demo.kalshi.co/trade-api/v2/markets?limit=1"
+                      target="_blank"
+                      rel="noopener"
+                      >Test demo endpoint in browser ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-04</span> Topic labels</td>
+                  <td>
+                    Topic assignments are title/ticker keyword matches, not
+                    official verified category tags; relevance and omissions
+                    remain unverified.
+                  </td>
+                  <td>
+                    May miss events or show false matches. Requires review of
+                    market rules.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Official market metadata ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-05</span> Trade execution</td>
+                  <td>
+                    No authenticated order submission, demo-only backend, risk
+                    limits, or human order approval is implemented.
+                  </td>
+                  <td>
+                    Static-site browser code is not a safe location for exchange
+                    private keys. No trades are placed.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/quick_start_create_order"
+                      target="_blank"
+                      rel="noopener"
+                      >Official create-order quick start ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="flag-code">R-06</span> Seconds-level chart
+                  </td>
+                  <td>
+                    Candlestick API documentation lists 1, 60, and 1440-minute
+                    intervals; no source-confirmed seconds candle interval was
+                    established here.
+                  </td>
+                  <td>
+                    Seconds view in the UI, when data loads, is browser-observed
+                    polling, not an exchange historical candle series.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks"
+                      target="_blank"
+                      rel="noopener"
+                      >Official candles reference ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/websockets/market-ticker"
+                      target="_blank"
+                      rel="noopener"
+                      >WebSocket ticker reference ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-07</span> Deployment</td>
+                  <td>
+                    GitHub Pages requires repository Pages settings to permit
+                    GitHub Actions deployment and successful workflow checks;
+                    this cannot be confirmed from local files.
+                  </td>
+                  <td>
+                    Site may build correctly but not become publicly live until
+                    repository settings and deployment checks succeed.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages"
+                      target="_blank"
+                      rel="noopener"
+                      >GitHub Pages workflow guide ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="flag-code">R-09</span> Events vs. markets
+                  </td>
+                  <td>
+                    The current table loads individual market records associated
+                    with event tickers; it does not group every market into a
+                    verified event-level view or aggregate event liquidity.
+                  </td>
+                  <td>
+                    One event can contain multiple contracts. Event-level
+                    ranking and resolution status must be explicitly defined and
+                    deduplicated before summarizing.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/api-reference/market/get-markets"
+                      target="_blank"
+                      rel="noopener"
+                      >Markets schema ↗</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="flag-code">R-08</span> Source validation</td>
+                  <td>
+                    Official API schemas and docs are linked. No live response
+                    data was confirmed from the sandbox (outbound access
+                    restricted); runtime data must be treated as unverified
+                    until successful fetch. The official ticker WebSocket schema
+                    documents dollar_volume, but WebSocket API key
+                    authentication and secure key custody are prerequisites.
+                  </td>
+                  <td>
+                    Do not treat example payload values in documentation as
+                    actual current market values.
+                  </td>
+                  <td>
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/websockets/market-ticker"
+                      target="_blank"
+                      rel="noopener"
+                      >Ticker schema ↗</a
+                    >
+                    ·
+                    <a
+                      class="source-link"
+                      href="https://docs.kalshi.com/getting_started/api_keys"
+                      target="_blank"
+                      rel="noopener"
+                      >API key authentication ↗</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section-heading">
+          <div>
+            <h2>Known source references</h2>
+            <p>
+              Official sources inspected for this implementation. Examples in
+              schemas are examples, not current facts.
+            </p>
+          </div>
+        </div>
+        <div class="source-grid">
+          <a
+            class="source-card"
+            href="https://docs.kalshi.com/api-reference/market/get-markets"
+            target="_blank"
+            rel="noopener"
+            ><b>Markets / market status and fields</b
+            ><span>Kalshi API documentation ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/api-reference/market/get-market-orderbook"
+            target="_blank"
+            rel="noopener"
+            ><b>Order book / price levels</b
+            ><span>Kalshi API documentation ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks"
+            target="_blank"
+            rel="noopener"
+            ><b>Historical candlesticks</b
+            ><span>Kalshi API documentation ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/api-reference/portfolio/get-positions"
+            target="_blank"
+            rel="noopener"
+            ><b>Positions and P&amp;L fields</b
+            ><span>Kalshi API documentation ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/api-reference/portfolio/get-fills"
+            target="_blank"
+            rel="noopener"
+            ><b>Fills, fees, maker/taker fields</b
+            ><span>Kalshi API documentation ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/websockets/market-ticker"
+            target="_blank"
+            rel="noopener"
+            ><b>Ticker stream / dollar_volume field</b
+            ><span>Authenticated WebSocket schema ↗</span></a
+          ><a
+            class="source-card"
+            href="https://docs.kalshi.com/getting_started/demo_env"
+            target="_blank"
+            rel="noopener"
+            ><b>Demo environment</b><span>Kalshi API documentation ↗</span></a
+          >
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <span
+          >Kalshi demo monitor · Evidence-first, no simulated account or trade
+          data.</span
+        ><span
+          >Data source:
+          <a
+            href="https://external-api.demo.kalshi.co/trade-api/v2"
+            target="_blank"
+            rel="noopener"
+            >Kalshi Demo REST API ↗</a
+          >
+          ·
+          <a href="https://docs.kalshi.com" target="_blank" rel="noopener"
+            >Documentation ↗</a
+          ></span
+        >
+      </footer>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
