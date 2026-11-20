@@ -409,7 +409,8 @@
         not a verified defect.</p>
       <p><strong>Impact boundary:</strong> no published page links these URLs — they appear only in the raw
         capture. The demo dashboard renders titles, prices and the event's own
-        <code>settlement_sources</code>, never <code>contract_url</code>.</p>
+        <code>settlement_sources</code>, never <code>contract_url</code>. A GitHub-runner probe of the
+        staging host returned <strong>HTTP 403</strong>, so these links are not publicly readable either way.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
         · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
@@ -436,6 +437,23 @@
         price move.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a>
+        · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
+    </div>
+
+    <div class="irregularity" id="X4">
+      <h3>X4 — A truncated docs URL inside two raw captured excerpts <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the captured error body for
+        <code>POST /portfolio/orders</code> contains a documentation link cut off mid-path at
+        <code>docs.kalshi.com/api-reference/orders/create-ord</code>, in
+        <code>evidence/evidence-cors-taxonomy.md:278</code> and <code>reports/verify-facts-raw.md:278</code>.
+        The audit's runner probe returns <strong>HTTP 404</strong> for that URL.</p>
+      <p><strong>Why it is only an excerpt problem:</strong> the truncation is in the <em>captured text</em>, not
+        in the site's links. The correct destination is
+        <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>,
+        which is what <a href="portfolio.html">Portfolio</a> actually links. Both excerpts are historical
+        records and were left as captured rather than edited.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
         · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
     </div>
   </div>
