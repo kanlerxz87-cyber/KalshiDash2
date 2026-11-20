@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Questions &amp; gaps · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="../assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../index.html">Kalshi Dashboard</a>
+  <nav><a href="../index.html">Home</a><a href="../live.html">Live dashboard</a><a href="../pages/gas.html">Gas</a><a href="../pages/elections.html">Elections</a><a href="../pages/culture.html">Culture</a><a href="../pages/crypto.html">Crypto</a><a href="../pages/golf.html">Golf</a><a href="../pages/resolved.html">Resolved</a><a href="../pages/analysis.html">Analysis</a><a href="../pages/portfolio.html">Portfolio</a><a href="../pages/questions.html" class="on">Questions</a><a href="../pages/suggestions.html">Suggestions</a><a href="../pages/flagged.html">Flagged for Review</a><a href="../pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Questions, information, and gaps</h1>
+<p class="lede">What must be answered before any decision can reasonably be made, based on what is and is not in hand now. Each open question names a way to find the answer.</p>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>What we have</th><th>What we are missing</th><th>Answer status</th><th>How to find it</th></tr></thead><tbody><tr><td>Which Kalshi contracts count as "gas prices"?</td><td>Two diesel series (tag Gas).</td><td>Retail gasoline contracts; local (CA/SF) contracts.</td><td><span class="badge b-unv">Open</span></td><td>Series query with more tags; check Kalshi category pages (kalshi.com). Source: <a href="https://external-api.kalshi.com/trade-api/v2/series?tags=Gas&limit=5">series?tags=Gas</a></td></tr><tr><td>Which EIA table settles DIESEL?</td><td>Contract PDF (retail) and API (spot) disagree.</td><td>Confirmation from Kalshi's rules or support.</td><td><span class="badge b-unv">Open</span></td><td>Read <a href="https://assets.kalshi.com/contract_terms/DIESEL.pdf">DIESEL contract terms</a>; ask Kalshi support.</td></tr><tr><td>Why do the diesel series show no open markets?</td><td>Empty markets responses.</td><td>Listing status and timing.</td><td><span class="badge b-unv">Open</span></td><td>Re-query <a href="https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=DIESEL&status=open&limit=20">markets?series_ticker=DIESEL</a> on a schedule.</td></tr><tr><td>What is "highest dollar amount"?</td><td>Contract-count volume fields.</td><td>A dollar-volume definition or field.</td><td><span class="badge b-unv">Open</span></td><td>Decide a definition (see Suggestions). Docs: <a href="https://docs.kalshi.com/api-reference/market/get-markets">get-markets</a>.</td></tr><tr><td>Is the Bitcoin "NOV" market data current?</td><td>updated_time 2026-09-08 with status active.</td><td>A current read.</td><td><span class="badge b-unv">Open</span></td><td>Compare with <a href="https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMAX100-26-NOV">markets/KXBTCMAX100-26-NOV</a> on a schedule.</td></tr><tr><td>Does the live dashboard work from GitHub Pages?</td><td>Code written; not tested in a browser here.</td><td>Test result from a real browser.</td><td><span class="badge b-unv">Open</span></td><td>Open the live page after publish. Check the status banner.</td></tr><tr><td>What is the demo account balance and positions?</td><td>Nothing.</td><td>Demo API key.</td><td><span class="badge b-block">Blocked</span></td><td>See Portfolio.</td></tr><tr><td>Which strategies to test?</td><td>Nothing yet.</td><td>Trade history.</td><td><span class="badge b-block">Blocked</span></td><td>Needs trades first.</td></tr><tr><td>What are the fees?</td><td>Series list gives fee_type (quadratic) and fee_multiplier, not the fee amounts.</td><td>Fee formula from official docs.</td><td><span class="badge b-unv">Open</span></td><td>Read the Kalshi fee documentation (not fetched in this session).</td></tr><tr><td>Which golf quotes are real trades?</td><td>Quotes with zero volume.</td><td>Trade history.</td><td><span class="badge b-unv">Open</span></td><td>Query trades endpoint for the market (<a href="https://docs.kalshi.com/api-reference/market/get-trades">get-trades</a>).</td></tr><tr><td>Are the culture markets tradable?</td><td>Series listed; no markets returned.</td><td>Market listing.</td><td><span class="badge b-unv">Open</span></td><td>Re-query by series after Kalshi lists markets.</td></tr></tbody></table></div>
+
+<h2>Information we already have (summary)</h2>
+<div class="card"><ul class="tight">
+  <li>21 Kalshi series with category, tags, frequency, and settlement sources (from the Kalshi API).</li>
+  <li>9 captured Kalshi markets, 2 of them finalized (both NO).</li>
+  <li>8 EIA reference prices (retail and spot), dated 11/16 to 11/18/26.</li>
+  <li>The Kalshi API endpoints needed for markets, order books, candlesticks, and series (<a href="https://docs.kalshi.com/llms.txt">docs index</a>).</li>
+</ul></div>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="../pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

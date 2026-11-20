@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live dashboard · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="index.html">Kalshi Dashboard</a>
+  <nav><a href="index.html">Home</a><a href="live.html" class="on">Live dashboard</a><a href="pages/gas.html">Gas</a><a href="pages/elections.html">Elections</a><a href="pages/culture.html">Culture</a><a href="pages/crypto.html">Crypto</a><a href="pages/golf.html">Golf</a><a href="pages/resolved.html">Resolved</a><a href="pages/analysis.html">Analysis</a><a href="pages/portfolio.html">Portfolio</a><a href="pages/questions.html">Questions</a><a href="pages/suggestions.html">Suggestions</a><a href="pages/flagged.html">Flagged for Review</a><a href="pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Live dashboard</h1>
+<p class="lede">Reads the public Kalshi market-data API from your browser (no login). Choose a topic, click a market, and watch its price and order book. Ranked by reported contract volume.</p>
+<div class="banner" id="status">Loading…</div>
+
+<div class="controls">
+  <label>Topic <select id="topic">
+    <option value="gas">Gas prices (tag Gas)</option>
+    <option value="elections">Elections</option>
+    <option value="culture">Culture</option>
+    <option value="crypto">Crypto</option>
+    <option value="golf">Golf (tag Golf)</option>
+  </select></label>
+  <button id="tabOpen" class="on">Open markets</button>
+  <button id="tabRes">Recently resolved</button>
+  <label>Chart <select id="range">
+    <option value="live">Live: every 5 s since page opened</option>
+    <option value="1m">Last 60 min, 1-minute candles</option>
+    <option value="24h">Last 24 h, 1-hour candles</option>
+  </select></label>
+  <button id="refresh">Refresh now</button>
+</div>
+
+<h2>Markets <span class="note" id="count"></span></h2>
+<div class="table-wrap"><table id="mkts"><thead><tr>
+  <th>Market</th><th>Series</th><th>Status</th><th class="num">Last</th><th class="num">Yes bid</th><th class="num">Yes ask</th><th class="num">Volume (contracts)</th><th class="num">24h (contracts)</th><th class="num">Open interest</th><th>Close (UTC)</th><th>Source</th>
+</tr></thead><tbody id="mkts-body"><tr><td colspan="11" class="muted">Loading…</td></tr></tbody></table></div>
+
+<h2>Price chart <span class="note" id="chartTitle"></span></h2>
+<p class="note">X axis: time. Y axis: contract price in dollars (YES side, 0 to 1). Samples are stored only in this browser tab.</p>
+<svg id="chart" viewBox="0 0 900 340" role="img" aria-label="Price chart"></svg>
+
+<h2>Liquidity: contracts available at each price</h2>
+<div class="two">
+  <div><h3>YES bids (buy YES)</h3><div class="table-wrap"><table><thead><tr><th class="num">Price</th><th class="num">Contracts</th><th class="num">Cumulative</th></tr></thead><tbody id="yesBids"></tbody></table></div></div>
+  <div><h3>Implied YES asks (from NO bids: ask = 1 − NO price)</h3><div class="table-wrap"><table><thead><tr><th class="num">Implied YES ask</th><th class="num">Contracts</th><th class="num">Cumulative</th></tr></thead><tbody id="yesAsks"></tbody></table></div></div>
+</div>
+<div class="controls">
+  <label>Look up price (cents, 1–99) <input id="lookup" type="number" min="1" max="99" step="1" style="width:90px"></label>
+  <span id="lookupOut" class="note">Enter a price to see contracts resting at that price.</span>
+</div>
+<p class="note" id="bookNote"></p>
+<script src="assets/live.js"></script>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

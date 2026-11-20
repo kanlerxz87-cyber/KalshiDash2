@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="index.html">Kalshi Dashboard</a>
+  <nav><a href="index.html" class="on">Home</a><a href="live.html">Live dashboard</a><a href="pages/gas.html">Gas</a><a href="pages/elections.html">Elections</a><a href="pages/culture.html">Culture</a><a href="pages/crypto.html">Crypto</a><a href="pages/golf.html">Golf</a><a href="pages/resolved.html">Resolved</a><a href="pages/analysis.html">Analysis</a><a href="pages/portfolio.html">Portfolio</a><a href="pages/questions.html">Questions</a><a href="pages/suggestions.html">Suggestions</a><a href="pages/flagged.html">Flagged for Review</a><a href="pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Kalshi dashboard: sourced, flagged, and sample-based</h1>
+<p class="lede">Topics: gas prices, elections, culture, crypto, golf. Data captured 2026-11-20 from official Kalshi API responses and EIA tables. Every row links to its source.</p>
+
+<div class="banner bad"><b>Trading and portfolio are blocked.</b> No Kalshi demo API key was available, and the build sandbox cannot reach Kalshi directly. No trades were placed and no portfolio data was pulled. See <a href="pages/portfolio.html">Portfolio</a>.</div>
+
+<h2>Executive summary</h2>
+<div class="card">
+<ul class="tight">
+  <li><b>What was collected.</b> 21 Kalshi series, 9 captured markets (2 finalized), 8 EIA reference prices, and 21 flagged items. Each row has a source link.</li>
+  <li><b>Gas.</b> The two Kalshi diesel series (DIESEL, DIESELM) returned no open markets. The DIESEL contract terms name a different EIA table from the one the API lists as its settlement source (F-02). No retail gasoline series was found in the tag query (F-03). EIA's latest U.S. retail diesel is $5.937/gal (week of 11/16/26).</li>
+  <li><b>Crypto.</b> The two most recent finalized monthly Bitcoin above-$100k markets in the sample settled <b>NO</b>. The open November and December markets show last prices of $0.01 and $0.02. The November market's data may be stale (F-09).</li>
+  <li><b>Golf.</b> Three 2nd-round PGA 3-ball markets show two-sided quotes but zero volume (F-13). One golf series' only settlement source is a participant's own YouTube channel (F-15).</li>
+  <li><b>Elections.</b> Two NATO Secretary General markets (Kallas, Iohannis) were captured with low volume. One election series has placeholder text as its title (F-05). Another is titled only "LAR" (F-06).</li>
+  <li><b>Culture.</b> Both culture series returned no markets. Their settlement lists include placeholder text and Google search URLs (F-07, F-08). Treat these as unverified.</li>
+  <li><b>Measure.</b> The API reports contract counts, not dollar volume (F-17). Rankings here use contract counts. Dollar-amount ranking needs a decision (see Suggestions).</li>
+  <li><b>Live.</b> The live dashboard fetches the public Kalshi API in the browser. Whether that works from GitHub Pages is unverified (F-18).</li>
+</ul>
+</div>
+
+<h2>Sections</h2>
+<div class="grid">
+  <div class="card tile"><a href="live.html"><b>Live dashboard</b><span>Category market table, price chart (seconds / minutes / hours), and order-book liquidity.</span></a></div>
+  <div class="card tile"><a href="pages/gas.html"><b>Gas prices</b><span>Diesel contracts, EIA retail and spot reference prices.</span></a></div>
+  <div class="card tile"><a href="pages/elections.html"><b>Elections</b><span>Election series and captured NATO markets.</span></a></div>
+  <div class="card tile"><a href="pages/culture.html"><b>Culture</b><span>Culture series. No markets returned.</span></a></div>
+  <div class="card tile"><a href="pages/crypto.html"><b>Crypto</b><span>Crypto series and the Bitcoin $100k ladder.</span></a></div>
+  <div class="card tile"><a href="pages/golf.html"><b>Golf</b><span>Golf series and 2nd-round PGA 3-ball markets.</span></a></div>
+  <div class="card tile"><a href="pages/resolved.html"><b>Resolved</b><span>Finalized markets and their yes/no results.</span></a></div>
+  <div class="card tile"><a href="pages/analysis.html"><b>Analysis</b><span>Findings from the captured data, and calculations shown.</span></a></div>
+  <div class="card tile"><a href="pages/portfolio.html"><b>Portfolio</b><span>Blocked: needs a demo API key.</span></a></div>
+  <div class="card tile"><a href="pages/questions.html"><b>Questions &amp; gaps</b><span>What is known, what is missing, and how to find it.</span></a></div>
+  <div class="card tile"><a href="pages/suggestions.html"><b>Suggestions</b><span>Proposed improvements. Nothing is implemented until you choose.</span></a></div>
+  <div class="card tile"><a href="pages/flagged.html"><b>Flagged for Review</b><span>Irregularities and unverified items, with links.</span></a></div>
+  <div class="card tile"><a href="pages/sources.html"><b>Sources</b><span>Every official source used, and what it was used for.</span></a></div>
+</div>
+
+<p class="note">Sample scope: the build sandbox could only fetch selected Kalshi responses, so this is not a full market list. The live dashboard shows the full open-market list for each topic when the browser can reach the API.</p>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

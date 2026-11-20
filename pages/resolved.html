@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resolved · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="../assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../index.html">Kalshi Dashboard</a>
+  <nav><a href="../index.html">Home</a><a href="../live.html">Live dashboard</a><a href="../pages/gas.html">Gas</a><a href="../pages/elections.html">Elections</a><a href="../pages/culture.html">Culture</a><a href="../pages/crypto.html">Crypto</a><a href="../pages/golf.html">Golf</a><a href="../pages/resolved.html" class="on">Resolved</a><a href="../pages/analysis.html">Analysis</a><a href="../pages/portfolio.html">Portfolio</a><a href="../pages/questions.html">Questions</a><a href="../pages/suggestions.html">Suggestions</a><a href="../pages/flagged.html">Flagged for Review</a><a href="../pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Resolved markets</h1>
+<p class="lede">Finalized markets from the sample, with the result as the API reports it (yes or no). Sample only: the API returned 2 finalized markets for the Bitcoin series queried.</p>
+<h2>Finalized</h2>
+<div class="table-wrap"><table><thead><tr><th>Ticker</th><th>Title</th><th>Result (yes / no)</th><th>Settled (UTC)</th><th class="num">Volume (contracts)</th><th class="num">Open interest (contracts)</th><th>Flags</th><th>Source</th></tr></thead><tbody><tr><td><code>KXBTCMAX100-26-SEP</code></td><td>Will Bitcoin be above $100000 by October 1, 2026 at 12:00AM ET?</td><td><b>NO</b></td><td>2026-10-03T16:25:37Z</td><td class="num">1,920,697.52</td><td class="num">1,022,099.1</td><td><span class="muted">—</span></td><td><a href="https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&amp;status=settled&amp;limit=5" rel="noopener">Source</a></td></tr><tr><td><code>KXBTCMAX100-26-OCT</code></td><td>Will Bitcoin be above $100000 by November 1, 2026 at 12:00AM ET?</td><td><b>NO</b></td><td>2026-11-01T18:17:58Z</td><td class="num">482,855.68</td><td class="num">187,051.45</td><td><span class="muted">—</span></td><td><a href="https://external-api.kalshi.com/trade-api/v2/markets?series_ticker=KXBTCMAX100&amp;status=settled&amp;limit=5" rel="noopener">Source</a></td></tr></tbody></table></div>
+<p class="note">Only the crypto series was queried for finalized outcomes. Other topics had no finalized markets in the sample. A full resolved list needs a larger query (see Suggestions).</p>
+<h2>Result key</h2>
+<div class="card"><ul class="tight">
+<li><b>NO</b>: the market's result field is "no". The contract's rule (CF Benchmarks BRTI, trimmed mean, threshold $100,000) is quoted in each market's rules_primary field on the Kalshi API.</li>
+<li>settlement_value_dollars is shown as the API reports it ($0.0000 for both finalized rows).</li>
+</ul></div>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="../pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

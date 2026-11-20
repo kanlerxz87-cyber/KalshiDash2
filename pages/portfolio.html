@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portfolio · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="../assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../index.html">Kalshi Dashboard</a>
+  <nav><a href="../index.html">Home</a><a href="../live.html">Live dashboard</a><a href="../pages/gas.html">Gas</a><a href="../pages/elections.html">Elections</a><a href="../pages/culture.html">Culture</a><a href="../pages/crypto.html">Crypto</a><a href="../pages/golf.html">Golf</a><a href="../pages/resolved.html">Resolved</a><a href="../pages/analysis.html">Analysis</a><a href="../pages/portfolio.html" class="on">Portfolio</a><a href="../pages/questions.html">Questions</a><a href="../pages/suggestions.html">Suggestions</a><a href="../pages/flagged.html">Flagged for Review</a><a href="../pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Portfolio &amp; trading</h1>
+<div class="banner bad"><b>Blocked.</b> The build sandbox has no Kalshi demo API key. Kalshi's API signs every trading and portfolio request with a key pair from the account page (<a href="https://docs.kalshi.com/getting_started/api_keys" rel="noopener">API keys docs</a>). The demo environment uses separate credentials from production (<a href="https://docs.kalshi.com/getting_started/api_environments" rel="noopener">API environments</a>).</div>
+
+<h2>Status</h2>
+<div class="table-wrap"><table><thead><tr><th>Item</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td>Demo account funds, positions, fills</td><td><span class="badge b-block">Blocked</span></td><td>Needs a demo API key. Nothing was pulled.</td></tr><tr><td>Trades placed</td><td><span class="badge b-block">None</span></td><td>No orders were placed.</td></tr><tr><td>Trade categorization and strategy tests</td><td><span class="badge b-block">Blocked</span></td><td>Depends on the trades above.</td></tr><tr><td>Live trade log</td><td><span class="badge">Empty</span></td><td>Will be filled after trades exist.</td></tr></tbody></table></div>
+
+<h2>What is needed to unblock</h2>
+<div class="card"><ol class="tight">
+  <li>A Kalshi demo account, created as described in <a href="https://docs.kalshi.com/getting_started/demo_env" rel="noopener">Test in the demo environment</a>.</li>
+  <li>A demo API key created on the account profile page (<a href="https://kalshi.com/account/profile" rel="noopener">kalshi.com/account/profile</a>), with its key ID and private key. Keep the private key out of this repo.</li>
+  <li>A decision on order size, topics allowed, and daily limits. These are safety settings for the demo account.</li>
+</ol>
+<p class="note">Sources: <a href="https://docs.kalshi.com/getting_started/demo_env" rel="noopener">Demo environment</a> · <a href="https://docs.kalshi.com/getting_started/api_keys" rel="noopener">API keys</a> · <a href="https://docs.kalshi.com/getting_started/rate_limits" rel="noopener">Rate limits</a></p></div>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="../pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analysis · Kalshi Dashboard</title>
+<meta name="description" content="Sourced, flagged Kalshi market data for gas prices, elections, culture, crypto, and golf. Data captured 2026-11-20.">
+<link rel="stylesheet" href="../assets/style.css"></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="../index.html">Kalshi Dashboard</a>
+  <nav><a href="../index.html">Home</a><a href="../live.html">Live dashboard</a><a href="../pages/gas.html">Gas</a><a href="../pages/elections.html">Elections</a><a href="../pages/culture.html">Culture</a><a href="../pages/crypto.html">Crypto</a><a href="../pages/golf.html">Golf</a><a href="../pages/resolved.html">Resolved</a><a href="../pages/analysis.html" class="on">Analysis</a><a href="../pages/portfolio.html">Portfolio</a><a href="../pages/questions.html">Questions</a><a href="../pages/suggestions.html">Suggestions</a><a href="../pages/flagged.html">Flagged for Review</a><a href="../pages/sources.html">Sources</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<h1>Analysis</h1>
+<p class="lede">What the captured data shows, with the arithmetic written out. This is not trading advice, and no trades or strategies have been tested.</p>
+
+<h2>Findings from the captured data</h2>
+<div class="card"><ol class="tight">
+  <li><b>Bitcoin $100k ladder.</b> In the sample, both finalized monthly markets (Oct and Nov 2026 thresholds) resolved NO. The open Nov and Dec markets last traded at $0.01 and $0.02. Sample size is 2, so this is not a rate estimate. Source: <a href="../pages/crypto.html">Crypto</a>.</li>
+  <li><b>Gas (EIA).</b> U.S. retail diesel fell 3.1% in the week of 11/16 versus 11/09. NY Harbor ULSD spot fell 8.0% from 11/13 to 11/18. These are EIA values, calculated here. The Kalshi diesel contracts had no captured markets, so no price comparison is possible yet (F-01).</li>
+  <li><b>Golf quotes.</b> 2nd-round 3-ball quotes show bid/ask spreads of $0.03 (Hoshino and Paul: $0.34 / $0.37) and $0.02 (Atkins: $0.29 / $0.31). All have zero volume, so the quotes are not validated by trades (F-13).</li>
+  <li><b>Liquidity visibility.</b> Order books are available per market through the public API. The live dashboard reads them. No order-book snapshots are stored in this repo.</li>
+</ol></div>
+
+<h2>Calculations (shown)</h2>
+<div class="table-wrap"><table><thead><tr><th>Calculation</th><th>Inputs (official)</th><th class="num">Result</th></tr></thead><tbody><tr><td>U.S. retail diesel change, 11/09 → 11/16/26</td><td>6.127 → 5.937 $/gal (EIA)</td><td class="num">−0.190 (−3.1%)</td></tr><tr><td>U.S. retail gasoline (all grades) change, 11/09 → 11/16/26</td><td>4.134 → 3.945 $/gal (EIA)</td><td class="num">−0.189 (−4.6%)</td></tr><tr><td>NY Harbor ULSD spot change, 11/13 → 11/18/26</td><td>4.345 → 3.999 $/gal (EIA)</td><td class="num">−0.346 (−8.0%)</td></tr><tr><td>Golf 3-ball bid/ask spread (Hoshino)</td><td>ask 0.37 − bid 0.34 (Kalshi)</td><td class="num">0.03</td></tr></tbody></table></div>
+<p class="note">Percentages are rounded to one decimal. Source values are listed on <a href="../pages/gas.html">Gas</a> and <a href="../pages/golf.html">Golf</a>.</p>
+
+<h2>Trade categories (framework only: zero trades so far)</h2>
+<div class="card"><p>Once trades exist, each one would be tagged by topic, contract type (threshold, binary matchup, long-dated), entry price band, time to close, side (YES/NO), and outcome. Strategy tests come after enough trades. With no trades yet, no category has any results.</p></div>
+
+<h2>What the analysis cannot yet say</h2>
+<ul class="tight">
+  <li>Whether any trade or strategy beats the market (no trades, no portfolio).</li>
+  <li>How "highest dollar amount" should be ranked (no dollar volume field, F-17).</li>
+  <li>Whether the diesel contracts follow the EIA retail or spot table (F-02).</li>
+</ul>
+</div></main>
+<footer><div class="wrap">
+  Informational only, not investment advice. Kalshi values are as captured on 2026-11-20 from official Kalshi API responses and can change. Rows with no confirmed value are left blank and flagged.
+  Flagged items and unverified rows are published on <a href="../pages/flagged.html">Flagged for Review</a>.
+</div></footer>
+
+</body></html>

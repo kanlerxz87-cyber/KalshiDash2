@@ -11,14 +11,14 @@ The platform runs each session on one branch. Here that branch is `arena/9a4750f
 
 | Task | Status | Owner (session) | Branch | Files in scope | Notes |
 |---|---|---|---|---|---|
-| T1 Repo review (line-by-line, sources, flags) | in progress | arena/9a4750fd (this session) | arena/9a4750fd-kalshidash2 | README.md, COORDINATION.md, data/snapshot.json (F-20, F-21) | Flags published on Flagged for Review. |
-| T2 Executive summary | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | site/index.html via build.js | On the landing page. |
-| T3 Data snapshot (5 topics, every row sourced) | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | data/snapshot.json | 21 series, 9 markets, 8 reference prices, 21 flags. Sample only (see below). |
-| T4 Static site + category subpages | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | build.js, index.html, pages/*.html, assets/* | Built from snapshot.json. |
-| T5 Live dashboard (client-side Kalshi API) | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | live.html, assets/live.js | Browser CORS unverified (F-18). |
-| T6 Portfolio & trade execution | **blocked** | arena/9a4750fd | arena/9a4750fd-kalshidash2 | pages/portfolio.html | No demo API key available in sandbox. No trades placed (F-19). |
-| T7 Analysis, questions, suggestions | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | pages/analysis.html, pages/questions.html, pages/suggestions.html | Suggestions are proposals only. Nothing implemented without your choice. |
-| T8 Integration: link check, build, PR, merge, Pages verify | unclaimed | arena/9a4750fd | arena/9a4750fd-kalshidash2 | scripts/check.js | Runs last. |
+| T1 Repo review (line-by-line, sources, flags) | done | arena/9a4750fd (this session) | arena/9a4750fd-kalshidash2 | README.md, COORDINATION.md, data/snapshot.json (F-20, F-21) | Flags published on Flagged for Review. |
+| T2 Executive summary | done | arena/9a4750fd | arena/9a4750fd-kalshidash2 | site/index.html via build.js | On the landing page. |
+| T3 Data snapshot (5 topics, every row sourced) | done | arena/9a4750fd | arena/9a4750fd-kalshidash2 | data/snapshot.json | 21 series, 9 markets, 8 reference prices, 21 flags. Sample only (see below). |
+| T4 Static site + category subpages | done | arena/9a4750fd | arena/9a4750fd-kalshidash2 | build.js, index.html, pages/*.html, assets/* | Built from snapshot.json. |
+| T5 Live dashboard (client-side Kalshi API) | done (code); browser test pending, see F-18 | arena/9a4750fd | arena/9a4750fd-kalshidash2 | live.html, assets/live.js | Browser CORS unverified (F-18). |
+| T6 Portfolio & trade execution | **blocked** (no demo key) | arena/9a4750fd | arena/9a4750fd-kalshidash2 | pages/portfolio.html | No demo API key available in sandbox. No trades placed (F-19). |
+| T7 Analysis, questions, suggestions | done | arena/9a4750fd | arena/9a4750fd-kalshidash2 | pages/analysis.html, pages/questions.html, pages/suggestions.html | Suggestions are proposals only. Nothing implemented without your choice. |
+| T8 Integration: link check, build, PR, merge, Pages verify | in progress | arena/9a4750fd | arena/9a4750fd-kalshidash2 | scripts/check.js | Runs last. |
 
 ## Sources used (official)
 
@@ -44,9 +44,13 @@ The snapshot is a sample, not a full dump. The live dashboard covers all open ma
 
 See the Flagged for Review page for full text and links. Headlines: diesel contract names a different EIA table than the API lists (F-02); no open diesel markets returned (F-01); a placeholder-looking election title (F-05); culture settlement sources containing placeholder text (F-08); golf quotes with zero trades (F-13); the only settlement source for one golf series is a participant's own channel (F-15); the API's status values do not match the documented filter names (F-16); no dollar-volume field exists (F-17).
 
-## Handoffs / conflicts
+## Log
 
-None. This session created `COORDINATION.md` on an empty repo (README only).
+- 2026-11-20 — Session `arena/9a4750fd` claimed T1–T8 and pushed the claim with the first sourced snapshot (commit `0e1173c`).
+- 2026-11-20 — Built the site (`scripts/build.js`), live dashboard (`assets/live.js`), and checks (`scripts/check.js`). `node scripts/check.js` passes (280 internal links, 21 series, 9 markets, 8 reference prices, 21 flags, each with an allow-listed source URL).
+- Browser testing: no browser is installed in the sandbox. The live dashboard has not been run in a browser. Its CORS behavior from GitHub Pages is unverified (F-18).
+- Handoffs / conflicts: none. This session created `COORDINATION.md` on an empty repo (README only).
+- Blocked: T6 portfolio. Needs a demo API key from you. No trades were placed.
 
 ## PR and merge
 
