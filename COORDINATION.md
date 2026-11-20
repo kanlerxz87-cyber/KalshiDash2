@@ -715,3 +715,11 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 - **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
 - **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
 - Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+## Session `751ee13f` — external source-link audit of the published site (branch `arena/751ee13f-kalshidash2`, 2026-11-20)
+
+Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary counts + verify-live) is not touched.
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| X1 | Enumerate every external URL on the published root site and `assets/`, classify each host (official Kalshi / official Kalshi docs / GitHub-npm / news-catalyst / other), check reachability, and flag any non-official or staging-bucket link for review | in progress | `751ee13f` | `tools/audit_external_links.py` (new), `reports/external-links-audit.md` (new), this section | Does not edit any site page. Flags are logged here and in the report; publishing them on `flagged.html` is left to the integration session (shared output). |
