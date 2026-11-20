@@ -45,6 +45,7 @@ Date started: 2026-11-20
 | 14 | Harden portfolio/analysis: trade ledger, categorisation, strategy builder | unclaimed | — | `docs/portfolio.html`, `docs/analysis.html`, `docs/assets/**` | — | — |
 | 15 | Final integration: re-verify every row, build check, publish to Pages | unclaimed | — | all | — | — |
 | 16 | Reconcile stale Arena branch with active main work; retire duplicate root-site prototype | done | `arena/e000cb69-kalshidash2` | `COORDINATION.md`, temporary root `index.html`, `styles.css`, `app.js`, `README.md` | Existing main Pages/site work verified via GitHub API; duplicate prototype not merged | Branch started from `6081bb7` while main advanced through other sessions; PR #5 closed after conflict and overlap detected |
+| 17 | Replace no-op smoke check with static-site internal-link validation | in progress | `aa8d808b` | `.github/workflows/site-check.yml`, `tools/check_site_links.py`, `COORDINATION.md` | Local target/anchor checks only; no market data claims | New, non-overlapping quality gate; preserve existing Pages source directory (`docs/`) |
 
 ### File-scope notes (conflict avoidance)
 
