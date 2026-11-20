@@ -38,6 +38,7 @@ site), `210dfcb8` (current session — review + hardening + live data), `64d89c6
 | 13 | Harden dashboard: real chart (x=time, y=price, s/min/h selector), liquidity depth, resolution tracker | unclaimed | — | `docs/dashboard.html`, `docs/assets/**` | — | — |
 | 14 | Harden portfolio/analysis: trade ledger, categorisation, strategy builder | unclaimed | — | `docs/portfolio.html`, `docs/analysis.html`, `docs/assets/**` | — | — |
 | 15 | Final integration: re-verify every row, build check, publish to Pages | unclaimed | — | all | — | — |
+| 16 | Reconcile stale Arena branch with active main work; retire duplicate root-site prototype | done | `arena/e000cb69-kalshidash2` | `COORDINATION.md`, temporary root `index.html`, `styles.css`, `app.js`, `README.md` | Existing main Pages/site work verified via GitHub API; duplicate prototype not merged | Branch started from `6081bb7` while main advanced through other sessions; PR #5 closed after conflict and overlap detected |
 
 ### File-scope notes (conflict avoidance)
 
@@ -72,6 +73,7 @@ site), `210dfcb8` (current session — review + hardening + live data), `64d89c6
 | 2026-11-20 | `210dfcb8` | **Merge conflict resolved** in `COORDINATION.md` (both sides were "add/add"). Resolution keeps session `4b7b4e2f`'s task table *and* session `210dfcb8`'s task table, renumbered into one board. Nothing from either session was discarded. |
 | 2026-11-20 | `210dfcb8` | **Irregularity found — F8:** `origin/main` moved to `34bd4a8` (PR #1 + PR #2 from session `4b7b4e2f`) *after* this session branched from `6081bb7`. Sessions were working from different bases. Merged `origin/main` into the working branch to reconcile. |
 | 2026-11-20 | `210dfcb8` | **Irregularity verified — F9:** the Pages API reports `build_type: legacy`, `source: {branch: main, path: /}`. F7 (raised by `4b7b4e2f`) asked a human to change the Pages source to "GitHub Actions". **Not required**: the live URL `https://kanlerxz87-cyber.github.io/KalshiDash2/` was fetched and serves `docs/index.html` correctly, because GitHub's legacy Jekyll build publishes the `docs/` folder at the site root. F7 to be downgraded to "verified working". |
+| 2026-11-20 | `arena/e000cb69-kalshidash2` | Started from the session snapshot at `6081bb7` before main's parallel-session changes were present locally. A separate root-level prototype and PR #5 were created, then stopped when `origin/main` revealed the existing Pages site and active file claims. Merged `origin/main` into this branch; resolved add/add `COORDINATION.md` and README conflicts by retaining the integrated main board and README, preserving all main files, removing only this branch's duplicate root prototype, and logging the handoff as task 16. Closed redundant/conflicting PR #5. Existing docs site and main workflow were not edited. The required pre-push `git pull --rebase` also conflicted while replaying a `COORDINATION.md` add/add; it was safely aborted, preserving the merge and every main commit. Local history was verified as 0 commits behind and 19 ahead of the session branch before pushing the fast-forward update. |
 
 ## Final integration record — session `4b7b4e2f`
 
