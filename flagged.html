@@ -77,7 +77,7 @@
     </div>
 
     <div class="irregularity" id="F8">
-      <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag warn">open</span></h3>
+      <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
         keywords against <code>GET /series</code>. That list returns 16,643 series in one page, so a
         keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
@@ -87,7 +87,14 @@
         <code>reports/verify-facts-v3.md</code> §G shows zero gas-price events in the open-event scan.</p>
       <p><strong>Status here:</strong> topics are matched on Kalshi's own <code>category</code> plus
         explicitly-scoped series/title patterns, and the gas page renders an explicit empty state with the
-        reason instead of inventing rows.</p>
+        reason instead of inventing rows. <strong>Residual fixed 2026-11-20 (session <code>2345e0dd</code>):</strong>
+        the root config still carried the same unsound <code>/GAS/i</code> pattern — it matched
+        <code>KXNBALASVEGAS</code> and <code>KXNATGASW</code> — and the culture topic missed the literal
+        <code>Culture</code> category that exists in the live demo vocabulary (4 series,
+        <code>data/probe/api_surface.json</code>). The gas matcher is now the <code>KXAAAGAS*</code> family
+        plus explicit exclusions (crude / WTI / Brent / natural-gas / diesel / Vegas / barrels / oil),
+        and <code>classifyEvent</code> honours per-topic <code>excludePatterns</code>. 15/15 classification
+        cases pass, including <em>Natural gas price</em> → none, <em>Las Vegas</em> → none, <em>AAA gas price</em> → gas.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get events ↗</a>
         <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence ↗</a></p>

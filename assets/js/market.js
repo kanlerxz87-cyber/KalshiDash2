@@ -35,6 +35,13 @@ function testAny(patterns, values) {
   return patterns.some(re => values.some(v => v && re.test(String(v))));
 }
 
+/* True when any exclude pattern hits a field value. Topics may declare
+ * `excludePatterns` (e.g. gas must not match crude / natural gas / Vegas rows). */
+function excluded(topic, cats, titles, series) {
+  return Array.isArray(topic.excludePatterns) &&
+    testAny(topic.excludePatterns, [...cats, ...titles, ...series]);
+}
+
 /* Classify an event into one of the five topics using only documented fields. */
 export function classifyEvent(ev) {
   if (!ev) return null;
@@ -47,14 +54,16 @@ export function classifyEvent(ev) {
     if (byCat) {
       // A category match is authoritative, except for broad categories
       // (Sports) that are narrowed by series/title.
-      if (topic.key !== "golf") return topic.key;
+      if (topic.key !== "golf" && !excluded(topic, cats, titles, series)) return topic.key;
     }
   }
   const golf = TOPICS.find(t => t.key === "golf");
-  if (testAny(golf.seriesPatterns, series) || testAny(golf.titlePatterns, titles)) return "golf";
+  if (!excluded(golf, cats, titles, series) &&
+      (testAny(golf.seriesPatterns, series) || testAny(golf.titlePatterns, titles))) return "golf";
 
   const gas = TOPICS.find(t => t.key === "gas");
-  if (testAny(gas.seriesPatterns, series) || testAny(gas.titlePatterns, titles)) return "gas";
+  if (!excluded(gas, cats, titles, series) &&
+      (testAny(gas.seriesPatterns, series) || testAny(gas.titlePatterns, titles))) return "gas";
 
   return null;
 }

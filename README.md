@@ -10,10 +10,11 @@ automated simulated trades, demo trading, trade categorization and performance a
 >   below. GitHub Pages source is `main:/`, so this is what
 >   <https://kanlerxz87-cyber.github.io/KalshiDash2/> serves. It fixes three defects the
 >   `docs/` generation still carries (see `flagged.html` F6–F8).
-> * **`docs/`** — the earlier generation, still built and still reachable at `/docs/` under the
->   legacy Pages build (source `main:/` publishes the root tree). The `.github/workflows/pages.yml`
->   artifact deploy is manual-only since the deploy-race fix (PR #17). Nothing in `docs/` was
->   deleted or edited by the merge that brought the rebuild in.
+> * **`docs/`** — the earlier generation, still reachable at `/docs/` because the legacy `main:/`
+>   build publishes the whole repository. Its separate deploy workflow
+>   (`.github/workflows/pages.yml`) has been manual-only since PR #17 ended the two-deployer race
+>   (see `COORDINATION.md`, task P1), so nothing under `docs/` is auto-deployed any more. Nothing
+>   in it was deleted or edited by the merge that brought the rebuild in.
 >
 > `COORDINATION.md` records which session owns what.
 
