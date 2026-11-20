@@ -2,12 +2,278 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>KalshiDash2 — Kalshi Demo Dashboard</title>
-<link rel="canonical" href="docs/">
-<meta http-equiv="refresh" content="0; url=docs/">
-<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f1419;color:#e6edf3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}a{color:#2f81f7}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KalshiDash2 — live Kalshi demo dashboard</title>
+<meta name="description" content="Live dashboard for the Kalshi demo exchange: gas prices, elections, culture, crypto and golf, tracked to resolution, with trading and strategy analysis.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a6b45'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/app.css">
 </head>
 <body>
-<p>📈 KalshiDash2 — redirecting to the dashboard: <a href="docs/">kanlerxz87-cyber.github.io/KalshiDash2/docs/</a></p>
+<main id="main">
+  <div class="page-head">
+    <h1>Highest-dollar live markets, tracked to resolution</h1>
+    <p>
+      A read-only-to-trade dashboard for the <strong>Kalshi demo exchange</strong> covering five topics:
+      gas prices, elections, culture, crypto and golf. It discovers markets from the live API, ranks them by
+      money traded, follows each one until the exchange reports a <em>yes</em> or <em>no</em> result, and
+      charts contract price against time.
+    </p>
+  </div>
+
+  <div class="callout info" id="connect-banner">
+    <h3><span class="spinner"></span> Connecting to the Kalshi demo API…</h3>
+    <p style="margin:0" class="small">
+      Public market data is read without credentials from
+      <code class="mono">https://external-api.demo.kalshi.co/trade-api/v2</code>.
+      If this banner stays, the browser could not reach the API — no values are shown in that case.
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="kpis" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Live events by topic</h2>
+    <p class="sub">Open events with at least one market, ranked by money traded (volume × last price).
+      Click a topic for the full table, chart and order-book depth.</p>
+    <div class="grid cols-3" id="topics"></div>
+  </div>
+
+  <div class="split side">
+    <div class="sticky">
+      <div class="card">
+        <h2>Verified environment facts</h2>
+        <p class="sub">Each value below was read from the live API or the official documentation during this build.</p>
+        <dl class="kv">
+          <dt>REST base</dt><dd class="mono">external-api.demo.kalshi.co/trade-api/v2</dd>
+          <dt>WebSocket</dt><dd class="mono">external-api-ws.demo.kalshi.co</dd>
+          <dt>Exchange status</dt><dd id="exch-status" class="unv">checking…</dd>
+          <dt>Funds</dt><dd>mock only (demo)</dd>
+        </dl>
+        <p class="sub small" style="margin-top:10px">
+          Sources: <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">demo environment ↗</a>
+        </p>
+      </div>
+      <div class="card">
+        <h2>Not shown on purpose</h2>
+        <p class="sub small" style="margin:0">
+          Values the API did not return — for example a market with no trades — render as
+          <span class="unv">n/a</span> rather than <code>$0.00</code>, because a missing trade price is not
+          the same as a price of zero. Anything that could not be confirmed is listed on
+          <a href="flagged.html">Flagged for review</a>.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Live board — all five topics</h2>
+        <div class="toolbar">
+          <div class="segmented" id="rank-mode" role="group" aria-label="Ranking">
+            <button data-mode="money" aria-pressed="true">Money traded</button>
+            <button data-mode="oi" aria-pressed="false">Open interest</button>
+            <button data-mode="volume" aria-pressed="false">Contracts</button>
+          </div>
+          <span class="spacer"></span>
+          <span id="board-status" class="pill idle">idle</span>
+          <button class="secondary tiny" id="refresh-board">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th><th>Topic</th><th class="num">Markets</th>
+                <th class="num">Money traded</th><th class="num">Open interest</th>
+                <th class="num">Contracts</th><th>Closes</th><th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="board-body">
+              <tr><td colspan="8"><div class="empty">Loading live events…</div></td></tr>
+            </tbody>
+          </table>
+          <div class="table-note" id="board-note">
+            Money traded = Σ (volume<sub>fp</sub> × last_price_dollars) over the event's markets —
+            an arithmetic product of two API fields, not an API field itself.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Your demo portfolio at a glance</h2>
+        <p class="sub">Read from your signed-in demo account. Credentials stay in this browser tab.</p>
+        <div id="portfolio-preview">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Balance</th><th>Portfolio value</th><th>Open positions</th><th>Fills loaded</th><th></th></tr></thead>
+              <tbody><tr><td colspan="5"><div class="empty">No demo API key loaded in this tab.</div></td></tr></tbody>
+            </table>
+          </div>
+          <p style="margin:10px 0 0"><a class="btn ghost" href="portfolio.html">Open portfolio &amp; trading →</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
+import { api, getAll, rankEvents, classifyEvent } from "./assets/js/market.js";
+
+mountChrome({ page: "index.html", title: "Overview" });
+
+const state = { events: [], mode: "money", loadedAt: null };
+
+/* ---- exchange status ---- */
+(async () => {
+  const el = $("#exch-status");
+  try {
+    const s = await api.get("/exchange/status");
+    el.innerHTML = s.trading_active && s.exchange_active
+      ? `<span class="tag yes">trading active</span> <span class="small muted">as of ${new Date().toLocaleTimeString()}</span>`
+      : `<span class="tag no">not trading</span>`;
+    const banner = $("#connect-banner");
+    banner.className = "callout ok";
+    banner.innerHTML = `<h3>Connected to the Kalshi demo API</h3>
+      <p style="margin:0" class="small">Live public market data, unauthenticated, from
+      <code class="mono">external-api.demo.kalshi.co</code>. Trading on the demo exchange is
+      <strong>${s.trading_active ? "active" : "inactive"}</strong>.
+      ${src(SOURCES.demoEnv, "demo env docs")}</p>`;
+  } catch (e) {
+    el.innerHTML = `<span class="tag no">unreachable</span>`;
+    const banner = $("#connect-banner");
+    banner.className = "callout bad";
+    banner.innerHTML = `<h3>The browser could not reach the Kalshi demo API</h3>
+      <p style="margin:0" class="small">${esc(e.message)}. No market values are displayed rather than
+      showing stale or invented numbers.</p>`;
+  }
+})();
+
+/* ---- discovery ---- */
+async function loadBoard() {
+  pill($("#board-status"), "warn", "loading…");
+  $("#board-body").innerHTML = `<tr><td colspan="8"><div class="empty"><span class="spinner"></span> Reading live events (this can take a few seconds)…</div></td></tr>`;
+  try {
+    const events = [];
+    for (const status of ["open", "closed"]) {
+      const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
+        key: "events", maxPages: status === "open" ? 10 : 4
+      });
+      rows.forEach(e => { e._status = status; });
+      events.push(...rows);
+    }
+    state.events = events;
+    state.loadedAt = new Date();
+    pill($("#board-status"), "live", `live · ${events.length} events scanned`);
+    render();
+  } catch (e) {
+    pill($("#board-status"), "err", e.message);
+    $("#board-body").innerHTML = emptyRow(8, "Could not load events: " + e.message);
+  }
+}
+
+function render() {
+  const byTopic = {};
+  for (const ev of state.events) {
+    const t = classifyEvent(ev);
+    if (!t) continue;
+    (byTopic[t] = byTopic[t] || []).push(ev);
+  }
+
+  /* topic cards */
+  $("#topics").innerHTML = TOPICS.map(t => {
+    const evs = byTopic[t.key] || [];
+    const ranked = rankEvents(evs, "money");
+    const moneyTotal = ranked.reduce((a, r) => a + (r.money || 0), 0);
+    const openCount = evs.filter(e => (e.markets || []).some(m => m.status === "active" || m.status === "open")).length;
+    return `<a class="topic-card" href="categories/${t.key}.html">
+      <div class="t">${esc(t.label)}</div>
+      <div class="n">${esc(t.blurb)}</div>
+      <div class="big">${money(moneyTotal)}</div>
+      <div class="u">money traded across ${evs.length} events · ${openCount} open</div>
+    </a>`;
+  }).join("");
+
+  /* KPIs */
+  const allRanked = [];
+  for (const t of TOPICS) for (const ev of (byTopic[t.key] || [])) allRanked.push({ ...ev, _topic: t.key });
+  const totalMoney = allRanked.reduce((a, ev) => a + rankEvents([ev], "money")[0].money, 0);
+  const totalEvents = allRanked.length;
+  const resolved = state.events.filter(e => (e.markets || []).some(m => (m.result || "").length)).length;
+  const openEvents = allRanked.filter(e => (e.markets || []).some(m => ["active", "open"].includes(m.status))).length;
+
+  $("#kpis").innerHTML = [
+    { k: "Events in scope", v: int(totalEvents), m: "across the five topics" },
+    { k: "Money traded", v: money(totalMoney), m: "Σ volume × last price" },
+    { k: "Open now", v: int(openEvents), m: "events with a live market" },
+    { k: "Resolved", v: int(resolved), m: "exchange reported a yes/no" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+  /* board */
+  const rows = allRanked.map(ev => {
+    const topic = TOPICS.find(t => t.key === ev._topic);
+    const r = rankEvents([ev], state.mode)[0];
+    const result = r.result;
+    const tag = result === "yes" ? `<span class="tag yes">yes</span>`
+      : result === "no" ? `<span class="tag no">no</span>`
+      : result === "mixed" ? `<span class="tag warn">mixed</span>`
+      : `<span class="muted small">open</span>`;
+    return `<tr>
+      <td><a href="event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
+        <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
+      <td><a href="categories/${topic.key}.html">${esc(topic.label)}</a></td>
+      <td class="num">${int(r.marketCount)}</td>
+      <td class="num">${money(r.money)}</td>
+      <td class="num">${int(r.oi)}</td>
+      <td class="num">${int(r.volume)}</td>
+      <td class="nowrap small">${dt(r.closeTime)}</td>
+      <td>${tag}</td>
+    </tr>`;
+  });
+  const sorted = allRanked
+    .map(ev => ({ ev, r: rankEvents([ev], state.mode)[0] }))
+    .sort((a, b) => state.mode === "oi" ? b.r.oi - a.r.oi : state.mode === "volume" ? b.r.volume - a.r.volume : b.r.money - a.r.money)
+    .slice(0, 25);
+
+  $("#board-body").innerHTML = sorted.length
+    ? sorted.map(({ ev }) => {
+        const topic = TOPICS.find(t => t.key === ev._topic);
+        const r = rankEvents([ev], state.mode)[0];
+        const result = r.result;
+        const tag = result === "yes" ? `<span class="tag yes">yes</span>`
+          : result === "no" ? `<span class="tag no">no</span>`
+          : result === "mixed" ? `<span class="tag warn">mixed</span>`
+          : `<span class="muted small">open</span>`;
+        return `<tr>
+          <td><a href="event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
+            <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
+          <td><a href="categories/${topic.key}.html">${esc(topic.label)}</a></td>
+          <td class="num">${int(r.marketCount)}</td>
+          <td class="num">${money(r.money)}</td>
+          <td class="num">${int(r.oi)}</td>
+          <td class="num">${int(r.volume)}</td>
+          <td class="nowrap small">${dt(r.closeTime)}</td>
+          <td>${tag}</td>
+        </tr>`;
+      }).join("")
+    : emptyRow(8, "No events matched the five topics in this scan.");
+
+  const mode = RANKING_MODES.find(m => m.key === state.mode);
+  $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
+    ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
+    ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")}. ${src(SOURCES.events, "GET /events")}`;
+}
+
+$("#rank-mode").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-mode]");
+  if (!b) return;
+  state.mode = b.dataset.mode;
+  $("#rank-mode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  render();
+});
+$("#refresh-board").addEventListener("click", loadBoard);
+
+loadBoard();
+setInterval(() => { if (document.visibilityState === "visible") loadBoard(); }, 60000);
+</script>
 </body>
 </html>

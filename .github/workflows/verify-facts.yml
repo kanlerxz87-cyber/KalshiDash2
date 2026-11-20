@@ -1,0 +1,173 @@
+name: verify-facts
+# Temporary verification job. Captures authoritative, reproducible facts from the
+# official Kalshi DEMO API on a GitHub-hosted runner (the editing sandbox cannot open
+# TLS connections to Kalshi hosts) and commits the report back to the branch so the
+# findings are reviewable as a file with a permanent, linkable URL.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tools/verify/**"
+
+permissions:
+  contents: write
+
+jobs:
+  facts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Probe demo API
+        run: |
+          set +e
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          ORIGIN=https://kanlerxz87-cyber.github.io
+          OUT=reports/verify-facts-v3.md
+          mkdir -p reports
+          {
+          echo "# Verified facts (v3) — Kalshi DEMO API"
+          echo
+          echo "| Field | Value |"
+          echo "| --- | --- |"
+          echo "| Captured (UTC) | $(date -u +%Y-%m-%dT%H:%M:%SZ) |"
+          echo "| Runner | GitHub Actions \`ubuntu-latest\` |"
+          echo "| Base URL | \`$BASE\` |"
+          echo "| Commit | \`${GITHUB_SHA}\` |"
+          echo
+
+          echo '## A. CORS on every endpoint the dashboard calls'
+          echo
+          echo '| Endpoint | HTTP | `access-control-allow-origin` |'
+          echo '| --- | --- | --- |'
+          TICKER=$(curl -sS "$BASE/markets?status=open&limit=200" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);const ms=(j.markets||[]).filter(m=>Number(m.volume_fp||0)>0).sort((a,b)=>Number(b.volume_fp)-Number(a.volume_fp));console.log(ms.length?ms[0].ticker:"")})')
+          EVT=$(curl -sS "$BASE/markets/$TICKER" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.market?j.market.event_ticker:"")})')
+          SER=$(curl -sS "$BASE/events/$EVT" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.event?j.event.series_ticker:"")})')
+          END=$(date +%s)
+          for U in \
+            "/exchange/status" \
+            "/events?limit=1" \
+            "/series?limit=1" \
+            "/markets?limit=1" \
+            "/markets/$TICKER" \
+            "/markets/$TICKER/orderbook" \
+            "/markets/trades?limit=1" \
+            "/events/$EVT" \
+            "/series/$SER/markets/$TICKER/candlesticks?start_ts=$((END-86400))&end_ts=$END&period_interval=60" ; do
+            H=$(curl -sS -D /tmp/h.txt -o /dev/null -H "Origin: $ORIGIN" "$BASE$U" -w "%{http_code}")
+            A=$(grep -i "^access-control-allow-origin:" /tmp/h.txt | tr -d '\r' | cut -d' ' -f2-)
+            echo "| \`GET $U\` | $H | ${A:-(absent)} |"
+          done
+          echo ""
+          echo "**Resolved ids used above:** market \`$TICKER\` → event \`$EVT\` → series \`$SER\`"
+          echo
+          echo '## B. Market → event → series lookup path (needed for candlesticks)'
+          echo
+          echo 'Does `GET /markets/{ticker}` contain `series_ticker`?'
+          echo '```json'
+          curl -sS "$BASE/markets/$TICKER" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const m=JSON.parse(d).market||{};console.log(JSON.stringify({keys:Object.keys(m).sort(),series_ticker:m.series_ticker??null,event_ticker:m.event_ticker??null},null,1))})'
+          echo '```'
+          echo
+          echo 'Does `GET /events/{event_ticker}` contain `series_ticker`?'
+          echo '```json'
+          curl -sS "$BASE/events/$EVT" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const e=JSON.parse(d).event||{};console.log(JSON.stringify({keys:Object.keys(e).sort(),series_ticker:e.series_ticker??null,category:e.category??null},null,1))})'
+          echo '```'
+          echo
+          echo '## C. Candlesticks — real response and documented limits'
+          for PI in 1 60 1440; do
+            echo ""
+            echo "\`period_interval=$PI\` (minutes), last 24h:"
+            echo '```json'
+            curl -sS "$BASE/series/$SER/markets/$TICKER/candlesticks?start_ts=$((END-86400))&end_ts=$END&period_interval=$PI" | head -c 600
+            echo
+            echo '```'
+          done
+          echo ""
+          echo 'Unsupported `period_interval=5`:'
+          echo '```'
+          curl -sS -o /tmp/p5.json -w "HTTP %{http_code}\n" "$BASE/series/$SER/markets/$TICKER/candlesticks?start_ts=$((END-3600))&end_ts=$END&period_interval=5"; head -c 300 /tmp/p5.json; echo
+          echo '```'
+          echo
+          echo '## D. Orderbook — resting bid depth (liquidity)'
+          echo '```json'
+          curl -sS "$BASE/markets/$TICKER/orderbook?depth=5" | head -c 900
+          echo
+          echo '```'
+          echo
+          echo '## E. Order write routes (unauthenticated: route existence only)'
+          echo
+          echo '| Request | HTTP | Body |'
+          echo '| --- | --- | --- |'
+          for M_P in "POST /portfolio/events/orders" "DELETE /portfolio/events/orders/abc" "POST /portfolio/events/orders/abc/amend" "DELETE /portfolio/orders/abc"; do
+            M=${M_P% *}; P=${M_P#* }
+            C=$(curl -sS -o /tmp/r.json -w "%{http_code}" -X $M -H "Content-Type: application/json" -d '{}' "$BASE$P")
+            B=$(head -c 150 /tmp/r.json | tr '\n' ' ' | sed 's/|/\\|/g')
+            echo "| \`$M $P\` | $C | $B |"
+          done
+          echo
+          echo '## F. Read endpoints used by the portfolio page (unauthenticated)'
+          echo
+          echo '| Endpoint | HTTP | Body |'
+          echo '| --- | --- | --- |'
+          for P in /portfolio/balance /portfolio/positions /portfolio/fills /portfolio/orders; do
+            C=$(curl -sS -o /tmp/r.json -w "%{http_code}" "$BASE$P")
+            B=$(head -c 120 /tmp/r.json | tr '\n' ' ' | sed 's/|/\\|/g')
+            echo "| \`GET $P\` | $C | $B |"
+          done
+          echo
+          echo '## G. Topic taxonomy — official `category` values and their counts'
+          echo
+          rm -f /tmp/cats.tsv
+          CUR=""
+          for i in 1 2 3 4 5; do
+            if [ -z "$CUR" ]; then U="$BASE/events?limit=200&status=open"; else U="$BASE/events?limit=200&status=open&cursor=$CUR"; fi
+            curl -sS "$U" -o /tmp/e.json
+            CUR=$(node -e 'const j=require("/tmp/e.json");console.log(j.cursor||"")')
+            node -e '
+              const j=require("/tmp/e.json");
+              const fs=require("fs");
+              const lines=(j.events||[]).map(e=>[e.category||"(none)",e.series_ticker||"",e.event_ticker||"",(e.title||"").replace(/[\t\n]/g," ")].join("\t"));
+              fs.appendFileSync("/tmp/cats.tsv",lines.join("\n")+"\n");
+            '
+            [ -z "$CUR" ] && break
+          done
+          node -e '
+            const fs=require("fs");
+            const rows=fs.readFileSync("/tmp/cats.tsv","utf8").trim().split("\n").map(l=>l.split("\t"));
+            console.log("Events scanned:", rows.length);
+            console.log("");
+            console.log("| Kalshi category | Events |");
+            console.log("| --- | --- |");
+            const c={};
+            for(const r of rows)c[r[0]]=(c[r[0]]||0)+1;
+            Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(`| ${k} | ${v} |`));
+            console.log("");
+            console.log("### Which official categories can serve the five required topics?");
+            console.log("");
+            const want={gas:[/gas price|gasoline|aaa gas/i],elections:[/election/i],culture:[/entertainment|culture|social/i],crypto:[/crypto/i],golf:[/golf|pga/i]};
+            for(const [t,res] of Object.entries(want)){
+              const hit=rows.filter(r=>res.some(re=>re.test(r[0]+" "+r[3]+" "+r[1])));
+              const cats={};
+              hit.forEach(r=>cats[r[0]]=(cats[r[0]]||0)+1);
+              console.log(`- **${t}**: ${hit.length} events — categories: ${Object.entries(cats).map(([k,v])=>k+" ("+v+")").join(", ")||"none"}`);
+            }
+            console.log("");
+            console.log("### Sample series per topic (from live event rows)");
+            for(const [t,res] of Object.entries(want)){
+              const hit=rows.filter(r=>res.some(re=>re.test(r[0]+" "+r[3]+" "+r[1])));
+              const s=[...new Set(hit.map(r=>r[1]))].filter(Boolean).slice(0,6);
+              console.log(`- **${t}**: ${s.map(x=>"`"+x+"`").join(", ")||"none"}`);
+            }
+          '
+          } > "$OUT"
+          cat "$OUT"
+
+      - name: Commit report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          git diff --cached --quiet || git commit -m "reports: verified facts v3 from Kalshi demo API [skip ci]"
+          git push

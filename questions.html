@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open questions — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Questions, information and answers before any decision</h1>
+    <p>
+      Every decision this dashboard implies depends on facts. This page states each question plainly, what we
+      <strong>know</strong>, what we <strong>do not know</strong>, the answer we can support today, and — where
+      the answer is missing — exactly how to obtain it.
+    </p>
+  </div>
+
+  <div class="callout info">
+    <h3>Reading the confidence column</h3>
+    <p style="margin:0" class="small">
+      <span class="tag yes">answered</span> backed by an official source or a live API observation ·
+      <span class="tag warn">partly answered</span> some evidence, one gap remains ·
+      <span class="tag no">not answerable yet</span> the data needed does not exist for this build.
+      No question is closed by opinion.
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="counts" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>The register</h2>
+    <div class="toolbar">
+      <label class="inline">Show
+        <select id="filter">
+          <option value="all">All questions</option>
+          <option value="scope">Scope &amp; topics</option>
+          <option value="data">Data quality</option>
+          <option value="trading">Trading &amp; portfolio</option>
+          <option value="analysis">Analysis</option>
+          <option value="ops">Operations &amp; repo</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <button class="secondary tiny" id="expand">Expand all</button>
+      <button class="secondary tiny" id="collapse">Collapse all</button>
+      <span id="shown" class="pill idle"></span>
+    </div>
+    <div id="questions"></div>
+  </div>
+
+  <div class="card">
+    <h2>Information we do <em>not</em> have, and how to get it</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Missing information</th><th>Why it matters</th><th>How to obtain it</th><th>Owner</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>A demo API key pair</td>
+            <td>Unlocks balance, positions, fills and order placement; without it the portfolio and
+              strategies pages have no data to analyse.</td>
+            <td>Create one at <a href="https://demo.kalshi.co/account/profile" target="_blank" rel="noopener noreferrer">demo.kalshi.co/account/profile ↗</a>
+              (<a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">docs ↗</a>), then load it on the Portfolio page.</td>
+            <td>Account owner</td>
+          </tr>
+          <tr>
+            <td>Trade history long enough to judge a strategy</td>
+            <td>Six strategy rules are catalogued but none can be scored. Any "best strategy" claim would be
+              invented.</td>
+            <td>Place a deliberate set of demo trades — at least tens of fills per rule — then reload the
+              Strategies page. It computes from live fills only.</td>
+            <td>Account owner</td>
+          </tr>
+          <tr>
+            <td>Gas-price market coverage on the demo exchange</td>
+            <td>The gas topic currently has no open demo markets, so that page cannot demonstrate live data.</td>
+            <td>Re-scan on a different day, or confirm whether gas markets are restricted to production. The
+              page already reports its scan size so the claim is falsifiable.</td>
+            <td>Kalshi demo operations</td>
+          </tr>
+          <tr>
+            <td>Broker-side cost basis for realised P&amp;L</td>
+            <td>Profit per closed trade needs the entry and exit prices paired per position.</td>
+            <td>Derive it from <code>GET /portfolio/fills</code> paired by ticker and outcome side, and
+              reconcile against <code>realized_pnl</code> from positions.</td>
+            <td>Implementation work</td>
+          </tr>
+          <tr>
+            <td>Whether WebSocket streaming works from a browser</td>
+            <td>Streaming would give sub-second price updates instead of 2-second polling.</td>
+            <td>Test an authenticated WebSocket handshake from a browser context, or add a small relay.
+              Until then polling is used and labelled.</td>
+            <td>Implementation work</td>
+          </tr>
+          <tr>
+            <td>Which sessions own the other branches</td>
+            <td>Five sessions wrote to this repository concurrently; coordination rules require one
+              integration owner for shared outputs.</td>
+            <td>Read <code>COORDINATION.md</code> on each branch and merge through a single integration
+              session.</td>
+            <td>Repo maintainer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, $, int } from "./assets/js/ui.js";
+mountChrome({ page: "questions.html", title: "Open questions" });
+
+const D = "https://docs.kalshi.com";
+
+const Q = [
+  {
+    id: "Q1", cat: "scope", confidence: "answered",
+    q: "Which live events count as \"highest dollar amount\"?",
+    know: "The API exposes volume_fp (contracts), open_interest_fp (contracts) and last_price_dollars (dollars) per market. There is no single \"dollars traded\" field.",
+    dontknow: "Whether \"dollars\" means money changing hands, open exposure, or contract count — the three rank markets differently.",
+    answer: "No single reading is provable from the API, so the dashboard ranks by all three and states the formula used for each. The default, money traded = Σ(volume × last price), is computed by this site and labelled as computed, never presented as an API field.",
+    action: "Decide which definition is the business metric; the site already lets the ranking switch without code changes.",
+    sources: [`${D}/api-reference/market/get-markets`, `${D}/api-reference/events/get-events`]
+  },
+  {
+    id: "Q2", cat: "scope", confidence: "answered",
+    q: "Do the five requested topics map onto Kalshi's own categories?",
+    know: "Kalshi categories observed live: Elections (740 of 1,000 events), Sports (71), Economics (61), Politics (42), Entertainment (28), Crypto (2), Social (1).",
+    dontknow: "\"Culture\" and \"Gas prices\" are not category values.",
+    answer: "Elections and Crypto are exact category matches. Culture maps to Entertainment + Social. Golf sits inside Sports and is narrowed by golf series/titles. Gas has no category at all and is matched on gas-price series and titles.",
+    action: "Accept the mapping as documented on each category page, or supply an explicit ticker list.",
+    sources: [`${D}/getting_started/terms`, `${D}/api-reference/events/get-events`]
+  },
+  {
+    id: "Q3", cat: "scope", confidence: "answered",
+    q: "How is an event marked resolved, and how is yes/no reported?",
+    know: "Settled markets return result = \"yes\" or \"no\", a settlement_value_dollars, and status finalized. In a 200-market settled sample, 82 were yes and 118 no, none blank.",
+    dontknow: "Nothing material — the field is explicit.",
+    answer: "Resolution is read directly from result. The site never infers an outcome from the final price, because a market can trade at $0.99 and still resolve no.",
+    action: "None. Tracking continues until result is non-empty, then the market leaves the open board.",
+    sources: [`${D}/getting_started/market_settlement`, `${D}/api-reference/market/get-markets`]
+  },
+  {
+    id: "Q4", cat: "data", confidence: "answered",
+    q: "Can a chart show price by seconds?",
+    know: "The candlestick endpoint accepts period_interval of 1, 60 or 1440 minutes only; a request for 5 was rejected live with HTTP 400. REST quotes are cached for a few seconds.",
+    dontknow: "Nothing — the limitation is documented and was reproduced.",
+    answer: "Seconds-resolution history does not exist to request. Windows of 5 minutes or less are drawn from samples this page takes every 2 seconds and labels as accumulated live samples; longer windows use real candlesticks.",
+    action: "If true streaming becomes required, confirm the authenticated WebSocket path first (see Q10).",
+    sources: [`${D}/api-reference/market/get-market-candlesticks`, `${D}/api-reference/market/get-markets`]
+  },
+  {
+    id: "Q5", cat: "data", confidence: "answered",
+    q: "How many contracts are available at a given price?",
+    know: "GET /markets/{ticker}/orderbook returns resting bids only: yes_dollars and no_dollars, each a list of [price, contract count].",
+    dontknow: "Nothing about reads. Note that asks are implied, not returned.",
+    answer: "The liquidity panel lists each price level with its contract count and notional value, and derives the implied YES ask as 1 − best NO bid, exactly as the documentation describes.",
+    action: "None.",
+    sources: [`${D}/getting_started/orderbook_responses`]
+  },
+  {
+    id: "Q6", cat: "data", confidence: "partly answered",
+    q: "Is the browser allowed to call the API directly from the published site?",
+    know: "Yes. Nine endpoints returned access-control-allow-origin echoing https://kanlerxz87-cyber.github.io, including the preflight.",
+    dontknow: "Whether every endpoint used by future features is equally permissive; the matrix covered the ones this site calls.",
+    answer: "Direct browser calls are correct for the endpoints in use, so no proxy or server is required.",
+    action: "Re-run the CORS matrix (reports/verify-facts-v3.md) whenever a new endpoint is added.",
+    sources: [`${D}/getting_started/quick_start_market_data`, "evidence/evidence-cors-taxonomy.md"]
+  },
+  {
+    id: "Q7", cat: "trading", confidence: "answered",
+    q: "Which order endpoint is current, and what do its fields mean?",
+    know: "POST /portfolio/events/orders is the V2 route. The legacy POST /portfolio/orders returns 410 deprecated_v1_order_endpoint. side is bid (buy YES) or ask (buy NO).",
+    dontknow: "Nothing — both behaviours were reproduced live.",
+    answer: "The site posts to the V2 route and asks the user to choose buying YES or NO, mapping to bid/ask internally so the label can never contradict the payload.",
+    action: "None.",
+    sources: [`${D}/api-reference/orders/create-order-v2`, `${D}/getting_started/order_direction`]
+  },
+  {
+    id: "Q8", cat: "trading", confidence: "not answerable yet",
+    q: "Does an order placed from this site actually fill on the demo account?",
+    know: "The route exists (401 unauthenticated, not 404), the required fields match the documented schema, and the price grid comes from the market itself.",
+    dontknow: "Whether the whole flow succeeds end to end — that needs a real demo key and a real order.",
+    answer: "Unproven. It is listed as F1 on the Flagged page and the site makes no claim that any order has ever filled.",
+    action: "Load a demo key, place one 1-contract order inside the grid, then reload fills. If the fill appears, close F1.",
+    sources: [`${D}/api-reference/portfolio/get-fills`]
+  },
+  {
+    id: "Q9", cat: "trading", confidence: "not answerable yet",
+    q: "What does portfolio performance look like, and which strategy wins?",
+    know: "Fills expose contract count, YES/NO price, fee, taker/maker role and outcome side — enough to compute premium paid and fees per fill.",
+    dontknow: "Realised profit and loss, because it requires closed positions that do not exist yet.",
+    answer: "Premium and fees can be categorised by topic, side and role as soon as fills exist. Profit, win rate and strategy ranking cannot be stated without closed trades, so those cells are blank rather than estimated.",
+    action: "Accumulate demo trades, then the Strategies page will score each rule from real fills.",
+    sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`]
+  },
+  {
+    id: "Q10", cat: "data", confidence: "not answerable yet",
+    q: "Can price updates stream instead of polling?",
+    know: "A WebSocket API exists at wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2 and requires signed handshake headers covering timestamp + GET + /trade-api/ws/v2.",
+    dontknow: "Whether a browser can supply those headers on the WebSocket upgrade, since the standard WebSocket constructor cannot set custom headers.",
+    answer: "Unconfirmed, so the site polls every 2 seconds and labels the source of every point. Streaming is recorded as F10.",
+    action: "Test an authenticated handshake from a browser, or add a minimal relay if headers cannot be set.",
+    sources: [`${D}/getting_started/quick_start_websockets`, `${D}/getting_started/rate_limits`]
+  },
+  {
+    id: "Q11", cat: "data", confidence: "partly answered",
+    q: "How often may the dashboard poll before it is throttled?",
+    know: "Authenticated calls use a token bucket (most calls cost 10 tokens) and 429 responses carry rate-limit headers with no Retry-After. GET /portfolio/balance has its own bucket at 1–5 calls per second.",
+    dontknow: "The numeric budget for unauthenticated public calls is not published.",
+    answer: "Polling is set to 2 seconds for the chart and 30 seconds for the book, which is well inside documented authenticated budgets; public limits are unknown, so 429s are surfaced rather than retried blindly.",
+    action: "If throttling appears, raise intervals or authenticate the reads.",
+    sources: [`${D}/getting_started/rate_limits`]
+  },
+  {
+    id: "Q12", cat: "data", confidence: "partly answered",
+    q: "Are API prices always one cent apart?",
+    know: "No. Each market publishes price_ranges with start, end and step; observed steps include 0.01 and 0.001, and some markets taper at the edges. Off-grid prices are rejected.",
+    dontknow: "Which structure a future market will use — it is assigned per market.",
+    answer: "The order form snaps the entered price to the grid the market itself published, instead of assuming a cent tick.",
+    action: "None; the behaviour is data-driven.",
+    sources: [`${D}/getting_started/fixed_point_migration`]
+  },
+  {
+    id: "Q13", cat: "ops", confidence: "partly answered",
+    q: "Is the published site reachable and correct from the public URL?",
+    know: "GitHub Pages is enabled with source main at /, the build succeeds, and the deploy workflow completes.",
+    dontknow: "A rendered end-to-end check against the live URL could not be run from the build sandbox, which has no route to github.io.",
+    answer: "The site is verified structurally (link resolution, module parsing, lint for undefined references, and execution of every page against a simulated DOM with live-shaped fixtures). A human click-through on the public URL is still the final confirmation.",
+    action: "Open the published URL and confirm the overview board populates.",
+    sources: ["https://docs.github.com/en/pages"]
+  },
+  {
+    id: "Q14", cat: "ops", confidence: "answered",
+    q: "Who owns the shared outputs while several sessions work here?",
+    know: "Seven arena/* branches exist and main advanced during this session. The brief says shared outputs are changed only by a final integration session.",
+    dontknow: "Which session will perform that integration.",
+    answer: "This session confined itself to its own tree and logged the overlap in COORDINATION.md instead of editing files owned elsewhere.",
+    action: "Name one integration owner before merging, then merge once.",
+    sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]
+  }
+];
+
+const tag = c => c === "answered" ? `<span class="tag yes">answered</span>`
+  : c === "partly answered" ? `<span class="tag warn">partly answered</span>`
+  : `<span class="tag no">not answerable yet</span>`;
+
+function render() {
+  const f = $("#filter").value;
+  const rows = f === "all" ? Q : Q.filter(q => q.cat === f);
+  $("#questions").innerHTML = rows.map(q => `
+    <details class="disclosure" data-id="${q.id}">
+      <summary>${q.id} · ${esc(q.q)} &nbsp; ${tag(q.confidence)}</summary>
+      <div class="grid cols-2" style="margin-bottom:10px">
+        <div><div class="small" style="font-weight:700;color:var(--ok);margin-bottom:2px">What we know</div>
+          <div class="small">${esc(q.know)}</div></div>
+        <div><div class="small" style="font-weight:700;color:var(--warn);margin-bottom:2px">What we do not know</div>
+          <div class="small">${esc(q.dontknow)}</div></div>
+      </div>
+      <div style="margin-bottom:8px"><div class="small" style="font-weight:700;margin-bottom:2px">Answer supported by evidence today</div>
+        <div class="small">${esc(q.answer)}</div></div>
+      <div style="margin-bottom:8px"><div class="small" style="font-weight:700;margin-bottom:2px">What would close the gap</div>
+        <div class="small">${esc(q.action)}</div></div>
+      <div class="small"><strong>Sources:</strong> ${q.sources.map(s =>
+        `<a class="src-link" href="${esc(s)}" target="_blank" rel="noopener noreferrer">${esc(s.replace("https://","").slice(0,42))}</a>`).join(" ")}</div>
+    </details>`).join("");
+  $("#shown").textContent = `${rows.length} of ${Q.length} questions`;
+}
+
+$("#filter").addEventListener("change", render);
+$("#expand").onclick = () => document.querySelectorAll("details").forEach(d => d.open = true);
+$("#collapse").onclick = () => document.querySelectorAll("details").forEach(d => d.open = false);
+
+const a = Q.filter(q => q.confidence === "answered").length;
+const p = Q.filter(q => q.confidence === "partly answered").length;
+const n = Q.filter(q => q.confidence === "not answerable yet").length;
+$("#counts").innerHTML = [
+  { k: "Answered", v: int(a), m: "evidence-backed" },
+  { k: "Partly answered", v: int(p), m: "one gap remains" },
+  { k: "Not answerable yet", v: int(n), m: "needs data that does not exist" },
+  { k: "Total", v: int(Q.length), m: "questions" }
+].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas Prices — KalshiDash2</title>
+<link rel="stylesheet" href="../assets/css/app.css">
+<style>
+  .book-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .book-grid h3 { margin: 0 0 6px; font-size: 13px; }
+</style>
+</head>
+<body data-topic="gas">
+<main id="main">
+  <p class="small muted" style="margin:0 0 6px"><a href="../index.html">Overview</a> / Categories</p>
+  <div class="page-head">
+    <h1 id="topic-title">Gas Prices</h1>
+    <p id="topic-blurb"></p>
+    <p class="small muted" id="topic-note" style="margin-top:6px"></p>
+  </div>
+  <div id="topic-caveat"></div>
+
+  <div class="grid cols-4" id="cat-stats" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Live board</h2>
+    <div class="toolbar">
+      <div class="segmented" id="board-mode" role="group" aria-label="Rank by">
+        <button data-mode="money" aria-pressed="true">Money traded</button>
+        <button data-mode="oi" aria-pressed="false">Open interest</button>
+        <button data-mode="volume" aria-pressed="false">Contracts</button>
+      </div>
+      <span class="spacer"></span>
+      <span id="board-status" class="pill idle">idle</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Event</th><th class="num">Markets</th><th class="num">Money traded</th>
+          <th class="num">Open interest</th><th class="num">Contracts</th><th>Closes</th><th>Result</th><th></th>
+        </tr></thead>
+        <tbody id="board-body"><tr><td colspan="8"><div class="empty">Loading…</div></td></tr></tbody>
+      </table>
+      <div class="table-note">
+        <strong>Money traded</strong> is calculated as volume<sub>fp</sub> × last_price_dollars per market,
+        summed over the event. Both inputs come from
+        <a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events?with_nested_markets=true ↗</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="chart-card">
+    <h2>Contract price over time</h2>
+    <p class="sub">X axis = time, Y axis = contract price in USD. Choose the window below.</p>
+    <div class="toolbar">
+      <label class="inline">Market <input type="text" id="chart-ticker" size="30" placeholder="ticker" spellcheck="false"></label>
+      <button class="secondary tiny" id="chart-ticker-apply">Load</button>
+      <label class="inline">Window
+        <select id="window">
+          <option value="10s">10 seconds</option>
+          <option value="1m">1 minute</option>
+          <option value="5m">5 minutes</option>
+          <option value="1h" selected>1 hour</option>
+          <option value="6h">6 hours</option>
+          <option value="24h">24 hours</option>
+          <option value="7d">7 days</option>
+        </select>
+      </label>
+      <button class="secondary tiny" id="chart-refresh">Refresh</button>
+      <span class="spacer"></span>
+      <span id="chart-status" class="pill idle">idle</span>
+    </div>
+    <div id="chart-meta" class="small muted" style="margin-bottom:8px"></div>
+    <div class="chart-box"><canvas id="price-chart" aria-label="Contract price over time"></canvas></div>
+    <div class="chart-legend" id="chart-legend"></div>
+    <p class="small muted" id="chart-src" style="margin:8px 0 0"></p>
+    <div id="chart-empty"></div>
+  </div>
+
+  <div class="card">
+    <h2>Liquidity — how many contracts are available at each price</h2>
+    <p class="sub">Resting bids by price level. Kalshi returns bids only; a NO bid at <em>y</em> is an
+      implied YES ask at <em>1 − y</em>, so both sides are shown.</p>
+    <div class="toolbar">
+      <button class="secondary tiny" id="book-refresh">Refresh book</button>
+      <span id="book-status" class="pill idle">idle</span>
+    </div>
+    <div id="book-summary" style="margin-bottom:14px"></div>
+    <div class="book-grid">
+      <div>
+        <h3>YES bids — you can sell YES here</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="num">Price</th><th class="num">Contracts</th><th class="num">Notional</th><th>Side</th></tr></thead>
+          <tbody id="yes-book"><tr><td colspan="4"><div class="empty">Load a market first.</div></td></tr></tbody>
+        </table></div>
+      </div>
+      <div>
+        <h3>NO bids — implies YES asks</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th class="num">Price</th><th class="num">Contracts</th><th class="num">Notional</th><th>Side</th></tr></thead>
+          <tbody id="no-book"><tr><td colspan="4"><div class="empty">Load a market first.</div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+    <p class="small muted" id="book-src" style="margin:10px 0 0"></p>
+  </div>
+</main>
+<script type="module" src="../assets/js/category.js"></script>
+</body>
+</html>

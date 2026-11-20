@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flagged for review — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Flagged for review</h1>
+    <p>
+      Irregularities found while verifying this repository and the Kalshi demo API, plus everything that
+      could <em>not</em> be confirmed. Nothing on this page blocks the site from working; each item is here
+      so it can be reviewed and accepted, fixed, or rejected deliberately.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <h3>How to read this page</h3>
+    <p style="margin:0 0 6px">
+      Every item has an ID, the evidence that produced it, and an official source link. Items marked
+      <span class="tag warn">open</span> are unresolved; <span class="tag yes">mitigated</span> means the site
+      handles the problem explicitly rather than hiding it.
+    </p>
+    <p style="margin:0" class="small">Two items (F6, F7) describe defects in the previously published version
+      of this site, found by re-checking it line by line. They are recorded here rather than deleted, because
+      the record of a fix is itself evidence.</p>
+  </div>
+
+  <div class="grid cols-4" id="counts" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>1 · Defects found in the previously published site</h2>
+    <p class="sub">Found by reading the merged <code>docs/</code> implementation against the official
+      documentation, then reproducing each rule in a deterministic test.</p>
+
+    <div class="irregularity" id="F6">
+      <h3>F6 — Authenticated requests could never have succeeded <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the earlier <code>docs/assets/app.js</code> made two mistakes in
+        request signing:</p>
+      <ol>
+        <li>It imported the <em>private</em> key with <code>crypto.subtle.importKey("spki", …)</code>.
+          A private key PEM is PKCS#8, not SPKI — the import rejects it.</li>
+        <li>It signed <code>timestamp + METHOD + "/portfolio/balance"</code>. Kalshi requires the path to
+          include the API prefix: <code>/trade-api/v2/portfolio/balance</code>. The query string must be
+          stripped, but the prefix must stay.</li>
+      </ol>
+      <p><strong>Evidence:</strong> the deterministic self-test <code>tools/verify/auth-sign-test.mjs</code>
+        asserts both rules. It passes 6/6: the SPKI import of a private key fails, and a signature over the
+        shortened path does not verify.</p>
+      <p><strong>Impact:</strong> balance, positions, fills and every order would have returned HTTP 401 on
+        the published site, so portfolio tracking and trade execution could not work.</p>
+      <p><strong>Status here:</strong> fixed in <code>site/assets/js/kalshi.js</code> — the key is imported as
+        PKCS#8 (or PKCS#1, wrapped appropriately), and the signed path is
+        <code>/trade-api/v2</code> + path with the query stripped.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated requests ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="F7">
+      <h3>F7 — The order form mislabelled side semantics <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the earlier order form offered
+        <code>&lt;option value="ask"&gt;Sell Yes (ask)&lt;/option&gt;</code>. In the API's book vocabulary
+        <code>ask ≡ no</code>: sending <code>side: "ask"</code> buys a <strong>NO</strong> position, it does
+        not sell a YES position.</p>
+      <p><strong>Evidence:</strong> the documented direction table states
+        <em>buy&nbsp;no → outcome_side no → book_side ask</em>.</p>
+      <p><strong>Impact:</strong> a user who selected "Sell Yes" would have opened the opposite position.</p>
+      <p><strong>Status here:</strong> the new form asks directly whether the user is buying
+        <em>YES</em> or <em>NO</em> and maps it to <code>bid</code>/<code>ask</code> internally.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F8">
+      <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
+        keywords against <code>GET /series</code>. That list returns 16,643 series in one page, so a
+        keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
+        "golf" matched <code>KXTRUMPGOLFD</code> (a Politics market), while no <code>category</code> value
+        covers gasoline at all.</p>
+      <p><strong>Evidence:</strong> <code>reports/verify-facts-raw.md</code> §5 lists the false positives;
+        <code>reports/verify-facts-v3.md</code> §G shows zero gas-price events in the open-event scan.</p>
+      <p><strong>Status here:</strong> topics are matched on Kalshi's own <code>category</code> plus
+        explicitly-scoped series/title patterns, and the gas page renders an explicit empty state with the
+        reason instead of inventing rows.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get events ↗</a>
+        <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Unverified — could not be confirmed, left blank</h2>
+
+    <div class="irregularity" id="F1">
+      <h3>F1 — No live order was executed <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> that a demo order placed through this site's form is accepted
+        end to end, and that a fill then appears in <code>GET /portfolio/fills</code>.</p>
+      <p><strong>Why:</strong> the demo account requires an API key pair that only the account owner holds.
+        No credential was available to this build, and none may be committed to the repository.</p>
+      <p><strong>What was verified instead:</strong> the route exists (unauthenticated probe returns
+        HTTP 401, not 404), the required request fields match the documented schema, and the deprecated
+        route returns HTTP 410 — all captured in <code>reports/verify-facts-v3.md</code>.</p>
+      <p><strong>How to close it:</strong> load a demo key on the <a href="portfolio.html">Portfolio</a> page,
+        place a 1-contract order at a price inside the market's grid, then press <em>Reload fills</em>. If the
+        fill appears, this item can be marked verified.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create order V2 ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get fills ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F2">
+      <h3>F2 — Realised P&amp;L and win/loss statistics are blank <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> per-trade profit and loss, and any claim about which strategy
+        works.</p>
+      <p><strong>Why:</strong> realised P&amp;L only exists once a position is closed or a market settles.
+        With no fills on the account, any number would be fabricated.</p>
+      <p><strong>Status here:</strong> the <a href="strategies.html">Strategies</a> page lists six strategy
+        rules marked <span class="tag warn">untested</span>, each naming the fills required to evaluate it.
+        No performance claim is made anywhere on the site.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">Get positions ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F3">
+      <h3>F3 — Unauthenticated request budget is not published <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> the exact numeric rate limit for public, unauthenticated calls.</p>
+      <p><strong>Why:</strong> Kalshi documents that public requests are limited separately and tells clients
+        to back off on 429, but does not publish a number.</p>
+      <p><strong>Status here:</strong> the dashboard polls a small number of endpoints and handles 429 by
+        surfacing the error rather than retrying in a loop.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F4">
+      <h3>F4 — The demo environment has no open gas-price markets <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> whether any gas-price market is currently tradable on the demo
+        exchange.</p>
+      <p><strong>Why:</strong> scanning 1,000 open events on 2026-11-20 returned zero gas-price events.
+        Gasoline series exist (<code>KXAAAGAS*</code>, <code>KXGAS</code>) but none were open in that scan.</p>
+      <p><strong>Status here:</strong> the gas page shows an explicit empty state naming the scan size,
+        rather than a blank table that looks like a loading bug.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence §G ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F5">
+      <h3>F5 — Series pagination behaviour was not fully exercised <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> whether <code>GET /series</code> can page past its first
+        16,643-row response.</p>
+      <p><strong>Why:</strong> the first response contained the full catalogue and no cursor, so there was
+        nothing to page through. Whether that holds for every tier is unconfirmed.</p>
+      <p><strong>Status here:</strong> the site no longer depends on the series list for topic discovery,
+        so this cannot silently break the dashboard.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get series list ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F9">
+      <h3>F9 — Seconds-resolution price history does not exist <span class="tag yes">mitigated</span></h3>
+      <p><strong>The limitation:</strong> the brief asked for a chart whose window can be seconds, minutes or
+        hours. Kalshi's candle endpoint accepts only 1, 60 or 1440 <em>minutes</em>, and REST quotes are
+        cached for a few seconds, so there is no seconds-resolution history to request.</p>
+      <p><strong>Resolution:</strong> windows of 5 minutes and shorter are drawn from samples this page takes
+        itself every 2 seconds, each stamped with the time it was read, and labelled
+        "Accumulated live samples" so it is never mistaken for exchange history. Longer windows use real
+        candlesticks.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlestick intervals ↗</a>
+        — confirmed by a live <code>period_interval=5</code> request returning HTTP 400.</p>
+    </div>
+
+    <div class="irregularity" id="F10">
+      <h3>F10 — WebSocket streaming is documented but not wired in <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> that the browser can open an authenticated WebSocket to the demo
+        environment and receive <code>ticker</code> or <code>orderbook_delta</code> messages.</p>
+      <p><strong>Why:</strong> the WebSocket handshake requires signed headers, and the connect signature
+        covers <code>timestamp + "GET" + "/trade-api/ws/v2"</code>. Sending custom headers from a browser
+        <code>WebSocket</code> is not possible, so a browser-only stream would need a workaround this build
+        did not validate.</p>
+      <p><strong>Status here:</strong> polling is used instead, and each chart states which source produced
+        its points. Streaming is listed on the questions page with what would be needed to confirm it.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Repository and coordination irregularities</h2>
+
+    <div class="irregularity" id="F11">
+      <h3>F11 — Five agent sessions edited this repository concurrently <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> branches <code>arena/4b7b4e2f</code>, <code>arena/64d89c6c</code>,
+        <code>arena/210dfcb8</code>, <code>arena/b7dfc4d9</code>, <code>arena/ae228af4</code>,
+        <code>arena/c563cc35</code> and <code>arena/e000cb69</code> all exist, and <code>main</code> advanced
+        from <code>6081bb7</code> to a merge commit during this session. Several wrote their own
+        <code>COORDINATION.md</code> and their own Pages workflow.</p>
+      <p><strong>Risk:</strong> the strongest coordination rule in the brief is that shared outputs — the
+        table data, the index and the navigation — are changed only by a final integration session.
+        Independent sites landing on <code>main</code> at the same time risks exactly the overwrite that rule
+        exists to prevent.</p>
+      <p><strong>Status here:</strong> this session kept its work in its own tree (<code>site/</code>) and
+        logged the overlap in <code>COORDINATION.md</code> rather than editing other sessions' files.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/branches" target="_blank" rel="noopener noreferrer">branches ↗</a>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/commits/main" target="_blank" rel="noopener noreferrer">main history ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F12">
+      <h3>F12 — Main publishes from the repository root, not from a site folder <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> GitHub Pages is configured with <code>build_type: legacy</code> and
+        source <code>main</code> at <code>/</code>. Files under <code>docs/</code> are therefore only
+        reachable at <code>/docs/…</code>, not at the site root.</p>
+      <p><strong>Status here:</strong> this session's site is built at the repository root so it needs no
+        Pages configuration change, which also avoids racing another session over the same setting.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">Pages publishing source ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What is <em>not</em> flagged</h2>
+    <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
+    <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
+      <li>The demo REST and WebSocket URLs in the brief match the official documentation.</li>
+      <li>Public market data really is readable without credentials, including order books and candles.</li>
+      <li>CORS genuinely permits this site's GitHub Pages origin — verified against nine endpoints.</li>
+      <li>Settled markets really do report <code>result</code> as <code>yes</code> or <code>no</code>; a
+        200-market sample contained 82 yes and 118 no, none blank.</li>
+      <li>Each market publishes its own price grid, so snapping order prices to it is correct rather than
+        assuming a one-cent tick.</li>
+    </ul>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, $, int } from "./assets/js/ui.js";
+mountChrome({ page: "flagged.html", title: "Flagged for review" });
+
+const cards = [...document.querySelectorAll(".irregularity")];
+const open = cards.filter(c => c.querySelector(".tag.warn")).length;
+const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
+const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
+const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10")].length;
+
+$("#counts").innerHTML = [
+  { k: "Items on this page", v: int(cards.length), m: "each with evidence" },
+  { k: "Open", v: int(open), m: "needs a decision" },
+  { k: "Mitigated", v: int(mitigated), m: "handled explicitly by the site" },
+  { k: "Defects in prior site", v: int(defects), m: "found by line-by-line review" }
+].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
+</script>
+</body>
+</html>

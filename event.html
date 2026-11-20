@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <p class="small muted" style="margin:0 0 6px"><a href="index.html">Overview</a> / Event</p>
+  <div class="page-head">
+    <h1 id="ev-title">Loading event…</h1>
+    <p class="small muted" id="ev-meta"></p>
+  </div>
+
+  <div class="callout info" id="ev-loading"><span class="spinner"></span> Reading <code>GET /events/{event_ticker}</code> from the demo API…</div>
+  <div id="ev-error"></div>
+
+  <div class="grid cols-4" id="ev-stats" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Markets in this event</h2>
+    <p class="sub">One row per market. Prices, sizes and results are copied from the API; nothing is derived
+      except <em>money traded</em>, which is labelled with its formula.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th><th>Status</th><th class="num">Last</th><th class="num">YES bid</th>
+          <th class="num">YES ask</th><th class="num">Open interest</th><th class="num">Volume</th>
+          <th class="num">Money traded</th><th>Result</th><th></th>
+        </tr></thead>
+        <tbody id="ev-markets"><tr><td colspan="10"><div class="empty">Loading…</div></td></tr></tbody>
+      </table>
+      <div class="table-note">
+        Source: <a id="ev-source" href="#" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a>
+        · Field reference: <a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">events API ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Resolution detail</h2>
+    <p class="sub">How Kalshi reported the outcome. A market is resolved when <code>result</code> is
+      <code>yes</code> or <code>no</code>; <code>settlement_value_dollars</code> is the exchange's own settled
+      value in dollars.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Market</th><th>Result</th><th class="num">Settlement value</th><th class="num">Expiration value</th><th>Close time</th><th>Rules (primary)</th></tr></thead>
+        <tbody id="ev-resolution"><tr><td colspan="6"><div class="empty">Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Track this event to resolution</h2>
+    <p class="sub">Tracked markets are polled from this browser and their final yes/no outcome is recorded on
+      the <a href="resolved.html">Resolved</a> page. Your watch list never leaves this browser.</p>
+    <div class="toolbar">
+      <button id="track-all">Track all markets in this event</button>
+      <span id="track-status" class="pill idle">idle</span>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { SOURCES } from "./assets/js/config.js";
+import { api, num, classifyEvent, Watchlist } from "./assets/js/market.js";
+import { TOPICS } from "./assets/js/config.js";
+
+mountChrome({ page: "event.html", title: "Event" });
+
+const params = new URLSearchParams(location.search);
+const eventTicker = params.get("ticker");
+
+if (!eventTicker) {
+  $("#ev-error").innerHTML = `<div class="callout bad"><h3>No event selected</h3>
+    <p style="margin:0">Open this page from the <a href="index.html">overview board</a> or add
+    <code>?ticker=EVENT_TICKER</code> to the URL.</p></div>`;
+  $("#ev-loading").remove();
+} else {
+  load();
+}
+
+async function load() {
+  $("#ev-source").href = `https://external-api.demo.kalshi.co/trade-api/v2/events/${encodeURIComponent(eventTicker)}`;
+  try {
+    const j = await api.get(`/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`);
+    const ev = j.event || j;
+    const markets = ev.markets || [];
+    $("#ev-loading").remove();
+    document.title = `${ev.title || eventTicker} — KalshiDash2`;
+    $("#ev-title").textContent = ev.title || eventTicker;
+    const topicKey = classifyEvent(ev);
+    const topic = TOPICS.find(t => t.key === topicKey);
+    $("#ev-meta").innerHTML = `
+      <code class="mono">${esc(ev.event_ticker)}</code> ·
+      category <span class="tag">${esc(ev.category || "not returned")}</span> ·
+      series <code class="mono">${esc(ev.series_ticker || "—")}</code> ·
+      ${topic ? `topic <a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : "outside the five tracked topics"}
+      ${src(SOURCES.events, "events API")}`;
+
+    let volume = 0, oi = 0, moneyTraded = 0, noPrice = 0;
+    for (const m of markets) {
+      volume += num(m.volume_fp) || 0;
+      oi += num(m.open_interest_fp) || 0;
+      const px = num(m.last_price_dollars);
+      const vol = num(m.volume_fp);
+      if (px === null || vol === null) noPrice++; else moneyTraded += px * vol;
+    }
+    const resolved = markets.filter(m => ["yes", "no"].includes((m.result || "").toLowerCase())).length;
+    $("#ev-stats").innerHTML = [
+      { k: "Markets", v: int(markets.length), m: "in this event" },
+      { k: "Money traded", v: money(moneyTraded), m: noPrice ? `${noPrice} market(s) without a price` : "Σ volume × last price" },
+      { k: "Open interest", v: int(oi), m: "contracts" },
+      { k: "Resolved", v: `${int(resolved)} / ${int(markets.length)}`, m: "exchange reported yes/no" }
+    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+    $("#ev-markets").innerHTML = markets.length ? markets.map(m => {
+      const px = num(m.last_price_dollars), vol = num(m.volume_fp);
+      const mt = px === null || vol === null ? null : px * vol;
+      const r = (m.result || "").toLowerCase();
+      const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="muted small">open</span>`;
+      return `<tr>
+        <td><strong>${esc(m.yes_sub_title || m.title || m.ticker)}</strong><div class="mono muted small">${esc(m.ticker)}</div></td>
+        <td><span class="pill idle">${esc(m.status || "")}</span></td>
+        <td class="num">${money4(m.last_price_dollars)}</td>
+        <td class="num">${money4(m.yes_bid_dollars)}</td>
+        <td class="num">${money4(m.yes_ask_dollars)}</td>
+        <td class="num">${int(m.open_interest_fp)}</td>
+        <td class="num">${int(m.volume_fp)}</td>
+        <td class="num">${money(mt)}</td>
+        <td>${tag}</td>
+        <td><button class="secondary tiny" data-watch="${esc(m.ticker)}">Track</button></td>
+      </tr>`;
+    }).join("") : emptyRow(10, "This event returned no markets.");
+
+    $("#ev-resolution").innerHTML = markets.length ? markets.map(m => {
+      const r = (m.result || "").toLowerCase();
+      const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="unv">not resolved</span>`;
+      return `<tr>
+        <td class="mono small">${esc(m.ticker)}</td>
+        <td>${tag}</td>
+        <td class="num">${money4(m.settlement_value_dollars)}</td>
+        <td class="num">${m.expiration_value === "" || m.expiration_value === undefined ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
+        <td class="nowrap small">${dt(m.close_time)}</td>
+        <td class="small">${esc(m.rules_primary || "")}</td>
+      </tr>`;
+    }).join("") : emptyRow(6, "No markets.");
+
+    $("#track-all").onclick = () => {
+      let n = 0;
+      for (const m of markets) {
+        if (!Watchlist.has(m.ticker)) { Watchlist.add({ ...m, _event_ticker: ev.event_ticker }, topicKey, ev.title); n++; }
+      }
+      pill($("#track-status"), "live", `${n} market(s) added to your watch list`);
+    };
+    $("#ev-markets").addEventListener("click", e => {
+      const b = e.target.closest("[data-watch]");
+      if (!b) return;
+      const m = markets.find(x => x.ticker === b.dataset.watch);
+      if (m) { Watchlist.add({ ...m, _event_ticker: ev.event_ticker }, topicKey, ev.title); b.textContent = "Tracked ✓"; }
+    });
+  } catch (e) {
+    $("#ev-loading").remove();
+    $("#ev-error").innerHTML = `<div class="callout bad"><h3>Could not load this event</h3>
+      <p style="margin:0">${esc(e.message)}${e.status === 404 ? " — the demo API does not know this event ticker." : ""}</p></div>`;
+  }
+}
+</script>
+</body>
+</html>

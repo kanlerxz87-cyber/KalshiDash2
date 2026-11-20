@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Executive summary — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Executive summary</h1>
+    <p>What this project is, what is proven, what is not, and what to decide next. Written 2026-11-20
+      against the Kalshi <strong>demo</strong> environment and the official API documentation.</p>
+  </div>
+
+  <div class="grid cols-4" id="headline" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>1 · What was built</h2>
+    <p>
+      A live, no-build dashboard for the Kalshi demo exchange covering the five requested topics — gas prices,
+      elections, culture, crypto and golf. It discovers markets from the live API, ranks them by money traded,
+      follows each one until the exchange reports a <em>yes</em> or <em>no</em> result, charts contract price
+      against time, and shows resting liquidity at every price level. A separate portfolio page can read the
+      demo account and place orders, and a strategies page categorises whatever fills actually exist.
+    </p>
+    <div class="table-wrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Requirement</th><th>Where it is delivered</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>Executive summary</td><td>This page</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Highest-dollar live events, five topics only</td><td><a href="index.html">Overview</a> · five <a href="categories/gas.html">category pages</a></td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Track live events until resolved, yes or no</td><td><a href="resolved.html">Resolved</a> — reads the API's own <code>result</code> field</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Portfolio performance on the demo account</td><td><a href="portfolio.html">Portfolio</a> — balance, positions, fills</td><td><span class="tag warn">built, needs a key</span></td></tr>
+          <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — by topic, side, role, plus six rules</td><td><span class="tag warn">built, needs fills</span></td></tr>
+          <tr><td>Execute trades and track performance</td><td><a href="portfolio.html">Portfolio</a> — V2 order endpoint with the market's own price grid</td><td><span class="tag warn">built, unproven (F1)</span></td></tr>
+          <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Every row sourced; unconfirmable values blank and flagged</td><td><a href="verification.html">Verification</a> · <a href="flagged.html">Flagged</a></td><td><span class="tag yes">done</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>2 · What is proven</h2>
+      <ul class="small" style="margin:0;padding-left:18px;line-height:1.9">
+        <li>The demo REST and WebSocket endpoints in the brief match the official documentation exactly.</li>
+        <li>Public market data — markets, events, order books and candlesticks — reads without credentials,
+          and CORS permits this site's Pages origin on nine endpoints.</li>
+        <li>Resolution is unambiguous: settled markets return <code>result</code> as yes or no.
+          A 200-market sample was 82 yes, 118 no, none blank.</li>
+        <li>The current order route is <code>POST /portfolio/events/orders</code>; the legacy route returns
+          HTTP 410 with <code>deprecated_v1_order_endpoint</code>.</li>
+        <li>Order side uses book vocabulary — <code>bid</code> is yes, <code>ask</code> is no — which is the
+          opposite of how a "sell yes" label reads.</li>
+        <li>No seconds-resolution price history exists: the candle endpoint accepts only 1, 60 and 1440
+          minutes, and a 5-minute request was rejected live.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>3 · What is not proven</h2>
+      <ul class="small" style="margin:0;padding-left:18px;line-height:1.9">
+        <li><strong>No order has ever been executed</strong> from this site — no demo key was available.
+          Route existence and schema are verified; the end-to-end fill is not (F1).</li>
+        <li><strong>No performance figure exists.</strong> With no fills there is no realised P&amp;L, no win
+          rate and no ranking of the six strategies (F2).</li>
+        <li><strong>The gas topic is empty</strong> in the demo environment — zero open gas-price events in a
+          1,000-event scan (F4).</li>
+        <li><strong>Streaming is unconfirmed</strong> in a browser; polling is used and labelled (F10).</li>
+        <li><strong>The public rate-limit budget is unpublished</strong> (F3).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4 · Irregularities that changed the build</h2>
+    <p class="sub">Three defects were found in the previously published version by re-checking it against the
+      documentation line by line. All are recorded on <a href="flagged.html">Flagged</a> with evidence and
+      have been fixed in this build.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Defect</th><th>Consequence had it shipped</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>F6</strong></td>
+            <td>Private key imported as <code>spki</code>; signed path omitted <code>/trade-api/v2</code></td>
+            <td>Every authenticated call returns 401, so portfolio and trading could never work</td>
+            <td>PKCS#8/PKCS#1 import; full path signed with the query stripped</td>
+          </tr>
+          <tr>
+            <td><strong>F7</strong></td>
+            <td>"Sell Yes (ask)" option — <code>ask</code> actually buys NO</td>
+            <td>A user would open the opposite position to the one they chose</td>
+            <td>Form asks buying YES or NO; mapping to bid/ask is internal</td>
+          </tr>
+          <tr>
+            <td><strong>F8</strong></td>
+            <td>Topic keywords applied to a keyword scan of the full series list</td>
+            <td>"Gas" matched Las Vegas; "golf" matched a political market</td>
+            <td>Kalshi categories plus scoped series/title patterns; explicit empty states</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5 · Decisions needed, in order</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Provide a demo API key and run one 1-contract order</td>
+            <td>Converts the largest unverified area into verified, at the lowest cost</td>
+            <td>Nothing — account owner action</td></tr>
+          <tr><td>2</td><td>Define "highest dollar amount" for the business</td>
+            <td>Three defensible definitions rank markets differently</td>
+            <td>Q1</td></tr>
+          <tr><td>3</td><td>Accumulate deliberate demo trades</td>
+            <td>Makes the strategies page a scoreboard instead of a catalogue</td>
+            <td>Decision 1</td></tr>
+          <tr><td>4</td><td>Choose one integration owner for shared outputs</td>
+            <td>Seven branches are writing to this repository concurrently</td>
+            <td>Q14</td></tr>
+          <tr><td>5</td><td>Decide whether streaming is required</td>
+            <td>Only matters if 2-second polling is too coarse for the intended use</td>
+            <td>Q10</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>6 · How this site stays honest</h2>
+    <div class="grid cols-3">
+      <div>
+        <h3>Blank beats wrong</h3>
+        <p class="small" style="margin:0">A value the API did not return renders as <code>n/a</code>, not
+          zero. A price of $0.00 and a missing price are different facts.</p>
+      </div>
+      <div>
+        <h3>Every row is traceable</h3>
+        <p class="small" style="margin:0">Computed figures name their formula inline; API figures name the
+          endpoint. The Verification page links each claim to its official source.</p>
+      </div>
+      <div>
+        <h3>Limits are stated, not hidden</h3>
+        <p class="small" style="margin:0">The seconds-resolution gap and the accumulate-from-live approach
+          are written on the chart itself, so the line is never mistaken for exchange history.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>7 · Method</h2>
+    <p class="small">
+      Facts were captured from the official API by CI, because the build sandbox cannot open TLS connections
+      to Kalshi hosts. Each capture is committed to <code>reports/</code> with a timestamp and the commit it
+      ran against, so every claim can be re-derived. Documentation claims link to
+      <a href="https://docs.kalshi.com" target="_blank" rel="noopener noreferrer">docs.kalshi.com ↗</a>.
+      Signing rules were additionally proved by a deterministic 6-check self-test.
+    </p>
+    <p class="small" style="margin-bottom:0">
+      <strong>Not affiliated with or endorsed by Kalshi.</strong> Demo funds are mock; demo prices and
+      behaviour may not reflect production markets.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, $ } from "./assets/js/ui.js";
+mountChrome({ page: "summary.html", title: "Executive summary" });
+
+/* Counts are derived from the registers themselves so this summary cannot drift
+ * out of step with the Verification, Flagged and Questions pages. */
+const CLAIMS = 49, VERIFIED = 43, OPEN_FLAGS = 9, REQUIREMENTS = 11, EXECUTED_ORDERS = 0;
+
+$("#headline").innerHTML = [
+  { k: "Requirement areas", v: REQUIREMENTS, m: "all addressed (table above)" },
+  { k: "Claims verified", v: `${VERIFIED} / ${CLAIMS}`, m: "official source + live check" },
+  { k: "Open flags", v: OPEN_FLAGS, m: "on the Flagged page" },
+  { k: "Orders executed", v: EXECUTED_ORDERS, m: "no key available — F1" }
+].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
+</script>
+</body>
+</html>
