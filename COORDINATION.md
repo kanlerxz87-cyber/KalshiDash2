@@ -622,3 +622,44 @@ final integration**.
 - PR: (created below) — "integration: verify canonical alerting engine; close R1 (CI link check covers root site)".
 - Merge: (recorded after merge).
 - GitHub Pages deploy: (recorded after merge).
+## Session `2345e0dd` — taxonomy fix, verification, final integration (branch `arena/2345e0dd-kalshidash2`, 2026-11-20)
+
+Base: `origin/main` at `d4a118f`, re-synced repeatedly as parallel sessions landed PRs #19–#24.
+
+**Takeovers (60-minute stale-claim rule):** tasks **11, 12** (`210dfcb8`), **13, 14, 15**, **T6**
+(`ae228af4`), **B6** (`b7dfc4d9`, PR #14 merged by this session). Task 11 was superseded by the
+audits already recorded (`64d89c6c` G1–G4/V1, `b7dfc4d9` B2, `d379bb35` V1); task 12 exists
+(`scripts/collect.py`, `collect.yml`) and its gap was folded into C4.
+
+**Conflict log (3 board conflicts, all union-resolved, nothing discarded):**
+1. Claim commit vs `4208a2dd`'s section (PR #19) — kept both; C1/C2 rows marked absorbed.
+2. Claim amend vs `5c00f4dd`'s PR #20 record — kept both.
+3. This merge vs `5c00f4dd`'s final publication record — kept both (this section rewritten below).
+
+**Feature-duplicate resolution (merge of `origin/main` at `7143906`):** this session had built a
+parallel chart-jump implementation (`assets/js/jumps.js`, `tests/jumps.test.mjs`, `lineChart`
+markers, a jump log in `category.js`, `#jump-log` divs in the five category templates). Session
+`869f5339`'s PR #23 had meanwhile merged an equivalent canonical implementation (`swingOf` /
+`detectJumps` in `assets/js/market.js`, `lineChart` markers in `assets/js/ui.js`, jump list in
+`assets/js/category.js` with settlement-source links), and `5c00f4dd` recorded the alerting engine
+as canonical and not to be overwritten. Per the coordination rules the duplicate was **dropped**:
+`assets/js/category.js`, `assets/js/ui.js`, `index.html`, `summary.html` and the five
+`categories/*.html` templates now match `origin/main` exactly; `assets/js/jumps.js` and
+`tests/jumps.test.mjs` were removed from the branch. Nothing of any other session was altered.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities |
+|---|------|--------|-------|-----------|------------------------|----------------|
+| C1 | Live alerting feeds (two scrolling chats, ≥$0.10 swings) | **absorbed** — `4208a2dd` task 18 + `869f5339` S1 | `4208a2dd`/`869f5339` | — | audited independently by `2345e0dd` (18/18 engine tests pass; live API fields re-verified below) | — |
+| C2 | Automated simulated strategies + P&L / strategy tester | **absorbed** — `4208a2dd` task 19 + `869f5339` S2 (`simulator.html`) | `4208a2dd`/`869f5339` | — | — | — |
+| C3 | Chart jump markers + jump context links | **absorbed** — `869f5339` S3 (merged PR #23); this session's parallel version dropped in the merge (see above) | `869f5339` | — | — | — |
+| C4 | **Taxonomy soundness fix** — the only surviving original contribution of this session: (a) gas series pattern `/GAS/i` matched "…VEGAS" and "…NATGAS" series (G1 residual) → restricted to `KXAAAGAS*` + `excludePatterns` (crude/WTI/Brent/natgas/diesel/Vegas/barrels/oil); (b) the live demo vocabulary contains a literal `Culture` category (`data/probe/api_surface.json`, 4 series) that the culture topic did not match (G2 root cause) → added; (c) `classifyEvent` honours per-topic `excludePatterns` | done | `2345e0dd` | `assets/js/config.js` (TOPICS hunks only), `assets/js/market.js` (`classifyEvent` hunks only) | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list); live demo vocabulary `data/probe/api_surface.json`; 15/15 classification cases pass (`classifyEvent`: elections/natural-gas→null/vegas→null/golf×2/AAA gas×2/WTI→null/diesel→null/culture×3/crypto/out-of-scope) | Fixes G1 + G2 in the published root site |
+| C5 | Verification + final integration: independent line-by-line audit of the canonical alerting engine against official docs + live demo API probes (batch `tickers` filter, `settlement_sources[]`, candlestick schema, `notional_value_dollars` = 1.0000); run all test suites; README contradiction fix (B6 scope, requested by `5c00f4dd`); G1/G2 flagged-page update; PR → `main`; Pages deploy confirmation | in progress | `2345e0dd` | `README.md`, `flagged.html`, `verification.html`, `COORDINATION.md` | `gh` CLI, Pages API, `tools/check_site_links.py .`, `node --test` | Co-integration with `d379bb35` (PR #24 closes R1) — see final record |
+
+**Live demo API probes re-verified by this session (2026-11-20 ~13:37–13:45 UTC, fetched directly):**
+
+| # | Probe | Observed | Source |
+|---|-------|----------|--------|
+| P1 | `GET /markets?status=open&limit=2` | all fields the alert engine uses present, incl. `previous_price_dollars`, `no_bid_dollars`, `no_ask_dollars`, `yes_bid_size_fp`, `yes_ask_size_fp`, `price_ranges`, `notional_value_dollars: "1.0000"` | https://external-api.demo.kalshi.co/trade-api/v2/markets?status=open&limit=2 |
+| P2 | `GET /markets?tickers=…` batch filter | returns the requested market (1/1) | https://external-api.demo.kalshi.co/trade-api/v2/markets?tickers=KXBTCD-26NOV2017-T64999.99&limit=1000 |
+| P3 | `GET /events/{event_ticker}` | `settlement_sources: [{name: "CF Benchmarks", url: https://www.cfbenchmarks.com/…}]`, `series_ticker`, `category: "Crypto"` | https://external-api.demo.kalshi.co/trade-api/v2/events/KXBTCD-26NOV2017 |
+| P4 | candlesticks route `/series/{series}/markets/{ticker}/candlesticks` | shape matches `fetchCandles` exactly (`end_period_ts`, `price.*_dollars`, `yes_bid`/`yes_ask` OHLC, `volume_fp`, `open_interest_fp`) | https://external-api.demo.kalshi.co/trade-api/v2/series/KXBTCD/markets/KXBTCD-26NOV2017-T64999.99/candlesticks?start_ts=1795170000&end_ts=1795180000&period_interval=60 |
