@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verification — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html" class="active">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Verification — Line by Line</h1>
+<p class="muted">Every claim below was checked against an official source on 2026-11-20. Live market values are <b>not</b> listed here because they change constantly — they are fetched live in the browser and never transcribed. Anything unconfirmable is blank and marked <span class="badge warn">unverified</span>.</p>
+<div class="card"><table><thead><tr><th>Claim</th><th>Value</th><th>Official source</th><th>Status</th></tr></thead><tbody>
+<tr><td>Recommended demo REST base URL</td><td><code>https://external-api.demo.kalshi.co/trade-api/v2</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Also-supported demo REST host</td><td><code>https://demo-api.kalshi.co/trade-api/v2</code></td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a> (host list)</td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Demo WebSocket URL</td><td><code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code></td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a> (host list)</td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Public market data needs no auth (<code>GET /markets</code>)</td><td>Confirmed in quick-start code</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Order endpoint</td><td><code>POST /portfolio/events/orders</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Auth headers</td><td><code>KALSHI-ACCESS-KEY / -SIGNATURE / -TIMESTAMP</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com — authenticated requests</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Candlestick endpoint &amp; periods (1, 60, 1440 min)</td><td><code>GET /series/{s}/markets/{t}/candlesticks</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks">docs.kalshi.com — API reference</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Orderbook endpoint</td><td><code>GET /markets/{ticker}/orderbook</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-orderbook">docs.kalshi.com — API reference</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Demo uses mock funds; behavior may differ from production</td><td>Stated by Kalshi docs</td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a></td><td><span class="badge ok">verified</span></td></tr>
+<tr><td>Browser CORS for demo API from GitHub Pages</td><td></td><td></td><td><span class="badge warn">unverified</span> — see Flagged for Review</td></tr>
+<tr><td>Series tickers for gas/elections/culture/crypto/golf</td><td></td><td></td><td><span class="badge warn">unverified</span> — discovered live from <code>/series</code>, never hardcoded</td></tr>
+<tr><td>Any specific market price, volume, or balance</td><td></td><td></td><td><span class="badge warn">unverified</span> — live-only, never transcribed</td></tr>
+</tbody></table></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer></body></html>

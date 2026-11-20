@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flagged for Review — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html" class="active">Flagged for Review</a></nav></header>
+<main>
+<h1>🚩 Flagged for Review</h1>
+<p class="muted">Irregularities and unverified items. These do <b>not</b> block the site — review them here and request changes. Nothing on this page was inferred or filled in.</p>
+<div class="card"><table><thead><tr><th>#</th><th>Item</th><th>Why it's flagged</th><th>Source / evidence</th><th>Requested action</th></tr></thead><tbody>
+<tr><td>F1</td><td>Browser CORS unverified</td><td>The build sandbox cannot reach kalshi.co (outbound allowlist), so live browser <code>fetch</code> to the demo API could not be tested from here. Official examples are server-side Python.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com quick-start</a></td><td>Open the live dashboard; if it errors, approve suggestion S2 (proxy).</td></tr>
+<tr><td>F2</td><td>No demo API keys in repo</td><td>Trading/portfolio cannot be demonstrated without your own demo keys. No keys were invented or stored.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com auth guide</a></td><td>Add keys on the Portfolio page (browser-only) when ready.</td></tr>
+<tr><td>F3</td><td>Ed25519 keys unsupported in-browser</td><td>WebCrypto cannot sign Ed25519; only RSA-PSS is implemented. Newer Kalshi keys may be Ed25519.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com auth guide</a></td><td>Confirm key type (Q2); approve S3 if needed.</td></tr>
+<tr><td>F4</td><td>Topic matching is keyword heuristic</td><td>Series tickers for the five topics were not hardcoded (would be guessing). Keyword matches may misclassify.</td><td>Live <code>/series</code> data, shown on dashboard</td><td>Review matched series; refine keywords (S7).</td></tr>
+<tr><td>F5</td><td>No historical price storage</td><td>Charts reset on reload; only candlesticks + in-session polling exist.</td><td>—</td><td>Approve S2 for persistent snapshots.</td></tr>
+<tr><td>F6</td><td>Realized P&amp;L per strategy not computed</td><td>Requires joining fills to settlements; not yet implemented.</td><td>—</td><td>Approve S4 after history exists.</td></tr>
+</tbody></table></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer></body></html>
