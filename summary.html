@@ -105,26 +105,29 @@
       documentation line by line. All are recorded on <a href="flagged.html">Flagged</a> with evidence and
       have been fixed in this build.</p>
     <div class="table-wrap">
-      <table>
-        <thead><tr><th>ID</th><th>Defect</th><th>Consequence had it shipped</th><th>Fix</th></tr></thead>
+      <table id="defect-matrix">
+        <thead><tr><th>ID</th><th>Defect</th><th>Consequence had it shipped</th><th>Fix</th><th>Official basis / evidence</th></tr></thead>
         <tbody>
           <tr>
             <td><strong>F6</strong></td>
             <td>Private key imported as <code>spki</code>; signed path omitted <code>/trade-api/v2</code></td>
             <td>Every authenticated call returns 401, so portfolio and trading could never work</td>
             <td>PKCS#8/PKCS#1 import; full path signed with the query stripped</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API Keys ↗</a> · <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated Requests ↗</a>; project audit and self-test are listed under <a href="flagged.html#F6">Flagged F6</a>.</td>
           </tr>
           <tr>
             <td><strong>F7</strong></td>
             <td>"Sell Yes (ask)" option — <code>ask</code> actually buys NO</td>
             <td>A user would open the opposite position to the one they chose</td>
             <td>Form asks buying YES or NO; mapping to bid/ask is internal</td>
+            <td><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order Direction ↗</a>; project audit: <a href="flagged.html#F7">Flagged F7</a>.</td>
           </tr>
           <tr>
             <td><strong>F8</strong></td>
             <td>Topic keywords applied to a keyword scan of the full series list</td>
             <td>"Gas" matched Las Vegas; "golf" matched a political market</td>
             <td>Kalshi categories plus scoped series/title patterns; explicit empty states</td>
+            <td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>; observed classification cases: <a href="flagged.html#F8">Flagged F8</a>.</td>
           </tr>
         </tbody>
       </table>
@@ -134,24 +137,29 @@
   <div class="card">
     <h2>5 · Decisions needed, in order</h2>
     <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th></tr></thead>
+      <table id="decision-matrix">
+        <thead><tr><th>#</th><th>Decision</th><th>Why first</th><th>Blocked by</th><th>Official basis / evidence</th></tr></thead>
         <tbody>
           <tr><td>1</td><td>Supply demo credentials only if account-level tracking or live demo orders are desired</td>
             <td>Authenticated balance, positions, fills, and order execution cannot be validated without the account owner's key</td>
-            <td>F1 — no credential supplied</td></tr>
+            <td>F1 — no credential supplied</td>
+            <td>Project/account-owner decision. API references: <a href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">Get Balance ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">Get Positions ↗</a> · <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a> · <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2 ↗</a>.</td></tr>
           <tr><td>2</td><td>Choose which ranking best represents "highest dollar amount"</td>
             <td>The overview exposes a derived volume × last-price metric, contract volume, and open interest; they answer different questions</td>
-            <td>Q1 / F7</td></tr>
+            <td>Q1 / F7</td>
+            <td>Ranking preference is a project choice; source fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. The dollar-volume formula is derived, not an exchange field.</td></tr>
           <tr><td>3</td><td>Replace or accept the High-ROI watch rules</td>
             <td>The current spread/price/open-interest filter is not a measured ROI model</td>
-            <td>A1</td></tr>
+            <td>A1</td>
+            <td>Project rule choice, not a Kalshi forecast; input fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. See <a href="flagged.html#A1">Flagged A1</a>.</td></tr>
           <tr><td>4</td><td>Decide whether alerts must persist while the browser is closed</td>
             <td>Current polling and paper trading run in the open browser tab only</td>
-            <td>A2</td></tr>
+            <td>A2</td>
+            <td>Project operating choice; current page-open limitation is documented in <a href="flagged.html#A2">Flagged A2</a>, not an exchange claim.</td></tr>
           <tr><td>5</td><td>Validate fees and execution assumptions before relying on paper P&amp;L</td>
             <td>Paper fills assume displayed quotes and omit fees, slippage, and queue position</td>
-            <td>A5</td></tr>
+            <td>A5</td>
+            <td>Project simulation assumptions; official references: <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee Schedule ↗</a> · <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook Responses ↗</a>. See <a href="flagged.html#A5">Flagged A5</a>.</td></tr>
         </tbody>
       </table>
     </div>

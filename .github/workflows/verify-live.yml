@@ -80,7 +80,7 @@ jobs:
             if grep -Fq 'KalshiDash2' "$body"; then has="yes"; else has="no"; fi
             PAGE_BODY["$p"]="$body"
             PAGE_CODE["$p"]="$code"
-            if [ "$code" != "200" ] || [ "$bytes" -lt 500 ]; then fail=$((fail+1)); fi
+            if [ "$code" != "200" ] || [ "$bytes" -lt 500 ] || [ "$has" != "yes" ]; then fail=$((fail+1)); fi
             echo "| \`$p\` | $code | $bytes | $has |" >> "$OUT"
           done
 
@@ -102,6 +102,8 @@ jobs:
           probe "/" "Highest-dollar live markets, tracked to resolution" "landing page"
           probe "summary.html" "Executive summary" "executive summary"
           probe "summary.html" "Official basis / evidence" "summary source/evidence column"
+          probe "summary.html" "id=\"defect-matrix\"" "defect rows include sources or evidence"
+          probe "summary.html" "id=\"decision-matrix\"" "decision rows include sources or project labels"
           probe "summary.html" "CLAIMS.length" "claim total derives from the register"
           probe "summary.html" "#requirement-matrix tr" "requirement count derives from its matrix"
           probe "summary.html" "DOMParser" "flag count reads every flagged item"

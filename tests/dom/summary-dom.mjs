@@ -48,6 +48,11 @@ await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].tex
 const { CLAIMS } = await import(pathToFileURL(path.join(REPO, "assets/js/claims.js")).href);
 const requirementRows = [...window.document.querySelectorAll("#requirement-matrix tr")];
 const requirements = requirementRows.length;
+const sourceRows = [
+  ...requirementRows,
+  ...window.document.querySelectorAll("#defect-matrix tbody tr"),
+  ...window.document.querySelectorAll("#decision-matrix tbody tr")
+];
 const verified = CLAIMS.filter(claim => claim.status === "verified").length;
 const partial = CLAIMS.filter(claim => claim.status === "partially verified").length;
 const unverified = CLAIMS.filter(claim => claim.status === "unverified").length;
@@ -68,9 +73,11 @@ const stat = name => {
 
 assert.ok(requirements > 0, "requirement matrix has rows");
 assert.equal(stat("Requirement areas").value, String(requirements));
-for (const row of requirementRows) {
-  const evidence = row.cells[3];
-  assert.ok(evidence?.textContent.trim(), "each requirement row has evidence text");
+assert.equal(sourceRows.length, requirementRows.length + 3 + 5,
+  "requirement, defect, and decision matrices are included in the source audit");
+for (const row of sourceRows) {
+  const evidence = row.cells[row.cells.length - 1];
+  assert.ok(evidence?.textContent.trim(), "each summary row has evidence text");
   const hasOfficialSource = evidence.querySelector('a[href^="https://docs.kalshi.com"], a[href^="https://kalshi.com"]');
   assert.ok(hasOfficialSource || /project/i.test(evidence.textContent),
     `each row has an official source or is labelled as a project decision: ${row.cells[0].textContent}`);
@@ -85,6 +92,7 @@ assert.deepEqual(pageErrors, [], "summary module runs without jsdom errors");
 console.log(`PASS  requirement areas = ${requirements}`);
 console.log(`PASS  claim counts = ${verified}/${CLAIMS.length} verified; ${partial} partial; ${unverified} unverified`);
 console.log(`PASS  flag counts = ${open} open; ${mitigated} mitigated; ${cards.length} total`);
+console.log(`PASS  sourced/project-labelled summary rows = ${sourceRows.length}`);
 console.log("PASS  no object interpolation or page errors");
 
 dom.window.close();
