@@ -715,3 +715,42 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 - **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
 - **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
 - Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+## Session `751ee13f` — external source-link audit of the published site (branch `arena/751ee13f-kalshidash2`, 2026-11-20)
+
+Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary counts + verify-live) is not touched.
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | in progress (audit built and verified offline; live runner pass pending merge) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
+
+### X1 record — session `751ee13f`
+
+**Scope note.** The claim named only the tool and report. The session also added the unit-test file and a manual-trigger workflow, because the reachability check must run on a GitHub runner: the agent sandbox cannot reach `kalshi.com`, `docs.kalshi.com`, or the staging bucket (`curl` returns `000`). No other file was edited.
+
+**Sources (official, read 2026-11-20):**
+
+| # | Source | What it supports |
+|---|--------|------------------|
+| X-S1 | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) | Series object defines `contract_url` and `contract_terms_url`, and `settlement_sources[]` (`name`, `url`). The page does not state which host `contract_url` must use. |
+| X-S2 | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | Market object has no `contract_url` field. The staging values therefore come from series objects, not markets. |
+| X-S3 | [Get Event](https://docs.kalshi.com/api-reference/events/get-event) | `settlement_sources[]` on events (cited in the audit's review note 2 and 3). |
+
+**Verification performed:**
+
+1. `python3 -m unittest discover -s tools -p 'test_*.py'` — 11/11 pass (2 existing + 9 new classifier and extraction tests).
+2. `python3 tools/audit_external_links.py` — 1,314 unique external URLs (216 non-API pages, 1,098 Kalshi API endpoint variants across 2 hosts), all with a file:line citation.
+3. Counted the staging occurrences in `data/snapshot.json`: 136 occurrences, 66 unique URLs, **all** under the key `contract_url` on series objects (checked with a JSON walk, not a grep).
+4. Grepped `*.html` and `*.js` for `kalshi-public-docs-staging`: **no published page links them**. They appear only in the raw capture.
+5. Existing gates still pass on this branch: `tools/check_site_links.py .` (34 pages, 0 broken), `node --test tests/alerts-core.test.mjs` (18/18), `node tools/verify/page-runtime-check.mjs` (17/17 pages), `git diff --check` clean.
+6. The live probe was run once in this sandbox to check the code path; every result was a network error because the sandbox has no outbound route. Those results were **discarded**, and the committed report is the offline version. The authoritative live pass is the workflow run described below.
+
+**Irregularities flagged for review (not fixed; no page edited):**
+
+- **F-X1 (staging host).** 66 `contract_url` values point to `kalshi-public-docs-staging.s3.us-east-1.amazonaws.com`, while the sibling `contract_terms_url` points to `assets.kalshi.com`. Source: X-S1; observed in `data/snapshot.json`. Needs confirmation from Kalshi; not a verified error.
+- **F-X2 (truncated URL).** `https://www.politi` appears at `evidence/evidence-routes-settled.md:81` and `reports/verify-facts-v2.md:81`. The raw excerpt was cut mid-URL. Not a usable link.
+- **F-X3 (Kalshi-named third-party sources).** Guardian, Reuters, NYTimes, AP, ESPN, FIFA, and CF Benchmarks appear only as `settlement_sources[]` names returned by the API. They confirm what an event declares, not any news fact.
+
+**Request to the integration session (shared output, not edited here).** Publish F-X1, F-X2, and F-X3 on `flagged.html` with the links above, and link `reports/external-links-audit.md` from the Flagged page. This session did not edit `flagged.html`.
+
+**Publication plan.** PR from `arena/751ee13f-kalshidash2` to `main`, merge with `--merge`, then dispatch `audit-external-links.yml` on `main` so the runner writes the live reachability column. The result is recorded below when the run completes.
