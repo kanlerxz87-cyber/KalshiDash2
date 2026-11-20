@@ -265,17 +265,22 @@ async function main() {
           orderbook: await getJSON(`${env.base}/markets/${row.ticker}/orderbook`, { optional: true }),
         };
       }
+      // Hourly candles for the last 7 days (top N) and 1-minute candles for the last 6 hours (top 3).
+      // REST candlesticks support only 1, 60 and 1440 minute periods; seconds need the WebSocket feed.
+      const end = Math.floor(Date.now() / 1000);
       for (const [i, row] of list.entries()) {
         if (i >= TOP_N_CANDLES) break;
-        const end = Math.floor(Date.now() / 1000);
-        const start = end - 7 * 86400;
-        const url = `${env.base}/series/${row.series_ticker}/markets/${row.ticker}/candlesticks?start_ts=${start}&end_ts=${end}&period_interval=60`;
-        const res = await getJSON(url, { optional: true });
-        candles[`${env.name}:${row.ticker}`] = {
-          env: env.name, ticker: row.ticker, topic, period_minutes: 60,
-          source_url: url, fetched_at: fetchedAt,
-          candlesticks: res?.candlesticks ?? null,
-        };
+        const specs = [{ period: 60, start: end - 7 * 86400 }];
+        if (i < 3) specs.push({ period: 1, start: end - 6 * 3600 });
+        for (const sp of specs) {
+          const url = `${env.base}/series/${row.series_ticker}/markets/${row.ticker}/candlesticks?start_ts=${sp.start}&end_ts=${end}&period_interval=${sp.period}`;
+          const res = await getJSON(url, { optional: true });
+          candles[`${env.name}:${row.ticker}:${sp.period}`] = {
+            env: env.name, ticker: row.ticker, topic, period_minutes: sp.period,
+            source_url: url, fetched_at: fetchedAt,
+            candlesticks: res?.candlesticks ?? null,
+          };
+        }
       }
     }
   }
