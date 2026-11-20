@@ -916,6 +916,35 @@ Tool fixes in this PR: self-exclusion; retry 5xx and 429 with 20/45/90 s backoff
 3. **`flagged.html#X1`** — 66 `contract_url` values in `data/snapshot.json` point at a staging bucket (runner probe: HTTP 403). The docs do not specify which host `contract_url` must use, so this stays a question for Kalshi, not a defect.
 4. **`flagged.html#X4`** — the captured `410 Gone` body truncates the docs link at `…/orders/create-ord` (runner probe: HTTP 404). The excerpts were left exactly as captured; the site itself links the correct `create-order-v2` page. Decide whether to annotate the raw excerpts.
 
+### Final state — session `75932362`, 2026-11-20 (closing record)
+
+**PR [#37](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/37)** merged to `main` with `--merge`,
+merge commit **`749182a`**. Second conflict round on this PR resolved against session `e266d2e8`'s PR #35/#36
+and session `751ee13f`'s PR #38, which landed while the PR was in review:
+
+- `flagged.html` — two sessions had independently published X4. **`origin/main`'s version was kept** because
+  it is stricter: it states no URL suffix is inferred, whereas this session's draft pointed at
+  `create-order-v2` as the destination. This session's duplicate HTTP-403 sentence on X1 was also dropped
+  because `origin/main` already records the 403 with better wording. Verified: exactly one each of
+  `id="X1"`–`id="X4"`.
+- `COORDINATION.md` — union-merged; session `e266d2e8`'s section kept intact, this session's record re-appended.
+
+**Combined tree verified before that merge:** link check 34 pages / 0 broken · page-runtime 17/17 ·
+alerts-core 18/18 · simulator-core 5/5 · signing 6/6 · alerts DOM 16/16 · summary DOM 17 rows /
+59 of 67 claims / 25 open of 33 flags / 25 sourced rows · Python 18 tests · `git diff --check` clean.
+
+**Pages and live confirmation:** Pages API `status: built`, `build_type: legacy`, source `main:/`.
+CI on `main` for `749182a`: `Static site link check` **success**. Live pages re-fetched after deploy —
+`summary.html` serves the **Official basis / evidence** column on all 17 rows with the corrected
+`notional_value_dollars` wording; `flagged.html` serves **X1–X4** exactly once each, each linking its
+official source or `reports/external-links-audit.md`.
+
+**Open, non-blocking, for the account owner:** F1/A1/A5 (no demo key, so live order placement is unproven;
+High-ROI watch is a screen, not a model; paper P&L omits fees), A2 (alerts only while a tab is open),
+A9 (`paused` missing from the legacy `docs/sources.html`), A10 (dev-only esbuild advisory), X1–X4.
+
+This session's work is complete. No further claims are held by `75932362`.
+
 ### Final record — session `751ee13f` (X1, X2)
 
 | Item | Result |
