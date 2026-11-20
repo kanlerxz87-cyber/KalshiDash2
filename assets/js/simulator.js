@@ -136,6 +136,27 @@ export function median(values) {
   return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
 }
 
+/* FNV-1a. Used only to seed the chance baseline, so that the same market
+ * always produces the same "random" entry and a re-run reproduces the
+ * control exactly. It is not used for anything that needs to be secret. */
+export function hashString(str) {
+  let h = 2166136261 >>> 0;
+  const s = String(str ?? "");
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/* The index the chance baseline enters at: a hash of the market ticker into
+ * the available price history. Deterministic, reproducible, and unrelated to
+ * price — that is the whole point of a baseline. */
+export function baselineIndex(ticker, length) {
+  if (!length) return -1;
+  return hashString(ticker) % length;
+}
+
 /* Replay one strategy over one market's price history.
  * Returns a trade object, or null when the strategy never fired. */
 export function replayStrategy(strategy, series, market) {
@@ -151,6 +172,11 @@ export function replayStrategy(strategy, series, market) {
           i > 0 && c.close !== null && c.prevClose !== null && c.close - c.prevClose >= 0.10) {
         price = c.close;
       }
+    } else if (strategy.key === "random") {
+      /* Chance baseline: one entry at a seeded pseudo-random point in the
+       * same window every other strategy is scored over. */
+      const idx = baselineIndex(market.ticker, series.length);
+      if (i === idx && c.close !== null) price = c.close;
     } else if (typeof strategy.signal === "function") {
       price = strategy.signal(c, i);
     }
@@ -260,6 +286,109 @@ export function aggregate(trades) {
       avgPnl: n ? g.pnl / n : null
     };
   });
+}
+
+/* Group the same trades by any other dimension the reader cares about —
+ * by direction (YES / NO) or by topic — so a strategy's result can be split
+ * into the trade types that produced it. The brief asks for trades to be
+ * "categorized"; the trade-type dimension is the one a trader can act on.
+ * Every group is scored exactly like the strategy scoreboard, so the numbers
+ * are directly comparable. */
+export function rollup(trades, keyFn, labelFn) {
+  const groups = new Map();
+  for (const t of trades) {
+    const key = keyFn(t);
+    if (!groups.has(key)) {
+      groups.set(key, { key, label: labelFn ? labelFn(t, key) : String(key), trades: [], pnl: 0, capital: 0, wins: 0, losses: 0, flat: 0 });
+    }
+    const g = groups.get(key);
+    g.trades.push(t);
+    if (t.pnlPerContract !== null && t.pnlPerContract !== undefined) {
+      g.pnl += t.pnlPerContract;
+      g.capital += t.capitalPerContract;
+      if (t.pnlPerContract > 0) g.wins++;
+      else if (t.pnlPerContract < 0) g.losses++;
+      else g.flat++;
+    }
+  }
+  return [...groups.values()].map(g => {
+    const n = g.trades.length;
+    const scored = g.wins + g.losses;
+    return {
+      ...g,
+      n,
+      winRate: scored ? g.wins / scored : null,
+      avgEntry: n ? g.trades.reduce((a, t) => a + t.entryPrice, 0) / n : null,
+      roi: g.capital > 0 ? g.pnl / g.capital : null,
+      avgPnl: n ? g.pnl / n : null
+    };
+  }).sort((a, b) => b.pnl - a.pnl);
+}
+
+/* --------------------------------------------------------------------------
+ * CSV export
+ * ----------------------------------------------------------------------- */
+
+const CSV_COLUMNS = [
+  ["strategy", t => t.strategyName],
+  ["strategy_key", t => t.strategyKey],
+  ["event_ticker", t => t.eventTicker],
+  ["market_ticker", t => t.ticker],
+  ["event_title", t => t.eventTitle],
+  ["topic", t => t.topic || ""],
+  ["side", t => t.side],
+  ["entry_price", t => t.entryPrice],
+  ["entry_time", t => (t.entryTs ? new Date(t.entryTs).toISOString() : "")],
+  ["exit_price", t => (t.exitPrice === null || t.exitPrice === undefined ? "" : t.exitPrice)],
+  ["exit_reason", t => t.exitReason],
+  ["exit_time", t => (t.exitTs ? new Date(t.exitTs).toISOString() : "")],
+  ["result", t => t.result],
+  ["settlement_value", t => (t.settlementValue === null || t.settlementValue === undefined ? "" : t.settlementValue)],
+  ["pnl_per_contract", t => (t.pnlPerContract === null || t.pnlPerContract === undefined ? "" : t.pnlPerContract)],
+  ["capital_per_contract", t => t.capitalPerContract],
+  ["category", t => t.category || ""],
+  ["series_ticker", t => t.seriesTicker || ""],
+  ["market_source", t => `https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(t.ticker)}`]
+];
+
+/* RFC 4180 quoting: wrap in quotes and double any embedded quote. */
+function csvCell(value) {
+  const s = value === null || value === undefined ? "" : String(value);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/* Build a CSV string from the simulated trade ledger. The column names are
+ * the same field names the official Get Fills / Get Market responses use, so
+ * the export can be joined against a real fill export. */
+export function tradesToCsv(trades) {
+  const head = CSV_COLUMNS.map(([name]) => name).join(",");
+  const body = (trades || []).map(t => CSV_COLUMNS.map(([, get]) => csvCell(get(t))).join(","));
+  return [head, ...body].join("\r\n") + "\r\n";
+}
+
+/* The same export for the live paper book. */
+export function paperToCsv(list) {
+  const cols = [
+    ["opened_at", p => p.opened_at],
+    ["ticker", p => p.ticker],
+    ["event_ticker", p => p.event_ticker],
+    ["event_title", p => p.event_title],
+    ["topic", p => p.topic || ""],
+    ["side", p => p.side],
+    ["entry_price", p => p.entry_price],
+    ["entry_basis", p => p.entry_basis || ""],
+    ["screen_score", p => (p.screen_score === null || p.screen_score === undefined ? "" : p.screen_score)],
+    ["delta", p => (p.delta === null || p.delta === undefined ? "" : p.delta)],
+    ["strategy", p => p.strategy || ""],
+    ["status", p => (p.closed ? "closed" : "open")],
+    ["result", p => p.result || ""],
+    ["settlement_value", p => (p.settlement_value === null || p.settlement_value === undefined ? "" : p.settlement_value)],
+    ["pnl_per_contract", p => (p.pnl_per_contract === null || p.pnl_per_contract === undefined ? "" : p.pnl_per_contract)],
+    ["market_source", p => `https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(p.ticker)}`]
+  ];
+  const head = cols.map(([name]) => name).join(",");
+  const body = (list || []).map(p => cols.map(([, get]) => csvCell(get(p))).join(","));
+  return [head, ...body].join("\r\n") + "\r\n";
 }
 
 /* --------------------------------------------------------------------------

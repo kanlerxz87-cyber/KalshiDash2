@@ -37,7 +37,7 @@ export const SOURCES = {
   balance:        "https://docs.kalshi.com/api-reference/portfolio/get-balance",
   fills:          "https://docs.kalshi.com/api-reference/portfolio/get-fills",
   positions:      "https://docs.kalshi.com/api-reference/portfolio/get-positions",
-  orders:         "https://docs.kalshi.com/api-reference/portfolio/get-orders",
+  orders:         "https://docs.kalshi.com/api-reference/orders/get-orders",
   rateLimits:     "https://docs.kalshi.com/getting_started/rate_limits",
   websockets:     "https://docs.kalshi.com/getting_started/quick_start_websockets",
   fixedPoint:     "https://docs.kalshi.com/getting_started/fixed_point_migration",
@@ -321,6 +321,14 @@ export const STRATEGIES = [
     side: "yes",
     hold: "roundtrip",
     signal: (c, i) => (i > 0 && c.close !== null && c.prevClose !== null && c.close - c.prevClose >= 0.10) ? c.close : null
+  },
+  {
+    key: "random",
+    name: "Random entry (chance baseline)",
+    rule: "Buy YES once at a pseudo-random point in the same window — the control that shows what chance alone returns",
+    side: "yes",
+    hold: "settlement",
+    signal: null /* computed in simulator.js — needs a reproducible seed */
   },
   {
     key: "flat",

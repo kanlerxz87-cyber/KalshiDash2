@@ -99,6 +99,7 @@
     <h2>Simulated trade ledger</h2>
     <p class="sub">Every simulated trade produced by the run above, with the official API response behind each row.</p>
     <div class="toolbar">
+      <button id="export-trades" class="secondary">Export ledger as CSV</button>
       <span class="spacer"></span>
       <span id="ledger-count" class="pill idle">0 trades</span>
     </div>
@@ -110,6 +111,45 @@
           <th>Result</th><th class="num">P&amp;L / contract</th><th>Official source</th>
         </tr></thead>
         <tbody id="ledger"><tr><td colspan="10"><div class="empty">No simulated trades yet.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Rollups — the same trades grouped by trade type</h2>
+    <p class="sub">
+      The ledger above is one flat list. These two tables re-cut the <em>same</em> simulated trades by the
+      two dimensions a trader can act on: the <strong>direction</strong> taken (YES or NO) and the
+      <strong>topic</strong> the market belongs to. Scoring is identical to the scoreboard, so a
+      strategy that only works on one side or in one topic is visible here. The
+      <strong>Random entry</strong> row in the scoreboard is the chance baseline: a strategy only shows
+      an edge here if it beats that row.
+    </p>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <span id="rollup-count" class="pill idle">0 trades</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Trade type</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
+          <th class="num">Hit rate</th><th class="num">Avg entry</th>
+          <th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
+          <th>Official source</th>
+        </tr></thead>
+        <tbody id="rollup-side"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
+      </table>
+    </div>
+    <h3 style="margin-top:18px">By topic</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Topic</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
+          <th class="num">Hit rate</th><th class="num">Avg entry</th>
+          <th class="num">P&amp;L / contract</th><th class="num">Capital</th><th class="num">ROI</th>
+          <th>Official source</th>
+        </tr></thead>
+        <tbody id="rollup-topic"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -132,6 +172,7 @@
       <button id="paper-stop" class="secondary">Stop</button>
       <button id="paper-settle" class="secondary">Check for settlements</button>
       <button id="paper-clear" class="secondary">Clear book</button>
+      <button id="export-paper" class="secondary">Export paper book as CSV</button>
       <span class="spacer"></span>
       <span id="paper-status" class="pill idle">stopped</span>
     </div>
@@ -182,7 +223,8 @@
 import { mountChrome, esc, money, money4, int, dec, pct, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { STRATEGIES, TRADE_SCREEN, ALERT } from "./assets/js/config.js";
 import {
-  loadSettledUniverse, loadHistory, toSeries, replayAll, aggregate, Paper
+  loadSettledUniverse, loadHistory, toSeries, replayAll, aggregate, rollup,
+  tradesToCsv, paperToCsv, Paper
 } from "./assets/js/simulator.js";
 import { api, getAll, classifyEvent, num, screenMarket } from "./assets/js/market.js";
 import { AlertEngine, topicLabel } from "./assets/js/alert-engine.js";
@@ -232,6 +274,7 @@ $("#run").addEventListener("click", async () => {
     lastRun = { trades, universe: scoped.length, withHistory, errors, minutes, topic, historyRequests };
     renderScoreboard();
     renderLedger();
+    renderRollups();
     renderKpis();
     pill($("#status"), "live",
       `${trades.length} simulated trades · ${withHistory}/${scoped.length} markets had price history`);
@@ -297,6 +340,8 @@ function renderScoreboard() {
     `Run: ${int(lastRun.universe)} finalized market(s), ${int(lastRun.withHistory)} with price history, ` +
     `${int(lastRun.historyRequests)} candlestick request(s), ${int(lastRun.minutes)}-minute window. ` +
     `P&amp;L per contract = payout − entry price; ROI = total P&amp;L ÷ total capital deployed. ` +
+    `<strong>Random entry</strong> is the chance baseline: it enters once at a pseudo-random point in the ` +
+    `same window, so a rule only shows an edge if it beats that row. ` +
     `No fees, no spread, no slippage. <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Settlement rules ↗</a>`;
 }
 
@@ -323,6 +368,87 @@ function renderLedger() {
     </td>
   </tr>`).join("");
 }
+
+/* ---------------------------------------------------------------- rollups */
+
+/* The same simulated trades, re-cut by direction and by topic. Scored with
+ * exactly the same arithmetic as the strategy scoreboard so the numbers are
+ * directly comparable. */
+function renderRollups() {
+  if (!lastRun) return;
+  const trades = lastRun.trades;
+
+  const sideRows = rollup(
+    trades,
+    t => (t.side === "yes" ? "yes" : t.side === "no" ? "no" : "unknown"),
+    (t, key) => (key === "yes" ? "YES" : key === "no" ? "NO" : "Unknown")
+  );
+  const topicRows = rollup(
+    trades,
+    t => t.topic || "outside-scope",
+    (t, key) => (key === "outside-scope" ? "Outside the five topics" : topicLabel(key))
+  );
+
+  const cell = (g, gLabel) => `<tr>
+    <td><strong>${esc(gLabel)}</strong></td>
+    <td class="num">${int(g.n)}</td>
+    <td class="num">${int(g.wins)}</td>
+    <td class="num">${int(g.losses)}</td>
+    <td class="num">${g.winRate === null ? `<span class="unv">n/a</span>` : (g.winRate * 100).toFixed(1) + "%"}</td>
+    <td class="num">${g.avgEntry === null ? `<span class="unv">n/a</span>` : "$" + g.avgEntry.toFixed(2)}</td>
+    <td class="num">${money(g.pnl)}</td>
+    <td class="num">${money(g.capital)}</td>
+    <td class="num">${g.roi === null ? `<span class="unv">n/a</span>` : (g.roi * 100).toFixed(1) + "%"}</td>
+    <td class="small nowrap">
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">settlement ↗</a>
+    </td>
+  </tr>`;
+
+  const empty = (cols, msg) => `<tr><td colspan="${cols}"><div class="empty">${esc(msg)}</div></td></tr>`;
+
+  $("#rollup-side").innerHTML = sideRows.length
+    ? sideRows.map(g => cell(g, g.label)).join("")
+    : empty(10, "No simulated trades to group yet.");
+  $("#rollup-topic").innerHTML = topicRows.length
+    ? topicRows.map(g => cell(g, g.label)).join("")
+    : empty(10, "No simulated trades to group yet.");
+  $("#rollup-count").textContent = `${trades.length} trade${trades.length === 1 ? "" : "s"}`;
+}
+
+/* --------------------------------------------------------------- CSV export */
+
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("#export-trades").addEventListener("click", () => {
+  if (!lastRun || !lastRun.trades.length) {
+    pill($("#status"), "warn", "run a backtest first");
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadCsv(`kalshidash2-simulated-trades-${stamp}.csv`, tradesToCsv(lastRun.trades));
+  pill($("#status"), "live", `${lastRun.trades.length} trades exported`);
+});
+
+$("#export-paper").addEventListener("click", () => {
+  const list = Paper.all();
+  if (!list.length) {
+    pill($("#paper-status"), "warn", "no paper positions to export");
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadCsv(`kalshidash2-paper-positions-${stamp}.csv`, paperToCsv(list));
+  pill($("#paper-status"), "live", `${list.length} positions exported`);
+});
 
 /* ------------------------------------------------------------ paper trader */
 
