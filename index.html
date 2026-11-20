@@ -120,11 +120,11 @@
               <tr>
                 <th>Event</th><th>Topic</th><th class="num">Markets</th>
                 <th class="num">Money traded</th><th class="num">Open interest</th>
-                <th class="num">Contracts</th><th>Closes</th><th>Result</th>
+                <th class="num">Contracts</th><th>Closes</th><th>Result</th><th>Official source</th>
               </tr>
             </thead>
             <tbody id="board-body">
-              <tr><td colspan="8"><div class="empty">Loading live events…</div></td></tr>
+              <tr><td colspan="9"><div class="empty">Loading live events…</div></td></tr>
             </tbody>
           </table>
           <div class="table-note" id="board-note">
@@ -153,7 +153,7 @@
 
 <script type="module">
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
-import { TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
+import { DEMO, TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
 import { api, getAll, rankEvents, classifyEvent, num } from "./assets/js/market.js";
 
 mountChrome({ page: "index.html", title: "Overview" });
@@ -188,7 +188,7 @@ const state = { events: [], mode: "money", loadedAt: null };
 /* ---- discovery ---- */
 async function loadBoard() {
   pill($("#board-status"), "warn", "loading…");
-  $("#board-body").innerHTML = `<tr><td colspan="8"><div class="empty"><span class="spinner"></span> Reading live events (this can take a few seconds)…</div></td></tr>`;
+  $("#board-body").innerHTML = `<tr><td colspan="9"><div class="empty"><span class="spinner"></span> Reading live events (this can take a few seconds)…</div></td></tr>`;
   try {
     const events = [];
     for (const status of ["open", "closed"]) {
@@ -204,7 +204,7 @@ async function loadBoard() {
     render();
   } catch (e) {
     pill($("#board-status"), "err", e.message);
-    $("#board-body").innerHTML = emptyRow(8, "Could not load events: " + e.message);
+    $("#board-body").innerHTML = emptyRow(9, "Could not load events: " + e.message);
   }
 }
 
@@ -290,9 +290,10 @@ function render() {
           <td class="num">${int(r.volume)}</td>
           <td class="nowrap small">${dt(r.closeTime)}</td>
           <td>${tag}</td>
+          <td><a href="${esc(`${DEMO.rest}/events/${encodeURIComponent(ev.event_ticker)}?with_nested_markets=true`)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td>
         </tr>`;
       }).join("")
-    : emptyRow(8, "No events matched the five topics in this scan.");
+    : emptyRow(9, "No events matched the five topics in this scan.");
 
   /* biggest swings in this scan */
   const movers = [];

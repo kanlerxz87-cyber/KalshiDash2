@@ -359,6 +359,13 @@
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
     </div>
 
+    <div class="irregularity" id="A10">
+      <h3>A10 — Test-only esbuild dependency has a moderate security advisory <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>npm audit --prefix tests/dom</code> reports the locked esbuild 0.24.2 as affected by GHSA-67mh-4wv8-2f99. The advisory describes an esbuild development-server issue where websites can send requests to the server and read responses; npm reports 0.28.2 as a fix.</p>
+      <p><strong>Impact boundary:</strong> esbuild is a development dependency of the DOM test harness, not a runtime dependency of the static GitHub Pages site. The harness uses it for bundling tests; it does not start the vulnerable development server. No production-site compromise was observed. The dependency was not upgraded in this integration change because that would alter another session's completed test setup; reassess the upgrade and rerun the DOM checks.</p>
+      <p class="small"><strong>Official source:</strong> <a class="src-link" href="https://github.com/advisories/GHSA-67mh-4wv8-2f99" target="_blank" rel="noopener noreferrer">GitHub Security Advisory GHSA-67mh-4wv8-2f99 ↗</a></p>
+    </div>
+
     <div class="irregularity" id="R1">
       <h3>R1 — The Pages link check covers <code>docs/</code>, not the root site that visitors see <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> <code>.github/workflows/site-check.yml</code> runs <code>tools/check_site_links.py docs</code>. GitHub Pages is configured with source <code>main:/</code>, so the root site (<code>index.html</code>, <code>alerts.html</code> and the rest) is what visitors see, and CI does not check it.</p>

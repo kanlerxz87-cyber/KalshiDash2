@@ -499,8 +499,22 @@ them. The reconciliation keeps **both** and shares the parts that must not be du
 | CI | `.github/workflows/site-check.yml` now checks the **published root** (`.`, 34 pages) instead of `docs/` only — this closes main's R1. It also runs the alert unit tests and the page-runtime harness. `verify-alerts.yml` and `live-engine-check.yml` now watch the merged modules. |
 | `README.md` | both feature descriptions kept; the layout block lists both new pages. |
 
-**Files NOT touched:** `.github/workflows/verify-live.yml` (exclusive to PR #14, session
-`b7dfc4d9`), `docs/**`, `data/**`, `scripts/**`.
+**Second merge (`origin/main` → `f74825e`, 2026-11-20):** `main` gained PR #14
+(`.github/workflows/verify-live.yml`, session `b7dfc4d9`) and PR #20/21 (session `5c00f4dd`:
+a per-row official source link on every dynamic table in the root site, plus the dev-only
+esbuild advisory flag A10). Conflicts were in `COORDINATION.md`, `assets/js/category.js` and
+`index.html`:
+- `COORDINATION.md` — both session records kept, unchanged.
+- `assets/js/category.js` — one import line now carries `DEMO` (main's row-source links) and
+  `ALERT` (this branch's jump markers); both features survive.
+- `index.html` — one import line now carries `DEMO` (main's row-source links), `money4` and
+  `num` (this branch's biggest-swings table); the board is 9 columns wide and `emptyRow(9)`
+  matches.
+- `verify-live.yml` (already merged to `main`, so no longer exclusively claimed) — the live
+  probe now also fetches `alerts.html` and `simulator.html` and asserts that both feeds and
+  the settlement-value scoring render.
+
+**Files NOT touched:** `docs/**`, `data/**`, `scripts/**`.
 
 **Verification after the merge (all local):**
 
@@ -512,6 +526,33 @@ them. The reconciliation keeps **both** and shares the parts that must not be du
 6. `node --check` on every project module and verification script → no parse failures.
 7. `node tools/verify/live-engine-check.mjs` → exits **1** with `fetch failed` (the sandbox cannot open TLS to Kalshi). It publishes no report in that state, by design; the GitHub runner performs the live run.
 
-**Open items left open on purpose (not silently dropped):** PR #14's `verify-live.yml` workflow;
-the alerts page records swings only while a tab is open (F16); the live engine check cannot run
-from this sandbox.
+**Open items left open on purpose (not silently dropped):** the alerts page records swings only
+while a tab is open (F16); the live engine check cannot reach Kalshi from this sandbox and
+therefore publishes no report (the GitHub runner performs that run); the dev-only esbuild
+advisory stays flagged as A10 and is not silently upgraded.
+
+---
+
+# Session `5c00f4dd` — integration review and row-source audit (2026-11-20)
+
+Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
+
+| # | Task | Status | Owner | File scope |
+|---|------|--------|-------|-----------|
+| C1 | Reconcile live alerts and paper simulation with the already-merged implementation; avoid duplicate engine | done | `5c00f4dd` | `COORDINATION.md` |
+| C2 | Add official source links per dynamic data row in the published root-site tables | done | `5c00f4dd` | `index.html`, `assets/js/category.js`, `categories/*.html`, `event.html`, `portfolio.html`, `strategies.html`, `resolved.html`, `COORDINATION.md` |
+| C3 | Record the dev-only esbuild advisory found by audit on the Flagged for Review page | done | `5c00f4dd` | `flagged.html`, `COORDINATION.md` |
+
+**Conflict resolution log:** PR #19 (session `4208a2dd`) merged its live alert and simulated strategy implementation while this branch was in progress. Its `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, tests, verification evidence, flags, and navigation are retained as the canonical implementation. This session will not overwrite that work with a duplicate alerts controller. During rebase, `COORDINATION.md` had an add/add conflict; resolved by retaining the complete main board (including session `4208a2dd`) and appending this session record.
+
+**C2 verification and sources:** Added source links to all dynamic table templates in the deployed root site: overview and topic event rows use the official event response; event and resolution detail rows use the nested event response; orderbook levels use the official orderbook response; resolved-market rows use the official market response; personal fills and positions link the official endpoint documentation because their exact signed responses cannot be safely embedded in a public URL. Strategy and aggregate rows link their official input endpoint documentation. References: [Get events](https://docs.kalshi.com/api-reference/events/get-events), [Get market](https://docs.kalshi.com/api-reference/market/get-market), [Get markets](https://docs.kalshi.com/api-reference/market/get-markets), [orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses), [Get fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Get positions](https://docs.kalshi.com/api-reference/portfolio/get-positions). Static check/tests pass on this revision; live public API connectivity was not exercised from this sandbox.
+
+**C3 verification and source:** `npm ci --prefix tests/dom --ignore-scripts` succeeded; `npm audit --prefix tests/dom --json` reported one moderate vulnerability in direct dev dependency `esbuild@0.24.2` (affected range `<=0.24.2`) and `fixAvailable` `0.28.2`. The official advisory is [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99). Flagged as A10. The package is used only by the DOM test harness, not the deployed static site; upgrade not performed in this task to avoid an unverified test-tool migration.
+
+## Session `5c00f4dd` — final publication record
+
+- PR [#20](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/20) merged to `main` at merge commit [`69196e0`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/69196e0cc69ac09599c649e5a12c71014e5d6557), 2026-11-20 13:33:08 UTC.
+- Static site link check on the PR passed: [run 44745222260](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745222260).
+- GitHub Pages deploy after merge succeeded: [run 44745300283](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745300283). Pages API reported `status: built`, publishing from `main:/`.
+- Live site verified after deployment: [KalshiDash2](https://kanlerxz87-cyber.github.io/KalshiDash2/) and [Live alerts](https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html).
+- Post-merge note: GitHub Actions emitted a Node.js 20 deprecation annotation for upstream actions; the build and deploy both succeeded. No deployment failure remains open.

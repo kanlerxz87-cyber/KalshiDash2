@@ -107,9 +107,9 @@
       <table>
         <thead><tr>
           <th>Time</th><th>Market</th><th>Outcome side</th><th class="num">Contracts</th>
-          <th class="num">YES price</th><th class="num">NO price</th><th>Liquidity</th><th class="num">Fee</th>
+          <th class="num">YES price</th><th class="num">NO price</th><th>Liquidity</th><th class="num">Fee</th><th>Official source</th>
         </tr></thead>
-        <tbody id="fills-body"><tr><td colspan="8"><div class="empty">No fills loaded.</div></td></tr></tbody>
+        <tbody id="fills-body"><tr><td colspan="9"><div class="empty">No fills loaded.</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -120,9 +120,9 @@
       <table>
         <thead><tr>
           <th>Market</th><th class="num">Position</th><th class="num">Market exposure</th>
-          <th class="num">Realized P&amp;L</th><th>Status</th>
+          <th class="num">Realized P&amp;L</th><th>Status</th><th>Official source</th>
         </tr></thead>
-        <tbody id="pos-body"><tr><td colspan="5"><div class="empty">No positions loaded.</div></td></tr></tbody>
+        <tbody id="pos-body"><tr><td colspan="6"><div class="empty">No positions loaded.</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>
@@ -188,7 +188,8 @@ $("#load-account").onclick = async () => {
       <td class="num">${money(p.market_exposure_dollars ?? (num(p.market_exposure) / 100))}</td>
       <td class="num">${money(p.realized_pnl_dollars ?? (num(p.realized_pnl) / 100))}</td>
       <td><span class="pill idle">${esc(p.settlement_status || p.status || "")}</span></td>
-    </tr>`).join("") : emptyRow(5, "The demo account has no open positions.");
+      <td><a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
+    </tr>`).join("") : emptyRow(6, "The demo account has no open positions.");
 
     pill($("#acct-status"), "live", "account loaded");
     loadFills();
@@ -219,12 +220,13 @@ async function loadFills() {
       <td class="num">${money4(f.no_price_dollars)}</td>
       <td>${f.is_taker === true ? "taker" : f.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
       <td class="num">${money(f.fee_cost_dollars ?? (num(f.fee_cost) !== null ? f.fee_cost / 100 : null))}</td>
-    </tr>`).join("") : emptyRow(8, "No fills on this demo account yet. Place an order below, or use the demo site to trade first.");
+      <td><a href="${SOURCES.fills}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
+    </tr>`).join("") : emptyRow(9, "No fills on this demo account yet. Place an order below, or use the demo site to trade first.");
     pill($("#fills-status"), "live", `${fills.length} fills · saved for analysis`);
     localStorage.setItem("kalshiDash.fills", JSON.stringify({ at: new Date().toISOString(), fills }));
   } catch (e) {
     pill($("#fills-status"), "err", e.message);
-    $("#fills-body").innerHTML = emptyRow(8, "Fills request failed: " + e.message);
+    $("#fills-body").innerHTML = emptyRow(9, "Fills request failed: " + e.message);
   }
 }
 $("#reload-fills").onclick = loadFills;

@@ -31,9 +31,9 @@
         <thead><tr>
           <th>Market</th><th>Topic</th><th>Status</th><th>Result</th>
           <th class="num">Price when tracked</th><th class="num">Last seen</th>
-          <th>Resolved at</th><th></th>
+          <th>Resolved at</th><th>Actions</th><th>Official source</th>
         </tr></thead>
-        <tbody id="rows"><tr><td colspan="8"><div class="empty">No markets tracked yet.</div></td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="9"><div class="empty">No markets tracked yet.</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a>
@@ -68,9 +68,9 @@
       <table>
         <thead><tr>
           <th>Market</th><th>Topic</th><th>Result</th>
-          <th class="num">Settlement value</th><th class="num">Expiration value</th><th>Closed</th>
+          <th class="num">Settlement value</th><th class="num">Expiration value</th><th>Closed</th><th>Official source</th>
         </tr></thead>
-        <tbody id="recent"><tr><td colspan="6"><div class="empty">Loading settled markets…</div></td></tr></tbody>
+        <tbody id="recent"><tr><td colspan="7"><div class="empty">Loading settled markets…</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -78,6 +78,7 @@
 
 <script type="module">
 import { mountChrome, esc, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { DEMO } from "./assets/js/config.js";
 import { api, getAll, Watchlist, classifyEvent } from "./assets/js/market.js";
 
 mountChrome({ page: "resolved.html", title: "Resolved" });
@@ -86,7 +87,7 @@ mountChrome({ page: "resolved.html", title: "Resolved" });
 async function refreshWatch() {
   const list = Watchlist.all();
   if (!list.length) {
-    $("#rows").innerHTML = emptyRow(8, "No markets tracked yet. Add some from a category page or an event page.");
+    $("#rows").innerHTML = emptyRow(9, "No markets tracked yet. Add some from a category page or an event page.");
     renderStats([]);
     return;
   }
@@ -109,6 +110,7 @@ async function refreshWatch() {
       <td class="num">${money4(w.last_seen?.last)}</td>
       <td class="small nowrap">${w.resolved_at ? dt(w.resolved_at) : `<span class="unv">—</span>`}</td>
       <td><button class="secondary tiny" data-rm="${esc(w.ticker)}">Remove</button></td>
+      <td><a href="${esc(`${DEMO.rest}/markets/${encodeURIComponent(w.ticker)}`)}" target="_blank" rel="noopener noreferrer">Official market response ↗</a></td>
     </tr>`;
   }).join("");
   renderStats(rows);
@@ -157,7 +159,7 @@ async function loadRecent() {
     renderRecent();
   } catch (e) {
     pill($("#recent-status"), "err", e.message);
-    $("#recent").innerHTML = emptyRow(6, "Could not load settled markets: " + e.message);
+    $("#recent").innerHTML = emptyRow(7, "Could not load settled markets: " + e.message);
   }
 }
 
@@ -176,8 +178,9 @@ function renderRecent() {
       <td class="num">${money4(m.settlement_value_dollars)}</td>
       <td class="num">${m.expiration_value === "" || m.expiration_value === undefined ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
       <td class="nowrap small">${dt(m.close_time)}</td>
+      <td><a href="${esc(`${DEMO.rest}/markets/${encodeURIComponent(m.ticker)}`)}" target="_blank" rel="noopener noreferrer">Official market response ↗</a></td>
     </tr>`;
-  }).join("") : emptyRow(6, "No settled markets for this topic in the current scan.");
+  }).join("") : emptyRow(7, "No settled markets for this topic in the current scan.");
 }
 
 $("#filter").addEventListener("change", renderRecent);
