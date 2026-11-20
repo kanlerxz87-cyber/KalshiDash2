@@ -465,6 +465,168 @@
   </div>
 
   <div class="card">
+    <h2>1b · Defects found by this session (2026-11-20, re-review)</h2>
+    <p class="sub">Found by reading every file again against the official API reference and against live
+      demo responses fetched during this session. Each item names the source that proves it and says whether
+      it was <em>fixed</em> in this session or is left open for review.</p>
+
+    <div class="irregularity" id="Y1">
+      <h3>Y1 — Cancel sent no <code>market_ticker</code>, so non-shard-0 orders could never be cancelled <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>cancelOrder(orderId)</code> sent
+        <code>DELETE /portfolio/events/orders/{order_id}</code> with no query parameters at all.</p>
+      <p><strong>Why that is wrong:</strong> the Cancel Order (V2) reference documents <code>market_ticker</code>
+        and <code>exchange_index</code> as query parameters and states that <code>market_ticker</code> is
+        <strong>required for auto-routing</strong>; when <code>exchange_index</code> is omitted it otherwise
+        defaults to shard 0. The sharding guide adds that an order can only be cancelled on the shard where it
+        rests, and a request that reaches another shard is rejected with <code>not_found</code> /
+        <code>market_not_found</code>, leaving the order untouched. Since every order write auto-routes by
+        ticker, an order created on shard 1 or 2 (Crypto is shard 2 per the sharding table) could never be
+        cancelled by the old call.</p>
+      <p><strong>Fix shipped:</strong> <code>cancelOrder(orderId, marketTicker)</code> now requires the ticker
+        and sends <code>?market_ticker=…</code>; the Portfolio page asks for it before cancelling. The create
+        call can additionally forward the market's own <code>exchange_index</code>, and omits it by default so
+        Kalshi auto-routes.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/cancel-order-v2" target="_blank" rel="noopener noreferrer">Cancel Order (V2) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">Exchange sharding ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y2">
+      <h3>Y2 — Liquidity read a field the API does not return <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the category pages summed <code>yes_bid_size_fp</code> +
+        <code>no_bid_size_fp</code> for "resting size". <code>no_bid_size_fp</code> appears in neither the
+        Get Market schema nor any live market object: markets carry only <code>yes_bid_size_fp</code> and
+        <code>yes_ask_size_fp</code>. The second term was therefore always 0 and the figure read low.</p>
+      <p><strong>Fix shipped:</strong> the sum now uses the two documented size fields and is labelled
+        "resting size at touch, Σ yes_bid_size_fp + yes_ask_size_fp". A regression test fails if any module
+        reads <code>no_bid_size_fp</code> again.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        · live check: <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events/KXAAAGASW-26NOV23?with_nested_markets=true" target="_blank" rel="noopener noreferrer">GET /events/KXAAAGASW-26NOV23 ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y3">
+      <h3>Y3 — Fees were displayed 100× too small <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the fills table rendered
+        <code>fee_cost_dollars ?? fee_cost / 100</code>. Get Fills documents <code>fee_cost</code> as a
+        <em>dollar</em> string ("0.5600" style, like <code>yes_price_dollars</code>); there is no
+        <code>fee_cost_dollars</code> field in the schema, so the fallback always ran and divided real dollars
+        by 100.</p>
+      <p><strong>Fix shipped:</strong> the fee is read as the documented dollar value.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y4">
+      <h3>Y4 — The board omitted multivariate (combo) events entirely <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> every board scanned only <code>GET /events</code>. The Get Events
+        reference says in as many words: "This endpoint excludes multivariate events. To retrieve
+        multivariate events, use the GET /events/multivariate endpoint." Live demo combos exist and some
+        bundle election legs, so "all events" was an incomplete statement for Elections and Culture.</p>
+      <p><strong>Fix shipped:</strong> the combo endpoint is scanned for those topics and every combo is filed
+        by resolving its documented <code>mve_selected_legs</code> — never by parsing its generic title
+        ("yes Republican party,no Democratic party") — and is labelled as a combo with its legs shown. Combos
+        whose legs cannot be read stay unclassified. Ten taxonomy tests cover this, including the mixed-topic
+        case.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-multivariate-events" target="_blank" rel="noopener noreferrer">Get Multivariate Events ↗</a>
+        · live check: <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events/multivariate?limit=2&with_nested_markets=true" target="_blank" rel="noopener noreferrer">GET /events/multivariate ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y5">
+      <h3>Y5 — The strategy tester anchored settled-market history on "now" <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the tester asked for the last <em>N</em> minutes before
+        <em>the current clock</em>, but a settled market's candles end at its settlement. For any market that
+        settled more than <em>N</em> minutes ago the requested window contained no trading at all, so the
+        replay saw no history and the strategy silently scored nothing.</p>
+      <p><strong>Fix shipped:</strong> <code>fetchCandles</code> accepts an <code>endTs</code> anchor and the
+        tester passes that market's own <code>settlement_ts</code>.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks (required start_ts / end_ts) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y6">
+      <h3>Y6 — A hard-coded "0 open gas-price events" claim was false when re-checked <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the Gas topic displayed a permanent caveat that the demo environment
+        returned zero open gas-price events. That was true of one 1,000-event scan on the morning of
+        2026-11-20 but false by the evening: <code>GET /events?status=open&amp;series_ticker=KXAAAGASW</code>
+        returns <code>KXAAAGASW-26NOV23</code> ("US gas prices this week", settlement source AAA), whose
+        markets carry open interest up to 32,806 contracts and had moved from $0.18 to $0.02.</p>
+      <p><strong>Fix shipped:</strong> the hard-coded count is gone. Each topic page now reports the scan it
+        actually performed (events read per status, page-budget truncation) and says "none in this scan"
+        rather than "topic is empty".</p>
+      <p class="small"><strong>Live check:</strong>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events?status=open&with_nested_markets=true&series_ticker=KXAAAGASW" target="_blank" rel="noopener noreferrer">GET /events?series_ticker=KXAAAGASW ↗</a>
+        · <a class="src-link" href="https://gasprices.aaa.com/" target="_blank" rel="noopener noreferrer">AAA (the event's own settlement source) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y7">
+      <h3>Y7 — The settled-markets table dropped combos, so it could say "nothing resolved" while the exchange was resolving <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the newest settled demo markets are overwhelmingly combos: on
+        2026-11-20 19:20Z the first page of <code>GET /markets?status=settled</code> was two Exotics combos,
+        whose event record has a generic title and no usable topic. Those rows failed topic classification and
+        disappeared.</p>
+      <p><strong>Fix shipped:</strong> settled combos are classified from their legs, labelled, and shown. Note
+        also that settled markets report <code>status: "finalized"</code> (with <code>result</code> and
+        <code>settlement_value_dollars</code>) — the code keys on <code>result</code>, never on the status
+        string, so this does not affect the resolution test.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y8">
+      <h3>Y8 — The Overview could present a truncated scan as the whole exchange <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the board reads at most 10 pages of 200 open events, and its 60-second
+        auto-refresh could start a second scan while the first was still running, letting whichever finished
+        last overwrite the board.</p>
+      <p><strong>What changed:</strong> scans no longer overlap, and a scan that stops at its page budget is now
+        labelled "partial scan" with the page count. <strong>Still open:</strong> how many of the demo
+        environment's open events fall outside those 2,000 — the API does not report a total, and finding out
+        would mean paging the entire list every load. A deeper scan (or a stored snapshot) is a product
+        decision, not a defect that can be fixed by reading the docs.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events (limit ≤ 200, cursor pagination) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y9">
+      <h3>Y9 — Dead file: <code>assets/js/jumps.js</code> claimed to be in use but is imported nowhere <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> its header says "Used by the category charts to mark every move of at
+        least $0.10", but no page or module imports it. The live jump logic is
+        <code>detectJumps</code> in <code>assets/js/market.js</code> (identical threshold), used by
+        <code>category.js</code>. The file is a leftover from a duplicate implementation that was dropped in a
+        merge (see R2).</p>
+      <p><strong>Why it is not deleted here:</strong> removing another session's file is a content decision,
+        and the file is inert — it is never served to a page. Left here so the owner can delete it knowingly.</p>
+      <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps.js"</code> over the repository returns
+        no importers; <code>assets/js/market.js</code> defines <code>detectJumps</code>.</p>
+    </div>
+
+    <div class="irregularity" id="Y10">
+      <h3>Y10 — Duplicate site generation still published at <code>/docs/</code> <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> because Pages serves <code>main:/</code>, the older <code>docs/</code>
+        generation is still reachable at <code>/docs/</code>. It carries the defects F6–F8 that the root site
+        fixed, so a visitor who lands there sees the uncorrected version. Nothing links to it from the root
+        site.</p>
+      <p><strong>Decision needed:</strong> delete <code>docs/</code>, or add a redirect from
+        <code>/docs/</code> to the root. Deleting is out of scope for this session (it is another session's
+        output and the brief says not to discard other sessions' work).</p>
+    </div>
+
+    <div class="irregularity" id="Y11">
+      <h3>Y11 — "High-ROI model" remains a rule-based screen, and its inputs are unproven parameters <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the second scrolling chat is a select filtered by a transparent,
+        documented-arithmetic screen (spread ≤ $0.05, open interest ≥ 1, price band 10–90¢). It is
+        <em>not</em> a probability model and forecasts nothing. The new chance baseline on the Strategy Tester
+        now makes that measurable: a strategy at or below the coin flip has shown no edge.</p>
+      <p><strong>What would close it:</strong> a scored model with a held-out sample large enough to separate
+        it from the control. That is research work, not a documentation check, and inventing a number here
+        would be exactly the kind of fabrication this site refuses.</p>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
@@ -488,12 +650,14 @@ const open = cards.filter(c => c.querySelector(".tag.warn")).length;
 const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
+const fixedNow = [...document.querySelectorAll("#Y1,#Y2,#Y3,#Y4,#Y5,#Y6,#Y7")].length;
 
 $("#counts").innerHTML = [
   { k: "Items on this page", v: int(cards.length), m: "each with evidence" },
   { k: "Open", v: int(open), m: "needs a decision" },
   { k: "Mitigated", v: int(mitigated), m: "handled explicitly by the site" },
-  { k: "Defects in prior site", v: int(defects), m: "found by line-by-line review" }
+  { k: "Defects in prior site", v: int(defects), m: "found by line-by-line review" },
+  { k: "Fixed by this session", v: int(fixedNow), m: "Y1–Y7, each with its source" }
 ].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
 </script>
 </body>

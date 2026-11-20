@@ -115,7 +115,8 @@ python3 -m http.server 8080
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
-node --test tests/alerts-core.test.mjs    # alert engine unit tests
+node --test tests/alerts-core.test.mjs    # alert engine unit tests (18)
+node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (10)
 node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests
 (cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures
 python3 tools/check_site_links.py .       # local links and anchors in the published site

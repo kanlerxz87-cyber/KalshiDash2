@@ -1,18 +1,18 @@
-# COORDINATION.md — Shared Task Board
 
-> **How this file works (per project instructions):** Multiple agent sessions may work on this repo at the same time. This file is the shared task board. Claim a task by writing your session ID and file scope here, then commit and push that claim immediately. Never start a task another session has claimed. Keep scopes non-overlapping. Make small, frequent commits, run `git pull --rebase` before every push. If you hit a merge conflict, stop, resolve without discarding the other session's work, and log what happened. When a task is finished, record its sources, verification performed, and any irregularities, and mark it done. Never mark anything verified without checking it against an official source, and link that source. Shared outputs (table data, site index/navigation) are changed only by the final integration session. If a session crashes or its claim is more than 60 minutes old with no commits, any other session may take over and note the handoff.
 
-Repo: `kanlerxz87-cyber/KalshiDash2`
-This file is the single source of truth for who is doing what. Read it before
-starting work. Claim a task by writing your session ID + file scope into the
-table, then commit and push the claim immediately. Never start a task another
-session has claimed.
+**Update 2026-11-20 ~20:40 UTC — rebase onto `main` @ `b783477` (PR #41 merged mid-session).**
 
-**Session IDs seen on this board:** `4b7b4e2f` (first session — built the initial
-site), `210dfcb8` (current session — review + hardening + live data), `64d89c6c`,
-`b7dfc4d9` (other parallel sessions — probe/verify workflows).
+Three collisions were found and resolved by keeping `main`'s already-merged work, per the board's canonical rule:
 
-## Status legend
+| Collision | `main`'s version (canonical) | This session's duplicate | Resolution |
+|-----------|------------------------------|--------------------------|------------|
+| Flag IDs | session `75932362`/`751ee13f` had already published `X1`–`X4` | this session's 11 items were also numbered `X1`–`X11` | renumbered this session's to **`Y1`–`Y11`**; no id reused, both registers intact (commit `765d8ef`) |
+| Simulated-trade analysis | `replayRandomControl`, `aggregateBreakdowns`, `tradesToCsv` (+ `tests/simulator-core.test.mjs`) | `randomEntry`, `rollup`, `ledgerToCsv` (+ `tests/simulator-analysis.test.mjs`) | dropped this session's duplicates; `main`'s are richer (rollups by topic **and** direction; CSV carries per-trade official source URLs and formula-injection escaping) (commit `e34b64f`) |
+| Executive-summary matrix | `main` derives counts from DOM (`.irregularity` cards) and added an "official basis / evidence" column | this session had hard-coded counts and a 3-column matrix | kept `main`'s derivation; contributed only the two new requirement rows (CSV export, chance baseline) |
+
+Kept from this session because no one else had them: the `resolved.html` multivariate/combo settlement fix, `portfolio.html`
+fee-display fix, `taxonomy.test.mjs` + multivariate scanning, `flagged.html` items `Y1`–`Y11`, and the 11 new `claims.js`
+entries. The conflict log entry required by the standing rule is the table above.
 
 | Status | Meaning |
 | --- | --- |
