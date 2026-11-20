@@ -689,7 +689,7 @@ The existing final-integration claims T6 (`ae228af4`) and B6 (`b7dfc4d9`) had no
 
 | ID | Task | Status | Owner | Exclusive file scope |
 |---|---|---|---|---|
-| A1 | Integrate ≥$0.10 two-feed alerts, retain official event/source links, and add a clearly unverified context-research lead rather than claiming a cause | in progress | `a6bed09f` | `alerts.html`, `assets/js/alerts.js`, `COORDINATION.md` |
+| A1 | Integrate ≥$0.10 two-feed alerts, retain official event/source links, and add a clearly unverified context-research lead rather than claiming a cause | in progress | `a6bed09f` | `alerts.html`, `assets/js/alerts.js`, `tests/dom/alerts-dom.mjs`, `flagged.html`, `COORDINATION.md` |
 | A2 | Automatic local-only strategy simulation, comparison, and yes/no resolution ledger | adopted from PR #19 | `a6bed09f` | Canonical existing implementation in `alerts.html`, `assets/js/alerts-core.js`, and `assets/js/alerts.js`; no duplicate simulator files |
 | A3 | Final integration: accurate executive summary/README, source-link and live-site checks, PR/deploy record | in progress | `a6bed09f` | `summary.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md`, `.github/workflows/verify-live.yml` (review/port only), and `flagged.html` if necessary; no edits under `docs/**`, `data/**`, or `scripts/**` |
 
