@@ -75,8 +75,14 @@ async function fetchTopicMarkets(topicKey, limit = 200) {
   const markets = [];
   for (const s of matched) {
     // GET /markets filter series_ticker verified in the Get Markets OpenAPI spec.
-    const j = await api(`/markets?series_ticker=${encodeURIComponent(s.ticker)}&status=open&limit=${limit}`);
-    for (const m of (j.markets || [])) markets.push({ ...m, _series_title: s.title || "", _series_ticker: s.ticker });
+    // Follow the cursor to exhaustion (Get Markets paging rules) so no entries are silently omitted.
+    let cursor = "", pages = 0;
+    do {
+      const q = `series_ticker=${encodeURIComponent(s.ticker)}&status=open&limit=${limit}` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+      const j = await api(`/markets?${q}`);
+      for (const m of (j.markets || [])) markets.push({ ...m, _series_title: s.title || "", _series_ticker: s.ticker });
+      cursor = j.cursor || ""; pages++;
+    } while (cursor && pages < 50);
   }
   return { series: matched, markets };
 }
