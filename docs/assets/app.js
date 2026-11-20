@@ -20,7 +20,12 @@ const DEMO_BASE = "https://external-api.demo.kalshi.co/trade-api/v2";
 const DEMO_WS = "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2";
 const DOCS = "https://docs.kalshi.com";
 const TOPICS = {
-  gas:      { label: "Gas Prices", keywords: ["gas", "gasoline", "fuel", "eia"] },
+  gas:      { label: "Gas Prices", keywords: ["gas", "gasoline", "fuel", "eia"],
+              // Exclusions apply to ticker+title only (not tags/categories): the
+              // "Oil & Gas" tag would otherwise drag crude/diesel/natgas futures
+              // into the retail gas topic (finding G1 by session 64d89c6c,
+              // COORDINATION.md). Retail gas = KXAAAGAS* family (fee schedule S20).
+              excl: ["crude", "wti", "brent", "diesel", "natural gas", "natgas", "barrel", "oil"] },
   elections:{ label: "Elections",  keywords: ["election", "president", "senate", "house", "governor", "vote", "ballot", "congress", "nominee", "primary"] },
   culture:  { label: "Culture",    keywords: ["culture", "movie", "film", "music", "oscar", "grammy", "emmy", "book", "celebrity", "pop", "box office"] },
   crypto:   { label: "Crypto",     keywords: ["crypto", "bitcoin", "ethereum", "btc", "eth", "coin", "solana"] },
@@ -53,7 +58,13 @@ function seriesMatchesTopic(series, topicKey) {
     ...(Array.isArray(series.categories) ? series.categories : []),
     ...(Array.isArray(series.tags) ? series.tags : [])
   ].filter(Boolean).join(" ").toLowerCase();
-  return TOPICS[topicKey].keywords.some(k => hay.includes(k));
+  const t = TOPICS[topicKey];
+  if (!t.keywords.some(k => hay.includes(k))) return false;
+  if (t.excl) {
+    const ident = [series.ticker, series.title].filter(Boolean).join(" ").toLowerCase();
+    if (t.excl.some(k => ident.includes(k))) return false;
+  }
+  return true;
 }
 /* GET /series takes category/tags/include_* filters only — no documented
    limit/cursor params (verified in the OpenAPI spec on the Get Series List
