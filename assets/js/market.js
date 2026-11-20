@@ -60,6 +60,42 @@ function excluded(topic, cats, titles, series) {
 }
 
 /* Classify an event into one of the five topics using only documented fields. */
+/* Multivariate ("combo") markets have generic titles such as "yes Republican
+ * party,no Democratic party" and the category `Exotics`, so a title/category
+ * test cannot place them in a topic. What does place them is the event record
+ * itself: every combo market carries `mve_selected_legs` — the underlying
+ * markets it is made of, each with an `event_ticker`
+ * (https://docs.kalshi.com/api-reference/events/get-multivariate-events).
+ * Resolving a leg's own event therefore gives a documented basis for the combo's
+ * topic instead of a guess. `legEventLookup` is an async (eventTicker) =>
+ * event|null function supplied by the caller; without it the combo stays
+ * unclassified rather than being forced into a topic. */
+export async function classifyMultivariate(ev, legEventLookup) {
+  if (!ev || typeof legEventLookup !== "function") return null;
+  const markets = Array.isArray(ev.markets) ? ev.markets : [];
+  const legs = [];
+  for (const m of markets) {
+    for (const leg of (m.mve_selected_legs || [])) {
+      if (leg && leg.event_ticker && !legs.includes(leg.event_ticker)) legs.push(leg.event_ticker);
+    }
+  }
+  const bases = [];
+  for (const t of legs.slice(0, 8)) {
+    const legEvent = await legEventLookup(t);
+    if (!legEvent) continue;
+    const k = classifyEvent(legEvent);
+    if (k) bases.push({ event_ticker: t, topic: k });
+  }
+  if (!bases.length) {
+    /* A combo of nothing, or of out-of-scope legs: explicitly out of scope. */
+    return null;
+  }
+  const topics = [...new Set(bases.map(b => b.topic))];
+  const counts = topics.map(t => ({ topic: t, legs: bases.filter(b => b.topic === t).length }));
+  counts.sort((a, b) => b.legs - a.legs);
+  return { topic: counts[0].topic, mixed: counts.length > 1, bases, counts };
+}
+
 export function classifyEvent(ev) {
   if (!ev) return null;
   const cats = [ev.category].filter(Boolean);
@@ -85,9 +121,53 @@ export function classifyEvent(ev) {
   return null;
 }
 
+/* Collect multivariate ("combo") events from GET /events/multivariate.
+ *
+ * GET /events EXCLUDES multivariate events — the reference says so in as many
+ * words ("This endpoint excludes multivariate events. To retrieve multivariate
+ * events, use the GET /events/multivariate endpoint"), and live demo combos
+ * whose legs include election markets exist. A board built only from /events
+ * is therefore an incomplete reading of "all events".
+ *
+ * The combo endpoint documents `series_ticker`, `collection_ticker`, `cursor`
+ * and `limit` query parameters and returns { events, cursor }. This helper only
+ * walks the cursor with the documented page size; it does not filter by status
+ * (the endpoint's documented filters do not include `status`), so per-market
+ * `status` is applied later by the caller.
+ * (https://docs.kalshi.com/api-reference/events/get-multivariate-events) */
+export async function fetchMultivariateEvents({ maxPages = 2, limit = 100 } = {}) {
+  const rows = await getAll("/events/multivariate?with_nested_markets=true", {
+    key: "events", maxPages, limit
+  });
+  return rows;
+}
+
+/* Classify multivariate events by their selected legs. Each distinct leg event
+ * is fetched once; failures are non-fatal and leave that combo unclassified. */
+export async function classifyMultivariateList(events) {
+  const cache = new Map();
+  const lookup = async (t) => {
+    if (!cache.has(t)) {
+      try {
+        const j = await api.get(`/events/${encodeURIComponent(t)}`);
+        cache.set(t, j.event || j);
+      } catch { cache.set(t, null); }
+    }
+    return cache.get(t);
+  };
+  const out = [];
+  for (const ev of events || []) {
+    const c = await classifyMultivariate(ev, lookup);
+    if (!c) continue;
+    ev._mve = c;
+    out.push(ev);
+  }
+  return out;
+}
+
 /* Live discovery for one topic.
  * Returns { events, markets, seriesSeen, source, scanned }. */
-export async function discoverTopic(topicKey, { includeSettled = true, onProgress } = {}) {
+export async function discoverTopic(topicKey, { includeSettled = true, includeMultivariate = true, onProgress } = {}) {
   const topic = TOPICS.find(t => t.key === topicKey);
   if (!topic) throw new Error("Unknown topic: " + topicKey);
 
@@ -116,7 +196,26 @@ export async function discoverTopic(topicKey, { includeSettled = true, onProgres
     events.push(...rows);
   }
 
-  const matched = events.filter(e => classifyEvent(e) === topicKey);
+  /* Combos are classified from their legs, not from their generic titles. */
+  let mveScanned = 0;
+  let mveCapped = false;
+  if (includeMultivariate && (topicKey === "elections" || topicKey === "culture")) {
+    const mve = await fetchMultivariateEvents({ maxPages: 2, limit: 100 });
+    mveScanned = mve.length;
+    mveCapped = !!mve.__capped;
+    const live = mve.filter(e => (e.markets || []).some(m => ["active", "open"].includes(m.status)));
+    const classified = await classifyMultivariateList(live);
+    for (const ev of classified) {
+      if (ev._mve.topic !== topicKey) continue;
+      /* Only the combo's live markets enter the market list. */
+      ev.markets = (ev.markets || []).filter(m => ["active", "open"].includes(m.status));
+      ev._status = "multivariate";
+      ev._combo = true;
+      events.push(ev);
+    }
+  }
+
+  const matched = events.filter(e => (e._combo ? e._mve?.topic === topicKey : classifyEvent(e) === topicKey));
   const markets = [];
   for (const ev of matched) {
     for (const m of ev.markets || []) {
@@ -135,8 +234,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, onProgres
     events: matched,
     markets,
     scanned: events.length,
-    perStatus,
-    capped,
+    perStatus: { ...perStatus, multivariate: mveScanned },
+    capped: { ...capped, multivariate: mveCapped },
     source: `${DEMO.rest}/events?with_nested_markets=true`
   };
 }

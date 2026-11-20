@@ -137,9 +137,16 @@ function renderBoard() {
       : result === "no" ? `<span class="tag no">no</span>`
       : result === "mixed" ? `<span class="tag warn">mixed</span>`
       : `<span class="muted small">open</span>`;
+    /* A multivariate ("combo") event is labelled as one and its topic is shown
+     * with the legs it was derived from — the classification basis is not left
+     * to the reader's imagination. */
+    const combo = ev._combo && ev._mve
+      ? `<span class="tag warn" title="Multivariate combo event — topic derived from its selected legs">combo</span>
+         <div class="small muted">legs: ${ev._mve.bases.map(b => `${esc(b.topic)} (${esc(b.event_ticker)})`).join(" · ")}${ev._mve.mixed ? " — spans more than one topic" : ""}</div>`
+      : "";
     return `<tr>
       <td><a href="../event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
-        <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
+        <div class="mono muted small">${esc(ev.event_ticker)}</div>${combo}</td>
       <td class="num">${int(r.marketCount)}</td>
       <td class="num">${money(r.money)}</td>
       <td class="num">${int(r.oi)}</td>
