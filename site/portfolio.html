@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio &amp; trading — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Demo portfolio &amp; trade execution</h1>
+    <p>
+      Balance, positions, fills and order placement against your <strong>Kalshi demo account</strong>.
+      Requests are signed in this browser tab. The private key is held in memory only, is never written to
+      storage, and is never sent anywhere except the demo API.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <h3>Read this before adding a key</h3>
+    <ul>
+      <li>Use a <strong>demo</strong> API key created at <a href="https://demo.kalshi.co/account/profile" target="_blank" rel="noopener noreferrer">demo.kalshi.co/account/profile ↗</a>. Never paste a production key.</li>
+      <li>Demo credentials are separate from production and demo funds are mock only.
+        <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Source ↗</a></li>
+      <li>Reloading the page drops the key from memory — that is deliberate. You will re-paste it to trade again.</li>
+      <li>Requests are signed against <code class="mono">/trade-api/v2</code> + path with the query string stripped,
+        RSA-PSS/SHA-256 (salt = 32) or Ed25519.
+        <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Signing rules ↗</a></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>1 · Load a demo key</h2>
+    <div class="grid cols-2">
+      <label class="field">API key ID
+        <input type="text" id="keyId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" spellcheck="false" autocomplete="off">
+      </label>
+      <label class="field">Private key (PEM — PKCS#8 or PKCS#1; Ed25519 or RSA)
+        <textarea id="pem" rows="6" placeholder="-----BEGIN PRIVATE KEY-----" spellcheck="false" autocomplete="off"></textarea>
+      </label>
+    </div>
+    <div class="toolbar" style="margin-top:12px">
+      <button id="load-key">Load key into this tab</button>
+      <button class="secondary" id="clear-key">Forget key</button>
+      <span id="key-status" class="pill idle">no key loaded</span>
+    </div>
+    <p class="small muted" style="margin:8px 0 0" id="key-detail">
+      The key type is detected from the parsed key, because a PKCS#8 RSA key and a PKCS#8 Ed25519 key share the
+      same PEM header. <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Why ↗</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>2 · Account</h2>
+    <div class="toolbar">
+      <button id="load-account">Load balance, positions &amp; fills</button>
+      <span id="acct-status" class="pill idle">idle</span>
+    </div>
+    <div class="grid cols-4" id="acct-stats" style="margin:12px 0"></div>
+    <div id="acct-error"></div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Place a demo order</h2>
+    <p class="sub">
+      Uses <code>POST /portfolio/events/orders</code> (the V2 endpoint). The legacy
+      <code>POST /portfolio/orders</code> write route now answers <code>410 deprecated_v1_order_endpoint</code>.
+      <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Endpoint ↗</a>
+    </p>
+    <div class="grid cols-2">
+      <label class="field">Market ticker
+        <input type="text" id="o-ticker" placeholder="e.g. KXDEMOFUTHOURLY-26NOV20H12-UP" spellcheck="false">
+      </label>
+      <label class="field">You are buying
+        <select id="o-side">
+          <option value="yes">YES — pays $1.00 if yes wins</option>
+          <option value="no">NO — pays $1.00 if no wins</option>
+        </select>
+      </label>
+      <label class="field">Price per contract (USD)
+        <input type="number" id="o-price" step="0.0001" min="0" max="1" value="0.50">
+      </label>
+      <label class="field">Contracts
+        <input type="number" id="o-count" step="1" min="0.01" value="1">
+      </label>
+    </div>
+    <div id="grid-note" class="small muted" style="margin-top:8px"></div>
+    <div class="toolbar" style="margin-top:12px">
+      <button id="place">Place order</button>
+      <button class="secondary" id="cancel-order">Cancel an order</button>
+      <span class="spacer"></span>
+      <span id="order-status" class="pill idle">idle</span>
+    </div>
+    <div id="order-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>4 · Fills</h2>
+    <p class="sub">The raw fills below feed the <a href="strategies.html">Strategies</a> page. Nothing is
+      analysed unless it came back from <code>GET /portfolio/fills</code>.</p>
+    <div class="toolbar">
+      <button class="secondary" id="reload-fills">Reload fills</button>
+      <span id="fills-status" class="pill idle">idle</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Market</th><th>Outcome side</th><th class="num">Contracts</th>
+          <th class="num">YES price</th><th class="num">NO price</th><th>Liquidity</th><th class="num">Fee</th>
+        </tr></thead>
+        <tbody id="fills-body"><tr><td colspan="8"><div class="empty">No fills loaded.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5 · Positions</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th><th class="num">Position</th><th class="num">Market exposure</th>
+          <th class="num">Realized P&amp;L</th><th>Status</th>
+        </tr></thead>
+        <tbody id="pos-body"><tr><td colspan="5"><div class="empty">No positions loaded.</div></td></tr></tbody>
+      </table>
+      <div class="table-note">
+        Source: <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>
+        · <a href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">GET /portfolio/balance ↗</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { SOURCES } from "./assets/js/config.js";
+import { api, num } from "./assets/js/market.js";
+import { snapToGrid } from "./assets/js/kalshi.js";
+
+mountChrome({ page: "portfolio.html", title: "Portfolio" });
+
+/* ------------------------------- key handling ------------------------------ */
+$("#load-key").onclick = () => {
+  try {
+    const keyId = $("#keyId").value.trim();
+    const pem = $("#pem").value.trim();
+    api.setCredentials({ keyId, pem });
+    $("#pem").value = "";
+    pill($("#key-status"), "live", "key loaded in memory · " + api.keyIdHint());
+    $("#key-detail").innerHTML = `Key ID ending ${esc(api.keyIdHint())}. The PEM was cleared from the form field
+      and is held in this tab's memory only; it is not stored on disk, in localStorage, or in sessionStorage.`;
+  } catch (e) {
+    pill($("#key-status"), "err", e.message);
+  }
+};
+$("#clear-key").onclick = () => {
+  api.clearCredentials();
+  $("#keyId").value = "";
+  $("#pem").value = "";
+  pill($("#key-status"), "idle", "no key loaded");
+  $("#acct-stats").innerHTML = "";
+  $("#acct-error").innerHTML = "";
+};
+
+/* ------------------------------- account ---------------------------------- */
+$("#load-account").onclick = async () => {
+  if (!api.hasCredentials()) { pill($("#acct-status"), "err", "load a demo key first"); return; }
+  pill($("#acct-status"), "warn", "loading…");
+  $("#acct-error").innerHTML = "";
+  try {
+    const bal = await api.balance();
+    let pos = { market_positions: [] };
+    try { pos = await api.positions("?limit=200"); } catch (e) { $("#acct-error").innerHTML = `<div class="callout warn">Positions: ${esc(e.message)}</div>`; }
+    const positions = pos.market_positions || pos.positions || [];
+
+    $("#acct-stats").innerHTML = [
+      { k: "Balance", v: money(bal.balance_dollars ?? (num(bal.balance) !== null ? bal.balance / 100 : null)), m: "available cash" },
+      { k: "Portfolio value", v: money(num(bal.portfolio_value) !== null ? bal.portfolio_value / 100 : null), m: "open position value" },
+      { k: "Open positions", v: int(positions.length), m: "markets with exposure" },
+      { k: "Updated", v: bal.updated_ts ? new Date(bal.updated_ts * 1000).toLocaleTimeString() : "—", m: "API timestamp" }
+    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+    $("#pos-body").innerHTML = positions.length ? positions.map(p => `<tr>
+      <td><strong>${esc(p.ticker || p.market_ticker || "")}</strong>
+        ${p.market_title ? `<div class="small muted">${esc(p.market_title)}</div>` : ""}</td>
+      <td class="num">${int(p.position_fp ?? p.position)}</td>
+      <td class="num">${money(p.market_exposure_dollars ?? (num(p.market_exposure) / 100))}</td>
+      <td class="num">${money(p.realized_pnl_dollars ?? (num(p.realized_pnl) / 100))}</td>
+      <td><span class="pill idle">${esc(p.settlement_status || p.status || "")}</span></td>
+    </tr>`).join("") : emptyRow(5, "The demo account has no open positions.");
+
+    pill($("#acct-status"), "live", "account loaded");
+    loadFills();
+  } catch (e) {
+    pill($("#acct-status"), "err", e.message);
+    $("#acct-error").innerHTML = `<div class="callout bad"><h3>The request was rejected</h3>
+      <p style="margin:0 0 6px">${esc(e.message)}</p>
+      <p style="margin:0" class="small">
+        ${e.status === 401 ? "401 usually means the signature or timestamp was rejected. Kalshi requires the timestamp to be within 30 seconds of its clock, and the signature must cover <code>/trade-api/v2</code> + path without the query string." : ""}
+        <a href="${SOURCES.apiKeys}" target="_blank" rel="noopener noreferrer">Signing rules ↗</a></p></div>`;
+  }
+};
+
+/* ------------------------------- fills ----------------------------------- */
+async function loadFills() {
+  if (!api.hasCredentials()) return;
+  pill($("#fills-status"), "warn", "loading…");
+  try {
+    const j = await api.fills();
+    const fills = j.fills || [];
+    window.__fills = fills;
+    $("#fills-body").innerHTML = fills.length ? fills.slice(0, 300).map(f => `<tr>
+      <td class="small nowrap">${dt(f.created_time || (f.ts ? new Date(f.ts * 1000).toISOString() : null))}</td>
+      <td class="mono small">${esc(f.ticker || f.market_ticker || "")}</td>
+      <td>${f.outcome_side ? `<span class="tag ${f.outcome_side === "yes" ? "yes" : "no"}">${esc(f.outcome_side)}</span>` : `<span class="unv">not returned</span>`}</td>
+      <td class="num">${int(f.count_fp ?? f.count)}</td>
+      <td class="num">${money4(f.yes_price_dollars)}</td>
+      <td class="num">${money4(f.no_price_dollars)}</td>
+      <td>${f.is_taker === true ? "taker" : f.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
+      <td class="num">${money(f.fee_cost_dollars ?? (num(f.fee_cost) !== null ? f.fee_cost / 100 : null))}</td>
+    </tr>`).join("") : emptyRow(8, "No fills on this demo account yet. Place an order below, or use the demo site to trade first.");
+    pill($("#fills-status"), "live", `${fills.length} fills · saved for analysis`);
+    localStorage.setItem("kalshiDash.fills", JSON.stringify({ at: new Date().toISOString(), fills }));
+  } catch (e) {
+    pill($("#fills-status"), "err", e.message);
+    $("#fills-body").innerHTML = emptyRow(8, "Fills request failed: " + e.message);
+  }
+}
+$("#reload-fills").onclick = loadFills;
+
+/* ------------------------------- order form ------------------------------ */
+let marketInfo = null;
+
+/* Read the market's own price grid so the price we submit is valid. */
+$("#o-ticker").addEventListener("change", async () => {
+  const t = $("#o-ticker").value.trim();
+  $("#grid-note").innerHTML = "";
+  marketInfo = null;
+  if (!t) return;
+  try {
+    const j = await api.get(`/markets/${encodeURIComponent(t)}`);
+    marketInfo = j.market || j;
+    const ranges = marketInfo.price_ranges || [];
+    $("#grid-note").innerHTML = `<strong>${esc(marketInfo.title || t)}</strong> ·
+      status <span class="tag">${esc(marketInfo.status || "")}</span> ·
+      best YES bid ${money4(marketInfo.yes_bid_dollars)} · best YES ask ${money4(marketInfo.yes_ask_dollars)} ·
+      valid price grid: ${ranges.map(r => `${esc(r.start)}–${esc(r.end)} step ${esc(r.step)}`).join(", ") || "not returned"}`;
+    const mid = (num(marketInfo.yes_bid_dollars) !== null && num(marketInfo.yes_ask_dollars) !== null)
+      ? (num(marketInfo.yes_bid_dollars) + num(marketInfo.yes_ask_dollars)) / 2 : null;
+    if (mid !== null) $("#o-price").value = snapToGrid(mid, ranges).value;
+  } catch (e) {
+    $("#grid-note").innerHTML = `<span style="color:var(--bad)">${esc(e.message)}</span>`;
+  }
+});
+
+$("#o-price").addEventListener("change", () => {
+  if (!marketInfo) return;
+  const g = snapToGrid($("#o-price").value, marketInfo.price_ranges);
+  if (g.snapped) {
+    $("#grid-note").innerHTML += `<div class="small" style="color:var(--warn);margin-top:4px">
+      Price snapped to ${g.value} to match this market's published grid (step ${g.step}).</div>`;
+    $("#o-price").value = g.value;
+  }
+});
+
+$("#place").onclick = async () => {
+  if (!api.hasCredentials()) { pill($("#order-status"), "err", "load a demo key first"); return; }
+  const ticker = $("#o-ticker").value.trim();
+  if (!ticker) { pill($("#order-status"), "err", "enter a market ticker"); return; }
+  const outcomeSide = $("#o-side").value;
+  const price = Number($("#o-price").value);
+  const count = Number($("#o-count").value);
+  if (!(price > 0 && price < 1)) { pill($("#order-status"), "err", "price must be between 0 and 1"); return; }
+  if (!(count > 0)) { pill($("#order-status"), "err", "contracts must be greater than 0"); return; }
+
+  // Final confirmation, because this places a real order on the demo book.
+  const verb = outcomeSide === "yes" ? "BUY YES" : "BUY NO";
+  if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?\n\nThis submits a demo order.`)) return;
+
+  pill($("#order-status"), "warn", "submitting…");
+  $("#order-result").innerHTML = "";
+  try {
+    const r = await api.createOrder({ ticker, outcomeSide, priceDollars: price, count });
+    pill($("#order-status"), "live", "order accepted");
+    $("#order-result").innerHTML = `<div class="callout ok">
+      <h3>Order accepted${r.order_id ? " · " + esc(r.order_id.slice(0, 8)) + "…" : ""}</h3>
+      <p style="margin:0 0 6px" class="small">
+        A <code>201</code> means the order was <em>accepted</em>, not filled — check
+        <code>remaining_count</code>.
+      </p>
+      <pre class="mono small" style="margin:0;white-space:pre-wrap;background:#fff;border:1px solid #cddff2;border-radius:6px;padding:8px">${esc(JSON.stringify(r, null, 2))}</pre>
+    </div>`;
+    loadFills();
+  } catch (e) {
+    pill($("#order-status"), "err", e.message);
+    $("#order-result").innerHTML = `<div class="callout bad">
+      <h3>Order rejected</h3>
+      <p style="margin:0 0 6px">${esc(e.message)}</p>
+      <pre class="mono small" style="margin:0;white-space:pre-wrap;background:#fff;border-radius:6px;padding:8px">${esc(JSON.stringify(e.body || {}, null, 2))}</pre>
+      <p class="small" style="margin:6px 0 0">Error codes:
+        <a href="https://docs.kalshi.com/getting_started/order_errors" target="_blank" rel="noopener noreferrer">order errors ↗</a></p>
+    </div>`;
+  }
+};
+
+$("#cancel-order").onclick = async () => {
+  if (!api.hasCredentials()) { pill($("#order-status"), "err", "load a demo key first"); return; }
+  const id = prompt("Order ID to cancel:");
+  if (!id) return;
+  try {
+    const r = await api.cancelOrder(id.trim());
+    pill($("#order-status"), "live", "cancel submitted");
+    $("#order-result").innerHTML = `<div class="callout ok"><h3>Cancelled</h3>
+      <pre class="mono small" style="margin:0;white-space:pre-wrap">${esc(JSON.stringify(r, null, 2))}</pre></div>`;
+  } catch (e) {
+    pill($("#order-status"), "err", e.message);
+    $("#order-result").innerHTML = `<div class="callout bad"><h3>Cancel failed</h3><p style="margin:0">${esc(e.message)}</p></div>`;
+  }
+};
+
+/* If fills were captured earlier in this browser, show them immediately. */
+try {
+  const saved = JSON.parse(localStorage.getItem("kalshiDash.fills") || "null");
+  if (saved?.fills?.length) {
+    pill($("#fills-status"), "idle", `${saved.fills.length} saved fills from ${new Date(saved.at).toLocaleString()} — reload with a key`);
+  }
+} catch {}
+</script>
+</body>
+</html>

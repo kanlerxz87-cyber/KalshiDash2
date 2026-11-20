@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resolved events — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Tracked until resolution</h1>
+    <p>
+      Every market you track is polled from this browser until the exchange reports a final
+      <strong>yes</strong> or <strong>no</strong>. The outcome shown is the API's own
+      <code>result</code> value — it is never inferred from the price.
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="res-stats" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Your watch list</h2>
+    <div class="toolbar">
+      <button id="refresh">Refresh now</button>
+      <span class="spacer"></span>
+      <span id="status" class="pill idle">idle</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th><th>Topic</th><th>Status</th><th>Result</th>
+          <th class="num">Price when tracked</th><th class="num">Last seen</th>
+          <th>Resolved at</th><th></th>
+        </tr></thead>
+        <tbody id="rows"><tr><td colspan="8"><div class="empty">No markets tracked yet.</div></td></tr></tbody>
+      </table>
+      <div class="table-note">
+        Source: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a>
+        — the <code>result</code> and <code>status</code> fields. Resolution rules:
+        <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recently resolved markets, discovered live</h2>
+    <p class="sub">
+      Independently of your watch list, this table scans settled markets in the demo environment and shows
+      the exchange's reported outcome. It answers "how was it resolved — yes or no" for markets this
+      dashboard did not necessarily track.
+    </p>
+    <div class="toolbar">
+      <label class="inline">Filter
+        <select id="filter">
+          <option value="all">All my topics</option>
+          <option value="gas">Gas prices</option>
+          <option value="elections">Elections</option>
+          <option value="culture">Culture</option>
+          <option value="crypto">Crypto</option>
+          <option value="golf">Golf</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span id="recent-status" class="pill idle">idle</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th><th>Topic</th><th>Result</th>
+          <th class="num">Settlement value</th><th class="num">Expiration value</th><th>Closed</th>
+        </tr></thead>
+        <tbody id="recent"><tr><td colspan="6"><div class="empty">Loading settled markets…</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { SOURCES } from "./assets/js/config.js";
+import { api, getAll, Watchlist, num, classifyEvent } from "./assets/js/market.js";
+
+mountChrome({ page: "resolved.html", title: "Resolved" });
+
+/* ----------------------------- watch list ----------------------------- */
+async function refreshWatch() {
+  const list = Watchlist.all();
+  if (!list.length) {
+    $("#rows").innerHTML = emptyRow(8, "No markets tracked yet. Add some from a category page or an event page.");
+    renderStats([]);
+    return;
+  }
+  pill($("#status"), "warn", "polling…");
+  const rows = await Watchlist.refresh();
+  pill($("#status"), "live", `live · ${rows.length} tracked`);
+  $("#rows").innerHTML = rows.map(w => {
+    const resolved = w.final_result;
+    const tag = resolved === "yes" ? `<span class="tag yes">yes</span>`
+      : resolved === "no" ? `<span class="tag no">no</span>`
+      : `<span class="muted small">awaiting resolution</span>`;
+    return `<tr>
+      <td><strong>${esc(w.title || w.ticker)}</strong>
+        <div class="mono muted small">${esc(w.ticker)}</div>
+        ${w._error ? `<div class="small" style="color:var(--bad)">${esc(w._error)}</div>` : ""}</td>
+      <td>${w.topic ? `<a href="categories/${esc(w.topic)}.html">${esc(w.topic)}</a>` : `<span class="unv">—</span>`}</td>
+      <td><span class="pill idle">${esc(w.last_seen?.status || "")}</span></td>
+      <td>${tag}</td>
+      <td class="num">${money4(w.open_price)}</td>
+      <td class="num">${money4(w.last_seen?.last)}</td>
+      <td class="small nowrap">${w.resolved_at ? dt(w.resolved_at) : `<span class="unv">—</span>`}</td>
+      <td><button class="secondary tiny" data-rm="${esc(w.ticker)}">Remove</button></td>
+    </tr>`;
+  }).join("");
+  renderStats(rows);
+}
+
+function renderStats(rows) {
+  const resolved = rows.filter(w => w.final_result);
+  const yes = resolved.filter(w => w.final_result === "yes").length;
+  const no = resolved.filter(w => w.final_result === "no").length;
+  $("#res-stats").innerHTML = [
+    { k: "Tracked", v: int(rows.length), m: "markets in this browser" },
+    { k: "Resolved", v: int(resolved.length), m: "exchange reported a result" },
+    { k: "Resolved YES", v: int(yes), m: "result = yes" },
+    { k: "Resolved NO", v: int(no), m: "result = no" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+}
+
+$("#rows").addEventListener("click", e => {
+  const b = e.target.closest("[data-rm]");
+  if (!b) return;
+  Watchlist.remove(b.dataset.rm);
+  refreshWatch();
+});
+$("#refresh").onclick = refreshWatch;
+
+/* --------------------------- recent resolved --------------------------- */
+async function loadRecent() {
+  pill($("#recent-status"), "warn", "loading…");
+  try {
+    const markets = await getAll("/markets?status=settled", { key: "markets", maxPages: 6, limit: 200 });
+    // Resolve event -> topic using the event detail, cached per event ticker.
+    const evCache = new Map();
+    const rows = [];
+    for (const m of markets) {
+      let ev = evCache.get(m.event_ticker);
+      if (ev === undefined) {
+        try { const j = await api.get(`/events/${encodeURIComponent(m.event_ticker)}`); ev = j.event || j; }
+        catch { ev = null; }
+        evCache.set(m.event_ticker, ev);
+      }
+      rows.push({ m, ev, topic: ev ? classifyEvent(ev) : null });
+      if (rows.length >= 400) break;
+    }
+    window.__recentRows = rows;
+    pill($("#recent-status"), "live", `live · ${rows.length} settled markets`);
+    renderRecent();
+  } catch (e) {
+    pill($("#recent-status"), "err", e.message);
+    $("#recent").innerHTML = emptyRow(6, "Could not load settled markets: " + e.message);
+  }
+}
+
+function renderRecent() {
+  const all = window.__recentRows || [];
+  const f = $("#filter").value;
+  const rows = f === "all" ? all.filter(r => r.topic) : all.filter(r => r.topic === f);
+  $("#recent").innerHTML = rows.length ? rows.slice(0, 150).map(({ m, topic }) => {
+    const r = (m.result || "").toLowerCase();
+    const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="unv">${esc(m.result || "blank")}</span>`;
+    return `<tr>
+      <td><strong>${esc(m.title || m.yes_sub_title || m.ticker)}</strong>
+        <div class="mono muted small">${esc(m.ticker)}</div></td>
+      <td><a href="categories/${esc(topic)}.html">${esc(topic)}</a></td>
+      <td>${tag}</td>
+      <td class="num">${money4(m.settlement_value_dollars)}</td>
+      <td class="num">${m.expiration_value === "" || m.expiration_value === undefined ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
+      <td class="nowrap small">${dt(m.close_time)}</td>
+    </tr>`;
+  }).join("") : emptyRow(6, "No settled markets for this topic in the current scan.");
+}
+
+$("#filter").addEventListener("change", renderRecent);
+
+refreshWatch();
+loadRecent();
+setInterval(() => { if (document.visibilityState === "visible") refreshWatch(); }, 60000);
+</script>
+</body>
+</html>

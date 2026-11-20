@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trade analysis &amp; strategies — KalshiDash2</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Trade analysis &amp; strategy catalogue</h1>
+    <p>
+      Two separate things live on this page: <strong>your</strong> demo fills, categorised by topic, side and
+      maker/taker role; and a <strong>catalogue of strategies</strong> expressed as rules over fields the API
+      actually returns, so each one can be tested against real fills later.
+    </p>
+  </div>
+
+  <div class="callout info">
+    <h3>How categorisation works</h3>
+    <p style="margin:0 0 6px">
+      Each fill carries a market ticker. The ticker is mapped to one of the five topics by looking up its
+      event and applying the same category rules the dashboard uses — no ticker is hardcoded. Fills whose
+      event is outside the five topics are counted as <em>outside scope</em>, not silently dropped.
+    </p>
+    <p style="margin:0" class="small muted">
+      Fill fields: <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">GET /portfolio/fills ↗</a>
+      · direction semantics: <a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">outcome_side / book_side ↗</a>
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="fill-stats" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Your fills</h2>
+    <div class="toolbar">
+      <button id="load">Load my fills</button>
+      <span class="spacer"></span>
+      <span id="status" class="pill idle">idle</span>
+    </div>
+    <div id="need-key"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Market</th><th>Topic</th><th>Side</th><th class="num">Contracts</th>
+          <th class="num">Price paid</th><th class="num">Premium</th><th class="num">Fee</th><th>Role</th>
+        </tr></thead>
+        <tbody id="fills"><tr><td colspan="9"><div class="empty">No fills loaded.</div></td></tr></tbody>
+      </table>
+      <div class="table-note" id="fills-note">
+        Premium = contracts × price paid. Fees come from the API's <code>fee_cost</code>.
+        Totals exclude any fill the API returned without a price, and that count is shown.
+      </div>
+    </div>
+  </div>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>By topic</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Topic</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th><th class="num">Fees</th></tr></thead>
+        <tbody id="by-topic"><tr><td colspan="5"><div class="empty">No data.</div></td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>By side &amp; role</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Bucket</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th></tr></thead>
+        <tbody id="by-side"><tr><td colspan="4"><div class="empty">No data.</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Strategy catalogue</h2>
+    <p class="sub">
+      Every strategy is written as a rule over API fields. A strategy only becomes "tested" when enough real
+      fills exist; until then it is marked <span class="tag warn">untested</span> rather than claimed to work.
+      Each entry names the evidence needed to evaluate it.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Strategy</th><th>Rule (API fields)</th><th>Evidence needed</th><th>Status</th><th>Risk</th>
+        </tr></thead>
+        <tbody id="strategies"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { SOURCES, TOPICS } from "./assets/js/config.js";
+import { api, analyseFills, num } from "./assets/js/market.js";
+
+mountChrome({ page: "strategies.html", title: "Strategies" });
+
+/* ------------------------------ strategies ------------------------------ */
+const STRATEGIES = [
+  {
+    name: "Buy YES below fair value",
+    rule: "outcome_side = yes AND price < your estimated probability",
+    evidence: "Fills with outcome_side=yes and their realised settlement result",
+    risk: "Model risk: a wrong probability estimate loses the premium",
+    status: "untested"
+  },
+  {
+    name: "Fade the extreme",
+    rule: "Buy NO when yes_ask ≥ 0.90 and volume_fp is thin",
+    evidence: "Fills at extreme prices plus the market's settled `result`",
+    risk: "Extremes resolve correctly far more often than intuition suggests",
+    status: "untested"
+  },
+  {
+    name: "Maker-first execution",
+    rule: "is_taker = false on most fills",
+    evidence: "The `is_taker` flag on every fill, compared with fees paid",
+    risk: "Maker orders may never fill and leave you exposed to news",
+    status: "untested"
+  },
+  {
+    name: "Event, not market, exposure",
+    rule: "Spread orders across markets of one event instead of one market",
+    evidence: "Fills grouped by event_ticker",
+    risk: "Mutually exclusive markets can produce a guaranteed loss if overbought",
+    status: "untested"
+  },
+  {
+    name: "Concentration by topic",
+    rule: "Cap premium per topic at a fixed share of balance",
+    evidence: "By-topic premium table above, compared with balance history",
+    risk: "Cap limits upside during a genuinely mispriced stretch",
+    status: "untested"
+  },
+  {
+    name: "Resolution-aware exit",
+    rule: "Sell before close_time instead of holding to settlement",
+    evidence: "Fills, positions and each market's close_time and result",
+    risk: "Exit liquidity may be worse than settlement value",
+    status: "untested"
+  }
+];
+
+$("#strategies").innerHTML = STRATEGIES.map(s => `<tr>
+  <td><strong>${esc(s.name)}</strong></td>
+  <td class="small"><code>${esc(s.rule)}</code></td>
+  <td class="small">${esc(s.evidence)}</td>
+  <td><span class="tag warn">${esc(s.status)}</span></td>
+  <td class="small">${esc(s.risk)}</td>
+</tr>`).join("");
+
+/* ------------------------------- fills ---------------------------------- */
+/* Ticker -> topic, resolved through the event API and cached. */
+const topicCache = new Map();
+async function topicForTicker(ticker) {
+  if (!ticker) return null;
+  const base = ticker.split("-").slice(0, 2).join("-");
+  const candidates = [ticker, base];
+  for (const c of candidates) {
+    if (topicCache.has(c)) return topicCache.get(c);
+  }
+  // The reliable path: market -> event -> category.
+  try {
+    const mj = await api.get(`/markets/${encodeURIComponent(ticker)}`);
+    const m = mj.market || mj;
+    const ej = await api.get(`/events/${encodeURIComponent(m.event_ticker)}`);
+    const ev = ej.event || ej;
+    const cat = ev.category || "";
+    const title = `${ev.title || ""} ${ev.series_ticker || ""}`;
+    let topic = null;
+    if (/^Elections$/i.test(cat)) topic = "elections";
+    else if (/^Entertainment$/i.test(cat) || /^Social$/i.test(cat)) topic = "culture";
+    else if (/^Crypto$/i.test(cat)) topic = "crypto";
+    else if (/^Sports$/i.test(cat) && /golf|pga|ryder|masters/i.test(title)) topic = "golf";
+    else if (/gas price|gasoline|aaa gas/i.test(title)) topic = "gas";
+    topicCache.set(ticker, topic);
+    return topic;
+  } catch {
+    topicCache.set(ticker, null);
+    return null;
+  }
+}
+
+$("#load").onclick = async () => {
+  if (!api.hasCredentials()) {
+    $("#need-key").innerHTML = `<div class="callout warn"><h3>A demo key is needed</h3>
+      <p style="margin:0">Fills are account data, so they require a signed request. Load your demo key on the
+      <a href="portfolio.html">Portfolio</a> page, then return here.</p></div>`;
+    return;
+  }
+  pill($("#status"), "warn", "loading fills…");
+  $("#need-key").innerHTML = "";
+  try {
+    const j = await api.fills();
+    const fills = j.fills || [];
+    if (!fills.length) {
+      $("#fills").innerHTML = emptyRow(9, "The demo account returned no fills, so there is nothing to analyse yet.");
+      pill($("#status"), "live", "0 fills");
+      return;
+    }
+    // Resolve topics first (network), then analyse.
+    const map = new Map();
+    for (const f of fills) {
+      const t = f.ticker || f.market_ticker;
+      if (t && !map.has(t)) map.set(t, await topicForTicker(t));
+    }
+    const analysis = analyseFills(fills, { topicResolver: (t) => map.get(t) ?? null });
+
+    $("#fill-stats").innerHTML = [
+      { k: "Fills", v: int(analysis.totals.count), m: "returned by the API" },
+      { k: "Contracts", v: int(analysis.totals.contracts), m: "Σ count_fp" },
+      { k: "Premium paid", v: money(analysis.totals.premium), m: "Σ contracts × price" },
+      { k: "Fees", v: money(analysis.totals.fees), m: "Σ fee_cost" }
+    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+    $("#fills").innerHTML = analysis.rows.slice(0, 400).map(r => {
+      const topic = TOPICS.find(t => t.key === r.topic);
+      return `<tr>
+        <td class="small nowrap">${r.ts ? dt(new Date(r.ts).toISOString()) : `<span class="unv">n/a</span>`}</td>
+        <td class="mono small">${esc(r.ticker)}</td>
+        <td>${topic ? `<a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : `<span class="unv">outside scope</span>`}</td>
+        <td>${r.side ? `<span class="tag ${r.side === "yes" ? "yes" : "no"}">${esc(r.side)}</span>` : `<span class="unv">n/a</span>`}</td>
+        <td class="num">${dec(r.count)}</td>
+        <td class="num">${money4(r.price)}</td>
+        <td class="num">${money(r.cost)}</td>
+        <td class="num">${money(r.fee)}</td>
+        <td>${r.is_taker === true ? "taker" : r.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
+      </tr>`;
+    }).join("");
+
+    $("#by-topic").innerHTML = analysis.byTopic.length ? analysis.byTopic.map(g => {
+      const topic = TOPICS.find(t => t.key === g.key);
+      return `<tr><td>${topic ? esc(topic.label) : `<span class="unv">outside scope</span>`}</td>
+        <td class="num">${int(g.n)}</td><td class="num">${dec(g.contracts)}</td>
+        <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td></tr>`;
+    }).join("") : emptyRow(5, "No data.");
+
+    const sideRows = [...analysis.bySide, ...analysis.byTaker];
+    $("#by-side").innerHTML = sideRows.length ? sideRows.map(g => `<tr>
+      <td>${esc(g.key)}</td><td class="num">${int(g.n)}</td>
+      <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td></tr>`).join("")
+      : emptyRow(4, "No data.");
+
+    $("#fills-note").innerHTML = `Premium = contracts × price paid. ${analysis.totals.missingPrice
+      ? `<strong>${analysis.totals.missingPrice} fill(s) had no price</strong> and are excluded from premium totals.` : ""}
+      ${analysis.totals.missingTopic ? `<strong>${analysis.totals.missingTopic} fill(s)</strong> were outside the five topics.` : ""}
+      ${src(SOURCES.fills, "fills API")}`;
+    pill($("#status"), "live", `${fills.length} fills analysed`);
+  } catch (e) {
+    pill($("#status"), "err", e.message);
+    $("#fills").innerHTML = emptyRow(9, "Fills request failed: " + e.message);
+  }
+};
+
+/* Show cached fills immediately when present, so the page is useful without a key. */
+try {
+  const saved = JSON.parse(localStorage.getItem("kalshiDash.fills") || "null");
+  if (saved?.fills?.length) {
+    $("#need-key").innerHTML = `<div class="callout info"><h3>${saved.fills.length} fills cached in this browser</h3>
+      <p style="margin:0">Captured ${esc(new Date(saved.at).toLocaleString())}. Press <em>Load my fills</em> with a
+      demo key to refresh and analyse them.</p></div>`;
+  }
+} catch {}
+
+if (!api.hasCredentials()) {
+  $("#need-key").innerHTML = `<div class="callout warn"><h3>A demo key is needed</h3>
+    <p style="margin:0">Fills are account data, so they require a signed request. Load your demo key on the
+    <a href="portfolio.html">Portfolio</a> page. This page never invents trades: with no key there is simply
+    no data.</p></div>`;
+}
+</script>
+</body>
+</html>

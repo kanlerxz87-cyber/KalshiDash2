@@ -1,0 +1,449 @@
+/* KalshiDash2 — market data layer.
+ *
+ * Everything here is a thin, auditable wrapper over documented endpoints.
+ * No ticker, price, or category is hardcoded: discovery reads live `/events`
+ * and `/series`, and every returned object keeps the API fields verbatim plus
+ * a `_source` URL so the UI can link each row to the exact call that produced
+ * it.
+ */
+import { KalshiClient } from "./kalshi.js";
+import { TOPICS, CANDLE, DEMO } from "./config.js";
+
+export const api = new KalshiClient();
+
+/* ---------------- pagination ---------------- */
+
+export async function getAll(path, { key, maxPages = 20, limit = 200, onPage } = {}) {
+  const out = [];
+  let cursor = "";
+  for (let i = 0; i < maxPages; i++) {
+    const sep = path.includes("?") ? "&" : "?";
+    const url = path + sep + "limit=" + limit + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+    const page = await api.get(url);
+    const rows = page[key] || [];
+    out.push(...rows);
+    if (onPage) onPage(out.length, rows.length);
+    cursor = page.cursor || "";
+    if (!cursor || rows.length === 0) break;
+  }
+  return out;
+}
+
+/* ---------------- topic discovery ---------------- */
+
+function testAny(patterns, values) {
+  return patterns.some(re => values.some(v => v && re.test(String(v))));
+}
+
+/* Classify an event into one of the five topics using only documented fields. */
+export function classifyEvent(ev) {
+  if (!ev) return null;
+  const cats = [ev.category].filter(Boolean);
+  const titles = [ev.title, ev.sub_title].filter(Boolean);
+  const series = [ev.series_ticker].filter(Boolean);
+
+  for (const topic of TOPICS) {
+    const byCat = testAny(topic.categoryPatterns, cats);
+    if (byCat) {
+      // A category match is authoritative, except for broad categories
+      // (Sports) that are narrowed by series/title.
+      if (topic.key !== "golf") return topic.key;
+    }
+  }
+  const golf = TOPICS.find(t => t.key === "golf");
+  if (testAny(golf.seriesPatterns, series) || testAny(golf.titlePatterns, titles)) return "golf";
+
+  const gas = TOPICS.find(t => t.key === "gas");
+  if (testAny(gas.seriesPatterns, series) || testAny(gas.titlePatterns, titles)) return "gas";
+
+  return null;
+}
+
+/* Live discovery for one topic.
+ * Returns { events, markets, seriesSeen, source, scanned }. */
+export async function discoverTopic(topicKey, { includeSettled = true, onProgress } = {}) {
+  const topic = TOPICS.find(t => t.key === topicKey);
+  if (!topic) throw new Error("Unknown topic: " + topicKey);
+
+  // Open + closed events give us both the live board and the resolution feed.
+  const statuses = includeSettled ? ["open", "closed", "settled"] : ["open"];
+  const events = [];
+  for (const status of statuses) {
+    const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
+      key: "events",
+      maxPages: status === "open" ? 12 : 6,
+      onPage: onProgress
+    });
+    rows.forEach(e => { e._status = status; });
+    events.push(...rows);
+  }
+
+  const matched = events.filter(e => classifyEvent(e) === topicKey);
+  const markets = [];
+  for (const ev of matched) {
+    for (const m of ev.markets || []) {
+      markets.push({
+        ...m,
+        _event_ticker: ev.event_ticker,
+        _event_title: ev.title,
+        _category: ev.category,
+        _series_ticker: ev.series_ticker,
+        _source: `${DEMO.rest}/events?status=${ev._status}&with_nested_markets=true`
+      });
+    }
+  }
+  return {
+    topic,
+    events: matched,
+    markets,
+    scanned: events.length,
+    source: `${DEMO.rest}/events?with_nested_markets=true`
+  };
+}
+
+/* ---------------- ranking ---------------- */
+
+export function moneyTraded(m) {
+  const vol = num(m.volume_fp ?? m.volume ?? 0);
+  const px = num(m.last_price_dollars ?? m.last_price ?? 0);
+  // Both inputs are API values. When there is no trade price, the money figure
+  // is not derivable, so the row is flagged rather than guessed.
+  if (px === null || vol === null) return { value: null, derivable: false };
+  return { value: vol * px, derivable: true };
+}
+
+export function num(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* Rank events by a documented metric, keeping both the derived value and the
+ * raw inputs so the UI can prove the arithmetic. */
+export function rankEvents(events, mode = "money") {
+  const rows = events.map(ev => {
+    const ms = ev.markets || [];
+    let volume = 0, oi = 0, money = 0, missingPrice = 0;
+    for (const m of ms) {
+      volume += num(m.volume_fp) || 0;
+      oi += num(m.open_interest_fp) || 0;
+      const mt = moneyTraded(m);
+      if (mt.derivable) money += mt.value; else missingPrice++;
+    }
+    return {
+      event_ticker: ev.event_ticker,
+      title: ev.title,
+      sub_title: ev.sub_title,
+      category: ev.category,
+      series_ticker: ev.series_ticker,
+      status: ev.markets?.[0]?.status ?? ev._status,
+      marketCount: ms.length,
+      volume, oi, money, missingPrice,
+      result: dominantResult(ms),
+      closeTime: earliest(ms.map(m => m.close_time)),
+      seriesUrl: ev.series_ticker ? `${DEMO.rest}/events/${ev.event_ticker}` : `${DEMO.rest}/events/${ev.event_ticker}`,
+      source: `${DEMO.rest}/events/${ev.event_ticker}`,
+      markets: ms
+    };
+  });
+  rows.sort((a, b) => {
+    if (mode === "oi") return b.oi - a.oi;
+    if (mode === "volume") return b.volume - a.volume;
+    return b.money - a.money;
+  });
+  return rows;
+}
+
+function dominantResult(markets) {
+  const results = markets.map(m => (m.result || "").toLowerCase()).filter(Boolean);
+  if (!results.length) return null;
+  const yes = results.filter(r => r === "yes").length;
+  const no = results.filter(r => r === "no").length;
+  if (yes && no) return "mixed";
+  return yes ? "yes" : "no";
+}
+
+function earliest(times) {
+  const ts = times.filter(Boolean).map(t => Date.parse(t)).filter(Number.isFinite);
+  return ts.length ? new Date(Math.min(...ts)).toISOString() : null;
+}
+
+/* ---------------- single market helpers ---------------- */
+
+export async function getMarket(ticker) {
+  const j = await api.get(`/markets/${encodeURIComponent(ticker)}`);
+  return j.market || j;
+}
+
+export async function getOrderbook(ticker, depth) {
+  const q = depth ? `?depth=${depth}` : "";
+  return api.get(`/markets/${encodeURIComponent(ticker)}/orderbook${q}`);
+}
+
+/* Resolve the series ticker for a market without guessing.
+ * GET /markets/{ticker} does not carry series_ticker (verified 2026-11-20);
+ * GET /events/{event_ticker} does. */
+export async function resolveSeries(market) {
+  if (market.series_ticker) return market.series_ticker;
+  const ev = await api.get(`/events/${encodeURIComponent(market.event_ticker)}`);
+  const s = (ev.event || ev).series_ticker;
+  if (!s) throw new Error("The API did not return a series_ticker for event " + market.event_ticker);
+  return s;
+}
+
+/* ---------------- candlesticks ---------------- */
+
+/* Fetch candles, splitting the range so a request never exceeds the documented
+ * 5,000-period cap. Returns points in the chart's {t, y} shape, where y is the
+ * trade close price for the period and is null when the period had no trades. */
+export async function fetchCandles(market, { seconds, interval }) {
+  const series = await resolveSeries(market);
+  const periodSeconds = interval * 60;
+  const maxSpan = CANDLE.maxPeriodsPerRequest * periodSeconds;
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - seconds;
+
+  const chunks = [];
+  for (let s = start; s < end; s += maxSpan) chunks.push([s, Math.min(s + maxSpan, end)]);
+
+  const points = [];
+  let rawCount = 0;
+  for (const [s, e] of chunks) {
+    const url = `/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(market.ticker)}` +
+      `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
+    const j = await api.get(url);
+    const candles = j.candlesticks || [];
+    rawCount += candles.length;
+    for (const c of candles) {
+      points.push({
+        t: c.end_period_ts * 1000,
+        y: num(c.price?.close_dollars),
+        open: num(c.price?.open_dollars),
+        high: num(c.price?.high_dollars),
+        low: num(c.price?.low_dollars),
+        mean: num(c.price?.mean_dollars),
+        yesBid: num(c.yes_bid?.close_dollars),
+        yesAsk: num(c.yes_ask?.close_dollars),
+        volume: num(c.volume_fp),
+        openInterest: num(c.open_interest_fp)
+      });
+    }
+  }
+  points.sort((a, b) => a.t - b.t);
+  return {
+    points,
+    interval,
+    seconds,
+    series,
+    rawCount,
+    source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+  };
+}
+
+/* Aggregate 1-minute candles into a coarser bucket when a window would need too
+ * many points to draw. The aggregation is stated in the UI. */
+export function bucketCandles(points, bucketSeconds) {
+  if (bucketSeconds <= 60) return points;
+  const buckets = new Map();
+  for (const p of points) {
+    const key = Math.floor(p.t / (bucketSeconds * 1000)) * bucketSeconds * 1000;
+    const b = buckets.get(key) || { t: key, y: null, open: null, high: null, low: null, volume: 0, n: 0 };
+    if (p.y !== null) {
+      b.y = p.y;                          // last trade close in the bucket
+      if (b.open === null) b.open = p.open ?? p.y;
+      b.high = b.high === null ? (p.high ?? p.y) : Math.max(b.high, p.high ?? p.y);
+      b.low = b.low === null ? (p.low ?? p.y) : Math.min(b.low, p.low ?? p.y);
+    }
+    b.volume += p.volume || 0;
+    b.n++;
+    buckets.set(key, b);
+  }
+  return [...buckets.values()].sort((a, b) => a.t - b.t);
+}
+
+/* ---------------- live sampling (seconds-scale charts) ----------------
+ *
+ * Kalshi publishes no seconds-resolution history: the candle endpoint accepts
+ * only 1, 60 and 1440 minute periods, and REST quotes are cached for a few
+ * seconds. A seconds-scale chart therefore has to be accumulated from live
+ * samples while the page is open. `LiveSampler` makes that explicit: it stamps
+ * each point with the time it was actually read and records the data source.
+ * ------------------------------------------------------------------- */
+export class LiveSampler {
+  constructor({ ticker, intervalMs = 2000, onPoint, onState, maxAgeSeconds = 900 }) {
+    this.ticker = ticker;
+    this.intervalMs = intervalMs;
+    this.onPoint = onPoint || (() => {});
+    this.onState = onState || (() => {});
+    this.maxAgeMs = maxAgeSeconds * 1000;
+    this.points = [];
+    this.timer = null;
+    this.ws = null;
+    this.mode = "poll";
+  }
+
+  start() {
+    this.stop();
+    this._pollOnce();
+    this.timer = setInterval(() => this._pollOnce(), this.intervalMs);
+    this.onState({ mode: "poll", intervalMs: this.intervalMs });
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
+  }
+
+  async _pollOnce() {
+    try {
+      const m = await getMarket(this.ticker);
+      const now = Date.now();
+      const bid = num(m.yes_bid_dollars);
+      const ask = num(m.yes_ask_dollars);
+      const last = num(m.last_price_dollars);
+      this.points.push({
+        t: now, y: last, bid, ask, volume: num(m.volume_fp),
+        openInterest: num(m.open_interest_fp),
+        source: "GET /markets/{ticker}"
+      });
+      const cutoff = now - this.maxAgeMs;
+      this.points = this.points.filter(p => p.t >= cutoff);
+      this.onPoint(this.points);
+      this.onState({ mode: "poll", ok: true, at: now });
+    } catch (e) {
+      this.onState({ mode: "poll", ok: false, error: e.message });
+    }
+  }
+
+  /* Window of sampled points for a requested duration. */
+  window(seconds) {
+    const cutoff = Date.now() - seconds * 1000;
+    return this.points.filter(p => p.t >= cutoff);
+  }
+}
+
+/* ---------------- watched markets / resolution tracking ---------------- */
+
+const WATCH_KEY = "kalshiDash.watch.v1";
+
+export const Watchlist = {
+  all() {
+    try { return JSON.parse(localStorage.getItem(WATCH_KEY) || "[]"); }
+    catch { return []; }
+  },
+  has(ticker) { return this.all().some(w => w.ticker === ticker); },
+  add(market, topicKey, eventTitle) {
+    const list = this.all();
+    if (list.some(w => w.ticker === market.ticker)) return list;
+    list.push({
+      ticker: market.ticker,
+      title: market.title || eventTitle || "",
+      event_ticker: market._event_ticker || market.event_ticker || "",
+      topic: topicKey || null,
+      added_at: new Date().toISOString(),
+      open_price: num(market.last_price_dollars),
+      last_seen: {
+        status: market.status, result: market.result || "",
+        yes_bid: num(market.yes_bid_dollars), yes_ask: num(market.yes_ask_dollars),
+        last: num(market.last_price_dollars), close_time: market.close_time
+      },
+      resolved_at: null, final_result: null
+    });
+    localStorage.setItem(WATCH_KEY, JSON.stringify(list));
+    return list;
+  },
+  remove(ticker) {
+    const list = this.all().filter(w => w.ticker !== ticker);
+    localStorage.setItem(WATCH_KEY, JSON.stringify(list));
+    return list;
+  },
+  /* Poll every watched market and record the resolution the API reports. */
+  async refresh() {
+    const list = this.all();
+    const out = [];
+    for (const w of list) {
+      try {
+        const m = await getMarket(w.ticker);
+        const result = (m.result || "").toLowerCase();
+        w.last_seen = {
+          status: m.status, result,
+          yes_bid: num(m.yes_bid_dollars), yes_ask: num(m.yes_ask_dollars),
+          last: num(m.last_price_dollars), close_time: m.close_time,
+          settlement_value: num(m.settlement_value_dollars ?? m.settlement_value)
+        };
+        w.title = m.title || w.title;
+        if (result === "yes" || result === "no") {
+          w.final_result = result;
+          w.resolved_at = w.resolved_at || new Date().toISOString();
+        }
+        w._error = null;
+      } catch (e) {
+        w._error = e.message;
+      }
+      out.push(w);
+    }
+    localStorage.setItem(WATCH_KEY, JSON.stringify(list));
+    return out;
+  }
+};
+
+/* ---------------- portfolio analytics ----------------
+ *
+ * Inputs are the documented Fill fields. Nothing is estimated: if a field the
+ * analysis needs is missing, that trade is counted as "unclassified" and the
+ * gap is reported instead of being filled in.
+ * ------------------------------------------------------------------- */
+export function analyseFills(fills, { topicResolver } = {}) {
+  const rows = (fills || []).map(f => {
+    const count = num(f.count_fp ?? f.count);
+    const yesPrice = num(f.yes_price_dollars);
+    const noPrice = num(f.no_price_dollars);
+    const fee = num(f.fee_cost_dollars ?? f.fee_cost);
+    const side = f.outcome_side || f.side || null;
+    const price = side === "no" ? noPrice : yesPrice;
+    const cost = count !== null && price !== null ? count * price : null;
+    const notional = count !== null ? count * 1 : null;   // $1 per contract at settlement
+    return {
+      fill_id: f.fill_id || f.trade_id || "",
+      order_id: f.order_id || "",
+      ticker: f.ticker || f.market_ticker || "",
+      side,
+      book_side: f.book_side || null,
+      count, price, cost, fee,
+      notional,
+      is_taker: f.is_taker ?? null,
+      ts: f.created_time ? Date.parse(f.created_time) : (f.ts ? f.ts * 1000 : null),
+      topic: topicResolver ? topicResolver(f.ticker || f.market_ticker) : null,
+      raw: f
+    };
+  });
+
+  const totals = {
+    count: rows.length,
+    contracts: sum(rows.map(r => r.count)),
+    premium: sum(rows.filter(r => r.cost !== null).map(r => r.cost)),
+    fees: sum(rows.filter(r => r.fee !== null).map(r => r.fee)),
+    missingPrice: rows.filter(r => r.price === null).length,
+    missingTopic: rows.filter(r => !r.topic).length
+  };
+  totals.netPremium = totals.premium + totals.fees;
+
+  const by = key => groupBy(rows, key);
+  return { rows, totals, byTopic: by("topic"), bySide: by("side"), byTaker: by("is_taker") };
+}
+
+function sum(xs) { return xs.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0); }
+
+function groupBy(rows, key) {
+  const out = {};
+  for (const r of rows) {
+    const k = r[key] === null || r[key] === undefined || r[key] === "" ? "unclassified" : String(r[key]);
+    out[k] = out[k] || { key: k, n: 0, contracts: 0, premium: 0, fees: 0 };
+    out[k].n++;
+    out[k].contracts += r.count || 0;
+    if (r.cost !== null) out[k].premium += r.cost;
+    if (r.fee !== null) out[k].fees += r.fee;
+  }
+  return Object.values(out).sort((a, b) => b.premium - a.premium);
+}
