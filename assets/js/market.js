@@ -222,6 +222,7 @@ export async function fetchCandles(market, { seconds, interval }) {
         high: num(c.price?.high_dollars),
         low: num(c.price?.low_dollars),
         mean: num(c.price?.mean_dollars),
+        prev: num(c.price?.previous_dollars),
         yesBid: num(c.yes_bid?.close_dollars),
         yesAsk: num(c.yes_ask?.close_dollars),
         volume: num(c.volume_fp),
@@ -446,4 +447,116 @@ function groupBy(rows, key) {
     if (r.fee !== null) out[k].fees += r.fee;
   }
   return Object.values(out).sort((a, b) => b.premium - a.premium);
+}
+
+/* ---------------- swing detection ----------------
+ *
+ * Kalshi publishes no "swing" field. Two documented fields let one be
+ * derived honestly:
+ *   previous_price_dollars — the price before the exchange's last change
+ *   last_price_dollars     — the most recent trade price
+ * (https://docs.kalshi.com/api-reference/market/get-market)
+ *
+ * `swingOf` returns the exchange-reported comparison. `detectJumps` does the
+ * same over a candle series, where each candle also carries `previous_dollars`.
+ */
+export function swingOf(market) {
+  const to = num(market.last_price_dollars);
+  const from = num(market.previous_price_dollars);
+  if (to === null || from === null) return null;
+  const delta = Number((to - from).toFixed(4));
+  if (delta === 0) return null;
+  return { from, to, delta, dir: delta > 0 ? "up" : "down", basis: "exchange previous_price_dollars" };
+}
+
+/* Detect >= threshold moves inside a candle series.
+ * `points` are the objects produced by fetchCandles(); each needs `t`, `y`
+ * (close) and optionally `prev` (the candle's own previous_dollars). */
+export function detectJumps(points, threshold = 0.10) {
+  const jumps = [];
+  let last = null;
+  for (const p of points || []) {
+    if (p.y === null || p.y === undefined) continue;
+    const prev = p.prev !== undefined && p.prev !== null ? p.prev : last;
+    if (prev !== null && prev !== undefined) {
+      const delta = Number((p.y - prev).toFixed(4));
+      if (Math.abs(delta) >= threshold) {
+        jumps.push({ t: p.t, from: prev, to: p.y, delta, dir: delta > 0 ? "up" : "down" });
+      }
+    }
+    last = p.y;
+  }
+  return jumps;
+}
+
+/* ---------------- the tradeability screen ----------------
+ *
+ * See TRADE_SCREEN in config.js. Returns the total score plus the per-
+ * component breakdown so the UI can show exactly why a market was surfaced.
+ * Every input is a documented market field; nothing is inferred.
+ */
+export function screenMarket(market, { now = Date.now(), components } = {}) {
+  const comps = components || [];
+  const last = num(market.last_price_dollars);
+  const bid = num(market.yes_bid_dollars);
+  const ask = num(market.yes_ask_dollars);
+  const bidSize = num(market.yes_bid_size_fp);
+  const askSize = num(market.yes_ask_size_fp);
+  const oi = num(market.open_interest_fp);
+  const vol24 = num(market.volume_24h_fp);
+  const close = market.close_time ? Date.parse(market.close_time) : null;
+  const hoursLeft = close && Number.isFinite(close) ? (close - now) / 3600000 : null;
+
+  const spread = (bid !== null && ask !== null) ? Number((ask - bid).toFixed(4)) : null;
+  const depth = (bidSize !== null || askSize !== null) ? (bidSize || 0) + (askSize || 0) : null;
+
+  const inputs = {
+    open_interest_fp: oi,
+    "yes_ask_dollars − yes_bid_dollars": spread,
+    "yes_bid_size_fp + yes_ask_size_fp": depth,
+    last_price_dollars: last,
+    close_time: hoursLeft,
+    volume_24h_fp: vol24
+  };
+
+  const parts = [];
+  let score = 0;
+  for (const c of comps) {
+    const raw = inputs[c.field];
+    let got = 0;
+    if (raw === null || raw === undefined) {
+      got = 0;                       // a field the API did not return scores nothing
+    } else {
+      got = c.score(raw);
+    }
+    parts.push({ key: c.key, label: c.label, rule: c.rule, max: c.max, got, input: raw });
+    score += got;
+  }
+  const max = comps.reduce((a, c) => a + c.max, 0) || 100;
+  return { score: Math.round(score), max, parts, spread, depth, hoursLeft, last, bid, ask };
+}
+
+/* ---------------- event context ----------------
+ *
+ * GET /events/{event_ticker} carries `settlement_sources` — the official
+ * sources Kalshi lists for determining the outcome — plus the market rules.
+ * These are the source websites worth reading when a contract price jumps.
+ * (https://docs.kalshi.com/api-reference/events/get-events)
+ */
+export async function getEvent(eventTicker) {
+  const j = await api.get(`/events/${encodeURIComponent(eventTicker)}`);
+  return j.event || j;
+}
+
+export function eventContext(event) {
+  if (!event) return { sources: [], rules: null, series: null };
+  const sources = (event.settlement_sources || [])
+    .filter(s => s && (s.name || s.url))
+    .map(s => ({ name: String(s.name || "").trim(), url: String(s.url || "").trim() }));
+  const market = (event.markets || [])[0] || null;
+  return {
+    sources,
+    rules: market ? (market.rules_primary || market.rules_secondary || "") : (event.rules_primary || ""),
+    series: event.series_ticker || null
+  };
 }

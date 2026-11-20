@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live price alerts — KalshiDash2</title>
+<meta name="description" content="Live Kalshi demo alert stream: every contract-price swing of $0.10 or more on gas, elections, culture, crypto and golf, plus a model-screened shortlist.">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Live price alerts</h1>
+    <p>
+      A live alert stream over the five tracked topics on the Kalshi demo exchange. Every contract-price
+      swing of <strong>$0.10 or more, in either direction</strong>, is posted into a scrolling chat.
+      The second chat is the same feed filtered through the tradeability screen, so only the moves the
+      model likes reach that column.
+    </p>
+  </div>
+
+  <div class="callout info">
+    <h3>How a swing is measured</h3>
+    <p style="margin:0 0 6px">
+      Kalshi publishes no "swing" field, so one is derived from two documented fields that every market
+      carries: <code>previous_price_dollars</code> (the price before the exchange's last change) and
+      <code>last_price_dollars</code> (the most recent trade price). A move qualifies when the absolute
+      difference is at least the threshold. The same test is applied to the gap between two consecutive
+      polls of this page, which catches moves the exchange's own reference has not rolled over yet.
+    </p>
+    <p style="margin:0" class="small muted">
+      Source: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+      · the feed also labels which of the two comparisons produced each number.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+    <div class="toolbar">
+      <label class="inline">Swing threshold
+        <input type="number" id="threshold" min="0.02" max="0.50" step="0.01" value="0.10" style="width:88px">
+      </label>
+      <label class="inline">Model passes at score ≥
+        <input type="number" id="pass-score" min="0" max="100" step="5" value="55" style="width:72px">
+      </label>
+      <label class="inline">Poll every
+        <input type="number" id="poll-ms" min="5" max="120" step="5" value="15" style="width:72px"> s
+      </label>
+      <button id="pause" class="secondary">Pause</button>
+      <button id="resume" class="secondary">Resume</button>
+      <button id="clear" class="secondary">Clear feed</button>
+      <span class="spacer"></span>
+      <span id="status" class="pill idle">starting…</span>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">
+      Polling scans open events with their nested markets and re-reads prices. The scan is capped at
+      <span id="cap-note">—</span> pages of 200 events per poll so the public endpoint is not hammered;
+      Kalshi documents that unauthenticated requests have their own separate budget
+      (<a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">rate limits ↗</a>).
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="kpis" style="margin-bottom:16px"></div>
+
+  <div class="chat-grid two">
+    <div class="chat">
+      <div class="chat-head">
+        <h3>All qualifying swings</h3>
+        <span class="spacer"></span>
+        <span id="all-count" class="pill idle">0</span>
+      </div>
+      <div class="chat-body" id="chat-all">
+        <div class="chat-empty"><span class="spinner"></span>Waiting for the first scan…</div>
+      </div>
+      <div class="chat-foot" id="all-foot">Every swing of at least the threshold, regardless of the model screen.</div>
+    </div>
+
+    <div class="chat">
+      <div class="chat-head">
+        <h3>Model shortlist</h3>
+        <span class="spacer"></span>
+        <span id="pick-count" class="pill idle">0</span>
+      </div>
+      <div class="chat-body" id="chat-picks">
+        <div class="chat-empty"><span class="spinner"></span>Waiting for the first scan…</div>
+      </div>
+      <div class="chat-foot" id="pick-foot">Only swings that also clear the tradeability screen.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Recent swings — table view</h2>
+    <p class="sub">
+      The same events as the chat, as a table you can read and sort at a glance. Every row links to the
+      official API response that produced the prices.
+    </p>
+    <div class="toolbar">
+      <label class="inline">Show
+        <select id="table-filter">
+          <option value="all">All swings</option>
+          <option value="picks">Model shortlist only</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span id="table-count" class="pill idle">0 rows</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Topic</th><th>Market</th>
+          <th class="num">From</th><th class="num">To</th><th class="num">Δ</th>
+          <th class="num">Screen</th><th>Basis</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="jump-rows"><tr><td colspan="9"><div class="empty">No swings recorded yet.</div></td></tr></tbody>
+      </table>
+      <div class="table-note" id="jump-note">
+        Prices are the API's own <code>last_price_dollars</code> and <code>previous_price_dollars</code>.
+        “Δ” is their difference. “Screen” is the tradeability score described below.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What “the model likes” actually means</h2>
+    <p class="sub">
+      The shortlist chat is filtered by a <strong>tradeability screen</strong>: a transparent sum of points
+      taken from documented market fields. It is deliberately <em>not</em> a probability model and it makes
+      no claim about expected return — a price is not a probability unless someone says so.
+      The screen is measured against settled demo markets on the
+      <a href="simulator.html">Strategy Tester</a>, where the hit rate of each signal is reported next to
+      the market's own implied price.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Component</th><th>API field</th><th>Rule</th><th class="num">Max points</th>
+        </tr></thead>
+        <tbody id="model-rows"></tbody>
+      </table>
+      <div class="table-note">
+        Source for every field used: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>.
+        A field the API did not return scores zero points and is shown as <span class="unv">n/a</span> — it is
+        never treated as a value.
+      </div>
+    </div>
+    <p class="small muted" style="margin:10px 0 0">
+      Current pass mark: <strong id="pass-note">55</strong> of 100 points.
+      <a href="flagged.html#F13">Why this is labelled a screen and not an edge</a>.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Where to look when a contract jumps</h2>
+    <p class="sub">
+      Kalshi's event object carries <code>settlement_sources</code> — the official sources the exchange
+      publishes for determining that market's outcome — together with the market's own rules. Those links
+      appear under each chat message. They are the sources that <em>decide</em> the market; the API does not
+      publish a news feed, so they are not presented as the confirmed cause of a move.
+    </p>
+    <p class="small muted" style="margin:0">
+      Source: <a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+      · <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a>
+      · <a href="flagged.html#F14">Causal attribution is not available from official sources</a>
+    </p>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { ALERT, TRADE_SCREEN, SOURCES } from "./assets/js/config.js";
+import { AlertEngine, messageHtml, topicLabel } from "./assets/js/alerts.js";
+import { num } from "./assets/js/market.js";
+
+mountChrome({ page: "alerts.html", title: "Live alerts" });
+
+$("#cap-note").textContent = String(ALERT.maxEventsPerPoll);
+$("#pass-note").textContent = String(TRADE_SCREEN.passScore);
+
+/* ---------------- model explainer ---------------- */
+$("#model-rows").innerHTML = TRADE_SCREEN.components.map(c => `<tr>
+  <td><strong>${esc(c.label)}</strong></td>
+  <td class="small mono">${esc(c.field)}</td>
+  <td class="small">${esc(c.rule)}</td>
+  <td class="num">${c.max}</td>
+</tr>`).join("") + `<tr>
+  <td><strong>Total</strong></td><td class="small">—</td>
+  <td class="small">A market must reach the pass mark to appear in the shortlist chat.</td>
+  <td class="num">${TRADE_SCREEN.components.reduce((a, c) => a + c.max, 0)}</td>
+</tr>`;
+
+/* ---------------- state ---------------- */
+const jumps = [];
+const allBody = $("#chat-all");
+const pickBody = $("#chat-picks");
+let paused = false;
+
+function nearBottom(el) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+}
+
+function pushMessage(el, html) {
+  const empty = el.querySelector(".chat-empty");
+  if (empty) empty.remove();
+  el.insertAdjacentHTML("beforeend", html);
+  while (el.children.length > 250) el.removeChild(el.firstElementChild);
+}
+
+function appendJump(swing, ctx) {
+  const item = { ...swing, ctx };
+  jumps.unshift(item);
+  if (jumps.length > 300) jumps.pop();
+
+  pushMessage(allBody, messageHtml(swing, { pick: false, ctx }));
+  if (swing.pick) pushMessage(pickBody, messageHtml(swing, { pick: true, ctx, breakdown: true }));
+
+  if (nearBottom(allBody)) allBody.scrollTop = allBody.scrollHeight;
+  if (nearBottom(pickBody)) pickBody.scrollTop = pickBody.scrollHeight;
+
+  $("#all-count").textContent = String(allBody.querySelectorAll(".chat-msg").length);
+  $("#pick-count").textContent = String(pickBody.querySelectorAll(".chat-msg").length);
+  renderTable();
+}
+
+function renderTable() {
+  const onlyPicks = $("#table-filter").value === "picks";
+  const rows = jumps.filter(j => !onlyPicks || j.pick);
+  $("#table-count").textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+  if (!rows.length) {
+    $("#jump-rows").innerHTML = emptyRow(9, "No swings recorded yet.");
+    return;
+  }
+  $("#jump-rows").innerHTML = rows.slice(0, 120).map(j => {
+    const s = j.screen || {};
+    const srcUrls = [
+      `<a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(j.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>`,
+      `<a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events/${encodeURIComponent(j.eventTicker)}" target="_blank" rel="noopener noreferrer">event ↗</a>`,
+      `<a class="src-link" href="event.html?ticker=${encodeURIComponent(j.eventTicker)}">chart →</a>`
+    ];
+    if (j.ctx && j.ctx.ctx && j.ctx.ctx.sources && j.ctx.ctx.sources.length) {
+      const s0 = j.ctx.ctx.sources.find(x => x.url);
+      if (s0) srcUrls.push(`<a class="src-link" href="${s0.url}" target="_blank" rel="noopener noreferrer">${esc(s0.name || "source")} ↗</a>`);
+    }
+    return `<tr>
+      <td class="small nowrap">${dt(new Date(j.at).toISOString())}</td>
+      <td><a href="categories/${j.topicKey}.html">${esc(topicLabel(j.topicKey))}</a></td>
+      <td class="small">${esc(j.title)}
+        <div class="mono muted small">${esc(j.ticker)}</div></td>
+      <td class="num">$${j.from.toFixed(2)}</td>
+      <td class="num">$${j.to.toFixed(2)}</td>
+      <td class="num" style="color:${j.delta > 0 ? "var(--ok)" : "var(--bad)"}">${j.delta > 0 ? "+" : ""}${j.delta.toFixed(2)}</td>
+      <td class="num">${s.score !== undefined ? `${s.score}/${s.max}` : `<span class="unv">n/a</span>`}</td>
+      <td class="small">${esc(j.basis)}</td>
+      <td class="nowrap">${srcUrls.join(" ")}</td>
+    </tr>`;
+  }).join("");
+}
+
+/* ---------------- engine ---------------- */
+const engine = new AlertEngine({
+  threshold: ALERT.defaultThreshold,
+  passScore: TRADE_SCREEN.passScore,
+  pollMs: ALERT.defaultPollMs,
+  maxEventsPerPoll: ALERT.maxEventsPerPoll,
+  onMessage: async (swing) => {
+    const ctx = await engine.contextFor(swing);
+    appendJump(swing, ctx);
+  },
+  onState: (st) => {
+    if (st.state === "loading") {
+      pill($("#status"), "warn", "scanning…");
+    } else if (st.state === "live") {
+      pill($("#status"), "live", `live · ${st.markets} markets · ${st.swings} new swings`);
+      $("#all-foot").textContent =
+        `Scanned ${st.scanned} open events (${st.markets} markets in the five topics) at ${st.at.toLocaleTimeString()}.`;
+      $("#pick-foot").textContent =
+        `Same scan, filtered to swings whose tradeability score is ${engine.passScore} or higher.`;
+    } else if (st.state === "error") {
+      pill($("#status"), "err", st.error);
+    } else if (st.state === "stopped") {
+      pill($("#status"), "idle", "paused");
+    }
+  }
+});
+
+/* ---------------- controls ---------------- */
+$("#threshold").addEventListener("change", e => {
+  engine.setThreshold(e.target.value);
+  e.target.value = String(engine.threshold);
+});
+$("#pass-score").addEventListener("change", e => {
+  const n = Number(e.target.value);
+  engine.passScore = Math.max(0, Math.min(100, Number.isFinite(n) ? n : TRADE_SCREEN.passScore));
+  e.target.value = String(engine.passScore);
+  $("#pass-note").textContent = String(engine.passScore);
+});
+$("#poll-ms").addEventListener("change", e => {
+  engine.setPollMs(Number(e.target.value) * 1000);
+  e.target.value = String(Math.round(engine.pollMs / 1000));
+});
+$("#pause").addEventListener("click", () => { paused = true; engine.stop(); });
+$("#resume").addEventListener("click", () => { paused = false; engine.start(); });
+$("#clear").addEventListener("click", () => {
+  jumps.length = 0;
+  allBody.innerHTML = `<div class="chat-empty">Cleared. Waiting for the next scan…</div>`;
+  pickBody.innerHTML = `<div class="chat-empty">Cleared. Waiting for the next scan…</div>`;
+  $("#all-count").textContent = "0";
+  $("#pick-count").textContent = "0";
+  renderTable();
+});
+$("#table-filter").addEventListener("change", renderTable);
+
+/* Only poll while the tab is visible — the feed is a live view, not a
+ * background job, and the public API has a separate unauthenticated budget. */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && !paused && !engine.running) engine.start();
+  if (document.visibilityState === "hidden" && engine.running) engine.stop();
+});
+
+/* ---------------- KPIs ---------------- */
+function renderKpis() {
+  const picks = jumps.filter(j => j.pick).length;
+  const ups = jumps.filter(j => j.dir === "up").length;
+  const downs = jumps.length - ups;
+  const biggest = jumps.reduce((a, j) => Math.abs(j.delta) > Math.abs(a) ? j.delta : a, 0);
+  $("#kpis").innerHTML = [
+    { k: "Swings detected", v: int(jumps.length), m: `at threshold $${engine.threshold.toFixed(2)}` },
+    { k: "Model shortlist", v: int(picks), m: `score ≥ ${engine.passScore}` },
+    { k: "Up / down", v: `${int(ups)} / ${int(downs)}`, m: "direction of each swing" },
+    { k: "Largest move", v: `${biggest > 0 ? "+" : ""}${biggest.toFixed(2)}`, m: "single largest swing" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+}
+renderKpis();
+setInterval(renderKpis, 1000);
+
+engine.start();
+</script>
+</body>
+</html>

@@ -379,6 +379,22 @@ published site line by line and performs the final integration + Pages deploy.
 | S4 | Line-by-line re-verification of the published site against official docs; refresh `verification.html` + `flagged.html` | pending | `869f5339` | `verification.html`, `flagged.html` |
 | S5 | Final integration: nav + landing page, link/runtime check, PR → `main`, merge, Pages deploy confirmation | pending | `869f5339` | `index.html`, `assets/js/ui.js` (nav list only), `README.md`, `COORDINATION.md`, `.github/workflows/**` |
 
+**Scope extension (claimed 2026-11-20, after the first implementation pass):**
+the new pages need shared plumbing, so this session additionally owns the following files. None of
+them is claimed by any other session (`b7dfc4d9`'s only in-flight item is PR #14, which touches
+`.github/workflows/verify-live.yml` alone), and every change to them is **additive** — no existing
+behaviour is altered:
+
+| File | Change | Additive? |
+|------|--------|-----------|
+| `assets/js/config.js` | new `ALERT`, `TRADE_SCREEN`, `STRATEGIES` exports + three source links | yes — no existing export changed |
+| `assets/css/app.css` | chat-feed, score-chip and breakdown styles appended at the end | yes |
+| `assets/js/ui.js` | `PAGES` list gains Alerts + Simulator; `lineChart` gains an optional `markers` option | yes — `lineChart` is byte-identical when `markers` is absent |
+| `assets/js/category.js` | ≥ $0.10 jump markers on the category price chart, plus a jump list | yes |
+
+The five `categories/*.html` files are **not** modified: the jump list is rendered by
+`assets/js/category.js` into the existing chart card, so the shared topic templates stay untouched.
+
 Non-overlap note: session `b7dfc4d9`'s only in-flight item is PR #14
 (`.github/workflows/verify-live.yml`) — it touches no file in the scope above. `docs/**` is
 **not** touched by this session (it is the earlier duplicate site; the live Pages build serves

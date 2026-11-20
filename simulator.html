@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy tester — KalshiDash2</title>
+<meta name="description" content="Automated simulated trades over official Kalshi demo candlesticks, scored against each market's own settlement value, with a strategy scoreboard and live paper trading.">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Strategy tester — automated simulated trades</h1>
+    <p>
+      Strategy rules are replayed over <strong>official Kalshi demo history</strong> and the resulting
+      simulated trades are scored against each market's own settlement value. Nothing is estimated and
+      nothing is invented: every price comes from a candlestick the API returned, and every outcome comes
+      from the <code>settlement_value_dollars</code> field of a finalized market.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <h3>Simulation assumptions — read before reading the numbers</h3>
+    <ul>
+      <li>A signal is filled at the <strong>trade-close price of the candle that fired it</strong>. No
+        spread, no slippage, no fees. Fees are therefore missing from every result below, which makes each
+        strategy look better than a live trade would be. Official fee schedule:
+        <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a>.</li>
+      <li>One trade per market per strategy, taken at the <strong>first</strong> signal.</li>
+      <li>A position held to settlement pays the market's own
+        <code>settlement_value_dollars</code> — 1.0000 for YES, 0.0000 for NO
+        (<a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a>).</li>
+      <li>The demo exchange holds mock funds and its prices may not match production
+        (<a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">demo environment ↗</a>).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Run a backtest</h2>
+    <div class="toolbar">
+      <label class="inline">Markets in the universe
+        <input type="number" id="universe" min="5" max="100" step="5" value="25" style="width:80px">
+      </label>
+      <label class="inline">History window
+        <input type="number" id="minutes" min="60" max="1440" step="60" value="600" style="width:80px"> min
+      </label>
+      <label class="inline">Topic
+        <select id="topic">
+          <option value="all">All five topics</option>
+          <option value="gas">Gas prices</option>
+          <option value="elections">Elections</option>
+          <option value="culture">Culture</option>
+          <option value="crypto">Crypto</option>
+          <option value="golf">Golf</option>
+        </select>
+      </label>
+      <button id="run">Run backtest</button>
+      <span class="spacer"></span>
+      <span id="status" class="pill idle">idle</span>
+    </div>
+    <p class="small muted" style="margin:8px 0 0" id="progress-note">
+      The universe comes from <code>GET /markets?status=settled</code>; each market's series and category
+      come from <code>GET /events/{event_ticker}</code>; the price history comes from
+      <code>GET /series/{series}/markets/{ticker}/candlesticks</code> at
+      <code>period_interval=1</code> (one minute). A 1,440-minute window always fits inside the documented
+      5,000-period cap, so each market costs one history request.
+      <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlestick docs ↗</a>
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="kpis" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>Strategy scoreboard</h2>
+    <p class="sub">
+      One row per strategy. <em>Hit rate</em> is the share of scored trades that made money; <em>avg entry
+      price</em> is what the market was charging when the signal fired. Reading the two side by side is the
+      point: a hit rate above the average entry price means the signal did better than the price it paid.
+      A strategy with no trades earns nothing and is reported as such rather than hidden.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Strategy</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th>
+          <th class="num">Hit rate</th><th class="num">Avg entry price</th>
+          <th class="num">Total P&amp;L / contract</th><th class="num">Capital / contract</th>
+          <th class="num">ROI</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="scoreboard"><tr><td colspan="10"><div class="empty">Run a backtest to populate this table.</div></td></tr></tbody>
+      </table>
+      <div class="table-note" id="score-note">
+        P&amp;L per contract = payout − entry price. Payout is the exit price for a round-trip, otherwise the
+        market's own settlement value for the side held. ROI = total P&amp;L ÷ total capital deployed.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Simulated trade ledger</h2>
+    <p class="sub">Every simulated trade produced by the run above, with the official API response behind each row.</p>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <span id="ledger-count" class="pill idle">0 trades</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Strategy</th><th>Market</th><th>Topic</th><th>Side</th>
+          <th class="num">Entry price</th><th>Entry time</th><th>Exit</th>
+          <th>Result</th><th class="num">P&amp;L / contract</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="ledger"><tr><td colspan="10"><div class="empty">No simulated trades yet.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Live paper trading</h2>
+    <p class="sub">
+      The same automation, running against <strong>live</strong> demo prices. When a market in the five
+      topics swings by at least $0.10 and clears the tradeability screen, a simulated position is opened on
+      the side that moved, at the price the API last reported. Positions are held until the market settles,
+      then scored with the market's own settlement value.
+    </p>
+    <p class="small muted" style="margin:0 0 10px">
+      These trades are simulated only — nothing is sent to the exchange, no key is needed, and the book is
+      stored in this browser's local storage. It is the automated version of the
+      <a href="portfolio.html">Portfolio</a> page, which places real demo orders with your own key.
+    </p>
+    <div class="toolbar">
+      <button id="paper-start" class="secondary">Start paper trader</button>
+      <button id="paper-stop" class="secondary">Stop</button>
+      <button id="paper-settle" class="secondary">Check for settlements</button>
+      <button id="paper-clear" class="secondary">Clear book</button>
+      <span class="spacer"></span>
+      <span id="paper-status" class="pill idle">stopped</span>
+    </div>
+    <div class="grid cols-4" id="paper-kpis" style="margin:12px 0"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Opened</th><th>Market</th><th>Topic</th><th>Side</th>
+          <th class="num">Entry price</th><th>Status</th><th>Outcome</th>
+          <th class="num">P&amp;L / contract</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="paper-rows"><tr><td colspan="9"><div class="empty">No paper positions yet.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Where each number comes from</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Quantity</th><th>Official source</th><th>Field</th></tr></thead>
+        <tbody>
+          <tr><td>Universe of finalized markets</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">GET /markets ↗</a></td>
+            <td class="mono small">status=settled</td></tr>
+          <tr><td>Yes/no outcome and settlement value</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a></td>
+            <td class="mono small">result, settlement_value_dollars</td></tr>
+          <tr><td>Series ticker and category</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a></td>
+            <td class="mono small">series_ticker, category</td></tr>
+          <tr><td>Price history</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">GET candlesticks ↗</a></td>
+            <td class="mono small">price.close_dollars, price.previous_dollars, volume_fp</td></tr>
+          <tr><td>Settlement mechanics ($1 per winning contract)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a></td>
+            <td class="mono small">—</td></tr>
+          <tr><td>Fee schedule (not applied in the simulation)</td>
+            <td><a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">PDF ↗</a></td>
+            <td class="mono small">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, money, money4, int, dec, pct, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { STRATEGIES, TRADE_SCREEN, ALERT } from "./assets/js/config.js";
+import {
+  loadSettledUniverse, loadHistory, toSeries, replayAll, aggregate, Paper
+} from "./assets/js/simulator.js";
+import { api, getAll, classifyEvent, num, screenMarket } from "./assets/js/market.js";
+import { AlertEngine, topicLabel } from "./assets/js/alerts.js";
+
+mountChrome({ page: "simulator.html", title: "Strategy tester" });
+
+let lastRun = null;
+
+/* ---------------------------------------------------------------- backtest */
+
+$("#run").addEventListener("click", async () => {
+  const limit = Math.max(5, Math.min(100, Number($("#universe").value) || 25));
+  const minutes = Math.max(60, Math.min(1440, Number($("#minutes").value) || 600));
+  const topic = $("#topic").value;
+
+  pill($("#status"), "warn", "loading universe…");
+  $("#scoreboard").innerHTML = emptyRow(10, "Loading finalized markets…");
+  $("#ledger").innerHTML = emptyRow(10, "Loading…");
+
+  try {
+    const universe = await loadSettledUniverse({
+      limit: limit * 2,
+      maxPages: 2,
+      onProgress: (n, total) => pill($("#status"), "warn", `universe ${n} markets…`)
+    });
+    const scoped = topic === "all" ? universe : universe.filter(m => m.topic === topic);
+    $("#progress-note").innerHTML =
+      `Universe: <strong>${scoped.length}</strong> finalized market(s) from ${universe.length} loaded` +
+      (topic === "all" ? "" : ` (topic: ${topic})`) +
+      `. History window: ${minutes} one-minute periods before settlement.`;
+    pill($("#status"), "warn", `reading history for ${scoped.length} markets…`);
+
+    const trades = [];
+    let historyRequests = 0, withHistory = 0, errors = 0;
+    for (let i = 0; i < scoped.length; i++) {
+      const m = scoped[i];
+      pill($("#status"), "warn", `history ${i + 1}/${scoped.length}…`);
+      const hist = await loadHistory(m, { minutes, interval: 1 });
+      historyRequests++;
+      if (hist.error) { errors++; continue; }
+      const series = toSeries(hist.points);
+      if (!series.length) continue;
+      withHistory++;
+      trades.push(...replayAll(STRATEGIES, series, m));
+    }
+
+    lastRun = { trades, universe: scoped.length, withHistory, errors, minutes, topic, historyRequests };
+    renderScoreboard();
+    renderLedger();
+    renderKpis();
+    pill($("#status"), "live",
+      `${trades.length} simulated trades · ${withHistory}/${scoped.length} markets had price history`);
+  } catch (e) {
+    pill($("#status"), "err", e.message);
+    $("#scoreboard").innerHTML = emptyRow(10, "Backtest failed: " + e.message);
+  }
+});
+
+function renderKpis() {
+  if (!lastRun) {
+    $("#kpis").innerHTML = [
+      { k: "Markets scored", v: "—", m: "run a backtest" },
+      { k: "Simulated trades", v: "—", m: "one per market per strategy" },
+      { k: "Best strategy", v: "—", m: "by total P&L" },
+      { k: "History requests", v: "—", m: "1-minute candles" }
+    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+    return;
+  }
+  const agg = aggregate(lastRun.trades).filter(g => g.n > 0).sort((a, b) => b.pnl - a.pnl);
+  const best = agg[0];
+  $("#kpis").innerHTML = [
+    { k: "Markets scored", v: int(lastRun.withHistory), m: `of ${lastRun.universe} finalized` },
+    { k: "Simulated trades", v: int(lastRun.trades.length), m: "one per market per strategy" },
+    { k: "Best strategy", v: best ? esc(best.name) : `<span class="unv">n/a</span>`, m: best ? `${money(best.pnl)} per contract` : "no strategy fired" },
+    { k: "History requests", v: int(lastRun.historyRequests), m: "1-minute candles" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+}
+
+function renderScoreboard() {
+  const agg = aggregate(lastRun.trades);
+  const rows = [];
+  for (const s of STRATEGIES) {
+    const g = agg.find(x => x.key === s.key);
+    if (!g) {
+      rows.push(`<tr>
+        <td><strong>${esc(s.name)}</strong><div class="small muted">${esc(s.rule)}</div></td>
+        <td class="num">0</td><td class="num">—</td><td class="num">—</td>
+        <td class="num"><span class="unv">n/a</span></td><td class="num"><span class="unv">n/a</span></td>
+        <td class="num">$0.00</td><td class="num">$0.00</td><td class="num"><span class="unv">n/a</span></td>
+        <td class="small">${esc(s.evidence || "no trade fired in this universe")}</td>
+      </tr>`);
+      continue;
+    }
+    rows.push(`<tr>
+      <td><strong>${esc(s.name)}</strong><div class="small muted">${esc(s.rule)}</div></td>
+      <td class="num">${int(g.n)}</td>
+      <td class="num">${int(g.wins)}</td>
+      <td class="num">${int(g.losses)}</td>
+      <td class="num">${g.winRate === null ? `<span class="unv">n/a</span>` : (g.winRate * 100).toFixed(1) + "%"}</td>
+      <td class="num">${g.avgEntry === null ? `<span class="unv">n/a</span>` : "$" + g.avgEntry.toFixed(2)}</td>
+      <td class="num">${money(g.pnl)}</td>
+      <td class="num">${money(g.capital)}</td>
+      <td class="num">${g.roi === null ? `<span class="unv">n/a</span>` : (g.roi * 100).toFixed(1) + "%"}</td>
+      <td class="small">
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(g.trades[0].ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/${encodeURIComponent(g.trades[0].seriesTicker || "")}/markets/${encodeURIComponent(g.trades[0].ticker)}/candlesticks" target="_blank" rel="noopener noreferrer">candles ↗</a>
+      </td>
+    </tr>`);
+  }
+  $("#scoreboard").innerHTML = rows.join("");
+  $("#score-note").innerHTML =
+    `Run: ${int(lastRun.universe)} finalized market(s), ${int(lastRun.withHistory)} with price history, ` +
+    `${int(lastRun.historyRequests)} candlestick request(s), ${int(lastRun.minutes)}-minute window. ` +
+    `P&amp;L per contract = payout − entry price; ROI = total P&amp;L ÷ total capital deployed. ` +
+    `No fees, no spread, no slippage. <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Settlement rules ↗</a>`;
+}
+
+function renderLedger() {
+  const rows = lastRun.trades.slice().sort((a, b) => (b.pnlPerContract ?? -9) - (a.pnlPerContract ?? -9));
+  $("#ledger-count").textContent = `${rows.length} trade${rows.length === 1 ? "" : "s"}`;
+  if (!rows.length) {
+    $("#ledger").innerHTML = emptyRow(10, "No strategy fired in this universe.");
+    return;
+  }
+  $("#ledger").innerHTML = rows.map(t => `<tr>
+    <td class="small">${esc(t.strategyName)}</td>
+    <td class="small">${esc(t.eventTitle || t.ticker)}<div class="mono muted small">${esc(t.ticker)}</div></td>
+    <td class="small">${t.topic ? `<a href="categories/${t.topic}.html">${esc(topicLabel(t.topic))}</a>` : `<span class="unv">outside scope</span>`}</td>
+    <td><span class="tag ${t.side === "yes" ? "yes" : "no"}">${esc(t.side)}</span></td>
+    <td class="num">${money4(t.entryPrice)}</td>
+    <td class="small nowrap">${t.entryTs ? dt(new Date(t.entryTs).toISOString()) : `<span class="unv">n/a</span>`}</td>
+    <td class="small">${esc(t.exitReason)}${t.exitPrice !== null && t.exitPrice !== undefined ? ` @ ${money4(t.exitPrice)}` : ""}</td>
+    <td>${t.result === "yes" ? `<span class="tag yes">yes</span>` : t.result === "no" ? `<span class="tag no">no</span>` : `<span class="unv">n/a</span>`}</td>
+    <td class="num">${t.pnlPerContract === null ? `<span class="unv">n/a</span>` : money(t.pnlPerContract)}</td>
+    <td class="small nowrap">
+      <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(t.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
+      <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events/${encodeURIComponent(t.eventTicker)}" target="_blank" rel="noopener noreferrer">event ↗</a>
+    </td>
+  </tr>`).join("");
+}
+
+/* ------------------------------------------------------------ paper trader */
+
+let paperEngine = null;
+
+$("#paper-start").addEventListener("click", () => {
+  if (paperEngine) return;
+  paperEngine = new AlertEngine({
+    threshold: ALERT.defaultThreshold,
+    passScore: TRADE_SCREEN.passScore,
+    pollMs: ALERT.defaultPollMs,
+    maxEventsPerPoll: ALERT.maxEventsPerPoll,
+    onMessage: (swing) => {
+      const side = swing.dir === "up" ? "yes" : "no";
+      const list = Paper.all();
+      if (list.some(p => p.ticker === swing.ticker && !p.closed)) return;
+      Paper.add({
+        ticker: swing.ticker,
+        event_ticker: swing.eventTicker,
+        event_title: swing.eventTitle,
+        topic: swing.topicKey,
+        side,
+        entry_price: swing.to,
+        entry_basis: swing.basis,
+        screen_score: swing.screen ? swing.screen.score : null,
+        delta: swing.delta,
+        strategy: "Live momentum (buy the side that moved)"
+      });
+      renderPaper();
+    },
+    onState: (st) => {
+      if (st.state === "live") pill($("#paper-status"), "live", `live · ${st.markets} markets watched`);
+      else if (st.state === "loading") pill($("#paper-status"), "warn", "scanning…");
+      else if (st.state === "error") pill($("#paper-status"), "err", st.error);
+    }
+  });
+  paperEngine.start();
+});
+$("#paper-stop").addEventListener("click", () => {
+  if (paperEngine) { paperEngine.stop(); paperEngine = null; }
+  pill($("#paper-status"), "idle", "stopped");
+});
+$("#paper-settle").addEventListener("click", async () => {
+  pill($("#paper-status"), "warn", "checking settlements…");
+  await Paper.settle();
+  renderPaper();
+  pill($("#paper-status"), "idle", "settlements checked");
+});
+$("#paper-clear").addEventListener("click", () => {
+  Paper.save([]);
+  renderPaper();
+});
+
+function renderPaper() {
+  const list = Paper.all();
+  const open = list.filter(p => !p.closed);
+  const closed = list.filter(p => p.closed);
+  const pnl = closed.reduce((a, p) => a + (p.pnl_per_contract || 0), 0);
+  const wins = closed.filter(p => (p.pnl_per_contract || 0) > 0).length;
+  $("#paper-kpis").innerHTML = [
+    { k: "Open positions", v: int(open.length), m: "awaiting settlement" },
+    { k: "Closed positions", v: int(closed.length), m: "scored by the exchange" },
+    { k: "Realised P&L", v: money(pnl), m: "per contract, summed" },
+    { k: "Hit rate", v: closed.length ? (wins / closed.length * 100).toFixed(0) + "%" : `<span class="unv">n/a</span>`, m: "of closed positions" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+  if (!list.length) {
+    $("#paper-rows").innerHTML = emptyRow(9, "No paper positions yet.");
+    return;
+  }
+  $("#paper-rows").innerHTML = list.map(p => `<tr>
+    <td class="small nowrap">${p.opened_at ? dt(p.opened_at) : `<span class="unv">n/a</span>`}</td>
+    <td class="small">${esc(p.event_title || p.ticker)}<div class="mono muted small">${esc(p.ticker)}</div></td>
+    <td class="small">${p.topic ? `<a href="categories/${p.topic}.html">${esc(topicLabel(p.topic))}</a>` : `<span class="unv">n/a</span>`}</td>
+    <td><span class="tag ${p.side === "yes" ? "yes" : "no"}">${esc(p.side)}</span></td>
+    <td class="num">${money4(p.entry_price)}</td>
+    <td>${p.closed ? `<span class="tag">closed</span>` : `<span class="pill live">open</span>`}</td>
+    <td>${p.closed
+      ? `${p.result === "yes" ? `<span class="tag yes">yes</span>` : `<span class="tag no">no</span>`} <span class="small muted">settled ${money4(p.settlement_value)}</span>`
+      : `<span class="unv">not settled</span>`}</td>
+    <td class="num">${p.closed ? money(p.pnl_per_contract) : `<span class="unv">n/a</span>`}</td>
+    <td class="small nowrap">
+      <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(p.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
+    </td>
+  </tr>`).join("");
+}
+
+renderPaper();
+renderKpis();
+</script>
+</body>
+</html>
