@@ -310,8 +310,13 @@ $("#cancel-order").onclick = async () => {
   if (!api.hasCredentials()) { pill($("#order-status"), "err", "load a demo key first"); return; }
   const id = prompt("Order ID to cancel:");
   if (!id) return;
+  // The ticker is part of the documented cancel request, not an extra: Kalshi
+  // routes a cancel to the shard where the order rests using it.
+  // https://docs.kalshi.com/api-reference/orders/cancel-order-v2
+  const ticker = (prompt("Market ticker of that order (required for auto-routing):") || "").trim();
+  if (!ticker) { pill($("#order-status"), "err", "a market ticker is required to cancel"); return; }
   try {
-    const r = await api.cancelOrder(id.trim());
+    const r = await api.cancelOrder(id.trim(), ticker);
     pill($("#order-status"), "live", "cancel submitted");
     $("#order-result").innerHTML = `<div class="callout ok"><h3>Cancelled</h3>
       <pre class="mono small" style="margin:0;white-space:pre-wrap">${esc(JSON.stringify(r, null, 2))}</pre></div>`;

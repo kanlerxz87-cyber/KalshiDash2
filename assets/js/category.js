@@ -44,9 +44,11 @@ async function loadBoard() {
     const res = await discoverTopic(topicKey, { includeSettled: false });
     state.events = res.events;
     state.markets = res.markets;
+    state.scan = res;
     pill($("#board-status"), "live", `live · ${res.events.length} events / ${res.markets.length} markets`);
     renderBoard();
     renderStats(res);
+    renderCoverage(res);
     if (!state.selected && state.markets.length) selectMarket(preferredMarket(state.markets));
   } catch (e) {
     pill($("#board-status"), "err", e.message);
@@ -71,13 +73,48 @@ function renderStats(res) {
   const totalMoney = ranked.reduce((a, r) => a + (r.money || 0), 0);
   const oi = ranked.reduce((a, r) => a + r.oi, 0);
   const open = res.markets.filter(m => ["active", "open"].includes(m.status));
-  const liq = open.reduce((a, m) => a + (num(m.yes_bid_size_fp) || 0) + (num(m.no_bid_size_fp) || 0), 0);
+  /* Resting size at the touch, summed over open markets.
+   *
+   * Only `yes_bid_size_fp` and `yes_ask_size_fp` exist on a market object.
+   * An earlier version also added a `no_bid_size_fp` field that the demo API
+   * does not return for any market (it is not in the Get Market schema either),
+   * so that term was always 0 and the figure read low. A NO bid at y is an
+   * implied YES ask at 1 − y, so the NO side's size at the touch is already
+   * `yes_ask_size_fp`; the two documented fields are the complete measure.
+   * (https://docs.kalshi.com/api-reference/market/get-market) */
+  const touch = open.reduce((a, m) => a + (num(m.yes_bid_size_fp) || 0) + (num(m.yes_ask_size_fp) || 0), 0);
   $("#cat-stats").innerHTML = [
     { k: "Money traded", v: money(totalMoney), m: "Σ volume × last price" },
     { k: "Open events", v: int(res.events.length), m: "matching this topic" },
     { k: "Open interest", v: int(oi), m: "contracts across markets" },
-    { k: "Resting size", v: int(liq), m: "best-level contract size" }
+    { k: "Resting size at touch", v: int(touch), m: "Σ yes_bid_size_fp + yes_ask_size_fp" }
   ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+}
+
+/* State the scan that was actually performed, so an empty board can never be
+ * mistaken for "this topic has no markets". The counts come from this request,
+ * not from a hard-coded number. */
+function renderCoverage(res) {
+  const el = $("#topic-caveat");
+  if (!el) return;
+  if (!res) { el.innerHTML = ""; return; }
+  const total = res.perStatus.open ?? 0;
+  const parts = Object.entries(res.perStatus || {})
+    .map(([status, n]) => `${int(n)} ${esc(status)}`).join(" · ");
+  const cut = Object.entries(res.capped || {}).filter(([, v]) => v).map(([k]) => esc(k));
+  const trunc = cut.length
+    ? `<p class="small" style="margin:6px 0 0">The <strong>${cut.join(", ")}</strong> list was longer than the page budget for this scan; events beyond it were not read. This is a scan limit, not an empty topic.</p>`
+    : "";
+  if (res.events.length) {
+    el.innerHTML = `<p class="small muted" style="margin:0 0 6px">
+      This scan read ${int(total)} open event(s) from <code>GET /events?status=open&amp;with_nested_markets=true</code>
+      (${parts}) and matched ${int(res.events.length)} to ${esc(res.topic.label)}.</p>${trunc}`;
+    return;
+  }
+  el.innerHTML = `<div class="callout warn"><h3>No ${esc(res.topic.label)} events in this scan</h3>
+    <p style="margin:0 0 4px">The scan returned ${int(total)} open event(s) (${parts}) and none matched this topic's
+    documented rule. That is a result of this scan, not a claim that the topic is empty on Kalshi —
+    the topic may fill later in the day.</p>${trunc}</div>`;
 }
 
 function renderBoard() {
@@ -195,11 +232,22 @@ async function drawWindow() {
         ${src(res.source, "GET candlesticks")} ${src(SOURCES.candles, "endpoint docs")}`;
       renderJumps(market, jumps, res);
       if (!traded) {
+        /* A market can legitimately have candles with no trade price (no trade
+         * in the window). Rather than leave an empty chart, look for another
+         * market in this topic that does have a priced candle series and offer
+         * it — the board already ranks markets by money traded, so the reader
+         * is pointed at one that is actually trading. */
+        const alt = await pricedAlternative(market, state.markets);
         $("#chart-empty").innerHTML = `<div class="callout warn" style="margin:12px 0 0">
-          <h3>No trades in this window</h3>
-          <p style="margin:0">The API returned ${int(res.rawCount)} candle periods but none carried a trade
-          price. Periods with no trades have a null price — they are gaps, not $0.00. Try a longer window or a
-          market with resting orders.</p></div>`;
+          <h3>No trades in this window on ${esc(market.ticker)}</h3>
+          <p style="margin:0 0 6px">The API returned ${int(res.rawCount)} candle period(s) but none carried a trade
+          price. Periods with no trades have a null price — they are gaps, not $0.00.</p>
+          ${alt
+            ? `<p style="margin:0"><button class="secondary tiny" id="chart-alt">Chart ${esc(alt.title || alt.ticker)} instead</button>
+               <span class="small muted">— that market returned priced candles for this window.</span></p>`
+            : `<p style="margin:0" class="small muted">No other ${esc(topic.label)} market in this scan returned priced candles for this window either.</p>`}</div>`;
+        const btn = $("#chart-alt");
+        if (btn && alt) btn.onclick = () => selectMarket(alt);
       } else {
         $("#chart-empty").innerHTML = "";
       }
@@ -315,6 +363,24 @@ async function renderJumps(market, jumps, res) {
 
 function stopLive() {
   if (sampler) { sampler.stop(); sampler = null; }
+}
+
+/* Find a market in the current topic whose official candles carry a trade
+ * price, so an empty chart can offer a real alternative instead of a dead end.
+ * Tries the highest-money markets first (state.markets arrives ranked) and
+ * stops at the first hit; every miss is a real API call, so the list is capped. */
+async function pricedAlternative(exclude, markets) {
+  const candidates = (markets || [])
+    .filter(m => m.ticker !== exclude.ticker)
+    .filter(m => ["active", "open"].includes(m.status))
+    .slice(0, 6);
+  for (const m of candidates) {
+    try {
+      const res = await fetchCandles(m, { seconds: 3600, interval: 1 });
+      if (res.points.some(p => p.y !== null && p.y !== undefined)) return m;
+    } catch { /* try the next candidate */ }
+  }
+  return null;
 }
 
 function renderChart(series, win, res, extra = {}) {

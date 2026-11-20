@@ -189,8 +189,15 @@ export class KalshiClient {
   /* ---------------- trading (V2) ---------------- */
 
   /* Purchase a YES position at a price (side must be "bid") or a NO position
-   * (side must be "ask"). `side` is book vocabulary: bid ≡ yes, ask ≡ no. */
-  createOrder({ ticker, outcomeSide, priceDollars, count, timeInForce = "good_till_canceled", clientOrderId }) {
+   * (side must be "ask"). `side` is book vocabulary: bid ≡ yes, ask ≡ no.
+   * (https://docs.kalshi.com/api-reference/orders/create-order-v2 — the
+   * documented body carries `side`, `count`, `price` as fixed-point strings.)
+   *
+   * `exchangeIndex` is optional. Per the sharding doc, an order write that
+   * omits `exchange_index` and supplies a ticker auto-routes by ticker, so the
+   * market's own `exchange_index` is NOT sent unless the caller asks for it —
+   * sending a stale/guessed shard would be worse than letting Kalshi route. */
+  createOrder({ ticker, outcomeSide, priceDollars, count, timeInForce = "good_till_canceled", clientOrderId, exchangeIndex }) {
     if (outcomeSide !== "yes" && outcomeSide !== "no") {
       throw new Error('outcomeSide must be "yes" or "no".');
     }
@@ -203,11 +210,32 @@ export class KalshiClient {
       self_trade_prevention_type: "taker_at_cross",
       client_order_id: clientOrderId || crypto.randomUUID()
     };
+    if (Number.isInteger(exchangeIndex) && exchangeIndex >= 0) body.exchange_index = exchangeIndex;
     return this.request("POST", "/portfolio/events/orders", body);
   }
 
-  cancelOrder(orderId) {
-    return this.request("DELETE", "/portfolio/events/orders/" + encodeURIComponent(orderId));
+  /* Cancel a V2 order.
+   *
+   * The Cancel Order (V2) reference documents `market_ticker` and
+   * `exchange_index` as QUERY parameters, and states that `market_ticker` is
+   * required for auto-routing:
+   *   "Exchange shard index. If omitted, auto-routes when market_ticker is
+   *    provided; otherwise defaults to 0. ... The market_ticker parameter is
+   *    required for auto-routing."
+   * (https://docs.kalshi.com/api-reference/orders/cancel-order-v2)
+   * The sharding doc adds that an order can only be cancelled on the shard
+   * where it rests, and that a request reaching another shard is rejected,
+   * so cancelling without the ticker can miss a non-zero shard.
+   * (https://docs.kalshi.com/getting_started/exchange_sharding)
+   *
+   * `marketTicker` is therefore required here rather than optional: the old
+   * signature sent neither parameter and could only ever hit shard 0. */
+  cancelOrder(orderId, marketTicker) {
+    if (!marketTicker) {
+      throw new Error("A market ticker is required to cancel: Kalshi auto-routes a cancel by market_ticker.");
+    }
+    const q = "?market_ticker=" + encodeURIComponent(marketTicker);
+    return this.request("DELETE", "/portfolio/events/orders/" + encodeURIComponent(orderId) + q);
   }
   amendOrder(orderId, body) {
     return this.request("POST", "/portfolio/events/orders/" + encodeURIComponent(orderId) + "/amend", body);

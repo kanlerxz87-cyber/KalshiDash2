@@ -82,10 +82,17 @@ export const TOPICS = [
       "No Kalshi `category` value covers gasoline. Matched on the KXAAAGAS* series family " +
       "and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded.",
     verifiedCategory: null,
-    caveat:
-      "The demo environment returned 0 open gas-price events in the 1,000-event " +
-      "scan on 2026-11-20, so this topic renders an explicit empty state rather " +
-      "than placeholder rows.",
+    /* No coverage caveat is hard-coded any more. An earlier version claimed the
+     * demo environment returned "0 open gas-price events"; that was true of one
+     * 1,000-event scan but false when re-checked live on 2026-11-20 ~19:20 UTC,
+     * when this exact query returned a live gas event:
+     *   GET /events?status=open&series_ticker=KXAAAGASW
+     *   -> KXAAAGASW-26NOV23 "US gas prices this week", category Economics,
+     *      settlement source AAA (https://gasprices.aaa.com/), with markets
+     *      carrying open interest up to 32,793.57 contracts.
+     * A hard-coded count would go stale the same way, so the page reports the
+     * scan it just performed instead. */
+    caveat: null,
     sources: ["series", "events"]
   },
   {

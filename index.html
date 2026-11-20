@@ -186,25 +186,45 @@ const state = { events: [], mode: "money", loadedAt: null };
 })();
 
 /* ---- discovery ---- */
-async function loadBoard() {
+/* One scan at a time. The page auto-refreshes every 60 s; a full open-event
+ * scan is several paginated requests, so a refresh that fired mid-scan used to
+ * start a second overlapping scan and let whichever finished last overwrite
+ * the board. The guard below also stops an auto-refresh from silently
+ * truncating a scan that is still running. */
+let loading = false;
+
+async function loadBoard({ auto = false } = {}) {
+  if (loading) return;
+  loading = true;
   pill($("#board-status"), "warn", "loading…");
   $("#board-body").innerHTML = `<tr><td colspan="9"><div class="empty"><span class="spinner"></span> Reading live events (this can take a few seconds)…</div></td></tr>`;
   try {
     const events = [];
+    const capped = [];
+    const perStatus = {};
     for (const status of ["open", "closed"]) {
       const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
         key: "events", maxPages: status === "open" ? 10 : 4
       });
       rows.forEach(e => { e._status = status; });
       events.push(...rows);
+      perStatus[status] = rows.length;
+      /* When the scan stopped at its own page budget the table covers only
+       * part of the exchange, and the page must say so instead of implying it
+       * scanned everything. */
+      if (rows.__capped) capped.push(`${status} (${rows.__pages} pages)`);
     }
     state.events = events;
+    state.perStatus = perStatus;
+    state.capped = capped;
     state.loadedAt = new Date();
-    pill($("#board-status"), "live", `live · ${events.length} events scanned`);
+    pill($("#board-status"), "live", `live · ${events.length} events scanned${capped.length ? " (partial)" : ""}`);
     render();
   } catch (e) {
     pill($("#board-status"), "err", e.message);
     $("#board-body").innerHTML = emptyRow(9, "Could not load events: " + e.message);
+  } finally {
+    loading = false;
   }
 }
 
@@ -322,9 +342,14 @@ function render() {
     ${int(movers.length)} qualifying move(s) in ${int(state.events.length)} scanned event(s).`;
 
   const mode = RANKING_MODES.find(m => m.key === state.mode);
+  const partial = (state.capped || []).length
+    ? ` <strong style="color:var(--warn)">Partial scan:</strong> the ${esc(state.capped.join(" and "))} list hit this page's
+        page budget while the API still had more pages, so events beyond it are not represented here.`
+    : "";
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
     ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
-    ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")}. ${src(SOURCES.events, "GET /events")}`;
+    ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")} (${int(state.perStatus?.open ?? 0)} open ·
+    ${int(state.perStatus?.closed ?? 0)} closed).${partial} ${src(SOURCES.events, "GET /events")}`;
 }
 
 $("#rank-mode").addEventListener("click", (e) => {
@@ -337,7 +362,7 @@ $("#rank-mode").addEventListener("click", (e) => {
 $("#refresh-board").addEventListener("click", loadBoard);
 
 loadBoard();
-setInterval(() => { if (document.visibilityState === "visible") loadBoard(); }, 60000);
+setInterval(() => { if (document.visibilityState === "visible") loadBoard({ auto: true }); }, 60000);
 </script>
 </body>
 </html>

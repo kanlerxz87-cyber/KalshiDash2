@@ -13,19 +13,36 @@ export const api = new KalshiClient();
 
 /* ---------------- pagination ---------------- */
 
+/* Collect every page of a cursor-paginated list.
+ *
+ * Returns an array (as before) with two diagnostic properties attached:
+ *   rows.__pages   number of requests actually made
+ *   rows.__capped  true when `maxPages` ran out while the API still had a
+ *                  cursor — the list is incomplete and callers must say so
+ *                  rather than present a partial scan as the whole exchange.
+ * The documented page limit for GET /markets and GET /events is 200
+ * (https://docs.kalshi.com/api-reference/market/get-markets,
+ *  https://docs.kalshi.com/api-reference/events/get-events), so a single page
+ * is never assumed to be the full set. */
 export async function getAll(path, { key, maxPages = 20, limit = 200, onPage } = {}) {
   const out = [];
   let cursor = "";
+  let pages = 0;
+  let capped = false;
   for (let i = 0; i < maxPages; i++) {
     const sep = path.includes("?") ? "&" : "?";
     const url = path + sep + "limit=" + limit + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
     const page = await api.get(url);
+    pages += 1;
     const rows = page[key] || [];
     out.push(...rows);
     if (onPage) onPage(out.length, rows.length);
     cursor = page.cursor || "";
     if (!cursor || rows.length === 0) break;
+    if (i === maxPages - 1) capped = true;
   }
+  Object.defineProperty(out, "__pages", { value: pages, enumerable: false });
+  Object.defineProperty(out, "__capped", { value: capped, enumerable: false });
   return out;
 }
 
@@ -77,13 +94,25 @@ export async function discoverTopic(topicKey, { includeSettled = true, onProgres
   // Open + closed events give us both the live board and the resolution feed.
   const statuses = includeSettled ? ["open", "closed", "settled"] : ["open"];
   const events = [];
+  /* `perStatus` records exactly how many events the API returned for each
+   * status, so the page can state the size of the scan it actually performed
+   * instead of repeating a hard-coded count that can go stale. */
+  const perStatus = {};
+  const capped = {};
   for (const status of statuses) {
+    const maxPages = status === "open" ? 12 : 6;
+    let pages = 0;
     const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
       key: "events",
-      maxPages: status === "open" ? 12 : 6,
-      onPage: onProgress
+      maxPages,
+      onPage: () => { pages += 1; }
     });
     rows.forEach(e => { e._status = status; });
+    perStatus[status] = rows.length;
+    /* getAll stops early when the API returns an empty cursor; if it used every
+     * allowed page the scan may have been cut short and must say so. */
+    capped[status] = pages >= maxPages && rows.length > 0;
+    if (onProgress) onProgress(rows.length, status);
     events.push(...rows);
   }
 
@@ -106,6 +135,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, onProgres
     events: matched,
     markets,
     scanned: events.length,
+    perStatus,
+    capped,
     source: `${DEMO.rest}/events?with_nested_markets=true`
   };
 }
@@ -205,11 +236,18 @@ export async function resolveSeries(market) {
 /* Fetch candles, splitting the range so a request never exceeds the documented
  * 5,000-period cap. Returns points in the chart's {t, y} shape, where y is the
  * trade close price for the period and is null when the period had no trades. */
-export async function fetchCandles(market, { seconds, interval }) {
+/* `endTs` (Unix seconds, optional) anchors the window at a chosen moment
+ * instead of "now". A settled market's candles stop before now, so the strategy
+ * tester MUST anchor on that market's own end; measuring 24 h back from the
+ * current clock would request a window that ends after settlement and miss the
+ * trading history entirely. (GET /series/{series}/markets/{ticker}/candlesticks
+ * takes required `start_ts` and `end_ts` — no "now" default is documented.)
+ * https://docs.kalshi.com/api-reference/market/get-market-candlesticks */
+export async function fetchCandles(market, { seconds, interval, endTs }) {
   const series = await resolveSeries(market);
   const periodSeconds = interval * 60;
   const maxSpan = CANDLE.maxPeriodsPerRequest * periodSeconds;
-  const end = Math.floor(Date.now() / 1000);
+  const end = Number.isFinite(endTs) ? Math.floor(endTs) : Math.floor(Date.now() / 1000);
   const start = end - seconds;
 
   const chunks = [];
