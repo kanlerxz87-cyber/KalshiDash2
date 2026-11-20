@@ -84,9 +84,10 @@ export const CLAIMS = [
     source: `${D}/getting_started/fixed_point_migration`,
     ev: "Documented; live payloads show linear_cent and center_deci_edge_centi_cent", status: "verified" },
   { cat: "data", claim: "Money traded is not an API field",
-    detail: "volume × last price is computed by this site and labelled as such",
-    source: `${D}/api-reference/market/get-markets`,
-    ev: "Documented field list", status: "verified" },
+    detail: "volume × last price is computed by this site and labelled as such. The API field notional_value_dollars is defined as the total value of a single contract at settlement, i.e. the per-contract payout, not traded dollar volume",
+    source: `${D}/api-reference/market/get-market`,
+    ev: "Field definition quoted from the Get Market schema (checked 2026-11-20); volume_fp and last_price_dollars confirmed in a captured demo payload (reports/verify-facts-v3.md)",
+    status: "verified" },
 
   // ---- auth ----
   { cat: "auth", claim: "Required auth headers",
