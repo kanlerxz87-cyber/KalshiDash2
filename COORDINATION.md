@@ -68,7 +68,7 @@ Rules session 4b7b4e2f followed:
 | T3 | Portfolio performance (demo account), trade execution, trade categorization + strategy analysis | done | ae228af4 | `docs/portfolio.html`, `docs/trades.html`, `docs/assets/portfolio.js`, `scripts/kalshi_client.py`, `scripts/analyze_trades.py`, `data/trades_template.csv` | [API keys](https://docs.kalshi.com/getting_started/api_keys), [Authenticated requests](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests), [Create first order](https://docs.kalshi.com/getting_started/quick_start_create_order) | No demo credentials were provided and none are committed. Portfolio/trading UI works in two modes: (a) authenticated demo mode when the user pastes their own key ID + private key (stored only in browser localStorage, never committed), and (b) zero-key paper-trading simulator using live public prices. No real-money trading is possible from this static site. Order endpoint differs across docs (`/portfolio/orders` vs `/portfolio/events/orders`); code uses `/portfolio/events/orders` per latest Quick Start and flags the discrepancy. |
 | T4 | Suggestions section (review + choose best path before implementing) + Questions / Information / Answers needed before any decision | done | ae228af4 | `docs/suggestions.html`, `docs/questions.html`, `SUGGESTIONS.md`, `QUESTIONS.md` | Suggestions are proposals only; nothing is implemented from them until the user selects a path. Each suggestion lists expected benefit, cost/risk, and what evidence would confirm it. | No suggestion is marked "verified" — verification applies to facts, not proposals. |
 | T5 | Verification pass: every table row has an official source link; unverified values blank + flagged; Flagged for Review page; Sources/Methodology page | done | ae228af4 | `docs/flagged.html`, `docs/sources.html`, `VERIFICATION.md` | Every static row links to `docs.kalshi.com`, `kalshi.com`, `demo.kalshi.co`, or `help.kalshi.com`. Live rows link to the exact demo API URL + market page. | See Flagged for Review page for the live list. |
-| T6 | Final integration: build check (no broken internal links), GitHub Pages publish, PR to `main`, merge, deploy confirmation | in progress | ae228af4 (integration) | `docs/index.html` (shared nav/index only), `.github/workflows/pages.yml` (if needed), `COORDINATION.md` (this file) | `gh` CLI; GitHub Pages docs. | Do not merge a broken site. Flagged items do not block merge per instructions; they publish on the Flagged for Review page. |
+| T6 | Final integration: build check (no broken internal links), GitHub Pages publish, PR to `main`, merge, deploy confirmation | handoff to `a6bed09f` (2026-11-20; stale >60 min) | a6bed09f (integration; handoff from ae228af4) | `index.html`, `summary.html`, `assets/js/ui.js`, `README.md`, `.github/workflows/verify-live.yml`, `COORDINATION.md`; docs Pages configuration is read-only | Official Kalshi sources cited in new pages; GitHub Pages status/workflows via `gh`. | Previous site is live, but new alert/paper pages and a corrected live-site probe are part of takeover. No unverified ROI or causal-news claim will be published. |
 
 **Status key:** `unclaimed` → `in progress` → `done` | `needs review` = published on Flagged for Review page, does not block anything.
 
@@ -241,7 +241,7 @@ concurrent sessions merge cleanly instead of fighting over one table.
 | B3 | Corrected site built on the same facts (overview, 5 category pages, event, resolved, portfolio, strategies, suggestions, questions, verification, flagged) | done | `b7dfc4d9` | root `*.html`, `categories/**`, `assets/**` |
 | B4 | Deterministic signing-rule self-test (6 checks) | done | `b7dfc4d9` | `tools/verify/auth-sign-test.mjs`, `evidence/` |
 | B5 | Runtime + link verification of all 15 pages | done | `b7dfc4d9` | root `*.html`, `categories/**` |
-| B6 | PR + merge + Pages deploy | in progress | `b7dfc4d9` | `README.md`, `COORDINATION.md` |
+| B6 | PR + merge + Pages deploy | handoff to `a6bed09f` (2026-11-20; stale >60 min) | `a6bed09f` (handoff from `b7dfc4d9`) | `.github/workflows/verify-live.yml`, `README.md`, `COORDINATION.md`; prior PR #14 reviewed and integrated by takeover |
 
 Layout decision (2026-11-20T11:30Z): the verified pages were built under `site/` but the
 repository's Pages source is `main:/` (legacy), which cannot serve a subdirectory. Rather than
@@ -443,3 +443,26 @@ Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
 - GitHub Pages deploy after merge succeeded: [run 44745300283](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745300283). Pages API reported `status: built`, publishing from `main:/`.
 - Live site verified after deployment: [KalshiDash2](https://kanlerxz87-cyber.github.io/KalshiDash2/) and [Live alerts](https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html).
 - Post-merge note: GitHub Actions emitted a Node.js 20 deprecation annotation for upstream actions; the build and deploy both succeeded. No deployment failure remains open.
+---
+
+---
+
+# Session `a6bed09f` — live alerts, paper simulation, final integration
+
+Started: 2026-11-20T13:18Z. Branch: `arena/a6bed09f-kalshidash2` (Arena-fixed current branch; work stays here).
+
+## Claim / handoff
+
+The existing final-integration claims T6 (`ae228af4`) and B6 (`b7dfc4d9`) had no activity for more than 60 minutes at takeover. The latest known commit for B6 is the sole commit `24c4716` at 11:58Z; its open PR #14 contains only `.github/workflows/verify-live.yml`. T6's last recorded integration work is PR #12 at 11:43Z. At task start, `main` was `793f741` and Pages API reported `built`, legacy source `main:/`. PR #14's workflow was reviewed before takeover and will be integrated only after its page assertions and new-page coverage are corrected.
+
+| ID | Task | Status | Owner | Exclusive file scope |
+|---|---|---|---|---|
+| A1 | Add live ≥$0.10 swing alerts: two scrollable feeds, transparent model shortlist, event/source/context links | in progress | `a6bed09f` | `alerts.html`, `assets/js/monitor.js`, `assets/js/alerts.js`, `assets/css/alerts.css` |
+| A2 | Add automatic local-only paper simulator with strategy comparison and resolution-aware ledger | in progress | `a6bed09f` | `simulator.html`, `assets/js/paper-engine.js`, `assets/js/simulator.js`, `assets/css/simulator.css`, `evidence/alert-sim-test.mjs` |
+| A3 | Final integration: root nav/overview, summary + README/flags, live-site verification, link/build checks, PR/merge/deploy record | in progress | `a6bed09f` | `index.html`, `assets/js/ui.js`, `summary.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `flagged.html`, `.github/workflows/verify-live.yml`, `COORDINATION.md`; no edits under `docs/**`, `data/**`, or `scripts/**` |
+
+### Conflict log (2026-11-20T13:22Z)
+
+The required `git pull --rebase origin main` observed `main` advance from `793f741` to `df2ca90` (PR #17, sessions `aa8d808b` / `ff79cca7`). Rebase conflicted in this append-only board because both sides added session sections. Resolved by preserving the complete incoming session `aa8d808b` static-link-check record and `ff79cca7` Pages race-fix record, plus this session claim; no other session content was dropped. The incoming `.github/workflows/pages.yml` change is outside this session's edit scope and remains untouched.
+
+Official source checks for this claim: [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits), [WebSocket quick start](https://docs.kalshi.com/getting_started/quick_start_websockets). The model filter is a clearly labelled project heuristic, not an official Kalshi model or an ROI forecast. News/context search links will not be presented as confirmed causes.
