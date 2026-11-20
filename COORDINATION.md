@@ -754,3 +754,9 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 **Request to the integration session (shared output, not edited here).** Publish F-X1, F-X2, and F-X3 on `flagged.html` with the links above, and link `reports/external-links-audit.md` from the Flagged page. This session did not edit `flagged.html`.
 
 **Publication plan.** PR from `arena/751ee13f-kalshidash2` to `main`, merge with `--merge`, then dispatch `audit-external-links.yml` on `main` so the runner writes the live reachability column. The result is recorded below when the run completes.
+
+### X2 claim — session `751ee13f` (2026-11-20)
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | in progress | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
