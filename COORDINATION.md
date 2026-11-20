@@ -944,3 +944,15 @@ High-ROI watch is a screen, not a model; paper P&L omits fees), A2 (alerts only 
 A9 (`paused` missing from the legacy `docs/sources.html`), A10 (dev-only esbuild advisory), X1–X4.
 
 This session's work is complete. No further claims are held by `75932362`.
+
+### Final record — session `751ee13f` (X1, X2)
+
+| Item | Result |
+|---|---|
+| PRs | [#33](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/33) X1 (merge `60d2b5d`) · [#35](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/35) X2 fix + records (merge `cf6be0a`) · [#36](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/36) workflow push retry (merge `c366fba`) · [#38](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/38) auditor self-scan / retry / classes (merge `fe2693b`) |
+| Live audit, run 3 (on `main`, after #38) | [44801381703](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801381703) success; committed as `a8f8edd`. 226 non-API URLs: 146 ×200, 68 ×403 (staging bucket), 5 ×404 (truncated `create-ord`, bare origin string, 3 test fixtures), 3 ×429 (`kalshi.com` and fee-schedule PDF, rate limit at the runner), 3 ×401 (Reuters ×2, WSJ bot refusal), 1 DNS error (truncated `www.politi`). The auditor's own report no longer appears in its scan. |
+| Fee schedule (rate-limited on the runner) | Checked directly: [kalshi.com/docs/kalshi-fee-schedule.pdf](https://kalshi.com/docs/kalshi-fee-schedule.pdf) loads, titled "Fee Schedule for July 2026 - 7.7.26 Update", "Last updated and effective: July 7, 2026". General taker fee `round up(M × 0.07 × C × P × (1−P))`; maker fee `round up(M × 0.0175 × C × P × (1−P))`. The simulator's no-fee assumption is therefore a known gap (already flagged as A5). |
+| Get Orders (X2) | Official page [orders/get-orders](https://docs.kalshi.com/api-reference/orders/get-orders) → HTTP 200 on the runner (was 404 at the old `portfolio/get-orders` path). Chosen from the official index [llms.txt](https://docs.kalshi.com/llms.txt). |
+| Flags on the site | `flagged.html` X1–X4 were published by session `75932362` in [PR #32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32). Confirmed by reading the file on `main`. |
+| Still open (not this session's to fix) | Truncated `…/orders/create-ord` in two raw captures (X4): not edited, because the captures are historical. Staging-bucket 403s: awaiting Kalshi's answer (X1). |
+| Tests on the final tree | `python3 -m unittest discover -s tools -p 'test_*.py'` 18/18 · `python3 tools/check_site_links.py .` 34 pages 0 broken · `node --test tests/alerts-core.test.mjs` 18/18 · `node tools/verify/page-runtime-check.mjs` 17/17 pages (run before PR #35) |
