@@ -39,7 +39,7 @@ from urllib.parse import urlsplit
 
 REPO = Path(__file__).resolve().parent.parent
 SCAN_SUFFIXES = {".html", ".htm", ".js", ".mjs", ".css", ".md", ".json"}
-SKIP_NAMES = {"package-lock.json", "COORDINATION.md"}
+SKIP_NAMES = {"package-lock.json", "COORDINATION.md", "external-links-audit.md"}  # the report scans itself otherwise
 SKIP_PREFIXES = ("data/probe/", "tests/dom/node_modules/", "node_modules/")
 
 URL_RE = re.compile(r"https?://[^\s\"'<>`\\)\]}]+")
@@ -86,6 +86,8 @@ HOST_CLASSES: dict[str, HostClass] = {
     "www.espn.com": HostClass("Kalshi-named settlement source (sports)", False, "Third-party sports site named by settlement_sources[]"),
     "www.fifa.com": HostClass("Kalshi-named settlement source (sports)", False, "Third-party sports body named by settlement_sources[]"),
     "www.cfbenchmarks.com": HostClass("Kalshi-named settlement source (index)", False, "Index provider named by settlement_sources[]"),
+    "www.wsj.com": HostClass("Kalshi-named settlement source (news)", False, "Third-party outlet named by settlement_sources[] in a live check"),
+    "www.abc.net.au": HostClass("Kalshi-named settlement source (news)", False, "Third-party outlet named by settlement_sources[] in a live check"),
     # Flagged classes.
     "kalshi-public-docs-staging.s3.us-east-1.amazonaws.com": HostClass(
         "STAGING bucket (flag)", False,
@@ -185,11 +187,14 @@ def is_api(url: str) -> bool:
     return HOST_CLASSES.get(host_of(url), HostClass("", False, "")).label.startswith("Kalshi API")
 
 
+RETRY_WAITS = (20, 45, 90)  # seconds; used for HTTP 429 (rate limit) and 5xx (transient)
+
+
 def probe(url: str, timeout: int = 15) -> str:
-    """Probe once; on HTTP 429 wait and retry (up to 3 tries) before recording it."""
+    """Probe once; retry rate limits and server errors with backoff before recording the result."""
     status = _probe_once(url, timeout)
-    for wait in (20, 40):
-        if status != "HTTP 429":
+    for wait in RETRY_WAITS:
+        if not (status == "HTTP 429" or (status.startswith("HTTP 5"))):
             break
         time.sleep(wait)
         status = _probe_once(url, timeout)
@@ -324,7 +329,7 @@ def main(argv: list[str] | None = None) -> int:
     checks: dict[str, str] = {}
     if args.check:
         targets = [u for u in sorted(found) if not is_api(u)]
-        with ThreadPoolExecutor(max_workers=8) as pool:
+        with ThreadPoolExecutor(max_workers=4) as pool:
             for url, status in zip(targets, pool.map(probe, targets)):
                 checks[url] = status
                 print(f"{status:<22} {url}", file=sys.stderr)

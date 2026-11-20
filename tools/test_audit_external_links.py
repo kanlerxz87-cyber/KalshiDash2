@@ -49,6 +49,14 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(label, "This project's Pages site")
         self.assertIs(official, True)
 
+    def test_report_does_not_scan_itself(self):
+        self.assertIn("external-links-audit.md", aud.SKIP_NAMES)
+
+    def test_wsj_settlement_source_is_classified(self):
+        label, official, _, _ = aud.classify("https://www.wsj.com/")
+        self.assertEqual(label, "Kalshi-named settlement source (news)")
+        self.assertIs(official, False)
+
     def test_api_detection(self):
         self.assertTrue(aud.is_api("https://external-api.demo.kalshi.co/trade-api/v2/markets?limit=1"))
         self.assertFalse(aud.is_api("https://docs.kalshi.com/x"))
@@ -69,6 +77,21 @@ class ProbeRetryTests(unittest.TestCase):
         finally:
             aud._probe_once, aud.time.sleep = original_once, original_sleep
         self.assertEqual(len(calls), 2)
+
+    def test_5xx_is_retried(self):
+        calls = []
+
+        def fake_once(url, timeout):
+            calls.append(url)
+            return "HTTP 503" if len(calls) < 3 else "HTTP 200"
+
+        original_once, original_sleep = aud._probe_once, aud.time.sleep
+        aud._probe_once, aud.time.sleep = fake_once, (lambda _s: None)
+        try:
+            self.assertEqual(aud.probe("https://example.invalid/z"), "HTTP 200")
+        finally:
+            aud._probe_once, aud.time.sleep = original_once, original_sleep
+        self.assertEqual(len(calls), 3)
 
     def test_non_429_is_not_retried(self):
         calls = []
