@@ -872,3 +872,13 @@ Publish these on `flagged.html` with the links above and link `reports/external-
 - **F-X2** truncated `https://www.politi` (two raw excerpts; DNS error).
 - **F-X3** Kalshi-named third-party settlement sources (Guardian, Reuters (401 to bots), NYTimes, AP, ESPN, FIFA, CF Benchmarks). Source: [Get Event](https://docs.kalshi.com/api-reference/events/get-event).
 - **F-X4** truncated `docs.kalshi.com/api-reference/orders/create-ord` in two raw excerpts (404). Official replacement page for "create order" is `…/orders/create-order-v2`; decide whether the excerpts should be annotated.
+---
+
+## Session `e266d2e8` — simulator audit and analysis additions (2026-11-20)
+
+Claimed on the Arena-assigned branch `arena/e266d2e8-kalshidash2` (branch names are fixed by Arena; this session will not create or switch to a `session-*` branch).
+
+| Task | Status | Owner | File scope | Sources / verification | Irregularities |
+|---|---|---|---|---|---|
+| Complete the simulator follow-up requests: CSV ledger export, deterministic random-control baseline, and rollups by topic and YES/NO direction; audit and correct settlement P&L for NO contracts | in progress | `e266d2e8` | `simulator.html`, `assets/js/simulator.js`, `tests/simulator-core.test.mjs`, `flagged.html`, `COORDINATION.md` | Official settlement and market/candlestick references will be linked in UI; deterministic fixture tests and full static/runtime checks | Initial code review found NO-side P&L subtracts the YES quote rather than the NO contract price (1 − YES quote); previous backtest figures for NO trades may therefore be overstated/understated. Record and verify the correction before marking complete. |
+>>>>>>> 0281dcd (docs: claim simulator audit and analysis improvements)
