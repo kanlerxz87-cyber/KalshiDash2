@@ -990,3 +990,25 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 **Full suite on this branch (= `main` + this board record), 2026-11-20:** `node --test tests/alerts-core.test.mjs` 18/18 · `node --test tests/simulator-core.test.mjs` 5/5 · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` pass · `node tools/verify/page-runtime-check.mjs` 17/17 pages + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` OK · `node evidence/auth-sign-test.mjs` 6/6 · YAML parse of all 10 workflows OK · `git diff --check` clean.
 
 **K3 record:** integration PR opened from `arena/53975890-kalshidash2` → `main` (link below). Merge result and Pages deploy confirmation are appended after the merge in the same section.
+
+## Session `816988dd` — line-by-line re-verification + final integration (branch `arena/816988dd-kalshidash2`)
+
+**Claimed:** 2026-11-20 ~19:10 UTC, branched from `main` @ `6f688ef`. This session is the **final integration session** for
+this round: it reviews the repo line by line against official Kalshi sources (fetched live this session), fixes defects it
+can prove, re-verifies the combined data, confirms the site builds and links clean, then opens + merges the integration PR
+and confirms the Pages deploy.
+
+**Parallel sessions checked for before claiming:** no other branch has commits newer than `main`; PR
+[#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28) (`a6bed09f`) is a stale/`CONFLICTING` open PR whose content is
+superseded by this claim — this session will land the equivalent summary-count work inline (its scope is `summary.html`,
+`EXECUTIVE_SUMMARY.md`, `reports/verify-facts-v3.md`, `tests/dom/*`) and record it. No other session's branch or file is
+modified without a log entry here.
+
+| ID | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|------------------------|------------------------|----------------|
+| S1 | Line-by-line review of the deployed root site (`index/alerts/simulator/portfolio/strategies/resolved/categories/event` + `assets/js/*`) against official docs + live demo API | in progress | `816988dd` | read-only; defects fixed under S2 | docs.kalshi.com pages + `external-api.demo.kalshi.co` responses fetched 2026-11-20 | see Flagged page for anything not fixable |
+| S2 | Fix verified defects; flag the rest | in progress | `816988dd` | `assets/js/config.js`, `assets/js/market.js`, `assets/js/alerts*.js`, `assets/js/simulator.js`, `assets/js/category.js`, `categories/*.html`, `index.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `flagged.html`, `verification.html` | live API + official docs | — |
+| S3 | Final integration: re-run every check, link audit, PR → `main`, merge, confirm Pages deploy; publish flagged page | unclaimed→in progress | `816988dd` | `COORDINATION.md`, `reports/**` | `gh`, Pages API, `tools/check_site_links.py`, `node tools/verify/page-runtime-check.mjs` | — |
+
+**Handoff note for any parallel session:** if this claim is older than 60 minutes with no new commit on
+`arena/816988dd-kalshidash2`, take over S1–S3 per the standing rule and log it here.
