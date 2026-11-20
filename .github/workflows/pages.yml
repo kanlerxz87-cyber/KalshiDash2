@@ -1,7 +1,10 @@
 name: Deploy GitHub Pages
+# Automatic push-to-main deploys are disabled on purpose: GitHub Pages is
+# configured as `build_type: legacy`, source `main:/`, which already publishes
+# on every push. Keeping this push trigger made two deployers race for the same
+# `github-pages` environment, so the visible site depended on which finished last.
+# This workflow is now manual-only (workflow_dispatch) to avoid that race.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
