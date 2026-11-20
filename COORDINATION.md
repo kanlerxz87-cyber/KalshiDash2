@@ -435,3 +435,28 @@ Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
 **C2 verification and sources:** Added source links to all dynamic table templates in the deployed root site: overview and topic event rows use the official event response; event and resolution detail rows use the nested event response; orderbook levels use the official orderbook response; resolved-market rows use the official market response; personal fills and positions link the official endpoint documentation because their exact signed responses cannot be safely embedded in a public URL. Strategy and aggregate rows link their official input endpoint documentation. References: [Get events](https://docs.kalshi.com/api-reference/events/get-events), [Get market](https://docs.kalshi.com/api-reference/market/get-market), [Get markets](https://docs.kalshi.com/api-reference/market/get-markets), [orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses), [Get fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Get positions](https://docs.kalshi.com/api-reference/portfolio/get-positions). Static check/tests pass on this revision; live public API connectivity was not exercised from this sandbox.
 
 **C3 verification and source:** `npm ci --prefix tests/dom --ignore-scripts` succeeded; `npm audit --prefix tests/dom --json` reported one moderate vulnerability in direct dev dependency `esbuild@0.24.2` (affected range `<=0.24.2`) and `fixAvailable` `0.28.2`. The official advisory is [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99). Flagged as A10. The package is used only by the DOM test harness, not the deployed static site; upgrade not performed in this task to avoid an unverified test-tool migration.
+## Session `2345e0dd` — chart markers, taxonomy fix, final integration (branch `arena/2345e0dd-kalshidash2`, 2026-11-20)
+
+
+**Conflict log:** `git pull --rebase` before push hit a second add/add-style conflict in `COORDINATION.md` (session `5c00f4dd` appended PR #20's record while this claim was amended). Resolved as a union: their section kept verbatim in place; this section appended after it. No content from any session discarded.
+
+Base: `origin/main` at `d4a118f`; re-synced onto `4c7343f` after session `4208a2dd`'s PR #19
+landed mid-claim. The arena snapshot base `793f741` had no unique work.
+
+**Takeovers (60-minute stale-claim rule):** tasks **11, 12** (`210dfcb8`), **13, 14, 15** and **T6**
+(`ae228af4`), and **B6** (`b7dfc4d9`, PR #14 open) are taken over here. Task 11 is superseded by the
+audits already recorded (`64d89c6c` G1–G4/V1, `b7dfc4d9` B2); task 12 exists (`scripts/collect.py`,
+`collect.yml`) and its gap is folded into C4.
+
+**Scope change after rebase:** this session's originally planned C1 (alerting feeds) and C2
+(simulated strategies) were built and merged first by active session `4208a2dd` (tasks 18–20).
+They are **not rebuilt** here. This session instead audits that code line-by-line against the
+official docs and the live demo API (C5) and fills only the explicitly unclaimed gaps.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities |
+|---|------|--------|-------|-----------|------------------------|----------------|
+| C1 | Live alerting feeds (two scrolling chats, ≥$0.10 swings) | **absorbed** by `4208a2dd` task 18 | `4208a2dd` | (see task 18) | — | Audited under C5; gaps (if any) fixed under C5 scope |
+| C2 | Automated simulated strategies + P&L | **absorbed** by `4208a2dd` task 19 | `4208a2dd` | (see task 19) | — | Audited under C5 |
+| C3 | Chart jump markers for ≥$0.10 moves with links (event page, rules, labelled coverage-search links) on the category charts — explicitly listed as *not done* by `4208a2dd` | in progress | `2345e0dd` | `assets/js/category.js`, `assets/js/ui.js` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Catalyst links are labelled searches, never asserted causes |
+| C4 | Taxonomy soundness fix (root config gas `/GAS/i` matches "VEGAS"/"NATGAS" — G1 residual), plus any nav/index wiring for new pages | in progress | `2345e0dd` | `assets/js/config.js`, `assets/js/ui.js`, `index.html`, `summary.html` | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) + live demo scan | — |
+| C5 | Final integration: line-by-line re-verification of `4208a2dd`'s alerts code vs official docs + live demo API; internal-link check over the **published root** (R1); README contradiction fix (lines 10 vs 106); PR #14 disposition; PR → `main`; Pages deploy confirmation | in progress | `2345e0dd` | `COORDINATION.md`, `README.md`, `flagged.html`, `verification.html`, `alerts.html`/`assets/js/alerts*.js` (audit fixes only) | `gh` CLI, Pages API, `tools/check_site_links.py` | — |
