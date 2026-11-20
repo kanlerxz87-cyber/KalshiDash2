@@ -91,8 +91,8 @@ Rules session 4b7b4e2f followed:
 
 ## PR / merge record (filled by integration session)
 
+- PR (session ae228af4 integration): [#9](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/9) — "KalshiDash2 — verified demo dashboard, category subpages, trade analysis, sources & flagged review" (created 2026-11-20, merge recorded below)
 - PR #1 (session 4b7b4e2f, `arena/4b7b4e2f-kalshidash2` → `main`): merged (commit `d7c17dd`, "Merge pull request #1").
-- PR (session ae228af4 integration): _pending_
 - Merge result: _pending_
 - GitHub Pages deploy: _pending_ (workflow `.github/workflows/pages.yml` present on `main`; run not yet confirmed)
 - Site URL: _pending_ (expected `https://kanlerxz87-cyber.github.io/KalshiDash2/`)
