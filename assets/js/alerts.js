@@ -54,6 +54,7 @@ export class AlertEngine {
     this.running = false;
     this.scanned = 0;
     this.markets = 0;
+    this.lastEvents = [];
     this.lastPollAt = null;
     this.errors = [];
   }
@@ -99,6 +100,7 @@ export class AlertEngine {
         limit: 200
       });
       this.scanned = events.length;
+      this.lastEvents = events;
 
       const swings = [];
       let marketCount = 0;

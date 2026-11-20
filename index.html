@@ -31,6 +31,23 @@
 
   <div class="grid cols-4" id="kpis" style="margin-bottom:16px"></div>
 
+  <div class="grid cols-2" style="margin-bottom:16px">
+    <a class="topic-card" href="alerts.html">
+      <div class="t">Live price alerts <span class="tag warn">$0.10 swing</span></div>
+      <div class="n">Two scrolling chats: every qualifying swing in either direction, and a shortlist
+        filtered by a transparent tradeability screen. Each message links the official API response and the
+        sources Kalshi publishes for deciding that market.</div>
+      <div class="u">Open the alert stream →</div>
+    </a>
+    <a class="topic-card" href="simulator.html">
+      <div class="t">Strategy tester <span class="tag">automated</span></div>
+      <div class="n">Strategy rules replayed over official one-minute candlesticks. Every simulated trade is
+        scored against the market's own settlement value, with the assumptions (no fees, no spread) stated
+        on the page.</div>
+      <div class="u">Run a backtest →</div>
+    </a>
+  </div>
+
   <div class="card">
     <h2>Live events by topic</h2>
     <p class="sub">Open events with at least one market, ranked by money traded (volume × last price).
@@ -65,6 +82,26 @@
     </div>
 
     <div>
+      <div class="card">
+        <h2>Biggest swings right now</h2>
+        <p class="sub">Contracts that moved at least $0.10 against the exchange's own previous price in
+          this scan. The full feed, with history and the model's shortlist, is on the
+          <a href="alerts.html">Alerts</a> page.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Market</th><th>Topic</th><th class="num">From</th><th class="num">To</th>
+              <th class="num">Δ</th><th>Official source</th>
+            </tr></thead>
+            <tbody id="mover-rows"><tr><td colspan="6"><div class="empty">Loading…</div></td></tr></tbody>
+          </table>
+          <div class="table-note" id="mover-note">
+            Δ = <code>last_price_dollars</code> − <code>previous_price_dollars</code>, both from
+            <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets ↗</a>.
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Live board — all five topics</h2>
         <div class="toolbar">
@@ -115,9 +152,9 @@
 </main>
 
 <script type="module">
-import { mountChrome, esc, money, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
+import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
-import { api, getAll, rankEvents, classifyEvent } from "./assets/js/market.js";
+import { api, getAll, rankEvents, classifyEvent, num } from "./assets/js/market.js";
 
 mountChrome({ page: "index.html", title: "Overview" });
 
@@ -256,6 +293,32 @@ function render() {
         </tr>`;
       }).join("")
     : emptyRow(8, "No events matched the five topics in this scan.");
+
+  /* biggest swings in this scan */
+  const movers = [];
+  for (const ev of allRanked) {
+    const topic = TOPICS.find(t => t.key === ev._topic);
+    for (const m of ev.markets || []) {
+      const last = num(m.last_price_dollars), prev = num(m.previous_price_dollars);
+      if (last === null || prev === null) continue;
+      const d = Number((last - prev).toFixed(4));
+      if (Math.abs(d) < 0.10) continue;
+      movers.push({ m, d, last, prev, topic });
+    }
+  }
+  movers.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+  $("#mover-rows").innerHTML = movers.length ? movers.slice(0, 8).map(x => `<tr>
+    <td><a href="event.html?ticker=${encodeURIComponent(x.m.event_ticker)}">${esc(x.m.title || x.m.ticker)}</a>
+      <div class="mono muted small">${esc(x.m.ticker)}</div></td>
+    <td><a href="categories/${x.topic.key}.html">${esc(x.topic.label)}</a></td>
+    <td class="num">${money4(x.prev)}</td>
+    <td class="num">${money4(x.last)}</td>
+    <td class="num" style="color:${x.d > 0 ? "var(--ok)" : "var(--bad)"}">${x.d > 0 ? "+" : ""}${x.d.toFixed(2)}</td>
+    <td class="nowrap"><a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(x.m.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a></td>
+  </tr>`).join("") : `<tr><td colspan="6"><div class="empty">No contract in this scan moved $0.10 or more against its previous price.</div></td></tr>`;
+  $("#mover-note").innerHTML = `Δ = <code>last_price_dollars</code> − <code>previous_price_dollars</code>, both from
+    <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets ↗</a>.
+    ${int(movers.length)} qualifying move(s) in ${int(state.events.length)} scanned event(s).`;
 
   const mode = RANKING_MODES.find(m => m.key === state.mode);
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —

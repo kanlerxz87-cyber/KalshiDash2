@@ -191,6 +191,70 @@
     </div>
   </div>
 
+    <div class="irregularity" id="F13">
+      <h3>F13 — The shortlist chat is a tradeability screen, not a validated edge <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> that the model screen identifies profitable trades. The screen
+        sums points from six documented fields — open interest, spread, depth at the touch, price band, time
+        to close and 24-hour volume — but no claim about expected return is made anywhere on the site.</p>
+      <p><strong>Why:</strong> a price is not a probability unless someone says so, and the demo environment
+        has no deep history to fit a probability model on. Claiming an edge would be a fabrication.</p>
+      <p><strong>Status here:</strong> the <a href="alerts.html">Alerts</a> page states the rule set and shows
+        the score breakdown for every shortlisted swing. The
+        <a href="simulator.html">Strategy Tester</a> measures each signal's hit rate on settled demo markets
+        and prints it next to the average price the signal paid, so the reader can judge the screen against
+        data instead of against a claim.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F14">
+      <h3>F14 — A price jump cannot be attributed to a cause from official sources <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> that any particular news event caused any particular price
+        swing. Kalshi's public API publishes no news feed and no causal link between an event and a price
+        change.</p>
+      <p><strong>What is available instead:</strong> <code>GET /events/{event_ticker}</code> returns
+        <code>settlement_sources</code> — a list of official sources (name and URL) that Kalshi publishes for
+        determining that event's outcome — together with the market's own <code>rules_primary</code>. Those
+        links are shown under every alert and under the category charts.</p>
+      <p><strong>Status here:</strong> they are labelled as <em>where the market is decided</em>, never as the
+        cause of a move. Any stronger statement would be an inference the API does not support.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F15">
+      <h3>F15 — Simulated trades carry no fees, spread or slippage <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> the true profitability of any strategy. A simulated fill is
+        placed at the trade-close price of the candle that fired the signal, so it ignores the bid–ask
+        spread, the size available at that price, and the fee schedule.</p>
+      <p><strong>Impact:</strong> every simulated result on the <a href="simulator.html">Strategy Tester</a>
+        page is <strong>optimistic</strong> by an amount this site cannot quantify.</p>
+      <p><strong>Status here:</strong> the assumption is printed in a warning panel above every backtest
+        result, the fee schedule is linked from that panel, and no live strategy comparison is published.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee schedule (PDF) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Order-book responses ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F16">
+      <h3>F16 — The alert scan is bounded, so some swings are never reported <span class="tag warn">open</span></h3>
+      <p><strong>What is unverified:</strong> that the alert feed has seen every open market on the demo
+        exchange. Each poll reads at most six pages of 200 open events — 1,200 events — because the
+        unauthenticated request budget is not published and must not be guessed at.</p>
+      <p><strong>Impact:</strong> a swing in a market outside the scanned window is not posted, and the
+        "all events" chat is therefore "all qualifying swings <em>within the scanned window</em>", not "all
+        qualifying swings on the exchange".</p>
+      <p><strong>Status here:</strong> the bound and the number of events actually scanned are shown in the
+        feed's footer on every poll, so the coverage of the feed is always visible. The scan size is a
+        constant in <code>assets/js/config.js</code> and can be raised.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
+    </div>
+  </div>
+
   <div class="card">
     <h2>3 · Repository and coordination irregularities</h2>
 
@@ -247,7 +311,7 @@ const cards = [...document.querySelectorAll(".irregularity")];
 const open = cards.filter(c => c.querySelector(".tag.warn")).length;
 const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
-const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10")].length;
+const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 
 $("#counts").innerHTML = [
   { k: "Items on this page", v: int(cards.length), m: "each with evidence" },

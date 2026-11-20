@@ -191,7 +191,7 @@ const Q = [
     q: "What does portfolio performance look like, and which strategy wins?",
     know: "Fills expose contract count, YES/NO price, fee, taker/maker role and outcome side — enough to compute premium paid and fees per fill.",
     dontknow: "Realised profit and loss, because it requires closed positions that do not exist yet.",
-    answer: "Premium and fees can be categorised by topic, side and role as soon as fills exist. Profit, win rate and strategy ranking cannot be stated without closed trades, so those cells are blank rather than estimated.",
+    answer: "Two separate answers. Premium and fees on your own account can be categorised by topic, side and role as soon as fills exist, but realised profit, win rate and a strategy ranking for your account still cannot be stated without closed trades, so those cells stay blank. The Strategy Tester does provide a measured hit rate for six history-based rules — but on simulated trades over finalized demo markets, which is stated on that page and not presented as your account's performance.",
     action: "Accumulate demo trades, then the Strategies page will score each rule from real fills.",
     sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`]
   },
@@ -239,6 +239,33 @@ const Q = [
     answer: "This session confined itself to its own tree and logged the overlap in COORDINATION.md instead of editing files owned elsewhere.",
     action: "Name one integration owner before merging, then merge once.",
     sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]
+  },
+  {
+    id: "Q15", cat: "data", confidence: "answered",
+    q: "How is a $0.10 swing detected when Kalshi publishes no swing field?",
+    know: "Every market carries previous_price_dollars and last_price_dollars, and every candle carries price.previous_dollars next to price.close_dollars.",
+    dontknow: "What actually moved the price. The API publishes no news feed and no causal link between an event and a price change.",
+    answer: "The alert feed compares last_price_dollars with previous_price_dollars — and the gap between two of its own consecutive polls — and posts a message when the absolute difference reaches the threshold, $0.10 by default, in either direction. The category charts apply the same test to consecutive official candle closes and mark the jump on the price line.",
+    action: "Nothing further is needed for detection. Attributing a move to a cause would need a news source Kalshi does not publish, so only the sources that decide the market are shown — see flag F14.",
+    sources: ["https://docs.kalshi.com/api-reference/market/get-market", "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"]
+  },
+  {
+    id: "Q16", cat: "analysis", confidence: "partly answered",
+    q: "Does the model shortlist identify profitable trades?",
+    know: "The shortlist is a transparent sum of six documented fields, and the Strategy Tester replays each rule over settled demo markets, printing its hit rate next to the average price the rule paid.",
+    dontknow: "Whether the screen holds up out of sample, on production data, or after the fee schedule is subtracted.",
+    answer: "No profitability claim is made. The screen is a tradeability filter, and the measured hit rate on the demo's finalized markets is published rather than summarised away. The demo environment is explicitly not production, so the number is evidence about the demo, not a forecast.",
+    action: "Re-run the Strategy Tester over a larger finalized sample, and again against production data once a key is available.",
+    sources: ["https://docs.kalshi.com/api-reference/market/get-market", "https://docs.kalshi.com/getting_started/market_settlement", "https://docs.kalshi.com/getting_started/demo_env"]
+  },
+  {
+    id: "Q17", cat: "analysis", confidence: "answered",
+    q: "Are the simulated trades realistic?",
+    know: "Every simulated fill uses the trade-close price of the candle that fired the signal, and every outcome uses the market's own settlement_value_dollars.",
+    dontknow: "The cost of crossing the spread, the fee actually charged, and whether the size was available at that price.",
+    answer: "They are optimistic. Fees, spread and slippage are not applied, so every simulated P&L on the Strategy Tester page is better than a live trade would be. The assumption is printed above every result and the official fee schedule is linked from it.",
+    action: "Re-price the same signals against the live order book instead of the candle close, and subtract the fee schedule before quoting any expected value.",
+    sources: ["https://kalshi.com/docs/kalshi-fee-schedule.pdf", "https://docs.kalshi.com/getting_started/orderbook_responses"]
   }
 ];
 

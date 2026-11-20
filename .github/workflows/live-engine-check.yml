@@ -1,0 +1,53 @@
+name: live-engine-check
+
+# Runs the alert engine and the strategy tester against the official Kalshi
+# DEMO API and commits the result to reports/.
+#
+# The build sandbox cannot open TLS connections to Kalshi hosts, so the check
+# has to run where github.io and kalshi.co are both reachable — a GitHub-hosted
+# runner. The report is committed even when the check fails, so a red run still
+# leaves evidence behind.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "assets/js/alerts.js"
+      - "assets/js/simulator.js"
+      - "assets/js/market.js"
+      - "assets/js/config.js"
+      - "tools/verify/live-engine-check.mjs"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-engine-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run the live engine check
+        run: node tools/verify/live-engine-check.mjs reports/live-engine-check.md
+
+      - name: Commit the report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/live-engine-check.md
+          if git diff --staged --quiet; then
+            echo "no change"
+          else
+            git commit -m "reports: live engine check against the Kalshi demo API [skip ci]"
+            git push || echo "push skipped (branch protected or diverged)"
+          fi

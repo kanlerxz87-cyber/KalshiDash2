@@ -15,7 +15,7 @@
  * Usage:  node tools/verify/page-runtime-check.mjs [page.html ...]
  * Exit code 0 = every page ran clean.
  */
-import { readFile, writeFile, unlink } from "node:fs/promises";
+import { readFile, writeFile, unlink, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -339,6 +339,35 @@ for (const rel of pages) {
   results.push({ ...r, newProblems: problems.length - before });
 }
 
+/* ------------------------------------------------------------ link check */
+/* Every static local href/src must resolve to a file in the repository.
+ * Links inside <script> blocks are template literals and are skipped. */
+async function linkCheck() {
+  const dirs = ["", "categories", "docs"];
+  const files = [];
+  for (const d of dirs) {
+    let names = [];
+    try { names = await readdir(path.join(ROOT, d)); } catch { continue; }
+    for (const n of names) if (n.endsWith(".html")) files.push(path.join(d, n));
+  }
+  const broken = [];
+  for (const rel of files) {
+    const html = await readFile(path.join(ROOT, rel), "utf8");
+    const staticHtml = html.replace(/<script\b[\s\S]*?<\/script>/g, "");
+    for (const m of staticHtml.matchAll(/(?:href|src)="([^"]+)"/g)) {
+      const v = m[1];
+      if (/^(https?:|mailto:|#|data:|\$\{)/.test(v)) continue;
+      const target = v.split("#")[0].split("?")[0];
+      if (!target) continue;
+      const full = path.resolve(ROOT, path.dirname(rel), target);
+      if (!existsSync(full)) broken.push(`${rel}: ${v}`);
+    }
+  }
+  return { checked: files.length, broken };
+}
+
+const links = await linkCheck();
+
 console.log("\n=== page runtime check ===");
 for (const r of results) {
   const status = r.ok && r.newProblems === 0 ? "PASS" : "FAIL";
@@ -354,4 +383,6 @@ if (consoleErrors.length) {
 }
 const failed = results.filter(r => !r.ok || r.newProblems > 0).length;
 console.log(`\n${results.length - failed}/${results.length} pages ran clean.`);
-process.exit(failed || problems.length ? 1 : 0);
+console.log(`link check: ${links.checked} pages, ${links.broken.length} broken local link(s)`);
+for (const b of links.broken) console.log(" * " + b);
+process.exit(failed || problems.length || links.broken.length ? 1 : 0);
