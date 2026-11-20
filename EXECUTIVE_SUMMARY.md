@@ -39,7 +39,7 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 
 ## Verification and delivery
 
-The static link-check workflow and alert test suite passed on the merged work. Local checks included 18 alert-core tests, 16 DOM checks, the repository link checker, JavaScript syntax checks, and `git diff --check`. The live read-only demo API probe and its observations are recorded in [`reports/alerts-live-check.md`](reports/alerts-live-check.md); those point-in-time observations are not treated as permanent market facts.
+The root-site static link-check workflow and alert test suite passed on the merged work. Local checks include 18 alert-core tests, 16 alerts-page DOM checks, an executive-summary DOM regression that verifies requirement/claim/flag totals against their source registers and checks evidence labels on every summary row, the repository link checker, JavaScript syntax checks, and `git diff --check`. The live read-only demo API probe and its observations are recorded in [`reports/alerts-live-check.md`](reports/alerts-live-check.md); those point-in-time observations are not treated as permanent market facts.
 
 - Feature and source-link changes: [PR #20](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/20), merged at `69196e0`.
 - Deployment record: [PR #21](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/21).

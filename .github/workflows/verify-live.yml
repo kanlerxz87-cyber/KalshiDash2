@@ -1,27 +1,23 @@
 name: verify-live-site
 
-# The Pages site is built by GitHub itself from main:/ (legacy Jekyll). This
-# workflow proves, from a machine that can actually reach github.io, that every
-# published page is served with a 200 and that the key content is in the HTML.
-#
-# Runs on demand and on push to the published tree.
+# Check the actual GitHub Pages deployment from a GitHub-hosted runner. Static
+# HTML assertions complement (but do not replace) the unit/DOM test suites.
+# Reports are retained as run artifacts so parallel verification jobs cannot
+# race to push commits to main.
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - "index.html"
-      - "alerts.html"
-      - "simulator.html"
-      - "summary.html"
+      - "*.html"
       - "categories/**"
       - "assets/**"
       - "evidence/**"
       - ".github/workflows/verify-live.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: verify-live
@@ -33,78 +29,120 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wait for the Pages build to settle, then probe every page
+      - name: Wait for Pages and probe every published page
+        shell: bash
         run: |
           set -uo pipefail
           BASE="https://kanlerxz87-cyber.github.io/KalshiDash2"
-          PAGES="index.html summary.html alerts.html simulator.html event.html resolved.html portfolio.html strategies.html suggestions.html questions.html verification.html flagged.html categories/gas.html categories/elections.html categories/culture.html categories/crypto.html categories/golf.html"
           OUT="$GITHUB_WORKSPACE/live-report.md"
-          echo "# Live site check — $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUT"
-          echo "" >> "$OUT"
-          echo "Target: $BASE/" >> "$OUT"
-          echo "" >> "$OUT"
+          PAGES=(
+            "/" "summary.html" "alerts.html" "simulator.html" "event.html"
+            "resolved.html" "portfolio.html" "strategies.html" "suggestions.html"
+            "questions.html" "verification.html" "flagged.html"
+            "categories/gas.html" "categories/elections.html" "categories/culture.html"
+            "categories/crypto.html" "categories/golf.html"
+          )
+          declare -A PAGE_BODY PAGE_CODE
+          fail=0
 
-          # The Pages builder sometimes needs a minute after a merge; retry the
-          # first probe before giving up so we do not record a false failure.
+          echo "# Live site check — $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUT"
+          echo >> "$OUT"
+          echo "Target: $BASE/" >> "$OUT"
+          echo "Commit: $GITHUB_SHA · Pages source: main:/" >> "$OUT"
+          echo >> "$OUT"
+
+          # Pages may take a short time to publish after a merge. A unique query
+          # parameter bypasses a stale CDN response from the previous deployment.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 "$BASE/" || echo 000)
+            if code=$(curl -sS -L --max-time 20 -o /dev/null -w '%{http_code}' \
+              -H 'Cache-Control: no-cache' "$BASE/?verify=$GITHUB_RUN_ID"); then
+              :
+            else
+              code=000
+            fi
             echo "probe $attempt: / -> $code"
             [ "$code" = "200" ] && break
             sleep 15
           done
 
-          echo "| Path | HTTP | Bytes | Key content present |" >> "$OUT"
-          echo "| --- | --- | --- | --- |" >> "$OUT"
-          fail=0
-          for p in $PAGES; do
+          echo "| Path | HTTP | Bytes | KalshiDash2 marker |" >> "$OUT"
+          echo "| --- | --- | ---: | --- |" >> "$OUT"
+          for p in "${PAGES[@]}"; do
+            if [ "$p" = "/" ]; then url="$BASE/"; else url="$BASE/$p"; fi
             body=$(mktemp)
-            code=$(curl -s -o "$body" -w '%{http_code}' -L --max-time 20 "$BASE/$p" || echo 000)
+            if code=$(curl -sS -L --max-time 20 -o "$body" -w '%{http_code}' \
+              -H 'Cache-Control: no-cache' "$url?verify=$GITHUB_RUN_ID"); then
+              :
+            else
+              code=000
+            fi
             bytes=$(wc -c < "$body")
-            [
-              -n "$(grep -o 'KalshiDash2' "$body" | head -1)" ] && has="yes" || has="no"
+            if grep -Fq 'KalshiDash2' "$body"; then has="yes"; else has="no"; fi
+            PAGE_BODY["$p"]="$body"
+            PAGE_CODE["$p"]="$code"
             if [ "$code" != "200" ] || [ "$bytes" -lt 500 ]; then fail=$((fail+1)); fi
             echo "| \`$p\` | $code | $bytes | $has |" >> "$OUT"
-            rm -f "$body"
           done
 
-          echo "" >> "$OUT"
+          echo >> "$OUT"
           echo "## Content assertions" >> "$OUT"
-          echo "" >> "$OUT"
+          echo >> "$OUT"
 
           probe () {
-            local url="$1" needle="$2" label="$3"
-            if curl -s -L --max-time 20 "$url" | grep -qF -- "$needle"; then
+            local page="$1" needle="$2" label="$3"
+            local body="${PAGE_BODY[$page]:-}"
+            if [ "${PAGE_CODE[$page]:-000}" = "200" ] && [ -n "$body" ] && grep -Fq -- "$needle" "$body"; then
               echo "- PASS  $label  (\`$needle\`)" >> "$OUT"
             else
-              echo "- FAIL  $label  (missing \`$needle\`)" >> "$OUT"
+              echo "- FAIL  $label  (missing \`$needle\` in $page)" >> "$OUT"
               fail=$((fail+1))
             fi
           }
 
-          probe "$BASE/" "Live events in the five topics" "landing board heading"
-          probe "$BASE/summary.html" "Verified"            "executive summary renders"
-          probe "$BASE/verification.html" "claims"          "claim register renders"
-          probe "$BASE/flagged.html" "Flagged"             "flag register renders"
-          probe "$BASE/questions.html" "questions"         "question register renders"
-          probe "$BASE/suggestions.html" "Suggestions"     "decision board renders"
-          probe "$BASE/alerts.html" "High-ROI"           "live alerts page renders both feeds"
-          probe "$BASE/alerts.html" "0.10"               "live alerts page states the swing threshold"
-          probe "$BASE/simulator.html" "settlement_value_dollars" "strategy tester scores against settlement values"
-          probe "$BASE/categories/gas.html" "Gas"           "gas page renders"
-          probe "$BASE/categories/golf.html" "Golf"         "golf page renders"
-          probe "$BASE/evidence/auth-sign-test.mjs" "checks passed" "signing evidence served"
+          probe "/" "Highest-dollar live markets, tracked to resolution" "landing page"
+          probe "summary.html" "Executive summary" "executive summary"
+          probe "summary.html" "Official basis / evidence" "summary source/evidence column"
+          probe "summary.html" "CLAIMS.length" "claim total derives from the register"
+          probe "summary.html" "#requirement-matrix tr" "requirement count derives from its matrix"
+          probe "summary.html" "DOMParser" "flag count reads every flagged item"
+          probe "verification.html" "Verification register" "claim register"
+          probe "flagged.html" "Flagged for review" "flag register"
+          probe "questions.html" "Questions" "question register"
+          probe "suggestions.html" "Suggestions" "decision board"
+          probe "alerts.html" "High-ROI watch" "both live alert feeds"
+          probe "alerts.html" "0.10" "two-way swing threshold"
+          probe "simulator.html" "settlement_value_dollars" "strategy tester settlement scoring"
+          probe "categories/gas.html" "Gas" "gas category page"
+          probe "categories/golf.html" "Golf" "golf category page"
 
-          echo "" >> "$OUT"
+          evidence=$(mktemp)
+          if evidence_code=$(curl -sS -L --max-time 20 -o "$evidence" -w '%{http_code}' \
+            -H 'Cache-Control: no-cache' "$BASE/evidence/auth-sign-test.mjs?verify=$GITHUB_RUN_ID"); then
+            :
+          else
+            evidence_code=000
+          fi
+          if [ "$evidence_code" = "200" ] && grep -Fq 'checks passed' "$evidence"; then
+            echo "- PASS  signing self-test evidence (HTTP $evidence_code)" >> "$OUT"
+          else
+            echo "- FAIL  signing self-test evidence (HTTP $evidence_code)" >> "$OUT"
+            fail=$((fail+1))
+          fi
+          rm -f "$evidence"
+
+          echo >> "$OUT"
           echo "**Failures: $fail**" >> "$OUT"
           cat "$OUT"
-          echo "VERIFY_LIVE_FAILURES=$fail" >> "$GITHUB_ENV"
 
-      - name: Commit the report
-        run: |
-          mkdir -p reports
-          cp live-report.md "reports/live-site-${{ github.run_number }}.md"
-          git config user.name  "verify-live[bot]"
-          git config user.email "verify-live@users.noreply.github.com"
-          git add -A reports/
-          git commit -m "reports: live site check ${{ github.run_number }} (failures: $VERIFY_LIVE_FAILURES) [skip ci]" || echo "nothing to commit"
-          git push
+          # Preserve the report via the next step even on failure, and make
+          # failed assertions fail the Actions check instead of silently pass.
+          if [ "$fail" -gt 0 ]; then exit 1; fi
+
+      - name: Upload live-site report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-site-check-${{ github.run_number }}
+          path: live-report.md
+          if-no-files-found: warn
+          retention-days: 30

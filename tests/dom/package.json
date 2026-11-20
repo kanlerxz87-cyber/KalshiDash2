@@ -1,9 +1,9 @@
 {
   "name": "kalshidash2-dom-tests",
   "private": true,
-  "description": "Dev-only DOM harness for alerts.html. Not part of the published site.",
+  "description": "Dev-only DOM regression tests for the alerts and executive summary pages. Not part of the published site.",
   "type": "module",
-  "scripts": { "test": "node alerts-dom.mjs" },
+  "scripts": { "test": "node alerts-dom.mjs && node summary-dom.mjs" },
   "devDependencies": {
     "esbuild": "0.24.2",
     "jsdom": "24.1.3"
