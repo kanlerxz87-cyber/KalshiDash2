@@ -271,6 +271,18 @@
   <div class="card">
     <h2>3 · Repository and coordination irregularities</h2>
 
+    <div class="irregularity" id="F17">
+      <h3>F17 — Prior NO-side simulator P&amp;L used the YES quote as its entry cost <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> before this audit, NO-side backtests subtracted the YES contract quote from the NO settlement payout. For a binary contract, the NO contract entry price is the complement of the YES quote (1 − YES price), so prior NO-side P&amp;L, capital and ROI were not reliable.</p>
+      <p><strong>Correction:</strong> the Strategy Tester now computes NO entry cost as 1 − the returned YES quote and scores NO payout from 1 − settlement value. The simulator also has deterministic fixture tests for both outcomes. Results from earlier versions should not be relied upon; rerun a backtest to regenerate the corrected results.</p>
+      <p><strong>Status:</strong> mitigated in the current simulator. No historical API data was edited or invented; the browser recalculates values from returned market and candle responses each run.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Reciprocal YES/NO pricing ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get market ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Market candlesticks ↗</a></p>
+    </div>
+
     <div class="irregularity" id="F11">
       <h3>F11 — Five agent sessions edited this repository concurrently <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> branches <code>arena/4b7b4e2f</code>, <code>arena/64d89c6c</code>,

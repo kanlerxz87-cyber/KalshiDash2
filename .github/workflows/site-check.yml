@@ -26,5 +26,7 @@ jobs:
         run: python tools/check_site_links.py .
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
+      - name: Simulator unit tests
+        run: node --test tests/simulator-core.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
