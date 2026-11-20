@@ -1,0 +1,86 @@
+name: live-site-render
+
+# Runs the published site's REAL page code in jsdom against the LIVE Kalshi demo
+# API and asserts what actually renders: the Overview board, the five topic
+# cards, and the Gas page finding its live event.
+#
+# Why this runs here and not in the build sandbox: the sandbox cannot open TLS to
+# *.kalshi.co ("socket disconnected before secure TLS connection was
+# established"), so every live check in this repo has to run on a GitHub-hosted
+# runner. The result is written to reports/live-site-render.md and committed even
+# when the check fails, so a red run still leaves evidence.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "categories/**.html"
+      - "assets/js/**.js"
+      - "tests/dom/live-site.mjs"
+      - ".github/workflows/live-site-render.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-site-render
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install DOM harness dependencies
+        working-directory: tests/dom
+        run: npm ci
+
+      - name: Live render check
+        id: live
+        working-directory: tests/dom
+        run: |
+          set +e
+          node live-site.mjs > "$GITHUB_WORKSPACE/reports/live-site-render.raw" 2>&1
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_WORKSPACE/reports/live-site-render.raw"
+
+      - name: Write report
+        if: always()
+        run: |
+          {
+            echo "# Live site render check"
+            echo
+            echo "- Run: $(date -u +%Y-%m-%dT%H:%M:%SZ) (UTC)"
+            echo "- Runner: ubuntu-latest, node $(node --version)"
+            echo "- Script: \`tests/dom/live-site.mjs\` — real page controllers, real \`fetch\` to https://external-api.demo.kalshi.co"
+            echo "- Exit status: \`${{ steps.live.outputs.status }}\` (0 = every assertion passed)"
+            echo
+            echo '```'
+            cat reports/live-site-render.raw 2>/dev/null || echo "(no output captured)"
+            echo '```'
+          } > reports/live-site-render.md
+          rm -f reports/live-site-render.raw
+          cat reports/live-site-render.md
+
+      - name: Commit report
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/live-site-render.md
+          if git diff --staged --quiet; then echo "no change"; else
+            git commit -m "reports: live site render check [skip ci]"
+            git push || echo "push skipped"
+          fi
+
+      - name: Fail the job if the render check failed
+        if: always()
+        run: test "${{ steps.live.outputs.status }}" = "0"
