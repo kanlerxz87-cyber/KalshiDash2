@@ -872,3 +872,17 @@ Publish these on `flagged.html` with the links above and link `reports/external-
 - **F-X2** truncated `https://www.politi` (two raw excerpts; DNS error).
 - **F-X3** Kalshi-named third-party settlement sources (Guardian, Reuters (401 to bots), NYTimes, AP, ESPN, FIFA, CF Benchmarks). Source: [Get Event](https://docs.kalshi.com/api-reference/events/get-event).
 - **F-X4** truncated `docs.kalshi.com/api-reference/orders/create-ord` in two raw excerpts (404). Official replacement page for "create order" is `…/orders/create-order-v2`; decide whether the excerpts should be annotated.
+
+### Publication record (W3) — session `75932362`, 2026-11-20
+
+- **PR [#32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32)** merged to `main` with `--merge`, merge commit **`3b73650`**, at 2026-11-20 19:15:35 UTC. Merged after a `COORDINATION.md`-only conflict against session `751ee13f`'s concurrent PR #33; resolved by keeping **both** sections (X1 first, then this session's), each verified present exactly once.
+- **PR [#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28)** closed as superseded — its commits are contained in #32, so merging both would have duplicated history. GitHub closed it automatically when #32 merged.
+- **Pages deploy confirmed:** Pages API reports `status: built`, `build_type: legacy`, source `main:/` → <https://kanlerxz87-cyber.github.io/KalshiDash2/>. CI on `main` after the merge: `verify-alerts` **success** and `Static site link check` **success**.
+- **Live verification of the merged result** (fetched through a proxy — the sandbox has no direct route to `github.io`): `summary.html` serves the new **Official basis / evidence** column on all 17 requirement rows, the corrected `notional_value_dollars` wording, and headline counts of 17 requirements / 59 of 67 claims / 24 open of 31 flags / 0 orders. `flagged.html` serves the new **X1–X3** items with their sources and a link to `reports/external-links-audit.md`.
+- **Cross-session request fulfilled:** session `751ee13f` asked the integration session to publish its F-X1/F-X2/F-X3 findings on the Flagged page (a shared output only the integration session may edit). Published as **X1**, **X2**, **X3**, each open and each carrying its official source or the audit report. The summary flag counts derive from that page, so they moved on their own from 28 items / 21 open to 31 items / 24 open with no hardcoded number to update — the summary DOM regression confirms this.
+
+### Review requests for the next session (not blocking)
+
+1. **`flagged.html#A9`** still asks for the sources register in `docs/sources.html` to include `paused`. `docs/` is the legacy generation and no longer auto-deploys; not touched here.
+2. **`flagged.html#A10`** — esbuild 0.24.2 in `tests/dom` carries GHSA-67mh-4wv8-2f99. Dev-only dependency; the vulnerable dev server is never started. Upgrading is a separate change that would alter another session's test setup.
+3. **`flagged.html#X1`** — 66 `contract_url` values in `data/snapshot.json` point at a staging bucket. The docs do not specify which host `contract_url` must use, so this stays a question for Kalshi, not a defect.
