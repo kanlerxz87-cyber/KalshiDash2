@@ -32,6 +32,8 @@ export const STRATEGIES = Object.freeze([
   { key: "fade-watch",   label: "Fade · High-ROI watch",     side: "fade",   scope: "watch" }
 ]);
 
+import { TRADE_SCREEN } from "./config.js";
+
 const EPS = 1e-9;
 
 export function num(v) {
@@ -99,17 +101,77 @@ export function detectMoves(prev, markets, { threshold = THRESHOLD, at = Date.no
           to: price,
           delta,
           direction: delta > 0 ? "up" : "down",
+          basis: "between two polls",
           quote: quoteOf(m),
           status: m.status || null,
           result: (m.result || "").toLowerCase() || null,
           openInterest: num(m.open_interest_fp),
-          volume24h: num(m.volume_24h_fp)
+          volume24h: num(m.volume_24h_fp),
+          screen: screenMarket(m)
         });
       }
     }
     next[m.ticker] = { price, at };
   }
   return { alerts, next };
+}
+
+/* A swing measured against the exchange's own previous price.
+ *
+ * Kalshi publishes `previous_price_dollars` on every market: the price before
+ * the exchange's last change. Comparing it with `last_price_dollars` gives a
+ * swing that is available on the very first poll, without waiting for a second
+ * reading, and it is the exchange's own reference rather than this page's.
+ * (https://docs.kalshi.com/api-reference/market/get-market)
+ *
+ * The same move is reported again on every later poll until the exchange rolls
+ * its reference forward, so callers must de-duplicate on (ticker, from, to).
+ */
+export function detectReferenceSwings(markets, { threshold = THRESHOLD, at = Date.now() } = {}) {
+  const swings = [];
+  for (const m of markets || []) {
+    if (!m || !m.ticker) continue;
+    const last = num(m.last_price_dollars);
+    const prev = num(m.previous_price_dollars);
+    if (last === null || prev === null) continue;
+    const delta = round4(last - prev);
+    if (Math.abs(delta) < threshold - EPS || delta === 0) continue;
+    swings.push({
+      id: `${m.ticker}@ref${at}`,
+      at,
+      prevAt: null,
+      ticker: m.ticker,
+      title: m.title || "",
+      eventTicker: m._event_ticker || m.event_ticker || "",
+      topic: m._topic || null,
+      from: prev,
+      to: last,
+      delta,
+      direction: delta > 0 ? "up" : "down",
+      basis: "exchange previous price",
+      quote: quoteOf(m),
+      status: m.status || null,
+      result: (m.result || "").toLowerCase() || null,
+      openInterest: num(m.open_interest_fp),
+      volume24h: num(m.volume_24h_fp),
+      screen: screenMarket(m)
+    });
+  }
+  return swings;
+}
+
+/* Merge two alert lists, dropping a swing that is already present with the
+ * same ticker and the same from/to pair. The first list wins. */
+export function mergeAlerts(first, second) {
+  const seen = new Set();
+  const out = [];
+  for (const a of [...(first || []), ...(second || [])]) {
+    const key = `${a.ticker}|${a.from}|${a.to}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(a);
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------ High-ROI rule */
@@ -273,4 +335,60 @@ export function chunk(arr, n) {
   const out = [];
   for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
   return out;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tradeability screen.
+ *
+ * A transparent ranking of a contract by how tradeable it is right now:
+ * liquidity, the cost of getting in, the size resting at the touch, whether
+ * the price sits at a lottery extreme, how long the market has left, and
+ * whether anything has traded recently.
+ *
+ * This is deliberately NOT a probability model and it forecasts nothing. It
+ * adds up points from named components so a reader can see exactly why a
+ * market was ranked where it was. The hit rate of each signal is measured
+ * separately on settled demo markets by the Strategy Tester.
+ *
+ * Every input is a documented market field
+ * (https://docs.kalshi.com/api-reference/market/get-market):
+ *   open_interest_fp, yes_bid_dollars, yes_ask_dollars, yes_bid_size_fp,
+ *   yes_ask_size_fp, volume_24h_fp, close_time, last_price_dollars
+ */
+export function screenMarket(market, { now = Date.now(), components } = {}) {
+  const comps = components || TRADE_SCREEN.components;
+  const last = num(market.last_price_dollars);
+  const bid = num(market.yes_bid_dollars);
+  const ask = num(market.yes_ask_dollars);
+  const bidSize = num(market.yes_bid_size_fp);
+  const askSize = num(market.yes_ask_size_fp);
+  const oi = num(market.open_interest_fp);
+  const vol24 = num(market.volume_24h_fp);
+  const close = market.close_time ? Date.parse(market.close_time) : null;
+  const hoursLeft = close && Number.isFinite(close) ? (close - now) / 3600000 : null;
+
+  const spread = (bid !== null && ask !== null) ? Number((ask - bid).toFixed(4)) : null;
+  const depth = (bidSize !== null || askSize !== null) ? (bidSize || 0) + (askSize || 0) : null;
+
+  const inputs = {
+    open_interest_fp: oi,
+    "yes_ask_dollars \u2212 yes_bid_dollars": spread,
+    "yes_bid_size_fp + yes_ask_size_fp": depth,
+    last_price_dollars: last,
+    close_time: hoursLeft,
+    volume_24h_fp: vol24
+  };
+
+  const parts = [];
+  let score = 0;
+  for (const c of comps) {
+    const raw = inputs[c.field];
+    /* A field the API did not return scores nothing — it is never treated
+     * as a value. */
+    const got = (raw === null || raw === undefined) ? 0 : c.score(raw);
+    parts.push({ key: c.key, label: c.label, rule: c.rule, max: c.max, got, input: raw });
+    score += got;
+  }
+  const max = comps.reduce((a, c) => a + c.max, 0) || 100;
+  return { score: Math.round(score), max, parts, spread, depth, hoursLeft, last, bid, ask };
 }

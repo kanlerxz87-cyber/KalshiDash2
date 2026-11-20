@@ -231,6 +231,7 @@ export async function fetchCandles(market, { seconds, interval }) {
         high: num(c.price?.high_dollars),
         low: num(c.price?.low_dollars),
         mean: num(c.price?.mean_dollars),
+        prev: num(c.price?.previous_dollars),
         yesBid: num(c.yes_bid?.close_dollars),
         yesAsk: num(c.yes_ask?.close_dollars),
         volume: num(c.volume_fp),
@@ -455,4 +456,80 @@ function groupBy(rows, key) {
     if (r.fee !== null) out[k].fees += r.fee;
   }
   return Object.values(out).sort((a, b) => b.premium - a.premium);
+}
+
+/* ---------------- swing detection ----------------
+ *
+ * Kalshi publishes no "swing" field. Two documented fields let one be
+ * derived honestly:
+ *   previous_price_dollars — the price before the exchange's last change
+ *   last_price_dollars     — the most recent trade price
+ * (https://docs.kalshi.com/api-reference/market/get-market)
+ *
+ * `swingOf` returns the exchange-reported comparison. `detectJumps` does the
+ * same over a candle series, where each candle also carries `previous_dollars`.
+ */
+export function swingOf(market) {
+  const to = num(market.last_price_dollars);
+  const from = num(market.previous_price_dollars);
+  if (to === null || from === null) return null;
+  const delta = Number((to - from).toFixed(4));
+  if (delta === 0) return null;
+  return { from, to, delta, dir: delta > 0 ? "up" : "down", basis: "exchange previous_price_dollars" };
+}
+
+/* Detect >= threshold moves inside a candle series.
+ * `points` are the objects produced by fetchCandles(); each needs `t`, `y`
+ * (close) and optionally `prev` (the candle's own previous_dollars). */
+export function detectJumps(points, threshold = 0.10) {
+  const jumps = [];
+  let last = null;
+  for (const p of points || []) {
+    if (p.y === null || p.y === undefined) continue;
+    const prev = p.prev !== undefined && p.prev !== null ? p.prev : last;
+    if (prev !== null && prev !== undefined) {
+      const delta = Number((p.y - prev).toFixed(4));
+      if (Math.abs(delta) >= threshold) {
+        jumps.push({ t: p.t, from: prev, to: p.y, delta, dir: delta > 0 ? "up" : "down" });
+      }
+    }
+    last = p.y;
+  }
+  return jumps;
+}
+
+/* ---------------- the tradeability screen ----------------
+ *
+ * See TRADE_SCREEN in config.js. Returns the total score plus the per-
+ * component breakdown so the UI can show exactly why a market was surfaced.
+ * Every input is a documented market field; nothing is inferred.
+ */
+/* The tradeability screen lives in alerts-core.js so the browser and the Node
+ * tests read one implementation. Re-exported here because the data layer is
+ * where the market object it scores comes from. */
+export { screenMarket } from "./alerts-core.js";
+
+/* ---------------- event context ----------------
+ *
+ * GET /events/{event_ticker} carries `settlement_sources` — the official
+ * sources Kalshi lists for determining the outcome — plus the market rules.
+ * These are the source websites worth reading when a contract price jumps.
+ * (https://docs.kalshi.com/api-reference/events/get-events)
+ */
+export async function getEvent(eventTicker) {
+  const j = await api.get(`/events/${encodeURIComponent(eventTicker)}`);
+  return j.event || j;
+}
+
+export function eventContext(event) {
+  if (!event) return { sources: [], rules: null, series: null };
+  const sources = (event.settlement_sources || [])
+    .filter(s => s && (s.name || s.url))
+    .map(s => ({ name: String(s.name || "").trim(), url: String(s.url || "").trim() }));
+  const market = (event.markets || [])[0] || null;
+  return {
+    sources,
+    rules: market ? (market.rules_primary || market.rules_secondary || "") : (event.rules_primary || ""),
+    series: event.series_ticker || null
+  };
 }

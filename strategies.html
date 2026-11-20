@@ -88,17 +88,39 @@
       </table>
     </div>
   </div>
+  <div class="card">
+    <h2>Rules that can be tested right now</h2>
+    <p class="sub">
+      The catalogue above needs fills to be evaluated. These six rules need nothing but market history, so
+      the <a href="simulator.html">Strategy Tester</a> replays them over official one-minute candlesticks and
+      scores the simulated trades against each finalized market's own settlement value. The hit rate of each
+      rule is printed next to the average price the rule paid, so a rule can be judged on data instead of on
+      a claim.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Rule</th><th>Trigger</th><th>Side</th><th>Holding</th><th>Where to run it</th>
+        </tr></thead>
+        <tbody id="testable"></tbody>
+      </table>
+      <div class="table-note">
+        Simulated fills ignore fees, spread and slippage, so every result is optimistic — see the
+        assumptions panel on the <a href="simulator.html">Strategy Tester</a> page and flag F15.
+      </div>
+    </div>
+  </div>
 </main>
 
 <script type="module">
 import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
-import { SOURCES, TOPICS } from "./assets/js/config.js";
+import { SOURCES, TOPICS, STRATEGIES as TESTABLE_STRATEGIES } from "./assets/js/config.js";
 import { api, analyseFills } from "./assets/js/market.js";
 
 mountChrome({ page: "strategies.html", title: "Strategies" });
 
 /* ------------------------------ strategies ------------------------------ */
-const STRATEGIES = [
+const CATALOGUE = [
   {
     name: "Buy YES below fair value",
     rule: "outcome_side = yes AND price < your estimated probability",
@@ -149,13 +171,23 @@ const STRATEGIES = [
   }
 ];
 
-$("#strategies").innerHTML = STRATEGIES.map(s => `<tr>
+/* The catalogue entries above are fill-based; these six are history-based and
+ * are replayed by the Strategy Tester. */
+$("#strategies").innerHTML = CATALOGUE.map(s => `<tr>
   <td><strong>${esc(s.name)}</strong></td>
   <td class="small"><code>${esc(s.rule)}</code></td>
   <td class="small">${esc(s.evidence)}</td>
   <td><span class="tag warn">${esc(s.status)}</span></td>
   <td class="small">${esc(s.risk)}</td>
   <td class="small">${s.sources.map((url, i) => src(url, `official source ${i + 1}`)).join(" · ")}</td>
+</tr>`).join("");
+
+$("#testable").innerHTML = TESTABLE_STRATEGIES.map(s => `<tr>
+  <td><strong>${esc(s.name)}</strong></td>
+  <td class="small">${esc(s.rule)}</td>
+  <td><span class="tag ${s.side === "yes" ? "yes" : "no"}">${esc(s.side)}</span></td>
+  <td class="small">${esc(s.hold === "roundtrip" ? "sell back at entry + $0.10, else hold to settlement" : "hold to settlement")}</td>
+  <td class="small nowrap"><a class="btn ghost" href="simulator.html">Run on the Strategy Tester →</a></td>
 </tr>`).join("");
 
 /* ------------------------------- fills ---------------------------------- */
