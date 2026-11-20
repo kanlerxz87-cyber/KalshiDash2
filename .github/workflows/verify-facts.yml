@@ -2,7 +2,7 @@ name: verify-facts
 # Temporary verification job. Captures authoritative, reproducible facts from the
 # official Kalshi DEMO API on a GitHub-hosted runner (the editing sandbox cannot open
 # TLS connections to Kalshi hosts) and commits the report back to the branch so the
-# findings are reviewable as a file with a permanent link.
+# findings are reviewable as a file with a permanent, linkable URL.
 on:
   workflow_dispatch:
   push:
@@ -24,144 +24,138 @@ jobs:
         run: |
           set +e
           BASE=https://external-api.demo.kalshi.co/trade-api/v2
-          OUT=reports/verify-facts-raw.md
+          OUT=reports/verify-facts-v2.md
           mkdir -p reports
           {
-          echo "# Raw facts captured from the Kalshi DEMO API"
+          echo "# Verified facts (v2) — Kalshi DEMO API"
           echo
-          echo "- Captured (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          echo "- Runner: GitHub Actions \`ubuntu-latest\`"
-          echo "- Base: \`$BASE\`"
-          echo "- Commit: \`${GITHUB_SHA}\`"
+          echo "| Field | Value |"
+          echo "| --- | --- |"
+          echo "| Captured (UTC) | $(date -u +%Y-%m-%dT%H:%M:%SZ) |"
+          echo "| Runner | GitHub Actions \`ubuntu-latest\` |"
+          echo "| Base URL | \`$BASE\` |"
+          echo "| Commit | \`${GITHUB_SHA}\` |"
           echo
-          echo '## 1. CORS — simple GET with Origin header'
+          echo '## A. Deprecated v1 order route — what the exchange says'
           echo '```'
-          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" "$BASE/exchange/status"
-          echo '```'
-          echo
-          echo '## 2. CORS — OPTIONS preflight on /markets'
-          echo '```'
-          curl -sS -D - -o /dev/null -X OPTIONS \
-            -H "Origin: https://kanlerxz87-cyber.github.io" \
-            -H "Access-Control-Request-Method: GET" \
-            -H "Access-Control-Request-Headers: content-type" \
-            "$BASE/markets?limit=1"
+          curl -sS -i -X POST -H "Content-Type: application/json" -d '{}' "$BASE/portfolio/orders" | head -40
           echo '```'
           echo
-          echo '## 3. CORS — GET /markets with Origin header'
-          echo '```'
-          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" "$BASE/markets?limit=1"
-          echo '```'
-          echo
-          echo '## 4. Event categories present in the demo environment'
-          curl -sS "$BASE/events?limit=200&status=open" -o /tmp/ev.json
+          echo '## B. Highest-volume open markets (top 8 by `volume_fp`)'
+          curl -sS "$BASE/markets?status=open&limit=1000" -o /tmp/m.json
           node -e '
-            const j=require("/tmp/ev.json");
-            const c={};
-            for(const e of (j.events||[])){c[e.category||"(none)"]=(c[e.category||"(none)"]||0)+1;}
-            console.log("Total events returned:", (j.events||[]).length);
+            const j=require("/tmp/m.json");
+            const ms=(j.markets||[]);
             console.log("");
-            console.log("| Category | Count |");
-            console.log("| --- | --- |");
-            Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(`| ${k} | ${v} |`));
+            console.log("Markets returned:", ms.length, "| cursor present:", !!j.cursor);
+            console.log("");
+            console.log("| Ticker | Event | Series | Last | YES bid | YES ask | Vol (fp) | OI (fp) | Tick structure |");
+            console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+            ms.sort((a,b)=>Number(b.volume_fp||0)-Number(a.volume_fp||0)).slice(0,8).forEach(m=>{
+              console.log(`| ${m.ticker} | ${m.event_ticker} | ${m.series_ticker||""} | ${m.last_price_dollars} | ${m.yes_bid_dollars} | ${m.yes_ask_dollars} | ${m.volume_fp} | ${m.open_interest_fp} | ${m.price_level_structure||""} |`);
+            });
+            console.log("");
+            console.log("Price ranges of the top market (source of truth for valid order prices):");
+            console.log("");
+            const top=ms.sort((a,b)=>Number(b.volume_fp||0)-Number(a.volume_fp||0))[0];
+            console.log("```json");
+            console.log(JSON.stringify(top.price_ranges,null,1));
+            console.log("```");
           '
           echo
-          echo '## 5. Series matching the five required topics'
-          echo
-          echo 'Method: `GET /series?limit=200` (paginated up to 5 pages), filtered client-side on'
-          echo 'ticker/title/category substrings. Case-insensitive. No ticker is hardcoded.'
-          echo
-          curl -sS "$BASE/series?limit=200" -o /tmp/s1.json
-          node -e '
-            const fs=require("fs");
-            const j=JSON.parse(fs.readFileSync("/tmp/s1.json","utf8"));
-            fs.writeFileSync("/tmp/s_all.json", JSON.stringify(j.series||[]));
-            console.log("Series returned on first page:", (j.series||[]).length, "| next cursor present:", !!j.cursor);
-            console.log("");
-            const s=j.series||[];
-            const rx=[["gas",/gas|gasoline|fuel/i],
-                      ["elections",/elect|president|senate|congress|governor|mayor|primary|ballot|cabinet/i],
-                      ["culture",/culture|movie|film|music|oscar|grammy|emmy|award|celebrity|box.?office|tv|stream/i],
-                      ["crypto",/crypto|bitcoin|btc|ethereum|eth|solana|doge|xrp|coin/i],
-                      ["golf",/golf|pga|masters|ryder|liv|open championship/i]];
-            for(const [name,re] of rx){
-              const hit=s.filter(x=>re.test([x.ticker,x.title,x.category].filter(Boolean).join(" ")));
-              console.log(`### ${name} — ${hit.length} matching series`);
-              console.log("");
-              console.log("| Series ticker | Kalshi category | Title |");
-              console.log("| --- | --- | --- |");
-              hit.slice(0,30).forEach(x=>console.log(`| ${x.ticker} | ${x.category||""} | ${(x.title||"").replace(/\|/g,"\\|")} |`));
-              console.log("");
-            }
-          '
-          echo '## 6. Candlestick endpoint — documented intervals and real response'
+          echo '## C. Candlesticks for a market that actually has volume'
           TICKER=$(node -e '
-            const j=require("/tmp/ev.json");
-            let best=null;
-            for(const e of (j.events||[]))for(const m of (e.markets||[])){
-              const v=Number(m.volume_fp||0);
-              if(v>0 && (!best||v>best.v))best={v,t:m.ticker,s:e.series_ticker,et:e.event_ticker};
-            }
-            if(best)console.log(best.t); else console.log("");
+            const j=require("/tmp/m.json");
+            const ms=(j.markets||[]).filter(m=>Number(m.volume_fp||0)>0);
+            ms.sort((a,b)=>Number(b.volume_fp||0)-Number(a.volume_fp||0));
+            console.log(ms.length?ms[0].ticker:"");
+          ')
+          SERIES=$(node -e '
+            const j=require("/tmp/m.json");
+            const ms=(j.markets||[]).filter(m=>Number(m.volume_fp||0)>0);
+            ms.sort((a,b)=>Number(b.volume_fp||0)-Number(a.volume_fp||0));
+            console.log(ms.length?(ms[0].series_ticker||""):"");
           ')
           echo ""
-          echo "Market with the largest volume_fp found in the demo sample: \`$TICKER\`"
-          if [ -n "$TICKER" ]; then
-            MK=$(curl -sS "$BASE/markets/$TICKER")
-            SERIES=$(echo "$MK" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).market.series_ticker||"")}catch{console.log("")}})')
+          echo "Ticker \`$TICKER\` · series \`$SERIES\`"
+          if [ -n "$TICKER" ] && [ -n "$SERIES" ]; then
+            END=$(date +%s)
+            for PI in 1 60 1440; do
+              echo ""
+              echo "\`period_interval=$PI\` (minutes) over the last 24h:"
+              echo '```json'
+              curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$((END-86400))&end_ts=$END&period_interval=$PI" | head -c 700
+              echo
+              echo '```'
+            done
             echo ""
-            echo "Series: \`$SERIES\`"
-            END=$(date +%s); START=$((END-7200))
-            echo ""
-            echo '`period_interval=1` (seconds granularity is NOT an allowed value — documented enum is 1, 60, 1440 minutes):'
-            echo '```json'
-            curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$START&end_ts=$END&period_interval=1" | head -c 1200
-            echo
-            echo '```'
-            echo ""
-            echo '`period_interval=60`:'
-            echo '```json'
-            curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$((END-86400))&end_ts=$END&period_interval=60" | head -c 900
-            echo
-            echo '```'
-            echo ""
-            echo 'Rejection behaviour for an unsupported interval (`period_interval=5`):'
+            echo "Unsupported interval \`period_interval=5\`:"
             echo '```'
             curl -sS -o /tmp/p5.json -w "HTTP %{http_code}\n" "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$((END-3600))&end_ts=$END&period_interval=5"
-            head -c 400 /tmp/p5.json 2>/dev/null
+            head -c 400 /tmp/p5.json
             echo
             echo '```'
             echo ""
-            echo 'Orderbook for the same market (liquidity = resting bids):'
+            echo "Millisecond timestamps (documented as rejected with 400):"
+            echo '```'
+            curl -sS -o /tmp/pm.json -w "HTTP %{http_code}\n" "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$(( (END-3600)*1000 ))&end_ts=$((END*1000))&period_interval=1"
+            head -c 300 /tmp/pm.json
+            echo
+            echo '```'
+            echo ""
+            echo "Orderbook depth=5 for the same market:"
             echo '```json'
             curl -sS "$BASE/markets/$TICKER/orderbook?depth=5" | head -c 900
             echo
             echo '```'
+            echo ""
+            echo "Same orderbook with no price (unknown ticker) — 200 + empty arrays per docs:"
+            echo '```'
+            curl -sS -o /tmp/ob404.json -w "HTTP %{http_code}\n" "$BASE/markets/NOSUCHTICKER123/orderbook"
+            head -c 200 /tmp/ob404.json
+            echo
+            echo '```'
+            echo ""
+            echo "Recent trades on the market (public, no auth):"
+            echo '```json'
+            curl -sS "$BASE/markets/trades?limit=3&ticker=$TICKER" | head -c 900
+            echo
+            echo '```'
           fi
           echo
-          echo '## 7. Auth-protected endpoints without credentials'
+          echo '## D. Settled markets — how resolution is reported'
+          curl -sS "$BASE/markets?status=settled&limit=200" -o /tmp/sm.json
+          node -e '
+            const j=require("/tmp/sm.json");
+            const ms=j.markets||[];
+            const dist={};
+            let withResult=0;
+            for(const m of ms){dist[m.result||"(blank)"]=(dist[m.result||"(blank)"]||0)+1; if(m.result)withResult++;}
+            console.log("");
+            console.log("Settled markets returned:", ms.length);
+            console.log("");
+            console.log("| `result` value | Count |");
+            console.log("| --- | --- |");
+            Object.entries(dist).forEach(([k,v])=>console.log(`| ${k} | ${v} |`));
+            console.log("");
+            console.log("Markets carrying a non-blank result:", withResult, "of", ms.length);
+            console.log("");
+            console.log("Sample rows (API fields copied verbatim, no inference):");
+            console.log("");
+            console.log("| Ticker | Result | Status | Settlement value | Expiration value | Close time |");
+            console.log("| --- | --- | --- | --- | --- | --- |");
+            ms.slice(0,8).forEach(m=>console.log(`| ${m.ticker} | ${m.result||"(blank)"} | ${m.status} | ${m.settlement_value_dollars??m.settlement_value??""} | ${m.expiration_value||""} | ${m.close_time||""} |`));
+          '
           echo
-          echo '| Endpoint | HTTP status | Body (truncated) |'
-          echo '| --- | --- | --- |'
-          for P in /portfolio/balance /portfolio/positions /portfolio/fills /portfolio/orders; do
-            CODE=$(curl -sS -o /tmp/b.txt -w "%{http_code}" "$BASE$P")
-            BODY=$(head -c 160 /tmp/b.txt | tr '\n' ' ' | sed 's/|/\\|/g')
-            echo "| \`$P\` | $CODE | $BODY |"
-          done
-          echo
-          echo '## 8. Order-placement route probe (unauthenticated; route existence only)'
-          echo
-          echo '| Method+Path | HTTP status | Body (truncated) | Interpretation |'
-          echo '| --- | --- | --- | --- |'
-          for P in /portfolio/orders /portfolio/events/orders; do
-            CODE=$(curl -sS -o /tmp/o.txt -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{}' "$BASE$P")
-            BODY=$(head -c 160 /tmp/o.txt | tr '\n' ' ' | sed 's/|/\\|/g')
-            echo "| \`POST $P\` | $CODE | $BODY | 401 = route exists but needs auth; 404 = no such route |"
-          done
-          echo
-          echo '## 9. Exchange status payload'
+          echo '## E. Events with categories (taxonomy source of truth)'
           echo '```json'
-          curl -sS "$BASE/exchange/status"
+          curl -sS "$BASE/events?limit=1&status=open&with_nested_markets=false" | head -c 900
+          echo
+          echo '```'
+          echo
+          echo '## F. Rate-limit headers observed on a public call'
+          echo '```'
+          curl -sS -D - -o /dev/null "$BASE/markets?limit=1" | grep -i "ratelimit\|retry-after\|x-kalshi"
           echo '```'
           } > "$OUT"
           cat "$OUT"
@@ -170,6 +164,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/verify-facts-raw.md
-          git diff --cached --quiet || git commit -m "reports: verified facts from Kalshi demo API [skip ci]"
+          git add reports/
+          git diff --cached --quiet || git commit -m "reports: verified facts v2 from Kalshi demo API [skip ci]"
           git push
