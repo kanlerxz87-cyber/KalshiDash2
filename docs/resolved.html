@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resolved Events — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html" class="active">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Resolved Events — Tracked Until Settlement</h1>
+<p class="muted">Watch markets from the <a href="dashboard.html">Live Dashboard</a> (or add a ticker below). Each watched market is polled until it settles; the final outcome is recorded as <b>YES</b> or <b>NO</b> exactly as the API returns it (<code>status</code> / <code>result</code> fields). Watched tickers are stored only in this browser. Source: <a href="https://docs.kalshi.com/api-reference/market/get-market">Get Market</a>.</p>
+<div class="card"><div class="statusbar"><input id="addTicker" placeholder="Market ticker to watch" size="30"><button id="addBtn">Add</button><button class="secondary" id="refreshBtn">Refresh now</button><span id="status" class="pill">Idle</span></div>
+<table><thead><tr><th>Ticker</th><th>Title</th><th>Status</th><th>Result (yes/no)</th><th>Yes bid</th><th>Yes ask</th><th>Last</th><th>Settled at</th><th></th></tr></thead>
+<tbody id="rows"><tr><td colspan="9">No watched markets yet. Add one from the dashboard or above.</td></tr></tbody></table></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<script src="assets/app.js"></script><script>
+async function refresh(){
+  const w=Watch.get(), rows=$("#rows");
+  if(!w.length){ rows.innerHTML="<tr><td colspan='9'>No watched markets yet.</td></tr>"; return; }
+  setStatus($("#status"),true,"Polling…");
+  const out=[];
+  for(const t of w){
+    try{ const j=await api(`/markets/${encodeURIComponent(t)}`); const m=j.market||j;
+      const result=(m.result||"").toString().toLowerCase();
+      out.push(`<tr><td><code>${esc(t)}</code></td><td>${esc(m.title||"")}</td><td>${esc(m.status||"")}</td>
+      <td>${result?`<span class="badge ${result==="yes"?"ok":"bad"}">${esc(result.toUpperCase())}</span>`:"— (still open)"}</td>
+      <td>${fmt$(m.yes_bid_dollars)}</td><td>${fmt$(m.yes_ask_dollars)}</td><td>${fmt$(m.last_price_dollars)}</td>
+      <td>${esc(m.settlement_time||m.settled_time||"")}</td><td><button class="secondary" data-rm="${esc(t)}">Remove</button></td></tr>`);
+    }catch(e){ out.push(`<tr><td><code>${esc(t)}</code></td><td colspan='7'>Error: ${esc(e.message)}</td><td><button class="secondary" data-rm="${esc(t)}">Remove</button></td></tr>`); }
+  }
+  rows.innerHTML=out.join(""); setStatus($("#status"),true,"Live — auto-refresh every 30s");
+}
+$("#addBtn").onclick=()=>{ const t=$("#addTicker").value.trim(); if(t){ Watch.add(t); $("#addTicker").value=""; refresh(); } };
+$("#refreshBtn").onclick=refresh;
+$("#rows").addEventListener("click",e=>{ const t=e.target.closest("[data-rm]")?.dataset.rm; if(t){ Watch.remove(t); refresh(); } });
+refresh(); setInterval(refresh,30000);
+</script></body></html>

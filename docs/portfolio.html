@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portfolio &amp; Trading — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html" class="active">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Portfolio &amp; Trading (Demo Account)</h1>
+<p class="muted">Balance, positions, and fills come from your <b>demo</b> account. Trading requires your own demo API key ID + RSA private key — entered below, kept only in this browser tab's <code>sessionStorage</code>, and sent only to the demo API. <b>Never paste a production key here.</b> Sources: <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">authenticated requests</a> · <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">create order</a>.</p>
+<div class="card"><h2 style="margin-top:0">Demo API credentials (browser-only)</h2>
+<label>API key ID <input id="keyId" size="30" autocomplete="off"></label>
+<label>RSA private key (PEM, Ed25519 not supported in-browser yet — see <a href="flagged.html">Flagged</a>) <textarea id="pem" rows="6" style="width:100%" autocomplete="off"></textarea></label>
+<button id="saveCreds">Save in this tab</button> <button class="secondary" id="clearCreds">Clear</button> <span id="credStatus" class="pill">No credentials</span></div>
+<div class="card"><h2 style="margin-top:0">Account</h2>
+<div class="statusbar"><button id="loadAcct">Load balance &amp; positions</button><span id="acctStatus" class="pill">Idle</span></div>
+<div id="balance" class="muted">Not loaded.</div>
+<table><thead><tr><th>Ticker</th><th>Position (contracts)</th><th>Market exposure</th><th>Realized P&amp;L</th><th>Settlement status</th></tr></thead><tbody id="posRows"><tr><td colspan="5">Not loaded.</td></tr></tbody></table></div>
+<div class="card"><h2 style="margin-top:0">Place a demo order</h2>
+<label>Market ticker <input id="oTicker" size="30"></label>
+<label>Side <select id="oSide"><option value="bid">Buy Yes (bid)</option><option value="ask">Sell Yes (ask)</option></select></label>
+<label>Count (contracts) <input id="oCount" type="number" value="1" min="1"></label>
+<label>Price (USD, e.g. 0.50) <input id="oPrice" type="number" step="0.01" min="0.01" max="0.99" value="0.50"></label>
+<button id="placeOrder">Place order</button> <span id="orderStatus" class="pill">Idle</span>
+<p class="muted small">Uses <code>POST /portfolio/events/orders</code> with a fresh <code>client_order_id</code> per order (deduplication). A 201 means accepted, not filled — check <code>remaining_count</code>. Source: <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">quick-start</a>.</p></div>
+<div class="card"><h2 style="margin-top:0">Recent fills</h2>
+<div class="statusbar"><button id="loadFills">Load fills</button><span id="fillsStatus" class="pill">Idle</span></div>
+<table><thead><tr><th>Time</th><th>Ticker</th><th>Side</th><th>Count</th><th>Price</th><th>Fee</th></tr></thead><tbody id="fillRows"><tr><td colspan="6">Not loaded.</td></tr></tbody></table>
+<p class="muted small">Fills feed the <a href="analysis.html">Analysis &amp; Strategies</a> page. Nothing is analyzed until real fills exist.</p></div>
+</main><footer>Demo only — mock funds. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<script src="assets/app.js"></script><script>
+const credStatus=$("#credStatus");
+function refreshCredStatus(){ const c=sessionStorage.getItem("kalshi_demo_creds"); setStatus(credStatus,!!c,c?"Credentials in this tab":"No credentials"); }
+$("#saveCreds").onclick=()=>{ sessionStorage.setItem("kalshi_demo_creds",JSON.stringify({keyId:$("#keyId").value.trim(),pem:$("#pem").value.trim()})); $("#pem").value=""; refreshCredStatus(); };
+$("#clearCreds").onclick=()=>{ sessionStorage.removeItem("kalshi_demo_creds"); $("#keyId").value=""; refreshCredStatus(); };
+refreshCredStatus();
+$("#loadAcct").onclick=async()=>{ try{
+  const b=await authApi("/portfolio/balance"); const bal=b.balance_dollars ?? b.balance ?? b.balance_fp;
+  $("#balance").innerHTML=`Balance: <b>${fmt$(bal)}</b> (raw: <code>${esc(JSON.stringify(b))}</code>)`;
+  const p=await authApi("/portfolio/positions?limit=100");
+  const rows=p.market_positions||p.positions||[];
+  $("#posRows").innerHTML=rows.length?rows.map(r=>`<tr><td><code>${esc(r.ticker)}</code></td><td>${fmtN(r.position_fp ?? r.position)}</td><td>${fmt$(r.market_exposure_dollars ?? r.market_exposure)}</td><td>${fmt$(r.realized_pnl_dollars ?? r.realized_pnl)}</td><td>${esc(r.settlement_status||"")}</td></tr>`).join(""):"<tr><td colspan='5'>No positions returned.</td></tr>";
+  setStatus($("#acctStatus"),true,"Live demo account data");
+}catch(e){ setStatus($("#acctStatus"),false,e.message); } };
+$("#placeOrder").onclick=async()=>{ try{
+  const body={ticker:$("#oTicker").value.trim(),side:$("#oSide").value,count:String($("#oCount").value),price:Number($("#oPrice").value).toFixed(4),time_in_force:"good_till_canceled",self_trade_prevention_type:"taker_at_cross",client_order_id:crypto.randomUUID()};
+  const r=await authApi("/portfolio/events/orders",{method:"POST",body});
+  setStatus($("#orderStatus"),true,"Accepted: "+JSON.stringify(r).slice(0,200));
+}catch(e){ setStatus($("#orderStatus"),false,e.message); } };
+$("#loadFills").onclick=async()=>{ try{
+  const f=await authApi("/portfolio/fills?limit=100"); const fills=f.fills||[];
+  $("#fillRows").innerHTML=fills.length?fills.map(x=>`<tr><td>${esc(x.created_time||x.created_ts||"")}</td><td><code>${esc(x.ticker)}</code></td><td>${esc(x.side||"")}</td><td>${fmtN(x.count_fp ?? x.count)}</td><td>${fmt$(x.yes_price_dollars ?? x.price_dollars ?? x.price)}</td><td>${fmt$(x.fee_cost_dollars ?? x.fee_cost)}</td></tr>`).join(""):"<tr><td colspan='6'>No fills returned.</td></tr>";
+  localStorage.setItem("kalshi_fills",JSON.stringify(fills));
+  setStatus($("#fillsStatus"),true,fills.length+" fills saved for analysis");
+}catch(e){ setStatus($("#fillsStatus"),false,e.message); } };
+</script></body></html>
