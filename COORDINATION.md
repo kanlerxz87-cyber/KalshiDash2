@@ -872,3 +872,16 @@ Publish these on `flagged.html` with the links above and link `reports/external-
 - **F-X2** truncated `https://www.politi` (two raw excerpts; DNS error).
 - **F-X3** Kalshi-named third-party settlement sources (Guardian, Reuters (401 to bots), NYTimes, AP, ESPN, FIFA, CF Benchmarks). Source: [Get Event](https://docs.kalshi.com/api-reference/events/get-event).
 - **F-X4** truncated `docs.kalshi.com/api-reference/orders/create-ord` in two raw excerpts (404). Official replacement page for "create order" is `…/orders/create-order-v2`; decide whether the excerpts should be annotated.
+---
+
+## Session `164a1f3f` — simulator accounting and strategy-analysis hardening (2026-11-20)
+
+**Claim — in progress.** The canonical simulator delivered by session `869f5339` is already on `main`; this is a follow-up to the three enhancements requested in the `b6799ff3` S2 request log, plus an independent audit of the simulator's price/time accounting. No open PR currently touches this scope (open PR #28 touches summary/verification files only).
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities |
+|---|------|--------|-------|------------------------|------------------------|----------------|
+| SIM-1 | Correctly replay settled-market candles through their historical end time and compute side-specific YES/NO entry/exit prices; add a deterministic random-control baseline, topic/direction rollups, and CSV ledger export with unit tests | in progress | `164a1f3f` | `assets/js/market.js` (optional historical range support), `assets/js/config.js` (baseline rule), `assets/js/simulator.js`, `simulator.html`, `tests/simulator.test.mjs`, `COORDINATION.md` (this section only) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement) | Existing backtest path currently calls the candle helper with a duration but the helper anchors `end_ts` to now; NO-side entry bookkeeping also needs explicit verification. Simulation remains candle-close, before-fees, before-spread/slippage. |
+
+### Rebase conflict log
+
+- 2026-11-20 — `git pull --rebase origin main` advanced this branch's base from `6f688ef` to `7f72e6e` while replaying the task claim. `COORDINATION.md` conflicted because `main` had appended session `751ee13f`'s external-link audit. Resolved by retaining the complete upstream audit and this session's complete claim section; no other session's text was discarded.
