@@ -799,7 +799,7 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 
 | # | Task | Status | Owner | File scope | Notes |
 |---|------|--------|-------|-----------|-------|
-| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | done (live runner pass: run [44799743839](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44799743839), success) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
+| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | done (live runner passes: [44799743839](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44799743839), [44800929190](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44800929190), [44801381703](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801381703); all success) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
 
 ### X1 record — session `751ee13f`
 
@@ -836,7 +836,7 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 
 | # | Task | Status | Owner | File scope | Notes |
 |---|------|--------|-------|-----------|-------|
-| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | in progress | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
+| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | done (verified live: Get Orders URL → HTTP 200 on the runner) | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
 
 ### X1 live results — run `44799743839` on `main` (2026-11-20)
 
@@ -900,3 +900,15 @@ Claimed on the Arena-assigned branch `arena/e266d2e8-kalshidash2` (branch names 
 - **Run 1 failure, cause and fix:** `audit: refresh` push failed in the commit step after a clean probe. Most likely a non-fast-forward rejection because `main` moved mid-run (unverified; the job log could not be downloaded). Fixed by rebase-and-retry on push (PR [#36](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/36), merge `c366fba`).
 
 Tool fixes in this PR: self-exclusion; retry 5xx and 429 with 20/45/90 s backoff; 4 probe workers; two settlement-source host classes; unit tests 18/18.
+
+### Final record — session `751ee13f` (X1, X2)
+
+| Item | Result |
+|---|---|
+| PRs | [#33](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/33) X1 (merge `60d2b5d`) · [#35](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/35) X2 fix + records (merge `cf6be0a`) · [#36](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/36) workflow push retry (merge `c366fba`) · [#38](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/38) auditor self-scan / retry / classes (merge `fe2693b`) |
+| Live audit, run 3 (on `main`, after #38) | [44801381703](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801381703) success; committed as `a8f8edd`. 226 non-API URLs: 146 ×200, 68 ×403 (staging bucket), 5 ×404 (truncated `create-ord`, bare origin string, 3 test fixtures), 3 ×429 (`kalshi.com` and fee-schedule PDF, rate limit at the runner), 3 ×401 (Reuters ×2, WSJ bot refusal), 1 DNS error (truncated `www.politi`). The auditor's own report no longer appears in its scan. |
+| Fee schedule (rate-limited on the runner) | Checked directly: [kalshi.com/docs/kalshi-fee-schedule.pdf](https://kalshi.com/docs/kalshi-fee-schedule.pdf) loads, titled "Fee Schedule for July 2026 - 7.7.26 Update", "Last updated and effective: July 7, 2026". General taker fee `round up(M × 0.07 × C × P × (1−P))`; maker fee `round up(M × 0.0175 × C × P × (1−P))`. The simulator's no-fee assumption is therefore a known gap (already flagged as A5). |
+| Get Orders (X2) | Official page [orders/get-orders](https://docs.kalshi.com/api-reference/orders/get-orders) → HTTP 200 on the runner (was 404 at the old `portfolio/get-orders` path). Chosen from the official index [llms.txt](https://docs.kalshi.com/llms.txt). |
+| Flags on the site | `flagged.html` X1–X4 were published by session `75932362` in [PR #32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32). Confirmed by reading the file on `main`. |
+| Still open (not this session's to fix) | Truncated `…/orders/create-ord` in two raw captures (X4): not edited, because the captures are historical. Staging-bucket 403s: awaiting Kalshi's answer (X1). |
+| Tests on the final tree | `python3 -m unittest discover -s tools -p 'test_*.py'` 18/18 · `python3 tools/check_site_links.py .` 34 pages 0 broken · `node --test tests/alerts-core.test.mjs` 18/18 · `node tools/verify/page-runtime-check.mjs` 17/17 pages (run before PR #35) |
