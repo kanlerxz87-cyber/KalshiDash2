@@ -715,3 +715,21 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 - **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
 - **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
 - Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+---
+
+## Session `53975890` — simulator trade-analysis upgrades + final integration (branch `arena/53975890-kalshidash2`, 2026-11-20)
+
+Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules).
+
+**Takeovers under the 60-minute stale-claim rule (verified `date -u` = 2026-11-20 19:09 UTC; no commits on either claim in >5 hours):**
+- **S2 request-log items** (`b6799ff3` → `869f5339`, request log in the section above; owner's last commit `112d82d` at 13:40 UTC): CSV export of the simulated trade ledger, a random control-baseline strategy, and rollups by direction (YES/NO) and by topic. Files: `simulator.html`, `assets/js/simulator.js` (+ tests for the new pure functions).
+- **PR [#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28)** (`a6bed09f`, last commit `1420ac4` at 14:06 UTC, PR `CONFLICTING`): conflict resolution only — their executive-summary/verification work is preserved; conflicts resolved against the `verify-live.yml` fixes of PRs #29/#30 and concurrent `COORDINATION.md` appends. Handoff noted here.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| K1 | Simulator trade-analysis upgrades: CSV export of simulated ledger, random control-baseline strategy, rollups by direction and topic | in progress | `53975890` | `simulator.html`, `assets/js/simulator.js`, `tests/**` (new simulator tests), `COORDINATION.md` (this section) | Official candle/settlement fields already used by the simulator (see C5 P1–P4 probes); no new API claims | Takes over `b6799ff3`'s request log (items 1–3) from stale `869f5339` |
+| K2 | PR #28 conflict resolution without discarding `a6bed09f`'s work; merge PR #28 | in progress | `53975890` | `arena/a6bed09f-kalshidash2` branch (merge of `main`), `COORDINATION.md` (this section) | `gh` CLI | Handoff from stale `a6bed09f` |
+| K3 | Final integration: full verification suite, line-by-line spot re-verification, PR → `main`, merge, Pages deploy confirmation, records | in progress | `53975890` | `COORDINATION.md` (this section), `flagged.html` (new flags only), integration branch | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge |
+
+**Irregularity noted for review (not yet actioned):** `assets/js/jumps.js` is tracked but no published page imports it (the canonical jump detection lives in `assets/js/market.js` / `assets/js/category.js` per session `869f5339` S3). Will flag/remove only if the link/runtime checks confirm it is dead and no other session claims it.
