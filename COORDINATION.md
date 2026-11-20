@@ -417,3 +417,16 @@ Claim recorded `2026-11-20`. Base: `main` at `9c99138` (PR #15 merged). Files ou
 **Irregularities (details on the Flagged page, section 4):** A1 the High-ROI filter is a rule set, not a model; A2 alerts recorded only while a tab is open; A3 alert price is last trade, quote-only moves do not alert; A4 settlement sources are not causes; A5 simulated P&L ignores fees and slippage; A6 universe is partial (top 30/topic); A7 no documented maximum for `tickers` (25 and 100 both worked); A8 no numeric unauthenticated rate limit published; A9 status vocabulary and the S6 entry omits `paused`; R1 the CI link check covers `docs/` only, while the live site is the root.
 
 **Handoff notes:** the brief's `session-<id>/<task>` branch naming was not used; the session is bound to `arena/4208a2dd-kalshidash2`. Not done in this session: chart markers for sharp moves on the category charts, a server-side recorder, and a rewrite of `summary.html` to cover the alerts. These are listed as suggestions, not claimed as done.
+
+---
+
+# Session `5c00f4dd` — integration review and row-source audit (2026-11-20)
+
+Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
+
+| # | Task | Status | Owner | File scope |
+|---|------|--------|-------|-----------|
+| C1 | Reconcile live alerts and paper simulation with the already-merged implementation; avoid duplicate engine | done | `5c00f4dd` | `COORDINATION.md` |
+| C2 | Add official source links per dynamic data row in the published root-site tables | in progress | `5c00f4dd` | `index.html`, `assets/js/category.js`, `categories/*.html`, `event.html`, `portfolio.html`, `strategies.html`, `resolved.html`, `COORDINATION.md` |
+
+**Conflict resolution log:** PR #19 (session `4208a2dd`) merged its live alert and simulated strategy implementation while this branch was in progress. Its `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, tests, verification evidence, flags, and navigation are retained as the canonical implementation. This session will not overwrite that work with a duplicate alerts controller. During rebase, `COORDINATION.md` had an add/add conflict; resolved by retaining the complete main board (including session `4208a2dd`) and appending this session record.
