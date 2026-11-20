@@ -1,0 +1,87 @@
+name: verify-facts
+# Temporary verification job: captures authoritative, reproducible facts from the
+# official Kalshi DEMO API (server-side, no sandbox TLS restrictions) so that every
+# claim on the site can cite an observed response rather than an assumption.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tools/verify/**"
+
+jobs:
+  facts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CORS preflight + simple GET headers
+        run: |
+          set -x
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          echo "===== GET /exchange/status WITH Origin header ====="
+          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" \
+            "$BASE/exchange/status" || echo "CURL_FAILED"
+          echo "===== OPTIONS preflight /markets ====="
+          curl -sS -D - -o /dev/null -X OPTIONS \
+            -H "Origin: https://kanlerxz87-cyber.github.io" \
+            -H "Access-Control-Request-Method: GET" \
+            "$BASE/markets?limit=1" || echo "CURL_FAILED"
+          echo "===== GET /markets WITH Origin header ====="
+          curl -sS -D - -o /dev/null -H "Origin: https://kanlerxz87-cyber.github.io" \
+            "$BASE/markets?limit=1" || echo "CURL_FAILED"
+
+      - name: Category taxonomy present in demo environment
+        run: |
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          curl -sS "$BASE/events?limit=200&status=open" -o ev.json
+          echo "===== distinct event categories (first 200 open events) ====="
+          node -e '
+            const j=require("./ev.json");
+            const c={};
+            for(const e of j.events||[]){c[e.category]=(c[e.category]||0)+1;}
+            Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(v+"\t"+k));
+          '
+
+      - name: Topic discovery (series search for the 5 required topics)
+        run: |
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          for T in gas price gasoline election culture crypto golf; do
+            echo "===== /series?category_or_title~$T ====="
+            curl -sS "$BASE/series?page_size=100" -o all_series.json
+            break
+          done
+          node -e '
+            const j=require("./all_series.json");
+            const s=j.series||[];
+            console.log("total series:", s.length);
+            const rx=[["gas",/gas|gasoline|fuel/i],["elections",/elect|president|congress|senate|governor|mayor|primary/i],["culture",/culture|movie|music|award|celebrity|tv|entertain/i],["crypto",/crypto|bitcoin|btc|eth|solana|doge/i],["golf",/golf|pga|masters|ryder|liv/i]];
+            for(const [name,re] of rx){
+              const hit=s.filter(x=>re.test((x.ticker||"")+" "+(x.title||"")+" "+(x.category||"")));
+              console.log("\n## "+name+" series:",hit.length);
+              hit.slice(0,25).forEach(x=>console.log("  "+x.ticker+" | "+(x.category||"")+" | "+(x.title||"")));
+            }
+          '
+
+      - name: Candlestick endpoint shape (real market)
+        run: |
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          TICKER=$(curl -sS "$BASE/markets?limit=40&status=open" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);const m=(j.markets||[]).find(x=>Number(x.volume_24h_fp)>0)||j.markets[0];console.log(m.ticker)})')
+          echo "TICKER=$TICKER"
+          SERIES=$(curl -sS "$BASE/markets/$TICKER" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(j.market.series_ticker||"")})')
+          echo "SERIES=$SERIES"
+          END=$(date +%s); START=$((END-3600))
+          echo "===== candlesticks 1min ====="
+          curl -sS "$BASE/series/$SERIES/markets/$TICKER/candlesticks?start_ts=$START&end_ts=$END&period_interval=1" | head -c 1500
+          echo
+          echo "===== orderbook ====="
+          curl -sS "$BASE/markets/$TICKER/orderbook" | head -c 800
+          echo
+          echo "===== trades ====="
+          curl -sS "$BASE/markets/trades?limit=3" | head -c 800
+
+      - name: Auth-protected endpoints behave as documented without credentials
+        run: |
+          BASE=https://external-api.demo.kalshi.co/trade-api/v2
+          for P in /portfolio/balance /portfolio/positions /portfolio/fills /portfolio/orders; do
+            echo "===== $P ====="
+            curl -sS -o body.txt -w "HTTP %{http_code}\n" "$BASE$P"
+            head -c 300 body.txt; echo
+          done
