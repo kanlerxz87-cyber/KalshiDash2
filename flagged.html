@@ -99,6 +99,42 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get events ↗</a>
         <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence ↗</a></p>
     </div>
+
+    <div class="irregularity" id="F17">
+      <h3>F17 — The Get Orders documentation link pointed at a path that does not exist <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the source registry in <code>assets/js/config.js</code> mapped
+        <code>SOURCES.orders</code> to <code>https://docs.kalshi.com/api-reference/portfolio/get-orders</code>.
+        That path is not in the official documentation index — Get Orders is published under the
+        <code>orders</code> section, not <code>portfolio</code> — so the link returned a 404 rather than
+        the reference page.</p>
+      <p><strong>Status here:</strong> corrected to
+        <code>https://docs.kalshi.com/api-reference/orders/get-orders</code>, which resolves. Every
+        documentation link the site renders was then re-checked against the official index
+        (<code>docs.kalshi.com/llms.txt</code>); the other 32 resolve as written.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/get-orders" target="_blank" rel="noopener noreferrer">Get Orders ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">official documentation index ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F18">
+      <h3>F18 — The executive summary printed the claim array instead of its count <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> three counting defects on the published
+        <a href="summary.html">executive summary</a>. (1) The headline interpolated the claims
+        <em>array</em> instead of its length, so "Claims verified" rendered as
+        <code>59 / [object Object],[object Object],…</code>. (2) "Requirement areas" was a hard-coded
+        <code>15</code> while the requirement matrix held <strong>17</strong> rows. (3) The open-flag
+        count was read with an <code>F\d+</code> regular expression, so it ignored the <code>A*</code> and
+        <code>R*</code> flags and reported <strong>13</strong> open when the register holds
+        <strong>21</strong>.</p>
+      <p><strong>Status here:</strong> all three counts are now derived from their source registers —
+        <code>CLAIMS.length</code>, the number of <code>#requirement-matrix tr</code> rows, and a
+        <code>DOMParser</code> pass over every <code>.irregularity</code> card — so they cannot drift
+        again. A DOM regression test asserts the rendered numbers.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://kanlerxz87-cyber.github.io/KalshiDash2/summary.html" target="_blank" rel="noopener noreferrer">published summary ↗</a> ·
+        regression test <code>tests/dom/summary-dom.mjs</code> (run in CI by
+        <code>verify-alerts</code>)</p>
+    </div>
   </div>
 
   <div class="card">
@@ -196,7 +232,6 @@
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></p>
     </div>
-  </div>
 
     <div class="irregularity" id="F13">
       <h3>F13 — The shortlist chat is a tradeability screen, not a validated edge <span class="tag warn">open</span></h3>
@@ -265,6 +300,20 @@
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
+    </div>
+    <div class="irregularity" id="F19">
+      <h3>F19 — The Flagged page closed its "Unverified" card early, so four entries rendered outside it <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> a stray <code>&lt;/div&gt;</code> after the F10 card closed the
+        <code>&lt;div class="card"&gt;</code> that holds section 2. The four entries after it — F13, F14,
+        F15 and F16 — therefore rendered outside the card, without its heading and padding, and the page
+        ended with one unmatched closing tag. A tag-balance pass over every published page now finds no
+        mismatch.</p>
+      <p><strong>Status here:</strong> the stray tag is removed and the card wraps its full list. The
+        check is part of the repository's own link checker, so the same class of defect fails CI instead
+        of shipping.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="flagged.html" target="_blank" rel="noopener noreferrer">this page ↗</a> ·
+        <code>tools/check_site_links.py</code> (tag-balance pass, run by <code>site-check</code>)</p>
     </div>
   </div>
 
@@ -419,7 +468,7 @@ mountChrome({ page: "flagged.html", title: "Flagged for review" });
 const cards = [...document.querySelectorAll(".irregularity")];
 const open = cards.filter(c => c.querySelector(".tag.warn")).length;
 const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
-const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
+const defects = [...document.querySelectorAll("#F6,#F7,#F8,#F17,#F18")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 
 $("#counts").innerHTML = [

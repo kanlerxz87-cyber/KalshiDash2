@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check local links and fragments in the static GitHub Pages site."""
+"""Check local links, fragments and tag balance in the static GitHub Pages site."""
 
 from __future__ import annotations
 
@@ -8,12 +8,20 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+# Elements that never have a closing tag.
+VOID_ELEMENTS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+}
+
 
 class LinkParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.links: list[tuple[str, int]] = []
         self.anchors: set[str] = set()
+        self.stack: list[tuple[str, int]] = []
+        self.balance_errors: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attrs_dict = dict(attrs)
@@ -26,6 +34,41 @@ class LinkParser(HTMLParser):
             value = attrs_dict.get(attr)
             if value:
                 self.links.append((value.strip(), self.getpos()[0]))
+        if tag not in VOID_ELEMENTS:
+            self.stack.append((tag, self.getpos()[0]))
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in VOID_ELEMENTS:
+            return
+        if not self.stack:
+            self.balance_errors.append(
+                f"line {self.getpos()[0]}: stray </{tag}> with no open element"
+            )
+            return
+        if self.stack[-1][0] == tag:
+            self.stack.pop()
+            return
+        # The tag closes an ancestor: report every element left open inside it.
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                for open_tag, open_line in self.stack[index + 1:]:
+                    self.balance_errors.append(
+                        f"line {self.getpos()[0]}: </{tag}> closes <{open_tag}> "
+                        f"opened at line {open_line} without closing it"
+                    )
+                del self.stack[index:]
+                return
+        self.balance_errors.append(
+            f"line {self.getpos()[0]}: stray </{tag}> — no matching open element"
+        )
+
+    def close(self) -> None:  # noqa: D102 - flush any unclosed elements
+        super().close()
+        for open_tag, open_line in self.stack:
+            self.balance_errors.append(
+                f"line {open_line}: <{open_tag}> is never closed"
+            )
+        self.stack = []
 
 
 def inspect(root: Path) -> list[str]:
@@ -39,6 +82,7 @@ def inspect(root: Path) -> list[str]:
         parser = LinkParser()
         try:
             parser.feed(page.read_text(encoding="utf-8"))
+            parser.close()
         except (OSError, UnicodeError) as exc:
             errors.append(f"{page}: could not read HTML: {exc}")
             continue
@@ -49,6 +93,8 @@ def inspect(root: Path) -> list[str]:
         parser = parsed.get(page_resolved)
         if parser is None:
             continue
+        for message in parser.balance_errors:
+            errors.append(f"{page}: {message}")
         for raw_url, line in parser.links:
             url = urlsplit(raw_url)
             if url.scheme or url.netloc:

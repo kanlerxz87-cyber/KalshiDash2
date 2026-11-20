@@ -1,8 +1,8 @@
 name: verify-alerts
 
 # Verifies the live alerts page (alerts.html) on a GitHub-hosted runner:
-#   1. unit tests for the alert engine (no network),
-#   2. DOM end-to-end test of the page with scripted fixtures (no network),
+#   1. unit tests for the alert engine and the simulated-trade engine (no network),
+#   2. DOM regression tests for the alerts page and the executive summary (no network),
 #   3. a read-only check of the live Kalshi DEMO API calls the page makes,
 #      written to reports/alerts-live-check.md and committed back to the branch.
 on:
@@ -11,10 +11,12 @@ on:
     paths:
       - "alerts.html"
       - "simulator.html"
+      - "summary.html"
       - "assets/js/alerts*.js"
       - "assets/js/alert-engine.js"
       - "assets/js/config.js"
       - "assets/js/market.js"
+      - "assets/js/simulator.js"
       - "tests/**"
       - ".github/workflows/verify-alerts.yml"
 
@@ -35,14 +37,16 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Unit tests (alert engine)
-        run: node --test tests/alerts-core.test.mjs
+      - name: Unit tests (alert engine + simulated-trade engine)
+        run: |
+          node --test tests/alerts-core.test.mjs
+          node --test tests/simulator-core.test.mjs
 
-      - name: DOM end-to-end test (alerts.html with fixtures)
+      - name: DOM regression tests (alerts + executive summary)
         working-directory: tests/dom
         run: |
           npm ci
-          node alerts-dom.mjs
+          npm test
 
       - name: Live read-only check (Kalshi DEMO API)
         run: node tests/live-alerts-check.mjs
