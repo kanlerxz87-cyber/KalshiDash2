@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kalshi Dash · Suggestions</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <h1>Suggestions — decision board</h1>
+  <p class="lead">Ways to improve the site and decision-making. <b>Nothing here has been implemented.</b> Choose a path for each item (Approve, Defer, Reject). Choices are saved in this browser only; use <i>Export decisions</i> to copy them.</p>
+  <div class="toolbar"><button id="export" type="button">Export decisions</button><span class="small muted" id="summary"></span></div>
+  <div class="table-wrap"><table id="sug">
+    <thead><tr><th>ID</th><th>Suggestion</th><th>Why (evidence)</th><th>Effort / risk</th><th>Source</th><th>Your decision</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <p class="small muted">Decisions are not read by any automated job. Approved items still need a separate implementation step.</p>
+</main>
+<footer>Suggestions only. Not investment advice.</footer>
+<script src="assets/app.js"></script>
+<script>
+KD.renderNav('suggestions.html');
+const SUG = [
+  ['S1', 'Add a WebSocket collector for second-level price history, so the chart can offer seconds as well as minutes and hours.', 'The REST candlestick endpoint supports 1, 60 and 1440-minute periods only.', 'High effort; needs a long-running process (not a static page). Medium risk.', 'https://docs.kalshi.com/api-reference/market/get-market-candlesticks'],
+  ['S2', 'Connect a demo API key (stored as a secret) to track portfolio balance, positions and fills.', 'Portfolio views are blocked until an authenticated key exists.', 'Medium effort. Requires one user action (create the key).', 'https://docs.kalshi.com/getting_started/api_keys'],
+  ['S3', 'Rank markets by true dollar volume by paginating all trades, not only the most recent 5,000 per market.', 'The current dollar figure is a partial sample for busy markets.', 'Medium effort; many more requests (rate limits apply).', 'https://docs.kalshi.com/api-reference/market/get-trades'],
+  ['S4', 'Replace keyword-based topic matching with a reviewed allow-list of series tickers.', 'Gas and culture matching depends on titles and tags, not on an official category.', 'Low effort; needs your review of the list.', 'https://docs.kalshi.com/api-reference/market/get-series-list'],
+  ['S5', 'Show each market’s rules text (the rules_primary field) on its row, next to the settlement sources.', 'Resolution is the core of the yes/no tracking, and the rules field is returned by the API.', 'Low effort. Text can be long.', 'https://docs.kalshi.com/getting_started/market_settlement'],
+  ['S6', 'Add a depth chart (cumulative contracts vs price) built from the order book.', 'Answers "how many contracts are available at a given price" more clearly than the table.', 'Low effort; depth is limited to the top markets captured.', 'https://docs.kalshi.com/getting_started/orderbook_responses'],
+  ['S7', 'Use production read-only data as the primary live view and demo data only for practice trades.', 'Kalshi says demo prices may not reflect real markets.', 'Low effort; a product decision.', 'https://docs.kalshi.com/getting_started/demo_env'],
+  ['S8', 'Adopt a fixed trade-journal template (topic, entry price, direction, holding time, result, fees) before any trade is placed.', 'Trade categorisation is undefined until fills exist.', 'Low effort; prevents inconsistent categories later.', 'https://docs.kalshi.com/getting_started/order_direction'],
+  ['S9', 'Add an alert when a tracked market resolves or its spread changes beyond a threshold.', 'Tracking until resolution is a stated requirement.', 'Medium effort; needs a process that runs continuously or uses the WebSocket feed.', 'https://docs.kalshi.com/getting_started/quick_start_websockets'],
+];
+const KEY = 'kd-decisions-v1';
+const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+const tb = document.querySelector('#sug tbody');
+tb.innerHTML = SUG.map(([id, s, why, eff, src]) => `<tr>
+  <td class="ticker">${id}</td><td class="title">${KD.esc(s)}</td><td class="title">${KD.esc(why)}</td><td class="small">${KD.esc(eff)}</td>
+  <td>${KD.link(src, 'source ↗')}</td>
+  <td class="decision"><select data-id="${id}"><option value="">Undecided</option><option value="Approve">Approve</option><option value="Defer">Defer</option><option value="Reject">Reject</option></select></td></tr>`).join('');
+tb.querySelectorAll('select').forEach((sel) => {
+  sel.value = saved[sel.dataset.id] || '';
+  sel.addEventListener('change', () => { saved[sel.dataset.id] = sel.value; localStorage.setItem(KEY, JSON.stringify(saved)); summary(); });
+});
+function summary() {
+  const c = { Approve: 0, Defer: 0, Reject: 0, Undecided: 0 };
+  SUG.forEach(([id]) => { c[saved[id] || 'Undecided']++; });
+  document.getElementById('summary').textContent = `Approve ${c.Approve} · Defer ${c.Defer} · Reject ${c.Reject} · Undecided ${c.Undecided}`;
+}
+document.getElementById('export').addEventListener('click', () => {
+  const lines = SUG.map(([id, s]) => `${id}\t${saved[id] || 'Undecided'}\t${s}`).join('\n');
+  navigator.clipboard?.writeText(lines).catch(() => {});
+  const blob = new Blob([lines + '\n'], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kalshi-dash-decisions.txt'; a.click();
+});
+summary();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kalshi Dash · Analysis &amp; strategy</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <h1>Analysis &amp; strategy</h1>
+  <p class="lead">Descriptive statistics computed from the public snapshot, a framework for categorising trades once they exist, and the strategy ideas we can state but cannot yet test. No trade results exist yet, so no strategy has a demonstrated edge.</p>
+  <div class="banner warn">Portfolio performance and trade categories need authenticated demo-account data, which is not connected. Everything on this page is market-level, not account-level. See <a href="portfolio.html">Portfolio &amp; trades</a>.</div>
+
+  <h2>1. Market structure by topic (computed from snapshot)</h2>
+  <div class="toolbar"><label>Environment
+    <select id="env"><option value="demo">Demo (mock funds)</option><option value="production">Production (read-only)</option></select></label>
+    <span class="small muted" id="snap"></span></div>
+  <div class="table-wrap" id="structure"></div>
+  <p class="small muted">Price buckets use the last traded YES price. "Longshot" = last price below 10¢, "Favourite" = above 90¢. Spread = yes ask − yes bid. Source for each row: the market endpoint in the Source column of its topic page.</p>
+
+  <h2>2. Trade categories (framework — to be filled from real trades)</h2>
+  <p>Each trade will be tagged on these axes once fills are available from the authenticated portfolio endpoints. The tags are defined here so categorisation is consistent. No category currently has a result.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Axis</th><th>Categories</th><th>Rule</th><th>Data needed</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Topic</td><td>Gas prices · Elections · Culture · Crypto · Golf</td><td>Market series category (see topic pages)</td><td>Market ticker → series</td><td><a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener">Get Series List ↗</a></td></tr>
+      <tr><td>Entry price</td><td>Longshot (&lt;10¢) · Mid (10–90¢) · Favourite (&gt;90¢)</td><td>YES price paid, in dollars from fills</td><td>Fills</td><td><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener">Order direction ↗</a></td></tr>
+      <tr><td>Direction</td><td>Buy YES · Buy NO</td><td>Outcome side on the order or fill</td><td>Fills / orders</td><td><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener">Order direction ↗</a></td></tr>
+      <tr><td>Holding time</td><td>Under 1 h · 1 h–1 day · over 1 day</td><td>Fill time to settlement or exit</td><td>Fill timestamps, settlement records</td><td><a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener">Market Settlement ↗</a></td></tr>
+      <tr><td>Result</td><td>Win · Loss · Open</td><td>Settlement result (yes/no) vs side held</td><td>Settlement records</td><td><a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener">Market Settlement ↗</a></td></tr>
+      <tr><td>Fees</td><td>Net of fees</td><td>Fee schedule applied to each fill</td><td>Fee data from the account</td><td><a href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener">Fee Rounding ↗</a></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>3. Strategy hypotheses (not tested)</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Hypothesis</th><th>Why it is plausible</th><th>What would test it</th><th>Status</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Longshot YES contracts are overpriced relative to their settlement frequency</td><td>Compare last price with the share of YES results in resolved rows (section 1)</td><td>Resolved-market history with prices at a fixed time before close</td><td><span class="tag todo">untested</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener">Get Markets ↗</a></td></tr>
+      <tr><td>Wide-spread markets offer resting-order (market-making) opportunities</td><td>Spread and depth are visible in the order book</td><td>Order-book history plus fills for a demo account</td><td><span class="tag todo">untested</span></td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener">Orderbook Responses ↗</a></td></tr>
+      <tr><td>Short-dated crypto series (15-minute) react faster than hourly ones</td><td>Series titles and close times differ</td><td>Second-level price feed (WebSocket) — not in this build</td><td><span class="tag blocked">needs data</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener">Get Market Candlesticks ↗</a></td></tr>
+      <tr><td>Demo prices can be used to pre-test strategies</td><td>Demo is mock-fund</td><td>Demo prices are documented as possibly not reflective of real markets</td><td><span class="tag blocked">doubtful</span></td><td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener">Demo environment ↗</a></td></tr>
+    </tbody>
+  </table></div>
+</main>
+<footer>Descriptive statistics only. Not investment advice. Nothing here has been backtested.</footer>
+<script src="assets/app.js"></script>
+<script>
+KD.renderNav('analysis.html');
+(async () => {
+  const [meta, markets, resolved] = await Promise.all([KD.load('meta'), KD.load('markets'), KD.load('resolved')]).catch((e) => { KD.showError(e.message); return [{}, [], []]; });
+  document.getElementById('snap').textContent = meta.generated_at ? 'Snapshot ' + new Date(meta.generated_at).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : '';
+  const env = document.getElementById('env');
+  const draw = () => {
+    const e = env.value;
+    const rows = [];
+    for (const [k, t] of Object.entries(KD.TOPICS)) {
+      const o = markets.filter((m) => m.topic === k && m.env === e);
+      const r = resolved.filter((m) => m.topic === k && m.env === e);
+      const zero = o.filter((m) => m.volume_contracts === 0).length;
+      const sp = o.map((m) => (KD.isNil(m.yes_ask) || KD.isNil(m.yes_bid) ? null : m.yes_ask - m.yes_bid));
+      const lp = o.map((m) => m.last_price).filter((x) => !KD.isNil(x));
+      const longshot = lp.filter((x) => x < 0.1).length, fav = lp.filter((x) => x > 0.9).length;
+      const yes = r.filter((m) => m.result === 'yes').length, no = r.filter((m) => m.result === 'no').length;
+      rows.push({ k, label: t.label, n: o.length, zero, sp: KD.median(sp), lp: KD.median(lp), longshot, fav, lpN: lp.length, resolvedN: r.length, yes, no,
+        src: o[0]?.source_url ?? r[0]?.source_url ?? null });
+    }
+    document.getElementById('structure').innerHTML = KD.table(rows, [
+      { label: 'Topic', html: (x) => `<a href="${KD.TOPICS[x.k].page}">${KD.esc(x.label)}</a>`, value: (x) => x.label },
+      { label: 'Open rows', num: true, html: (x) => x.n.toLocaleString('en-US'), value: (x) => x.n },
+      { label: 'Zero-volume share', num: true, html: (x) => (x.n ? ((x.zero / x.n) * 100).toFixed(0) + '%' : KD.UNV), value: (x) => (x.n ? x.zero / x.n : -1) },
+      { label: 'Median spread', num: true, html: (x) => KD.cents(x.sp), value: (x) => x.sp ?? -1 },
+      { label: 'Median last price', num: true, html: (x) => KD.cents(x.lp), value: (x) => x.lp ?? -1 },
+      { label: 'Longshot (<10¢)', num: true, html: (x) => (x.lpN ? ((x.longshot / x.lpN) * 100).toFixed(0) + '%' : KD.UNV), value: (x) => (x.lpN ? x.longshot / x.lpN : -1) },
+      { label: 'Favourite (>90¢)', num: true, html: (x) => (x.lpN ? ((x.fav / x.lpN) * 100).toFixed(0) + '%' : KD.UNV), value: (x) => (x.lpN ? x.fav / x.lpN : -1) },
+      { label: 'Resolved rows', num: true, html: (x) => x.resolvedN.toLocaleString('en-US'), value: (x) => x.resolvedN },
+      { label: 'YES / NO result', html: (x) => `${x.yes} / ${x.no}`, value: (x) => x.yes },
+      { label: 'Source', noSort: true, html: (x) => KD.link(x.src, 'market JSON ↗') },
+    ]);
+  };
+  env.addEventListener('change', draw);
+  draw();
+})();
+</script>
+</body>
+</html>

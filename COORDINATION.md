@@ -26,6 +26,9 @@ Status values: `unclaimed` · `in progress` · `done` · `needs review`
   (13 bytes). No code, no tests, no CI, no LICENSE. GitHub Pages was already enabled
   on `main` with the *legacy* build (source `main` `/`); plan is to switch to the
   *workflow* build so a scheduled job can refresh data.
+- **2026-11-20 · arena/64d89c6c** — Site built (`site/`), collector (`scripts/collect.mjs`), checker
+  (`scripts/check-site.mjs`), workflow (`.github/workflows/pages.yml`), reports (`reports/`).
+  Branch history was squashed once (force-push to this branch only) to drop a bot data commit and probe output (see F4).
 - Sandbox note: outbound access from the build sandbox is allow-listed. The Kalshi
   API host was **not** reachable from bash (TLS failure), but was readable through the
   documentation/fetch tool. Bulk data collection will therefore run inside GitHub Actions
