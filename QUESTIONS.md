@@ -13,4 +13,6 @@ See `docs/questions.html` for the full table. Summary:
 | Q7 | How is realized P&L per strategy computed? | Join fills to settlements (S4); verify vs `/portfolio/positions` |
 | Q8 | Should this ever touch production (real money)? | Explicit decision required; never put production keys on this site |
 
+| Q9 | What does “highest dollar amount” mean for ranking? | API gives contracts (`*_fp`), not dollars; notional = one contract's settlement value ([source](https://docs.kalshi.com/getting_started/fixed_point_migration)) | Which definition you want | Pick one of the four dashboard rankings (est. dollar volume / volume / 24h volume / open interest) |
+
 No decision should be made until its missing information is found.

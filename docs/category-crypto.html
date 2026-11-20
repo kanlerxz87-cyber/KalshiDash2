@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crypto — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="categories.html" class="active">Categories</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="trades.html">Trades &amp; Strategy</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="sources.html">Sources</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>🪙 Crypto — Highest-Dollar Live Events</h1>
+<p class="muted small">Category pages: <a href="category-gas.html">Gas</a> · <a href="category-elections.html">Elections</a> · <a href="category-culture.html">Culture</a> · <a href="category-crypto.html">Crypto</a> · <a href="category-golf.html">Golf</a> · <a href="categories.html">Hub</a></p>
+<p class="muted">Live, highest-dollar crypto events (bitcoin, ethereum, and more). Series matched live against GET /series by keyword; never hardcoded. Source: <a href="https://docs.kalshi.com/api-reference/market/get-series-list">Get Series List</a> · <a href="https://docs.kalshi.com/api-reference/market/get-markets">Get Markets</a>.</p>
+<div class="statusbar"><span id="status" class="pill">Connecting…</span><span id="updated" class="muted small"></span>
+<label style="margin:0">Rank by <select id="metric"><option value="est_dollar_volume">Est. dollar volume (derived)</option><option value="volume">Volume (contracts)</option><option value="volume24">24h volume (contracts)</option><option value="oi">Open interest (contracts)</option></select></label>
+<button id="refresh">Refresh</button></div>
+<div id="seriesInfo" class="muted small"></div>
+<div class="card"><h2 style="margin-top:0">Top Crypto markets</h2>
+<p class="muted small">"Est. dollar volume" is <span class="badge warn">derived</span> = volume × last price (volume is reported in contracts — <a href="https://docs.kalshi.com/getting_started/fixed_point_migration">fixed-point source</a>). Columns link you to the chart below; "Watch" adds the market to the <a href="resolved.html">Resolved Events</a> tracker.</p>
+<table><thead><tr><th>Ticker</th><th>Market (yes sub title)</th><th>Yes bid</th><th>Yes ask</th><th>Last</th><th>Open interest (contracts)</th><th>Volume (contracts)</th><th>Status</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
+<div class="card"><h2 style="margin-top:0">Price chart</h2>
+<div class="statusbar"><label style="margin:0">Market ticker <input id="ticker" placeholder="pick from table or type" size="26"></label>
+<label style="margin:0">Time window <select id="window"><option value="60">Last 60 seconds</option><option value="3600">Last 60 minutes</option><option value="86400">Last 24 hours</option></select></label>
+<button id="loadChart">Load chart</button><span id="chartStatus" class="pill">Idle</span></div>
+<canvas id="chart"></canvas>
+<p class="muted small">X axis = time (seconds / minutes / hours window), Y axis = contract price (USD). Sources: <a href="https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks">Batch Candlesticks</a> · <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks">Single Candlesticks</a>.</p></div>
+<div class="card"><h2 style="margin-top:0">Liquidity — order book</h2>
+<div class="statusbar"><button id="loadBook">Load order book</button><span id="bookStatus" class="pill">Idle</span></div>
+<div class="grid"><div><h3>Yes bids (price × contracts)</h3><table><thead><tr><th>Price</th><th>Contracts</th></tr></thead><tbody id="yesBook"></tbody></table></div>
+<div><h3>No bids (price × contracts)</h3><table><thead><tr><th>Price</th><th>Contracts</th></tr></thead><tbody id="noBook"></tbody></table></div></div>
+<p class="muted small">Contracts available at each price (yes/no bids only per the official endpoint). Source: <a href="https://docs.kalshi.com/api-reference/market/get-market-orderbook">Get Market Orderbook</a>.</p></div>
+<div class="card"><h2 style="margin-top:0">Analysis notes</h2><p>Crypto strike markets (e.g. 'above X by date') are mechanically comparable across expirations — compare implied probabilities across strikes on the dashboard before taking a view, and note the market's price_level_structure tick sizes.</p></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<script src="assets/app.js"></script><script>
+const rowsEl=$("#rows"), statusEl=$("#status"), TOPIC_KEY="crypto";
+async function loadTopic(){
+  setStatus(statusEl,true,"Loading…"); rowsEl.innerHTML="<tr><td colspan='9'>Loading…</td></tr>";
+  try{
+    const metric=$("#metric").value;
+    const r=await fetchTopicMarkets(TOPIC_KEY);
+    $("#seriesInfo").innerHTML=`Matched ${r.series.length} live series by keyword: `+(r.series.map(s=>`<code>${esc(s.ticker)}</code>`).join(", ")||"none found — use the <a href='dashboard.html'>dashboard</a> series override")+". Matching is heuristic — flagged F4 on the <a href='flagged.html'>Flagged for Review</a> page.";
+    const top=renderMarketsTable(rowsEl,r.markets,metric,m=>`<td><button class="secondary" data-t="${esc(m.ticker)}">Chart</button> <button class="secondary" data-w="${esc(m.ticker)}">Watch</button></td>`);
+    setStatus(statusEl,true,`Live — ${r.markets.length} markets, showing top ${top.length}`);
+    $("#updated").textContent="Updated "+new Date().toLocaleTimeString();
+  }catch(e){ setStatus(statusEl,false,"API error: "+e.message); rowsEl.innerHTML=`<tr><td colspan='9'>Could not load: ${esc(e.message)}. See the <a href='flagged.html'>Flagged for Review</a> page (browser CORS is unverified).</td></tr>`; }
+}
+rowsEl.addEventListener("click",e=>{
+  const t=e.target.closest("[data-t]")?.dataset.t, w=e.target.closest("[data-w]")?.dataset.w;
+  if(t){ $("#ticker").value=t; loadChart(); }
+  if(w){ Watch.add(w); e.target.textContent="Watched ✓"; }
+});
+$("#refresh").onclick=loadTopic; $("#metric").onchange=loadTopic;
+let pollTimer=null;
+async function loadChart(){
+  const ticker=$("#ticker").value.trim(); if(!ticker) return;
+  clearInterval(pollTimer); const win=+$("#window").value, cs=$("#chartStatus"); const pts=[];
+  const draw=()=>drawChart($("#chart"),pts,{label:ticker});
+  try{
+    if(win===60){
+      setStatus(cs,true,"Polling every 2s (seconds view)…");
+      const tick=async()=>{ const m=await api(`/markets/${encodeURIComponent(ticker)}`); const mm=m.market||m;
+        if(mm.last_price_dollars!=null){ pts.push({t:Date.now(),y:Number(mm.last_price_dollars)}); if(pts.length>300)pts.shift(); draw(); } };
+      await tick(); pollTimer=setInterval(tick,2000);
+    } else {
+      setStatus(cs,true,"Loading candlesticks…");
+      const period=win===3600?1:60;
+      const j=await api(`/markets/candlesticks?market_tickers=${encodeURIComponent(ticker)}&period_interval=${period}&start_ts=${Math.floor(Date.now()/1000)-win}&end_ts=${Math.floor(Date.now()/1000)}`);
+      const entry=(j.markets||[]).find(x=>x.market_ticker===ticker)||(j.markets||[])[0];
+      for(const c of (entry&&entry.candlesticks)||[]){ const y=c.price?.close_dollars ?? c.price?.mean_dollars; if(y!=null) pts.push({t:c.end_period_ts*1000,y:Number(y)}); }
+      pts.sort((a,b)=>a.t-b.t); draw();
+      setStatus(cs,!!pts.length,pts.length?`${pts.length} candles`:"No candles in window");
+    }
+  }catch(e){ setStatus(cs,false,e.message); }
+}
+$("#loadChart").onclick=loadChart;
+$("#loadBook").onclick=async()=>{
+  const ticker=$("#ticker").value.trim(); if(!ticker) return;
+  try{ const j=await api(`/markets/${encodeURIComponent(ticker)}/orderbook`);
+    const book=j.orderbook_fp||j.orderbook||{};
+    const fill=(el,levels)=>{ el.innerHTML=(levels||[]).length?levels.map(([p,c])=>`<tr><td>${fmt$(p)}</td><td>${fmtN(c)}</td></tr>`).join(""):"<tr><td colspan='2'>No levels returned</td></tr>"; };
+    fill($("#yesBook"),book.yes_dollars||book.yes); fill($("#noBook"),book.no_dollars||book.no);
+    setStatus($("#bookStatus"),true,"Live order book");
+  }catch(e){ setStatus($("#bookStatus"),false,e.message); }
+};
+loadTopic();
+</script></body></html>
