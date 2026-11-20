@@ -377,3 +377,43 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 Result: `pages.yml` now has `workflow_dispatch` only (YAML validated with PyYAML). Plan was: remove the `push` trigger from `pages.yml` (keep `workflow_dispatch`) so the legacy `main:/` build is the sole automatic publisher. `docs/` remains reachable at `/docs/`. Reversible by restoring the trigger.
 
 **P1 record (session `ff79cca7`):** PR [#17](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/17) merged to `main` with `--merge`, merge commit `df2ca90`, at 2026-11-20 13:23 UTC. Verification after merge: GitHub API `deployments` shows one `github-pages` deployment for `df2ca90` (from the legacy `pages build and deployment` run, `status: built`, `build_type: legacy`, `source: main:/`) and no `Deploy GitHub Pages` run. Before the fix, each push produced two deployments (e.g. `9c99138` at 13:20:11Z and 13:20:36Z). The live root URL and `/docs/index.html` still serve after the merge. Open item: the README contradiction (lines 10 vs 106) is still open, owned by PR #14 (`b7dfc4d9`).
+
+
+## Session `4208a2dd` — live alerts, two scrolling chats, simulated strategies (2026-11-20)
+
+Branch: `arena/4208a2dd-kalshidash2` (the session's assigned branch; the `session-<id>/<task>` naming in the brief is not used because the session is bound to this branch name).
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| 18 | Live alert feed: sudden contract-price swings ≥ $0.10 (either direction) shown as two scrolling chats: **All alerts** and a **High-ROI watch** (rule-based filter, see Flagged) | done | `4208a2dd` | `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`, `tests/alerts-core.test.mjs`, `.github/workflows/verify-alerts.yml`, `reports/alerts-live-check.md` | Polls official `GET /markets?tickers=` (batch) every N s. Price = `last_price_dollars`. |
+| 19 | Automated simulated (paper) strategies run on each alert; per-strategy P&L and resolution yes/no tracking | done | `4208a2dd` | same as 18 | No orders are placed. Fills assumed at displayed ask/bid; no fees or slippage modelled — flagged. |
+| 20 | Shared outputs: nav entry for the alerts page; flagged-for-review additions (A1–A9, R1); verification rows; README layout line | done | `4208a2dd` | `assets/js/ui.js` (PAGES array only), `flagged.html` (append rows only) | Single-session integration of shared outputs; no other session has an open claim on these files. |
+| 21 | Verification (unit tests, DOM test, link check, live batch-endpoint check on a GitHub runner), PR to `main`, merge, Pages deploy confirmation | in progress | `4208a2dd` | `COORDINATION.md` (this section) | See the record below. |
+
+Claim recorded `2026-11-20`. Base: `main` at `9c99138` (PR #15 merged). Files outside the table are not edited.
+
+### Task record — session `4208a2dd`
+
+**Sources (official, fetched 2026-11-20):**
+
+| # | Source | What it supports |
+|---|--------|------------------|
+| K1 | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | `tickers` comma-separated filter; `limit` max 1000; `last_price_dollars`, `yes_bid_dollars`, `yes_ask_dollars`, `no_bid_dollars`, `no_ask_dollars`, `open_interest_fp`, `volume_fp`, `volume_24h_fp`, `result`; `status` filter values `unopened/open/paused/closed/settled` |
+| K2 | [Get Event](https://docs.kalshi.com/api-reference/events/get-event) | `settlement_sources[]` with `name` and `url`; `category`; `series_ticker` |
+| K3 | [Rate Limits and Tiers](https://docs.kalshi.com/getting_started/rate_limits) | Unauthenticated requests have separate limits, no numeric value given; clients should back off on HTTP 429 |
+| K4 | [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle) | Market object statuses and their meaning |
+| K5 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | `result` yes/no at determination; $1 per contract on the winning side |
+| K6 | [Kalshi fee schedule (PDF)](https://kalshi.com/docs/kalshi-fee-schedule.pdf) | Fees exist; simulated trades do not deduct them (flag A5) |
+
+**Verification performed:**
+
+1. `node --test tests/alerts-core.test.mjs` — 18/18 pass (move detection incl. exact $0.10 float case, no-baseline first poll, rule checks, follow/fade side and entry, one-open-per-strategy, resolution only on yes/no, mark at best bid, summary null-vs-zero, universe selection, batching).
+2. `tests/dom/alerts-dom.mjs` — the real page controller bundled with esbuild, run in jsdom with scripted Kalshi-shaped responses over three polls: 16/16 checks pass (feeds, watch filter, rule-check text, trade sides and entries, marks, resolution, summary math, batch size ≤ 25, localStorage, no page errors, settlement-source links).
+3. `tools/check_site_links.py .` (whole repository, 33 HTML pages) passes; `python -m unittest discover -s tools` passes; `git diff --check` clean; `node --check` on every module.
+4. **Live, read-only check on a GitHub runner** (`verify-alerts` run `44744374107`, success): `reports/alerts-live-check.md` — 200 open events, 2,171 nested markets (2,157 `active`, 14 `finalized`); batch of 25 tickers → 25 markets; batch of 100 → 100 markets; event record returns `settlement_sources`; two polls 20 s apart returned 25 markets each.
+5. Verification register rows added (`verification.html`, 5 rows, each with an official link). Flagged page gains A1–A9 and R1.
+6. Rendering smoke check (jsdom) of `verification.html` (54 rows), `flagged.html` (22 items), and the nav (15 entries incl. Live alerts) on `index.html` and `categories/gas.html`: no errors.
+
+**Irregularities (details on the Flagged page, section 4):** A1 the High-ROI filter is a rule set, not a model; A2 alerts recorded only while a tab is open; A3 alert price is last trade, quote-only moves do not alert; A4 settlement sources are not causes; A5 simulated P&L ignores fees and slippage; A6 universe is partial (top 30/topic); A7 no documented maximum for `tickers` (25 and 100 both worked); A8 no numeric unauthenticated rate limit published; A9 status vocabulary and the S6 entry omits `paused`; R1 the CI link check covers `docs/` only, while the live site is the root.
+
+**Handoff notes:** the brief's `session-<id>/<task>` branch naming was not used; the session is bound to `arena/4208a2dd-kalshidash2`. Not done in this session: chart markers for sharp moves on the category charts, a server-side recorder, and a rewrite of `summary.html` to cover the alerts. These are listed as suggestions, not claimed as done.

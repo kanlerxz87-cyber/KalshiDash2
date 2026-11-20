@@ -88,6 +88,7 @@ export function emptyRow(cols, text) {
 
 export const PAGES = [
   { href: "index.html", label: "Overview" },
+  { href: "alerts.html", label: "Live alerts" },
   { href: "summary.html", label: "Summary" },
   { href: "categories/gas.html", label: "Gas", topic: "gas" },
   { href: "categories/elections.html", label: "Elections", topic: "elections" },

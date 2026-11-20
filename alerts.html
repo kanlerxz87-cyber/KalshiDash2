@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live alerts — KalshiDash2</title>
+<meta name="description" content="Live alert feeds for Kalshi demo markets: every $0.10 or larger swing in the last traded price, a rule-based High-ROI watch, and automated paper strategies.">
+<link rel="stylesheet" href="assets/css/app.css">
+<style>
+  .feeds { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .chat {
+    height: 60vh; min-height: 320px; overflow-y: auto; display: flex; flex-direction: column;
+    gap: 8px; padding: 8px; background: #fbfcfd; border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .msg {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--muted);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; flex: none;
+  }
+  .msg.up { border-left-color: var(--ok); }
+  .msg.down { border-left-color: var(--bad); }
+  .msg .meta { font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .msg .ttl { font-weight: 650; margin-top: 3px; }
+  .msg .body { margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .msg .rule { margin-top: 3px; font-size: 12px; color: var(--muted); }
+  .msg .links { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .tag.watch { background: #eef4fb; color: #17385e; border-color: #cddff2; }
+  .sel { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--ok); }
+  .neg { color: var(--bad); }
+  .feed-empty { color: var(--muted); font-size: 13px; text-align: center; margin: auto; padding: 24px 10px; }
+  @media (max-width: 720px) { .chat { height: 50vh; } }
+</style>
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Live alerts</h1>
+    <p>
+      Two scrolling feeds. The <strong>All alerts</strong> feed shows every swing of
+      <strong>$0.10 or more</strong> in the last traded price of an open market in the five topics, between two
+      consecutive polls of the Kalshi demo API. The <strong>High-ROI watch</strong> feed keeps only the swings that pass a
+      transparent rule set. Simulated strategies run automatically on both feeds. No orders are placed.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <h3>Read this before using the feeds</h3>
+    <ul>
+      <li><strong>Demo data, mock funds.</strong> Prices come from the Kalshi demo environment, not production.</li>
+      <li><strong>The High-ROI watch is a rule set, not a model.</strong> It checks liquidity and price band. It forecasts nothing, and no return is verified. Replace the rules in <code>assets/js/alerts-core.js</code> with your own model.</li>
+      <li><strong>Polling only runs while this page is open.</strong> A move that happens while the tab is closed is not recorded.</li>
+      <li><strong>Settlement sources are not causes.</strong> They are the sources the market says it settles from, shown so you can check news on the same subject. They do not prove why a price moved.</li>
+    </ul>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="toolbar" style="margin-bottom:0">
+      <span id="poll-status" class="pill idle">starting…</span>
+      <label class="inline small">Poll every
+        <select id="interval" class="sel" aria-label="Poll interval">
+          <option value="5">5 s</option>
+          <option value="15" selected>15 s</option>
+          <option value="30">30 s</option>
+          <option value="60">60 s</option>
+        </select>
+      </label>
+      <button class="secondary tiny" id="pause" type="button" aria-pressed="false">Pause</button>
+      <label class="inline small">Topic
+        <select id="topic" class="sel" aria-label="Topic filter">
+          <option value="all">All topics</option>
+          <option value="gas">Gas Prices</option>
+          <option value="elections">Elections</option>
+          <option value="culture">Culture</option>
+          <option value="crypto">Crypto</option>
+          <option value="golf">Golf</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span class="small muted" id="universe-note"></span>
+    </div>
+  </div>
+
+  <div class="feeds">
+    <section class="card" aria-labelledby="h-all">
+      <h2 id="h-all">All alerts</h2>
+      <p class="sub">Every move of ≥ $0.10 between two polls. Newest at the bottom.</p>
+      <div class="chat" id="feed-all" role="log" aria-live="polite" aria-label="All alerts"></div>
+    </section>
+    <section class="card" aria-labelledby="h-watch">
+      <h2 id="h-watch">High-ROI watch</h2>
+      <p class="sub">Only the alerts that pass every rule below. Newest at the bottom.</p>
+      <div class="chat" id="feed-watch" role="log" aria-live="polite" aria-label="High-ROI watch"></div>
+      <p class="small muted" style="margin:8px 0 0">
+        Rules: two-sided quote · spread ≤ $0.05 · price after the move between $0.10 and $0.90 · open interest ≥ 1 contract.
+        The thresholds are parameters, not verified values.
+      </p>
+    </section>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2>Automated paper strategies</h2>
+    <p class="sub">
+      Each alert opens one simulated 1-contract trade per strategy. <strong>Follow</strong> buys the side the move went
+      toward; <strong>Fade</strong> buys the opposite side. Entry is the displayed ask for that side. A market is marked at its best
+      bid for that side. A trade settles only when the API reports the market result as yes or no.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Strategy</th><th>Scope</th><th class="num">Trades</th><th class="num">Open</th><th class="num">Resolved</th>
+          <th class="num">Win rate</th><th class="num">Realized P&amp;L / contract</th><th class="num">ROI on cost</th><th class="num">Open P&amp;L at best bid</th>
+        </tr></thead>
+        <tbody id="sim-body"><tr><td colspan="9"><div class="empty">Waiting for the first poll…</div></td></tr></tbody>
+      </table>
+      <div class="table-note" id="sim-note">
+        <strong>Formulas.</strong> Win rate = wins ÷ resolved. Realized P&amp;L per contract = Σ (payout − entry), where payout is $1 if the
+        side matches the result and $0 otherwise. ROI on cost = Σ realized P&amp;L ÷ Σ entry, over resolved trades.
+        Open P&amp;L = Σ (best bid for the side − entry). Figures show n/a where there are no inputs.
+        <strong>Not modelled:</strong> Kalshi fees, slippage and queue position. A fill is assumed at the displayed ask.
+      </div>
+    </div>
+    <div class="toolbar" style="margin:10px 0 0">
+      <button class="secondary tiny" id="reset-sim" type="button">Reset simulation</button>
+      <span class="small muted" id="sim-skips"></span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2>Simulated trades</h2>
+    <p class="sub">Newest first, up to the last 100. Each row links the market record it was marked from.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Opened (UTC)</th><th>Topic</th><th>Market</th><th>Strategy</th><th>Side</th>
+          <th class="num">Entry</th><th>Status</th><th class="num">Mark / payout</th><th class="num">P&amp;L / contract</th>
+        </tr></thead>
+        <tbody id="trade-body"><tr><td colspan="9"><div class="empty">No simulated trades yet.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Rules, parameters and official sources</h2>
+    <dl class="kv">
+      <dt>Price used for alerts</dt><dd>Last traded price, <code>last_price_dollars</code> (Get Markets). Compared between two consecutive polls.</dd>
+      <dt>Alert threshold</dt><dd>|change| ≥ $0.10 (the brief's threshold). Moves that happen inside one poll interval are combined into one change.</dd>
+      <dt>Universe</dt><dd>Top 30 open markets per topic by money traded (volume × last price), refreshed every 10 minutes. Coverage is partial by design.</dd>
+      <dt>Batch reads</dt><dd>Comma-separated <code>tickers</code> on <code>GET /markets</code>, 25 tickers per request.</dd>
+      <dt>Settlement sources</dt><dd>Listed on the event record (<code>settlement_sources</code>) from <code>GET /events/{event_ticker}</code>.</dd>
+      <dt>Rate limits</dt><dd>On HTTP 429 the poll interval doubles (capped at 5 minutes) until the API accepts requests again.</dd>
+    </dl>
+    <p class="small muted" style="margin:10px 0 0">
+      Sources:
+      <a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> ·
+      <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a> ·
+      <a href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a> ·
+      <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a> ·
+      <a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a> ·
+      <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment ↗</a>
+    </p>
+  </div>
+</main>
+<script type="module" src="assets/js/alerts.js"></script>
+</body>
+</html>
