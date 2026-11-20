@@ -715,3 +715,49 @@ Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned
 - **PR [#30](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/30)** merged: second fix — `curl | grep -qF` under `pipefail` fails **on match** (grep -q exits early, curl dies SIGPIPE, pipeline status 141; reproduced locally). `probe()` now greps a fetched temp file (no pipe).
 - **Result: `verify-live-site` run [44751376914](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44751376914) — SUCCESS (failures: 0).** All 17 published pages return 200 with `KalshiDash2` content, and all 12 content assertions pass on the deployed site. Passing report committed by the bot to `reports/` on `main`.
 - Combined with the Pages API confirmation for merge commit `4cffc65f` (`status: built`, legacy build, source `main:/`), the deployment is verified both by the GitHub API and by an independent runner probing the served pages.
+
+---
+
+# Session `0c7b1b15` — takeover of stale integration work + final integration (2026-11-20)
+
+Branch: `arena/0c7b1b15-kalshidash2`, based on `6f688ef` (`main`).
+**Role:** final integration session (the board's "final integration session merges the branches,
+re-verifies the combined data line by line, confirms the site builds with no broken links, and
+publishes to GitHub Pages").
+
+## Takeover notice
+
+PR [#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28) (`arena/a6bed09f-kalshidash2`,
+"fix: align executive summary counts and live verification") was left **OPEN** and
+**CONFLICTING** by session `a6bed09f`. Its last commit is `1420ac4` (2026-11-20 14:06 UTC) and
+`main` advanced past it through PRs #29, #30 and #31 afterwards. At the time this session
+started (19:06 UTC) the claim was **more than 60 minutes old with no commits**, so under the
+coordination rules ("If a session crashes or its claim is more than 60 minutes old with no
+commits, any other session may take over the task and note the handoff in the log") this session
+**takes over** the work. PR #28 is **not** merged as-is; its unique value is ported onto current
+`main` so that PRs #29/#30/#31 (the live-site verifier fixes) are not reverted.
+
+### PR #28's unique value, and how it is carried forward
+
+| PR #28 change | Disposition |
+|---|---|
+| `summary.html`: `${CLAIMS}` → `${CLAIMS.length}` | **Carried forward.** This was a real defect: the headline rendered the array (`[object Object],…`) instead of a count. Verified on `main` at `6f688ef`. |
+| `summary.html`: requirement count derived from `#requirement-matrix tr` instead of a hard-coded `15` | **Carried forward.** The matrix has 17 rows; the hard-coded 15 was stale. |
+| `summary.html`: flag counts parsed with `DOMParser` over `.irregularity` cards (open / mitigated / total) instead of an `F\d+` regex that ignored A/R flags | **Carried forward.** The old regex only matched `<h3>F…` headings. |
+| `summary.html`: "Official basis / evidence" column on all 25 matrix rows (17 requirements, 3 defects, 5 decisions) | **Carried forward**, with every link re-verified against `docs.kalshi.com` by this session. |
+| `tests/dom/summary-dom.mjs` + `npm test` running both DOM suites | **Carried forward.** |
+| `.github/workflows/verify-live.yml`: cache-busted probes, artifact report, read-only permissions, more content assertions | **Carried forward**, with the **report-commit step from `main` (PR #30) retained** so the durable `reports/live-site-*.md` evidence trail is not lost. |
+| `reports/live-site-6/7/8.md` deletions | **Rejected.** Those are the published evidence trail from PRs #29/#30 and are kept. |
+| `.github/workflows/verify-alerts.yml`: run both DOM suites | **Carried forward.** |
+
+## Task board for this session
+
+| # | Task | Status | Owner | Files in scope |
+|---|------|--------|-------|----------------|
+| T1 | Take over PR #28 and port its unique value onto current `main` without reverting PRs #29–#31 | in progress | `0c7b1b15` | `summary.html`, `tests/dom/**`, `.github/workflows/verify-*.yml` |
+| T2 | Line-by-line verification of every claim, matrix row and source link against official Kalshi sources | in progress | `0c7b1b15` | `assets/js/claims.js`, `verification.html`, `summary.html`, `flagged.html` |
+| T3 | Close the outstanding request-log items from session `b6799ff3` (CSV export, random control baseline, rollups by direction/topic) if the owner did not | in progress | `0c7b1b15` | `simulator.html`, `assets/js/simulator.js` |
+| T4 | Final integration: full test suite, link check, PR to `main`, merge, Pages deploy confirmation, durable live-site report | in progress | `0c7b1b15` | all (shared outputs — this session is the integration session) |
+
+**Handoff recorded.** No file written by another session is discarded: every conflict is resolved by
+keeping `main`'s side plus the other session's unique contribution.
