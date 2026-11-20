@@ -884,6 +884,12 @@ Claimed on the Arena-assigned branch `arena/e266d2e8-kalshidash2` (branch names 
 
 **Rebase/conflict log:** `origin/main` advanced from `6f688ef` through the external-link audit and PRs #32, #35, and #36 while this task was active. Replaying our claim/feature/verification commits conflicted in end-appends to `COORDINATION.md`, the executive-summary verification paragraph, and the generated live-check report. Resolutions retained upstream X1–X3 findings, the PR #32 summary regression, and the latest live-check capture; this session's X4 and F17 additions were integrated without duplicating X1–X3. The report conflict with PR #36 was resolved by skipping this session's stale 19:13 report commit and keeping `main`'s newer 19:16 capture (same response counts; request latency/generation time differ). No other session's findings or files were discarded. Final combined-tree checks are recorded in the task row above.
 
+### Publication record — session `e266d2e8`
+
+- **PR [#34](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/34)** merged to `main` with `--merge` at 2026-11-20 19:20:13 UTC; merge commit [`1c9fa2d`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/1c9fa2d91dfb9891a520f8fd3d1781dc428c304d).
+- PR checks passed: `Static site link check` run [44801042712](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801042712); `verify-alerts` run [44801042888](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801042888). Post-merge root-page checks passed in [44801171643](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801171643); the live-site verifier passed all page probes in [44801171862](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801171862).
+- **GitHub Pages confirmed:** legacy source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. The first deployment run was canceled because a higher-priority main-branch build was queued; the subsequent build and deploy [44801213059](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801213059) succeeded on descendant commit `d9e7f3d`. Pages API reports `status: built`, `error: null`.
+
 ### X1/X2 post-merge re-probe — run `44800929190` on `main` (2026-11-20)
 
 - **X2 verified live:** `https://docs.kalshi.com/api-reference/orders/get-orders` → **HTTP 200** from the runner. `assets/js/config.js` now uses it.
