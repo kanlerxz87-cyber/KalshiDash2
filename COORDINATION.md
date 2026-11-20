@@ -722,7 +722,7 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 
 | # | Task | Status | Owner | File scope | Notes |
 |---|------|--------|-------|-----------|-------|
-| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | in progress (audit built and verified offline; live runner pass pending merge) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
+| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | done (live runner pass: run [44799743839](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44799743839), success) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
 
 ### X1 record — session `751ee13f`
 
@@ -754,3 +754,44 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 **Request to the integration session (shared output, not edited here).** Publish F-X1, F-X2, and F-X3 on `flagged.html` with the links above, and link `reports/external-links-audit.md` from the Flagged page. This session did not edit `flagged.html`.
 
 **Publication plan.** PR from `arena/751ee13f-kalshidash2` to `main`, merge with `--merge`, then dispatch `audit-external-links.yml` on `main` so the runner writes the live reachability column. The result is recorded below when the run completes.
+
+### X2 claim — session `751ee13f` (2026-11-20)
+
+| # | Task | Status | Owner | File scope | Notes |
+|---|------|--------|-------|-----------|-------|
+| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | in progress | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
+
+### X1 live results — run `44799743839` on `main` (2026-11-20)
+
+PR [#33](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/33) merged as `60d2b5d` (checks: `Static site link check` pass). `audit-external-links.yml` ran `python3 tools/audit_external_links.py --check` on a GitHub runner; the bot committed `reports/external-links-audit.md` as `d28cc93`.
+
+Non-API URLs: **216**. Results: 140 HTTP 200 · 66 HTTP 403 · 6 HTTP 404 · 2 HTTP 429 · 1 HTTP 401 · 1 DNS error. Kalshi API endpoint variants (1,098) are counted per host, not probed as pages.
+
+| Result | URL(s) | Decision |
+|---|---|---|
+| HTTP 404 | `https://docs.kalshi.com/api-reference/portfolio/get-orders` (`assets/js/config.js:40`) | **Fixed in X2** — see below |
+| HTTP 404 | `https://docs.kalshi.com/api-reference/orders/create-ord` (truncated; `evidence/evidence-cors-taxonomy.md:278`, `reports/verify-facts-raw.md:278`) | **Flag F-X4.** Truncated raw excerpt of an API error message. Not edited (raw capture). Full official URL not recoverable from the excerpt. Official `Create Order (V2)` page is `…/api-reference/orders/create-order-v2` (HTTP 200 on the runner). |
+| HTTP 404 | `https://kanlerxz87-cyber.github.io` (bare origin, 20+ occurrences e.g. `assets/js/claims.js:45`) | **Not a link.** It is an `Access-Control-Allow-Origin` value. Classified as "Origin string (not a link)" in the auditor. |
+| HTTP 404 | `https://example.com/news`, `…/results`, `https://example.org/fixture-` | Test fixtures (`tools/verify/page-runtime-check.mjs`, `tests/dom/alerts-dom.mjs`). Expected. |
+| HTTP 403 ×66 | `kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/…/*.pdf` | **Flag F-X1 strengthened.** Access denied from a public runner, so these PDFs are not publicly readable at the URL the market data returns. Still no published page links them. |
+| HTTP 429 ×2 | `https://kalshi.com/` and `https://kalshi.com/docs/kalshi-fee-schedule.pdf` | Rate limit at the runner's IP. The auditor now retries 429 (see X2 commit); not a broken-link verdict. Re-check on the next run. |
+| HTTP 401 | `https://www.reuters.com` | Reuters refuses automated requests. Not a verdict on any news fact. Settlement-source row only. |
+| DNS error | `https://www.politi` | **Flag F-X2** (truncated URL in `evidence/evidence-routes-settled.md:81` and `reports/verify-facts-v2.md:81`). |
+
+Of the 36 `docs.kalshi.com` URLs, 34 returned HTTP 200 and 2 returned 404 (rows above). All other non-API URLs returned HTTP 200 except the rows listed in the table.
+
+### X2 record — session `751ee13f`
+
+- **Finding (from X1):** `assets/js/config.js:40` used `https://docs.kalshi.com/api-reference/portfolio/get-orders`, which returned **HTTP 404** from the runner.
+- **Official source checked:** the Kalshi docs index at [llms.txt](https://docs.kalshi.com/llms.txt) lists `Get Orders` at `https://docs.kalshi.com/api-reference/orders/get-orders` (section *orders*), and the portfolio section does not list it. The page at [Get Orders](https://docs.kalshi.com/api-reference/orders/get-orders) was fetched 2026-11-20 and documents `GET /portfolio/orders`. (A separate official changelog snippet still names the old path; the index and the runner result both point to the new one. The discrepancy is noted, not resolved by guessing.)
+- **Change:** one line in `assets/js/config.js` → `https://docs.kalshi.com/api-reference/orders/get-orders`. No other file in the site references the old path (`grep -rn "portfolio/get-orders" assets/` → none after the change).
+- **Verification:** `python3 -m unittest discover -s tools` 15/15; `python3 tools/check_site_links.py .` 34 pages 0 broken; `node --check assets/js/config.js`; `node --test tests/alerts-core.test.mjs` 18/18; `node tools/verify/page-runtime-check.mjs` 17/17 pages.
+- **Post-merge re-probe:** pending the next `audit-external-links` run after this PR merges (recorded below).
+
+### Flags for the integration session (shared outputs; not edited by `751ee13f`)
+
+Publish these on `flagged.html` with the links above and link `reports/external-links-audit.md`:
+- **F-X1** staging `contract_url` values (66 unique PDF URLs, all under `contract_url` in `data/snapshot.json`; runner returns 403). Official schema: [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list).
+- **F-X2** truncated `https://www.politi` (two raw excerpts; DNS error).
+- **F-X3** Kalshi-named third-party settlement sources (Guardian, Reuters (401 to bots), NYTimes, AP, ESPN, FIFA, CF Benchmarks). Source: [Get Event](https://docs.kalshi.com/api-reference/events/get-event).
+- **F-X4** truncated `docs.kalshi.com/api-reference/orders/create-ord` in two raw excerpts (404). Official replacement page for "create order" is `…/orders/create-order-v2`; decide whether the excerpts should be annotated.

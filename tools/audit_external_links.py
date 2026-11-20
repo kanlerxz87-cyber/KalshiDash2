@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
+import time
 import sys
 import urllib.error
 import urllib.request
@@ -151,6 +152,9 @@ def classify(url: str) -> tuple[str, bool | None, str, list[str]]:
     """Return (class label, official?, note, flags)."""
     host = host_of(url)
     flags: list[str] = []
+    if urlsplit(url).path in ("", "/") and host == "kanlerxz87-cyber.github.io":
+        # A bare origin, e.g. in an Access-Control-Allow-Origin comparison. It is not a page.
+        return ("Origin string (not a link)", None, "Bare GitHub Pages origin; the project site is under /KalshiDash2/", flags)
     cls = HOST_CLASSES.get(host)
     if cls is None:
         # Match a parent domain, e.g. foo.kalshi.com -> kalshi.com.
@@ -182,6 +186,17 @@ def is_api(url: str) -> bool:
 
 
 def probe(url: str, timeout: int = 15) -> str:
+    """Probe once; on HTTP 429 wait and retry (up to 3 tries) before recording it."""
+    status = _probe_once(url, timeout)
+    for wait in (20, 40):
+        if status != "HTTP 429":
+            break
+        time.sleep(wait)
+        status = _probe_once(url, timeout)
+    return status
+
+
+def _probe_once(url: str, timeout: int) -> str:
     headers = {"User-Agent": "KalshiDash2-link-audit/1.0"}
     for method in ("HEAD", "GET"):
         req = urllib.request.Request(url, method=method, headers=headers)

@@ -39,9 +39,51 @@ class ClassifyTests(unittest.TestCase):
         label, _, _, _ = aud.classify("https://example.com/news")
         self.assertEqual(label, "Test fixture (reserved domain)")
 
+    def test_bare_pages_origin_is_not_a_link(self):
+        label, official, _, _ = aud.classify("https://kanlerxz87-cyber.github.io")
+        self.assertEqual(label, "Origin string (not a link)")
+        self.assertIsNone(official)
+
+    def test_project_pages_url_is_self_reference(self):
+        label, official, _, _ = aud.classify("https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html")
+        self.assertEqual(label, "This project's Pages site")
+        self.assertIs(official, True)
+
     def test_api_detection(self):
         self.assertTrue(aud.is_api("https://external-api.demo.kalshi.co/trade-api/v2/markets?limit=1"))
         self.assertFalse(aud.is_api("https://docs.kalshi.com/x"))
+
+
+class ProbeRetryTests(unittest.TestCase):
+    def test_429_is_retried_then_result_returned(self):
+        calls = []
+
+        def fake_once(url, timeout):
+            calls.append(url)
+            return "HTTP 429" if len(calls) < 2 else "HTTP 200"
+
+        original_once, original_sleep = aud._probe_once, aud.time.sleep
+        aud._probe_once, aud.time.sleep = fake_once, (lambda _s: None)
+        try:
+            self.assertEqual(aud.probe("https://example.invalid/x"), "HTTP 200")
+        finally:
+            aud._probe_once, aud.time.sleep = original_once, original_sleep
+        self.assertEqual(len(calls), 2)
+
+    def test_non_429_is_not_retried(self):
+        calls = []
+
+        def fake_once(url, timeout):
+            calls.append(url)
+            return "HTTP 404"
+
+        original_once, original_sleep = aud._probe_once, aud.time.sleep
+        aud._probe_once, aud.time.sleep = fake_once, (lambda _s: None)
+        try:
+            self.assertEqual(aud.probe("https://example.invalid/y"), "HTTP 404")
+        finally:
+            aud._probe_once, aud.time.sleep = original_once, original_sleep
+        self.assertEqual(len(calls), 1)
 
 
 class ExtractTests(unittest.TestCase):

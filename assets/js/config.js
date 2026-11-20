@@ -37,7 +37,7 @@ export const SOURCES = {
   balance:        "https://docs.kalshi.com/api-reference/portfolio/get-balance",
   fills:          "https://docs.kalshi.com/api-reference/portfolio/get-fills",
   positions:      "https://docs.kalshi.com/api-reference/portfolio/get-positions",
-  orders:         "https://docs.kalshi.com/api-reference/portfolio/get-orders",
+  orders:         "https://docs.kalshi.com/api-reference/orders/get-orders",
   rateLimits:     "https://docs.kalshi.com/getting_started/rate_limits",
   websockets:     "https://docs.kalshi.com/getting_started/quick_start_websockets",
   fixedPoint:     "https://docs.kalshi.com/getting_started/fixed_point_migration",
