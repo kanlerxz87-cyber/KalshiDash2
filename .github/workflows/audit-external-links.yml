@@ -32,7 +32,17 @@ jobs:
           git add reports/external-links-audit.md
           if git diff --cached --quiet; then
             echo "No change in the audit report."
-          else
-            git commit -m "audit: refresh external link report [skip ci]"
-            git push origin HEAD:${GITHUB_REF_NAME}
+            exit 0
           fi
+          git commit -m "audit: refresh external link report [skip ci]"
+          # Other sessions push to main while this runs. Rebase and retry on a race.
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase -q origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"; then
+              echo "Pushed the refreshed report (attempt $attempt)."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying after a short wait."
+            sleep $((attempt * 5))
+          done
+          echo "Could not push the report after 5 attempts." >&2
+          exit 1
