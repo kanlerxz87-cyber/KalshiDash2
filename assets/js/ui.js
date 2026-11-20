@@ -290,6 +290,33 @@ export function lineChart(canvas, series, opts = {}) {
     }
   }
 
+  // sharp-move markers (≥ $0.10 between plotted points) — see assets/js/jumps.js.
+  // Each marker is a small flag at the price point; the jump log under the
+  // chart links the same rows to the event, the API source and coverage search.
+  if (opts.markers && opts.markers.length) {
+    for (const mk of opts.markers) {
+      const x = X(mk.t), y = Y(mk.y);
+      const col = mk.up ? "#0a6b45" : "#b3261e";
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 3]);
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + h); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      // flag pole + triangle pointing at the price
+      ctx.beginPath();
+      if (mk.up) {
+        ctx.moveTo(x, y + 2); ctx.lineTo(x - 5, y + 11); ctx.lineTo(x + 5, y + 11);
+      } else {
+        ctx.moveTo(x, y - 2); ctx.lineTo(x - 5, y - 11); ctx.lineTo(x + 5, y - 11);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   // last-value label
   const lastSeries = series.find(s => (opts.include ? opts.include.includes(s.key) : true) &&
     s.points.some(p => p.y !== null && p.y !== undefined));

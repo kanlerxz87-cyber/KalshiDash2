@@ -67,10 +67,17 @@ export const TOPICS = [
     label: "Gas Prices",
     blurb: "Retail and wholesale gasoline price markets.",
     categoryPatterns: [],
-    seriesPatterns: [/^KXA{3}GAS/i, /GAS/i],
+    /* Only the documented AAA retail-gas series family (KXAAAGAS* — see the
+     * official fee schedule). The old catch-all /GAS/i was unsound: it matched
+     * "…VEGAS" and "…NATGAS" series (G1 on the Flagged page). */
+    seriesPatterns: [/^KXA{3}GAS/i],
     titlePatterns: [/gas price/i, /gasoline/i, /gas average/i, /AAA gas/i],
+    /* Never classify crude, natural-gas, diesel or Vegas-related rows as
+     * pump-price gas, even when a title contains "gas price". */
+    excludePatterns: [/natural\s*gas/i, /\bNATGAS\b/i, /\bWTI\b/i, /\bBRENT\b/i, /crude/i, /diesel/i, /\bVEGAS\b/i, /\bbarrels?\b/i, /\boil\b/i],
     note:
-      "No Kalshi `category` value covers gasoline. Matched on gas-price series and titles.",
+      "No Kalshi `category` value covers gasoline. Matched on the KXAAAGAS* series family " +
+      "and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded.",
     verifiedCategory: null,
     caveat:
       "The demo environment returned 0 open gas-price events in the 1,000-event " +
@@ -93,10 +100,12 @@ export const TOPICS = [
     key: "culture",
     label: "Culture",
     blurb: "Film, TV, music, awards, and social moments.",
-    categoryPatterns: [/^Entertainment$/i, /^Social$/i],
+    /* `Culture` is a real category in the live demo vocabulary (4 series,
+     * data/probe/api_surface.json) in addition to Entertainment and Social. */
+    categoryPatterns: [/^Culture$/i, /^Entertainment$/i, /^Social$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi categories `Entertainment` and `Social`.",
+    note: "Matched on Kalshi categories `Culture`, `Entertainment` and `Social`.",
     verifiedCategory: "Entertainment",
     sources: ["events"]
   },

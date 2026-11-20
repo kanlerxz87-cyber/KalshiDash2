@@ -11,10 +11,14 @@ import {
   bucketCandles, LiveSampler, Watchlist
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
+import { detectJumps, jumpMarkers } from "./jumps.js";
 
 const topicKey = document.body.dataset.topic;
 const topic = TOPICS.find(t => t.key === topicKey);
 if (!topic) throw new Error("Unknown topic: " + topicKey);
+
+/* Category pages live one level below the site root. */
+const prefix = "../";
 
 mountChrome({ page: `categories/${topicKey}.html`, title: topic.label, depth: 1 });
 document.title = `${topic.label} — KalshiDash2`;
@@ -33,7 +37,8 @@ const state = {
   selected: null,
   candles: null,
   live: null,
-  samplerTimer: null
+  samplerTimer: null,
+  lastJumps: []
 };
 
 /* ------------------------------------------------------------------ board */
@@ -240,9 +245,100 @@ function stopLive() {
 
 function renderChart(series, win, res, extra = {}) {
   const canvas = $("#price-chart");
-  lineChart(canvas, series, { emptyText: "Waiting for the first sample…", ...extra });
+  /* Sharp moves (≥ $0.10 between plotted points) get chart markers and a
+   * jump log with links. Detection is assets/js/jumps.js; the threshold is
+   * the same $0.10 the live alert feeds use. */
+  const jumps = detectJumps(series.flatMap(s => s.points).slice().sort((a, b) => a.t - b.t));
+  lineChart(canvas, series, { emptyText: "Waiting for the first sample…", ...extra, markers: jumpMarkers(jumps) });
   const legend = series.map(s => `<span><span class="sw" style="background:${s.color}"></span>${esc(s.label)}</span>`).join("");
-  $("#chart-legend").innerHTML = legend + `<span class="muted">window: ${esc(win.label)} · ${esc(win.note)}</span>`;
+  $("#chart-legend").innerHTML = legend + `<span class="muted">window: ${esc(win.label)} · ${esc(win.note)}</span>` +
+    (jumps.length ? ` <span class="muted">· ▲▼ markers = moves ≥ $0.10</span>` : "");
+  renderJumpLog(jumps);
+}
+
+/* ---------------- sharp-move (jump) log ----------------
+ * One row per ≥ $0.10 move between plotted points, newest first, each row
+ * linking: the event page, the exact API call behind the chart, the event's
+ * settlement sources (the websites the market settles from — not asserted
+ * causes), and a clearly-labelled coverage search link. */
+const eventSourceCache = new Map(); // event ticker → "loading" | "error" | {sources, title}
+
+async function loadEventSources(eventTicker) {
+  if (!eventTicker || eventSourceCache.has(eventTicker)) return;
+  eventSourceCache.set(eventTicker, "loading");
+  try {
+    const j = await api.get(`/events/${encodeURIComponent(eventTicker)}`);
+    const e = j.event || j;
+    const sources = (Array.isArray(e.settlement_sources) ? e.settlement_sources : [])
+      .filter(s => s && typeof s.url === "string" && /^https:\/\//.test(s.url));
+    eventSourceCache.set(eventTicker, { sources, title: e.title || "" });
+    const cur = state.selected && (state.selected._event_ticker || state.selected.event_ticker);
+    if (cur === eventTicker) renderJumpLog(state.lastJumps || []);
+  } catch {
+    eventSourceCache.set(eventTicker, "error");
+  }
+}
+
+function renderJumpLog(jumps) {
+  state.lastJumps = jumps;
+  const el = $("#jump-log");
+  if (!el) return;
+  const m = state.selected;
+  const ticker = m ? m.ticker : "";
+  const eventTicker = m ? (m._event_ticker || m.event_ticker || "") : "";
+  const head = `
+    <h3 style="margin:14px 0 4px">Sharp moves ≥ $0.10 in this window</h3>
+    <p class="sub" style="margin:0 0 8px">
+      Every move of <strong>$0.10 or more</strong> per contract between two plotted points — the same
+      threshold as the <a href="${prefix}alerts.html">live alert feeds</a>.
+      Markers on the chart point at these rows. Links show the event, the API data behind the chart,
+      and the sources the market settles from. A settlement source is <em>not</em> an attributed cause
+      of the move; the search link is a search, not evidence.
+    </p>`;
+  if (!jumps.length) {
+    el.innerHTML = head + `<p class="small muted" style="margin:0">No move of $0.10 or more between plotted points in this window.</p>`;
+    return;
+  }
+  const ev = eventSourceCache.get(eventTicker);
+  let sources;
+  if (ev === "loading" || ev === undefined) {
+    sources = `<span class="unv">loading settlement sources…</span>`;
+    if (ev === undefined) loadEventSources(eventTicker);
+  } else if (ev === "error") {
+    sources = `<span class="unv">event record could not be read</span>`;
+  } else {
+    sources = ev.sources.length
+      ? ev.sources.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name || "settlement source")} ↗</a>`).join(" · ")
+      : `<span class="unv">none listed on the event record</span>`;
+  }
+  const searchQ = encodeURIComponent((m && (m.title || m.ticker)) || ticker || "Kalshi");
+  const rows = jumps.slice().reverse().map(j => {
+    const up = j.direction === "up";
+    return `<tr>
+      <td class="nowrap small">${new Date(j.t).toISOString().slice(11, 19)} UTC</td>
+      <td><span class="tag ${up ? "yes" : "no"}">${up ? "▲ up" : "▼ down"} ${up ? "+" : "−"}$${Math.abs(j.delta).toFixed(2)}</span></td>
+      <td class="num">$${j.from.toFixed(2)} → $${j.to.toFixed(2)}</td>
+      <td class="num">${j.volume === null ? `<span class="unv">n/a</span>` : esc(String(Math.round(j.volume)))}</td>
+      <td class="num">${j.intraRange === null ? `<span class="unv">n/a</span>` : "$" + j.intraRange.toFixed(2)}</td>
+      <td class="small">
+        <a href="${prefix}event.html?ticker=${encodeURIComponent(eventTicker)}">event page</a>
+        · <a href="${DEMO.rest}/markets/${encodeURIComponent(ticker)}" target="_blank" rel="noopener noreferrer">GET /markets/${esc(ticker)} ↗</a>
+        · ${sources}
+        · <a href="https://news.google.com/search?q=${searchQ}" target="_blank" rel="noopener noreferrer">search coverage ↗</a>
+        <span class="muted">(search link — not an attributed cause)</span>
+      </td>
+    </tr>`;
+  }).join("");
+  el.innerHTML = head + `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Time</th><th>Move</th><th class="num">From → to</th>
+      <th class="num">Volume (period)</th><th class="num">High − low (period)</th><th>Links</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="table-note">Volume and high−low are the candlestick period's own fields
+      (<a href="${SOURCES.candles}" target="_blank" rel="noopener noreferrer">Get Market Candlesticks ↗</a>);
+      they read <span class="unv">n/a</span> on live-sample windows, which have no period aggregation.</div>
+    </div>`;
 }
 
 $("#window").addEventListener("change", drawWindow);

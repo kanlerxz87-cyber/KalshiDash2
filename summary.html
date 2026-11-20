@@ -22,8 +22,12 @@
       A live, no-build dashboard for the Kalshi demo exchange covering the five requested topics — gas prices,
       elections, culture, crypto and golf. It discovers markets from the live API, ranks them by money traded,
       follows each one until the exchange reports a <em>yes</em> or <em>no</em> result, charts contract price
-      against time, and shows resting liquidity at every price level. A separate portfolio page can read the
-      demo account and place orders, and a strategies page categorises whatever fills actually exist.
+      against time, and shows resting liquidity at every price level. Two scrolling alert feeds report every
+      <strong>$0.10-or-larger</strong> swing while the page is open — one with all alerts, one filtered by a
+      transparent High-ROI rule set — and four simulated strategies trade automatically on those alerts, with
+      per-strategy P&amp;L settled on the exchange's own yes/no results. Chart windows mark every sharp move and
+      link it to the event, the API data, and the sources the market settles from. A separate portfolio page can
+      read the demo account and place orders, and a strategies page categorises whatever fills actually exist.
     </p>
     <div class="table-wrap" style="margin-top:12px">
       <table>
@@ -31,11 +35,14 @@
         <tbody>
           <tr><td>Executive summary</td><td>This page</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Highest-dollar live events, five topics only</td><td><a href="index.html">Overview</a> · five <a href="categories/gas.html">category pages</a></td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Live alerting: swings ≥ $0.10 as two scrolling chats (all + High-ROI filter)</td><td><a href="alerts.html">Live alerts</a> — polls the demo API while the tab is open</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Automated simulated trades to test strategies</td><td><a href="alerts.html">Live alerts</a> — four paper strategies, per-strategy P&amp;L, fees not modelled (A5)</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Track live events until resolved, yes or no</td><td><a href="resolved.html">Resolved</a> — reads the API's own <code>result</code> field</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Portfolio performance on the demo account</td><td><a href="portfolio.html">Portfolio</a> — balance, positions, fills</td><td><span class="tag warn">built, needs a key</span></td></tr>
           <tr><td>Analyse trades, categorise, build strategies</td><td><a href="strategies.html">Strategies</a> — by topic, side, role, plus six rules</td><td><span class="tag warn">built, needs fills</span></td></tr>
           <tr><td>Execute trades and track performance</td><td><a href="portfolio.html">Portfolio</a> — V2 order endpoint with the market's own price grid</td><td><span class="tag warn">built, unproven (F1)</span></td></tr>
           <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Chart jumps ≥ $0.10 with event and website links</td><td>Category charts — markers plus a jump log linking the event, the API source, settlement sources and a labelled coverage search</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td></tr>
