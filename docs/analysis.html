@@ -1,35 +1,39 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Analysis &amp; Strategies — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
 <header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html" class="active">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="categories.html">Categories</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="trades.html">Trades &amp; Strategy</a><a href="resolved.html">Resolved Events</a><a href="analysis.html" class="active">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="sources.html">Sources</a><a href="flagged.html">Flagged for Review</a></nav></header>
 <main>
 <h1>Analysis &amp; Strategies</h1>
-<p class="muted">This page analyzes <b>only real fills</b> loaded on the <a href="portfolio.html">Portfolio page</a> (stored in this browser). With no fills, there is nothing to analyze — no sample or invented trades are shown. Categorization: by topic (same keyword matching as the dashboard), by side, and by outcome once the market resolves.</p>
+<p class="muted">This page analyzes <b>only real fills</b> loaded on the <a href="portfolio.html">Portfolio page</a> (stored in this browser). With no fills, there is nothing to analyze — no sample or invented trades are shown. Categorization: by topic (same keyword matching as the dashboard), by direction (<code>outcome_side</code>/<code>book_side</code>, canonical per the <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills">Get Fills</a> schema), and by trade type (see <a href="trades.html">Trades &amp; Strategy</a>). For categorization by trade <i>type</i> and per-type strategies, use the <a href="trades.html">Trades &amp; Strategy</a> page.</p>
 <div class="card"><div class="statusbar"><button id="analyze">Analyze saved fills</button><span id="status" class="pill">Idle</span></div>
 <div id="summary" class="muted">No fills loaded yet. Load fills on the Portfolio page, then click Analyze.</div>
 <h2>By topic</h2><table><thead><tr><th>Topic</th><th>Fills</th><th>Contracts</th><th>Fees paid</th></tr></thead><tbody id="byTopic"><tr><td colspan="4">—</td></tr></tbody></table>
-<h2>By side</h2><table><thead><tr><th>Side</th><th>Fills</th><th>Contracts</th></tr></thead><tbody id="bySide"><tr><td colspan="3">—</td></tr></tbody></table>
+<h2>By direction</h2><table><thead><tr><th>Direction</th><th>Fills</th><th>Contracts</th></tr></thead><tbody id="bySide"><tr><td colspan="3">—</td></tr></tbody></table>
+<h2>By trade type</h2><table><thead><tr><th>Trade type (price band)</th><th>Fills</th><th>Contracts</th><th>Fees</th></tr></thead><tbody id="byType"><tr><td colspan="4">—</td></tr></tbody></table>
 <h2>Strategy notes (derived from your fills only)</h2><div id="notes" class="muted">—</div></div>
 </main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
 <script src="assets/app.js"></script><script>
 function topicOf(ticker,title){ const hay=((ticker||"")+" "+(title||"")).toLowerCase();
   for(const [k,v] of Object.entries(TOPICS)) if(v.keywords.some(w=>hay.includes(w))) return v.label; return "Other / uncategorized"; }
 $("#analyze").onclick=()=>{
-  let fills=[]; try{ fills=JSON.parse(localStorage.getItem("kalshi_fills")||"[]"); }catch{}
+  const fills=loadSavedFills();
   if(!fills.length){ setStatus($("#status"),false,"No fills saved — load them on the Portfolio page first."); return; }
-  const byT={}, byS={}; let contracts=0, fees=0;
-  for(const f of fills){ const t=topicOf(f.ticker,f.title), s=(f.side||"unknown").toString();
-    const c=Number(f.count_fp ?? f.count ?? 0), fee=Number(f.fee_cost_dollars ?? f.fee_cost ?? 0);
+  const byT={}, byS={}, byType={}; let contracts=0, fees=0;
+  for(const f of fills){ const t=topicOf(f.ticker||f.market_ticker,f.title), s=fillSideOf(f), ty=tradeTypeOf(fillPriceOf(f));
+    const c=fillCountOf(f), fee=fillFeeOf(f);
     contracts+=c; fees+=fee;
     byT[t]=byT[t]||{n:0,c:0,fee:0}; byT[t].n++; byT[t].c+=c; byT[t].fee+=fee;
-    byS[s]=byS[s]||{n:0,c:0}; byS[s].n++; byS[s].c+=c; }
-  $("#summary").innerHTML=`<b>${fills.length}</b> fills · <b>${fmtN(contracts)}</b> contracts · <b>${fmt$(fees)}</b> total fees.`;
+    byS[s]=byS[s]||{n:0,c:0}; byS[s].n++; byS[s].c+=c;
+    byType[ty]=byType[ty]||{n:0,c:0,fee:0}; byType[ty].n++; byType[ty].c+=c; byType[ty].fee+=fee; }
+  $("#summary").innerHTML=`<b>${fills.length}</b> fills · <b>${fmtN(contracts)}</b> contracts · <b>${fmt$(fees)}</b> total fees (fee_cost is fixed-point dollars per the Get Fills schema).`;
   $("#byTopic").innerHTML=Object.entries(byT).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td><td>${fmt$(v.fee)}</td></tr>`).join("");
   $("#bySide").innerHTML=Object.entries(byS).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td></tr>`).join("");
+  $("#byType").innerHTML=Object.entries(byType).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td><td>${fmt$(v.fee)}</td></tr>`).join("");
   const top=Object.entries(byT).sort((a,b)=>b[1].c-a[1].c)[0];
   $("#notes").innerHTML=`<ul><li>Most-traded topic by contracts: <b>${esc(top[0])}</b> (${fmtN(top[1].c)} contracts). Compare its win rate (once markets resolve — see Resolved Events) before scaling it.</li>
   <li>Fees are a real cost: ${fmt$(fees)} paid across ${fills.length} fills. Prefer limit orders and avoid over-trading low-liquidity markets.</li>
-  <li>Next step: join fills to resolved outcomes to compute realized P&amp;L per strategy — currently <span class="badge warn">not yet computed</span> (see Open Questions Q7).</li></ul>`;
+  <li>Per-type strategies: see <a href="trades.html">Trades &amp; Strategy</a>.</li>
+  <li>Next step: join fills to resolved outcomes to compute realized P&amp;L per strategy — currently <span class="badge warn">not yet computed</span> (see Open Questions Q7; the official <a href="https://docs.kalshi.com/api-reference/portfolio/get-settlements">Get Settlements</a> endpoint is the discovery path).</li></ul>`;
   setStatus($("#status"),true,"Analyzed "+fills.length+" real fills");
 };
 </script></body></html>
