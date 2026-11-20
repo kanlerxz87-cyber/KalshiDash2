@@ -1,0 +1,121 @@
+name: Probe API Surface
+
+# Temporary diagnostic workflow: checks CORS behaviour of the Kalshi demo API,
+# enumerates the official category / tag vocabulary, and captures a tiny sample
+# of live responses so the front-end can be built against verified shapes.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe CORS + endpoints
+        run: |
+          mkdir -p data/probe
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error, ssl
+
+          BASES = [
+              "https://external-api.demo.kalshi.co/trade-api/v2",
+              "https://demo-api.kalshi.co/trade-api/v2",
+          ]
+          ORIGIN = "https://kanlerxz87-cyber.github.io"
+
+          out = {"cors": {}, "endpoints": {}}
+
+          def get(url, headers=None, method="GET"):
+              req = urllib.request.Request(url, headers=headers or {}, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return r.status, dict(r.headers), r.read()
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers), e.read()
+              except Exception as e:  # noqa: BLE001
+                  return 0, {}, str(e).encode()
+
+          for base in BASES:
+              st, hd, body = get(base + "/markets?limit=1", {"Origin": ORIGIN})
+              out["cors"][base] = {
+                  "status": st,
+                  "access_control_allow_origin": hd.get("Access-Control-Allow-Origin"),
+                  "access_control_allow_methods": hd.get("Access-Control-Allow-Methods"),
+                  "access_control_allow_headers": hd.get("Access-Control-Allow-Headers"),
+                  "access_control_max_age": hd.get("Access-Control-Max-Age"),
+                  "vary": hd.get("Vary"),
+                  "server": hd.get("Server"),
+              }
+              # preflight
+              st2, hd2, _ = get(
+                  base + "/markets?limit=1",
+                  {
+                      "Origin": ORIGIN,
+                      "Access-Control-Request-Method": "GET",
+                      "Access-Control-Request-Headers": "content-type",
+                  },
+                  method="OPTIONS",
+              )
+              out["cors"][base]["preflight_status"] = st2
+              out["cors"][base]["preflight_allow_origin"] = hd2.get("Access-Control-Allow-Origin")
+              out["cors"][base]["preflight_allow_headers"] = hd2.get("Access-Control-Allow-Headers")
+
+          # websocket handshake probe (demo recommended host)
+          ws_host = "external-api-ws.demo.kalshi.co"
+          key = "dGhlIHNhbXBsZSBub25jZQ=="
+          st, hd, body = get(
+              f"https://{ws_host}/trade-api/ws/v2",
+              {
+                  "Connection": "Upgrade",
+                  "Upgrade": "websocket",
+                  "Sec-WebSocket-Version": "13",
+                  "Sec-WebSocket-Key": key,
+              },
+          )
+          out["websocket"] = {"host": ws_host, "status": st, "upgrade": hd.get("Upgrade")}
+
+          # official category + tag vocabulary
+          st, hd, body = get(BASES[0] + "/series?include_volume=true")
+          series = json.loads(body)["series"]
+          cats, tags = {}, {}
+          for s in series:
+              cats.setdefault(s.get("category", ""), 0)
+              cats[s.get("category", "")] += 1
+              for t in (s.get("tags") or []):
+                  tags[t] = tags.get(t, 0) + 1
+              for c in (s.get("categories") or []):
+                  cats[c] = cats.get(c, 0) + 1
+          out["series_count"] = len(series)
+          out["categories"] = dict(sorted(cats.items(), key=lambda kv: -kv[1]))
+          out["tags"] = dict(sorted(tags.items(), key=lambda kv: -kv[1]))
+
+          with open("data/probe/api_surface.json", "w") as f:
+              json.dump(out, f, indent=2)
+
+          # compact summary in the run log
+          print("CORS:")
+          for b, v in out["cors"].items():
+              print(" ", b, v)
+          print("WS:", out["websocket"])
+          print("series:", out["series_count"])
+          print("categories:", list(out["categories"].keys()))
+          print("tags(gas/golf/culture/election):", [t for t in out["tags"] if any(k in t.lower() for k in ("gas", "golf", "cultur", "elect"))])
+          PY
+
+      - name: Commit probe output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/probe || true
+          git diff --staged --quiet || git commit -m "chore(probe): refresh API surface probe"
+          git push || echo "push skipped"
