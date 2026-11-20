@@ -1,32 +1,13 @@
 # KalshiDash2
 
-Read-only Kalshi market dashboard (demo + production public data), published with GitHub Pages.
+Live dashboard for the **Kalshi demo** exchange: highest-dollar events in gas prices, elections, culture, crypto, and golf — tracked until they resolve (yes/no), with demo trading, trade categorization, and performance analysis.
 
-- **Live site:** https://kanlerxz87-cyber.github.io/KalshiDash2/
-- **Executive summary:** [reports/executive-summary.md](reports/executive-summary.md)
-- **Repo review:** [reports/repo-review.md](reports/repo-review.md)
-- **Task board / log:** [COORDINATION.md](COORDINATION.md)
-- **Flagged for review (on the site):** `site/flagged.html`
+**Site:** GitHub Pages from `docs/` (deployed by `.github/workflows/pages.yml` on push to `main`). Pages: Home + executive summary, Live Dashboard, Categories (subpages per topic: gas, elections, culture, crypto, golf), Portfolio & Trading, Trades & Strategy, Resolved Events, Analysis & Strategies, Suggestions (decision gates — nothing implemented until you pick), Open Questions, Verification (line-by-line), Sources (every official doc used), Flagged for Review (non-blocking).
 
-## Layout
+**Data:** `https://external-api.demo.kalshi.co/trade-api/v2` (public market data needs no key). Trading needs your own demo API key, entered in the browser only (or via `scripts/kalshi_client.py`) — never commit keys. Official docs: https://docs.kalshi.com · demo site: https://demo.kalshi.co
 
-| Path | What it is |
-|------|------------|
-| `site/` | Static site (no build step). Pages: home, live dashboard, five topic pages, analysis, portfolio (blocked), suggestions, questions, flagged. |
-| `scripts/collect.mjs` | Reads public, unauthenticated Kalshi Trade API GET endpoints and writes `site/data/*.json` (generated, git-ignored). |
-| `scripts/check-site.mjs` | Build gate: broken links, JSON validity, every data row has a `source_url`. |
-| `.github/workflows/pages.yml` | Hourly + on-push: collect → check → upload Pages artifact; deploy from `main`. |
+**Repo-side tools:** `scripts/kalshi_client.py` (verified demo API client: markets, orderbook, candlesticks, balance, positions, fills, guarded order placement; supports RSA + Ed25519; hard-locked to the demo host), `scripts/analyze_trades.py` (categorize fills by trade type/topic/direction), `data/trades_template.csv` (header-only template in official Get Fills field names).
 
-## Run locally
+**Docs in repo:** `EXECUTIVE_SUMMARY.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `VERIFICATION.md`, `COORDINATION.md` (shared task board for parallel sessions).
 
-```bash
-node scripts/collect.mjs      # needs network access to Kalshi API hosts
-node scripts/check-site.mjs
-python3 -m http.server --directory site 8000   # then open http://localhost:8000
-```
-
-## Scope and limits
-
-- No orders are placed and no credentials are used. Portfolio and trading need an authenticated demo API key that has not been provided.
-- Demo prices may not reflect real markets (per Kalshi's demo documentation).
-- Source documentation: https://docs.kalshi.com/welcome
+**Verification rule:** every table row links an official source; values that can't be confirmed are left blank and flagged on the Flagged for Review page — never inferred. Live values are fetched in the browser and never transcribed into the repo.

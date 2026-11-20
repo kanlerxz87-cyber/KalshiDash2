@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trades &amp; Strategy — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="categories.html">Categories</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="trades.html" class="active">Trades &amp; Strategy</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="sources.html">Sources</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Trades &amp; Strategy by Trade Type</h1>
+<p class="muted">Trade log + strategy analysis <b>by trade type</b>. Data comes only from real fills (loaded on the <a href="portfolio.html">Portfolio page</a>, saved in this browser) or from a CSV you export yourself. With no data, tables stay empty — nothing is invented. For analysis by topic and direction see <a href="analysis.html">Analysis &amp; Strategies</a>.</p>
+<div class="card"><h2 style="margin-top:0">Trade log</h2>
+<div class="statusbar"><button id="analyze">Analyze saved fills</button>
+<label class="btn secondary" style="margin:0">Import CSV<input type="file" id="csvFile" accept=".csv" style="display:none"></label>
+<a class="btn secondary" href="assets/trades_template.csv" download>Download CSV template</a>
+<button class="secondary" id="exportCsv">Export fills as CSV</button>
+<span id="status" class="pill">Idle</span></div>
+<table><thead><tr><th>Time</th><th>Ticker</th><th>Direction</th><th>Count</th><th>Yes price</th><th>Trade type</th><th>Fee</th></tr></thead><tbody id="logRows"><tr><td colspan="7">No data yet.</td></tr></tbody></table>
+<p class="muted small">CSV columns (see template): <code>created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,fee_cost</code> — exactly the <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills">Get Fills</a> field names, so a copied API response round-trips without renaming. The template is header-only; import real data only.</p></div>
+<div class="card"><h2 style="margin-top:0">By trade type</h2>
+<table><thead><tr><th>Trade type (price band)</th><th>Fills</th><th>Contracts</th><th>Fees</th><th>Strategies that fit this type (proposals — review before adopting)</th></tr></thead><tbody id="byType"><tr><td colspan="5">—</td></tr></tbody></table>
+<p class="muted small"><b>Price bands are our analytic convention</b> (defined here and on <a href="sources.html">Sources</a>), not an official Kalshi taxonomy. Prices come from <code>yes_price_dollars</code> (fixed-point dollars, <a href="https://docs.kalshi.com/getting_started/fixed_point_migration">source</a>).</p></div>
+<div class="card"><h2 style="margin-top:0">Strategy notes per trade type</h2>
+<div class="muted">Analyze fills (or import a CSV) to see your counts. The strategy library below is a <b>proposal</b> for review — nothing here is auto-executed (see <a href="suggestions.html">Suggestions</a> for decision gates).</div>
+<table><thead><tr><th>Trade type</th><th>What it means</th><th>Strategy candidates (review before implementing)</th><th>Main risk</th></tr></thead><tbody>
+<tr><td>Deep longshot (≤ 10¢)</td><td>Market-implied probability ≤ 10% for YES</td><td>Small size basket; require catalyst/edge; set hard per-trade cap; expect frequent total losses</td><td>High loss rate; fees eat small prices</td></tr>
+<tr><td>Moderate underdog (11–40¢)</td><td>Below-even YES with real upside</td><td>Event-driven entry near known deadlines; scale out on price spikes; verify settlement source quality</td><td>Slow bleed while waiting</td></tr>
+<tr><td>Coin flip (41–60¢)</td><td>Maximum uncertainty zone</td><td>Trade only with an information edge; prefer market-making/liquidity provision if allowed; avoid oversized directional bets</td><td>Chop and spread costs</td></tr>
+<tr><td>Favorite (61–89¢)</td><td>YES likely but meaningful risk premium</td><td>Sell-side (ask) or NO-buy to collect premium when overpriced; watch resolution catalysts; hedge across correlated events</td><td>Favorite-longshot bias; late flips</td></tr>
+<tr><td>Near-certain (≥ 90¢)</td><td>Market-implied probability ≥ 90%</td><td>Short-duration yield-style entries only if resolution timing is known; tiny edge is thin — count fees first</td><td>Black-skill: rare upsets wipe many wins</td></tr>
+</tbody></table>
+<p class="muted small">These rows are <b>proposals, not verified facts and not financial advice</b> — they are deliberately excluded from the verification table. Review and approve/reject them via <a href="suggestions.html">Suggestions</a>.</p></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<script src="assets/app.js"></script><script>
+const STRATS={
+"Deep longshot (≤ 10¢)":"Small-size basket; hard per-trade cap; catalyst required",
+"Moderate underdog (11–40¢)":"Event-driven entries near deadlines; scale-out on spikes",
+"Coin flip (41–60¢)":"Only with an information edge; avoid oversized direction",
+"Favorite (61–89¢)":"Collect premium via sell-side/NO when overpriced; hedge correlated events",
+"Near-certain (≥ 90¢)":"Yield-style only with known resolution timing; count fees first",
+"unclassified (no price)":"Fix the data source first"};
+function render(fills){
+  const rows=[],byType={};
+  for(const f of fills){
+    const ty=tradeTypeOf(fillPriceOf(f)), c=fillCountOf(f), fee=fillFeeOf(f);
+    byType[ty]=byType[ty]||{n:0,c:0,fee:0}; byType[ty].n++; byType[ty].c+=c; byType[ty].fee+=fee;
+    rows.push(`<tr><td>${esc(f.created_time||f.ts||"")}</td><td><code>${esc(f.ticker||f.market_ticker||"")}</code></td><td>${esc(fillSideOf(f))}</td><td>${fmtN(c)}</td><td>${fmt$(fillPriceOf(f))}</td><td>${esc(ty)}</td><td>${fmt$(fee)}</td></tr>`);
+  }
+  $("#logRows").innerHTML=rows.length?rows.join(""):"<tr><td colspan='7'>No data yet.</td></tr>";
+  $("#byType").innerHTML=Object.keys(byType).length?Object.entries(byType).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td><td>${fmt$(v.fee)}</td><td>${esc(STRATS[k]||"—")}</td></tr>`).join(""):"<tr><td colspan='5'>—</td></tr>";
+  setStatus($("#status"),true,"Analyzed "+fills.length+" entries");
+}
+$("#analyze").onclick=()=>{ const fills=loadSavedFills();
+  if(!fills.length){ setStatus($("#status"),false,"No fills saved — load them on the Portfolio page, or import a CSV."); return; }
+  render(fills); };
+$("#csvFile").onchange=async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const text=await file.text();
+  const lines=text.trim().split(/\r?\n/); const head=lines[0].split(",").map(s=>s.trim());
+  const fills=lines.slice(1).map(line=>{ const cells=line.split(","); const o={}; head.forEach((h,i)=>o[h]=(cells[i]??"").trim()); return o; });
+  localStorage.setItem("kalshi_fills",JSON.stringify(fills)); render(fills);
+};
+$("#exportCsv").onclick=()=>{
+  const fills=loadSavedFills();
+  if(!fills.length){ setStatus($("#status"),false,"Nothing to export yet."); return; }
+  const head="created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,fee_cost";
+  const body=fills.map(f=>[f.created_time||f.ts||"",f.ticker||f.market_ticker||"",f.market_ticker||"",f.outcome_side??f.side??"",f.book_side??f.action??"",f.count_fp??f.count??"",f.yes_price_dollars??"",f.fee_cost??""].join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([head+"\n"+body],{type:"text/csv"})); a.download="fills-export.csv"; a.click();
+};
+render(loadSavedFills());
+</script></body></html>
