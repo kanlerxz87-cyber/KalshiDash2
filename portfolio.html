@@ -219,7 +219,10 @@ async function loadFills() {
       <td class="num">${money4(f.yes_price_dollars)}</td>
       <td class="num">${money4(f.no_price_dollars)}</td>
       <td>${f.is_taker === true ? "taker" : f.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
-      <td class="num">${money(f.fee_cost_dollars ?? (num(f.fee_cost) !== null ? f.fee_cost / 100 : null))}</td>
+      <td class="num">${money(f.fee_cost_dollars ?? num(f.fee_cost))}</td>
+      <!-- fee_cost is documented as a DOLLAR string on Get Fills (there is no
+           fee_cost_dollars field), so dividing it by 100 showed fees 100x too
+           small. https://docs.kalshi.com/api-reference/portfolio/get-fills -->
       <td><a href="${SOURCES.fills}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
     </tr>`).join("") : emptyRow(9, "No fills on this demo account yet. Place an order below, or use the demo site to trade first.");
     pill($("#fills-status"), "live", `${fills.length} fills · saved for analysis`);
