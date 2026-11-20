@@ -358,6 +358,61 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 - **V1 (spot-checks):** noted; no action needed.
 
 
+---
+
+# Session `869f5339` — live alert stream, simulated-trade engine, verification & final integration (2026-11-20)
+
+Branch: `arena/869f5339-kalshidash2` (base `793f741` = current `origin/main`).
+**This section is appended only.** Every board above is preserved unchanged.
+
+Role: this session closes the three gaps the brief asks for that the merged site does not yet
+cover — (1) a **live alerting system** with two scrolling chats, (2) **automated simulated
+trades** used to test strategies, and (3) **sharp-jump context links** — then re-verifies the
+published site line by line and performs the final integration + Pages deploy.
+
+## Claim
+
+| # | Task | Status | Owner | File scope (exclusive) |
+|---|------|--------|-------|--------------------------|
+| S1 | Live alert stream: two scrolling chats (all events / model high-ROI picks), ≥ $0.10 swing detection either direction, live sampling + official candle replay | in progress | `869f5339` | `alerts.html`, `assets/js/alerts.js` |
+| S2 | Automated simulated-trade engine: strategy rules replayed over official candles, simulated fills, P&L vs. real settlement values; strategy scoreboard | in progress | `869f5339` | `simulator.html`, `assets/js/simulator.js` |
+| S3 | Sharp-jump context: candidate official links attached to each ≥$0.10 move (market page, series, rules, official reference) — labelled as candidates, never as causal claims | in progress | `869f5339` | `assets/js/alerts.js`, `assets/js/market.js` (additive only) |
+| S4 | Line-by-line re-verification of the published site against official docs; refresh `verification.html` + `flagged.html` | pending | `869f5339` | `verification.html`, `flagged.html` |
+| S5 | Final integration: nav + landing page, link/runtime check, PR → `main`, merge, Pages deploy confirmation | pending | `869f5339` | `index.html`, `assets/js/ui.js` (nav list only), `README.md`, `COORDINATION.md`, `.github/workflows/**` |
+
+**Scope extension (claimed 2026-11-20, after the first implementation pass):**
+the new pages need shared plumbing, so this session additionally owns the following files. None of
+them is claimed by any other session (`b7dfc4d9`'s only in-flight item is PR #14, which touches
+`.github/workflows/verify-live.yml` alone), and every change to them is **additive** — no existing
+behaviour is altered:
+
+| File | Change | Additive? |
+|------|--------|-----------|
+| `assets/js/config.js` | new `ALERT`, `TRADE_SCREEN`, `STRATEGIES` exports + three source links | yes — no existing export changed |
+| `assets/css/app.css` | chat-feed, score-chip and breakdown styles appended at the end | yes |
+| `assets/js/ui.js` | `PAGES` list gains Alerts + Simulator; `lineChart` gains an optional `markers` option | yes — `lineChart` is byte-identical when `markers` is absent |
+| `assets/js/category.js` | ≥ $0.10 jump markers on the category price chart, plus a jump list | yes |
+
+The five `categories/*.html` files are **not** modified: the jump list is rendered by
+`assets/js/category.js` into the existing chart card, so the shared topic templates stay untouched.
+
+Non-overlap note: session `b7dfc4d9`'s only in-flight item is PR #14
+(`.github/workflows/verify-live.yml`) — it touches no file in the scope above. `docs/**` is
+**not** touched by this session (it is the earlier duplicate site; the live Pages build serves
+the repository root). `data/**` and `scripts/**` are not touched.
+
+## Facts verified live by this session (2026-11-20, official demo API)
+
+| Fact | Official source | Observed |
+| --- | --- | --- |
+| `previous_price_dollars` is a documented market field → the ≥$0.10 swing test is `abs(last_price_dollars − previous_price_dollars) ≥ 0.10` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | present on every market object fetched |
+| `settlement_value_dollars` is a documented field → simulated-trade P&L can be scored against the real settlement value | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | present on finalized markets (`"0.0000"` / `"1.0000"`) |
+| `GET /markets?status=settled` returns finalized markets with `result` = `yes`/`no` | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | confirmed, `status: "finalized"` |
+| `notional_value_dollars` is the single-contract settlement value, **not** a dollar-volume field | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | schema value `"1.0000"` |
+| Candlestick period intervals are 1 / 60 / 1440 minutes — no seconds-resolution history exists | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | unchanged from earlier sessions' capture |
+
+<!-- ====== origin/main (session 4208a2dd) ====== -->
+
 ## Session `aa8d808b` — static site link integrity gate (2026-11-20)
 
 - **Task 17: done.** Added `.github/workflows/site-check.yml` and `tools/check_site_links.py` with isolated tests in `tools/test_check_site_links.py`.
@@ -418,6 +473,74 @@ Claim recorded `2026-11-20`. Base: `main` at `9c99138` (PR #15 merged). Files ou
 
 **Handoff notes:** the brief's `session-<id>/<task>` branch naming was not used; the session is bound to `arena/4208a2dd-kalshidash2`. Not done in this session: chart markers for sharp moves on the category charts, a server-side recorder, and a rewrite of `summary.html` to cover the alerts. These are listed as suggestions, not claimed as done.
 
+
+---
+
+# Session `869f5339` — merge of `origin/main` into the feature branch (2026-11-20)
+
+`origin/main` advanced to `4c7343f` while this branch was open, and it contains a **second,
+independent implementation of the live alerts page** (session `4208a2dd`): `alerts.html`,
+`assets/js/alerts.js` (a page controller), `assets/js/alerts-core.js` (pure logic),
+`tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs`, `tests/live-alerts-check.mjs`,
+`reports/alerts-live-check.md` and `.github/workflows/verify-alerts.yml`.
+
+Both implementations satisfied the same requirement, so a blind merge would have destroyed one of
+them. The reconciliation keeps **both** and shares the parts that must not be duplicated.
+
+| Concern | Resolution |
+| --- | --- |
+| `alerts.html` + `assets/js/alerts.js` | `origin/main`'s published version is the base (it is the one with the unit tests and the jsdom end-to-end suite). This branch's additions were folded in: the exchange-reference swing (`previous_price_dollars`), the tradeability score, the new **alerts table** and the basis label on every message. |
+| Swing engine | `assets/js/alerts-core.js` (main's pure module) gained `detectReferenceSwings()` and `mergeAlerts()`. |
+| This branch's reusable engine | moved to `assets/js/alert-engine.js` (the `AlertEngine` class + `topicLabel`). `simulator.html` now imports it from there, so the paper trader and the alerts page run the same engine. |
+| Tradeability screen | one implementation only — `screenMarket()` now lives in `assets/js/alerts-core.js`; `assets/js/market.js` re-exports it so existing importers keep working. `assets/js/screen.js` (a draft duplicate) was deleted. |
+| Verification register | `assets/js/claims.js` is the single register. Main's five alert rows were appended to the existing 57 rows (now 67). `verification.html` renders the shared module. |
+| Flagged register | `flagged.html` merged cleanly: this branch's F1–F16 and main's A1–A9 / R1 both survive. F16 was re-worded to state both scan bounds accurately. |
+| Navigation | `assets/js/ui.js` `PAGES` lists **Live alerts** and **Simulator**; the duplicate "Alerts" entry was dropped. |
+| CI | `.github/workflows/site-check.yml` now checks the **published root** (`.`, 34 pages) instead of `docs/` only — this closes main's R1. It also runs the alert unit tests and the page-runtime harness. `verify-alerts.yml` and `live-engine-check.yml` now watch the merged modules. |
+| `README.md` | both feature descriptions kept; the layout block lists both new pages. |
+
+**Second merge (`origin/main` → `f74825e`, 2026-11-20):** `main` gained PR #14
+(`.github/workflows/verify-live.yml`, session `b7dfc4d9`) and PR #20/21 (session `5c00f4dd`:
+a per-row official source link on every dynamic table in the root site, plus the dev-only
+esbuild advisory flag A10). Conflicts were in `COORDINATION.md`, `assets/js/category.js` and
+`index.html`:
+- `COORDINATION.md` — both session records kept, unchanged.
+- `assets/js/category.js` — one import line now carries `DEMO` (main's row-source links) and
+  `ALERT` (this branch's jump markers); both features survive.
+- `index.html` — one import line now carries `DEMO` (main's row-source links), `money4` and
+  `num` (this branch's biggest-swings table); the board is 9 columns wide and `emptyRow(9)`
+  matches.
+- `verify-live.yml` (already merged to `main`, so no longer exclusively claimed) — the live
+  probe now also fetches `alerts.html` and `simulator.html` and asserts that both feeds and
+  the settlement-value scoring render.
+
+**Third merge (`origin/main` → `44b2a45`, 2026-11-20):** main gained PR #22 (session `5c00f4dd`:
+an executive-summary refresh in `summary.html` and `EXECUTIVE_SUMMARY.md`). Conflicts were in
+`COORDINATION.md` and `summary.html`:
+- `COORDINATION.md` — both session records kept.
+- `summary.html` — the "What is not proven" list keeps this branch's F13/F14/F15 bullets **and**
+  main's A10 bullet; main's rewritten opening paragraph was kept and this branch's alerts rows
+  (live alerts, High-ROI watch, the alerts table) were kept.
+- `EXECUTIVE_SUMMARY.md` — main's rewrite kept, with the Strategy Tester and the two-way swing
+  detection added so the repo document matches the published pages.
+
+**Files NOT touched:** `docs/**`, `data/**`, `scripts/**`.
+
+**Verification after the merge (all local):**
+
+1. `node tools/verify/page-runtime-check.mjs` → **17/17 pages ran clean**, **0 broken local links across 34 pages**.
+2. `node --test tests/alerts-core.test.mjs` → **18/18 pass** (main's suite, unmodified).
+3. `tests/dom/alerts-dom.mjs` (jsdom + esbuild, real page controller, three scripted polls) → **16/16 checks pass**.
+4. `python -m unittest discover -s tools -p 'test_*.py'` → **2 tests pass**.
+5. `python tools/check_site_links.py .` → **34 HTML pages checked, no errors**.
+6. `node --check` on every project module and verification script → no parse failures.
+7. `node tools/verify/live-engine-check.mjs` → exits **1** with `fetch failed` (the sandbox cannot open TLS to Kalshi). It publishes no report in that state, by design; the GitHub runner performs the live run.
+
+**Open items left open on purpose (not silently dropped):** the alerts page records swings only
+while a tab is open (F16); the live engine check cannot reach Kalshi from this sandbox and
+therefore publishes no report (the GitHub runner performs that run); the dev-only esbuild
+advisory stays flagged as A10 and is not silently upgraded.
+
 ---
 
 # Session `5c00f4dd` — integration review and row-source audit (2026-11-20)
@@ -443,6 +566,8 @@ Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
 - Static site link check on the PR passed: [run 44745222260](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745222260).
 - GitHub Pages deploy after merge succeeded: [run 44745300283](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44745300283). Pages API reported `status: built`, publishing from `main:/`.
 - Live site verified after deployment: [KalshiDash2](https://kanlerxz87-cyber.github.io/KalshiDash2/) and [Live alerts](https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html).
+- Post-merge note: GitHub Actions emitted a Node.js 20 deprecation annotation for upstream actions; the build and deploy both succeeded. No deployment failure remains open.
+
 - Post-merge note: GitHub Actions emitted a Node.js 20 deprecation annotation for upstream actions; the build and deploy both succeeded. No deployment failure remains open.
 
 **C4 verification and sources:** Refreshed the root executive summary and `EXECUTIVE_SUMMARY.md` to cover the merged alert and paper-strategy page, source-backed root site, measured limitations, official demo endpoints, and merge/deploy records. Official references linked in the summary include [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), and [Rate Limits](https://docs.kalshi.com/getting_started/rate_limits). The summaries distinguish documented facts from paper-simulation assumptions and open findings.

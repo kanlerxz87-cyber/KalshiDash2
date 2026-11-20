@@ -5,10 +5,10 @@
  * requested time windows, and the liquidity (order-book depth) view.
  */
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineChart } from "./ui.js";
-import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE } from "./config.js";
+import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE, ALERT } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
-  bucketCandles, LiveSampler, Watchlist
+  bucketCandles, LiveSampler, Watchlist, detectJumps, getEvent, eventContext
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
 
@@ -32,6 +32,7 @@ const state = {
   mode: "money",
   selected: null,
   candles: null,
+  jumps: [],
   live: null,
   samplerTimer: null
 };
@@ -163,6 +164,8 @@ async function drawWindow() {
   const win = currentWindow();
   stopLive();
   pill($("#chart-status"), "warn", "loading…");
+  const jEl = jumpContainer();
+  if (jEl) jEl.innerHTML = `<p class="small muted" style="margin:10px 0 0">Loading…</p>`;
 
   if (win.granularity === "live" || (win.seconds <= 300)) {
     // Seconds-scale: accumulate live samples. No seconds-resolution history exists.
@@ -178,15 +181,19 @@ async function drawWindow() {
       if (pts.length > 900) bucket = Math.ceil(win.seconds / 900);
       if (interval === 1 && bucket > 60) pts = bucketCandles(pts, bucket);
       state.candles = res;
+      // ≥ $0.10 swings inside the official candle series, marked on the chart.
+      const jumps = detectJumps(pts, ALERT.defaultThreshold);
+      state.jumps = jumps;
       renderChart([
         { key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: pts }
-      ], win, res);
+      ], win, res, { markers: jumps });
       const traded = pts.filter(p => p.y !== null).length;
       pill($("#chart-status"), "live", `${traded} priced periods`);
       $("#chart-src").innerHTML = `
         Official candlesticks · <code>period_interval=${interval}</code> minute(s) ·
         ${int(res.rawCount)} raw periods returned · series <code>${esc(res.series)}</code> ·
         ${src(res.source, "GET candlesticks")} ${src(SOURCES.candles, "endpoint docs")}`;
+      renderJumps(market, jumps, res);
       if (!traded) {
         $("#chart-empty").innerHTML = `<div class="callout warn" style="margin:12px 0 0">
           <h3>No trades in this window</h3>
@@ -232,6 +239,78 @@ function startLive(win) {
     for a few seconds. Points are stamped when this page read them (every 2s), so the line starts empty
     and fills as the tab stays open. ${src(SOURCES.candles, "candlestick limits")} ${src(SOURCES.rateLimits, "rate limits")}`;
   $("#chart-empty").innerHTML = "";
+  const el = jumpContainer();
+  if (el) {
+    el.innerHTML = `<p class="small muted" style="margin:10px 0 0">
+      Jump markers are drawn on official candle windows. This view is accumulated live samples, so there is
+      no candle history to mark yet — switch to a 1-hour or longer window.</p>`;
+  }
+}
+
+/* ------------------------------------------------------------------ jumps */
+/* The ≥$0.10 moves found inside the official candle series, listed with the
+ * event's own settlement sources so a reader can go straight to the websites
+ * that decide the market. */
+function jumpContainer() {
+  let el = document.querySelector("#chart-jumps");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "chart-jumps";
+  const anchor = $("#chart-empty");
+  if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor.nextSibling);
+  else $("#chart-card").appendChild(el);
+  return el;
+}
+
+async function renderJumps(market, jumps, res) {
+  const el = jumpContainer();
+  if (!jumps || !jumps.length) {
+    el.innerHTML = `<p class="small muted" style="margin:10px 0 0">
+      No move of $${ALERT.defaultThreshold.toFixed(2)} or more inside this window. The dotted markers on the
+      chart appear only when the official candle series contains one.</p>`;
+    return;
+  }
+  const rows = jumps.slice().reverse().map(j => `<tr>
+    <td class="small nowrap">${dt(new Date(j.t).toISOString())}</td>
+    <td class="num">$${j.from.toFixed(2)}</td>
+    <td class="num">$${j.to.toFixed(2)}</td>
+    <td class="num" style="color:${j.dir === "up" ? "var(--ok)" : "var(--bad)"}">${j.delta > 0 ? "+" : ""}${j.delta.toFixed(2)}</td>
+    <td class="small nowrap">
+      <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(market.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
+    </td>
+  </tr>`).join("");
+
+  el.innerHTML = `<div class="table-wrap" style="margin-top:10px">
+    <table>
+      <thead><tr><th>Time</th><th class="num">From</th><th class="num">To</th><th class="num">Δ</th><th>Official source</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="table-note">
+      ${int(jumps.length)} move(s) of $${ALERT.defaultThreshold.toFixed(2)} or more between consecutive
+      official candle closes in this window. ${src(res.source, "candles ↗")}
+      ${src(SOURCES.candles, "endpoint docs")}
+    </div>
+  </div>
+  <div id="chart-sources" class="small muted" style="margin:8px 0 0">Loading settlement sources…</div>`;
+
+  /* Settlement sources: the official websites Kalshi lists for determining
+   * this market's outcome. */
+  try {
+    const event = await getEvent(market.event_ticker);
+    const ctx = eventContext(event);
+    const box = document.querySelector("#chart-sources");
+    if (!box) return;
+    if (!ctx.sources.length) {
+      box.innerHTML = `This event returned no <code>settlement_sources</code> entry. ${src(SOURCES.events, "events API")}`;
+      return;
+    }
+    box.innerHTML = `<strong>Where this market is decided</strong> — Kalshi's settlement sources for this event: ` +
+      ctx.sources.slice(0, 10).map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${esc(s.name || s.url)} ↗</a>`).join(" · ") +
+      `. ${src(SOURCES.events, "events API")}`;
+  } catch (e) {
+    const box = document.querySelector("#chart-sources");
+    if (box) box.innerHTML = `Settlement sources unavailable: ${esc(e.message)}.`;
+  }
 }
 
 function stopLive() {
@@ -266,7 +345,7 @@ function drawWindowDebounced() {
   resizeT = setTimeout(() => {
     if (state.candles) {
       renderChart([{ key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: state.candles.points }],
-        currentWindow(), state.candles);
+        currentWindow(), state.candles, { markers: state.jumps || [] });
     }
   }, 150);
 }

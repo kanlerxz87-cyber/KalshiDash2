@@ -38,9 +38,9 @@
     <h1>Live alerts</h1>
     <p>
       Two scrolling feeds. The <strong>All alerts</strong> feed shows every swing of
-      <strong>$0.10 or more</strong> in the last traded price of an open market in the five topics, between two
-      consecutive polls of the Kalshi demo API. The <strong>High-ROI watch</strong> feed keeps only the swings that pass a
-      transparent rule set. Simulated strategies run automatically on both feeds. No orders are placed.
+      <strong>$0.10 or more</strong> in the last traded price of an open market in the five topics. The
+      <strong>High-ROI watch</strong> feed keeps only the swings that pass a transparent rule set, ranked by a
+      tradeability score. Simulated strategies run automatically on both feeds. No orders are placed.
     </p>
   </div>
 
@@ -49,7 +49,14 @@
     <ul>
       <li><strong>Demo data, mock funds.</strong> Prices come from the Kalshi demo environment, not production.</li>
       <li><strong>The High-ROI watch is a rule set, not a model.</strong> It checks liquidity and price band. It forecasts nothing, and no return is verified. Replace the rules in <code>assets/js/alerts-core.js</code> with your own model.</li>
+      <li><strong>Two comparisons produce a swing.</strong> One is between two consecutive polls of this page;
+        the other is against the exchange's own <code>previous_price_dollars</code>, which is available on the first
+        poll and is the exchange's reference rather than this page's. Every message says which one produced it.</li>
       <li><strong>Polling only runs while this page is open.</strong> A move that happens while the tab is closed is not recorded.</li>
+      <li><strong>The score ranks tradability, not expected return.</strong> It adds points for liquidity, spread,
+        depth at the touch, price band, time to close and recent volume. It is not a probability model and it
+        forecasts nothing — the hit rate of each signal is measured on settled demo markets on the
+        <a href="simulator.html">Strategy Tester</a> page.</li>
       <li><strong>Settlement sources are not causes.</strong> They are the sources the market says it settles from, shown so you can check news on the same subject. They do not prove why a price moved.</li>
     </ul>
   </div>
@@ -99,6 +106,36 @@
   </div>
 
   <div class="card" style="margin-bottom:16px">
+    <h2>Every recorded swing — table view</h2>
+    <p class="sub">
+      The same events as the feeds, as a table you can read at a glance. Newest first, up to the last 120.
+      Every row links the official API response that produced the prices.
+    </p>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <span id="alert-count" class="pill idle">0 rows</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Time (UTC)</th><th>Topic</th><th>Market</th>
+          <th class="num">From</th><th class="num">To</th><th class="num">Δ</th>
+          <th>Comparison</th><th class="num">Screen</th><th>High-ROI rules</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="alert-rows"><tr><td colspan="10"><div class="empty">Waiting for the first poll…</div></td></tr></tbody>
+      </table>
+      <div class="table-note">
+        <strong>Comparison</strong> says which test produced the row: <em>between two polls</em> (this page's own
+        readings) or <em>exchange previous price</em> (<code>previous_price_dollars</code> against
+        <code>last_price_dollars</code>, both from
+        <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>).
+        <strong>Screen</strong> is the tradeability score out of 100 — a ranking, not a probability.
+        <strong>High-ROI rules</strong> is the four-rule gate; the details are on the watch feed.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
     <h2>Automated paper strategies</h2>
     <p class="sub">
       Each alert opens one simulated 1-contract trade per strategy. <strong>Follow</strong> buys the side the move went
@@ -143,7 +180,8 @@
   <div class="card">
     <h2>Rules, parameters and official sources</h2>
     <dl class="kv">
-      <dt>Price used for alerts</dt><dd>Last traded price, <code>last_price_dollars</code> (Get Markets). Compared between two consecutive polls.</dd>
+      <dt>Price used for alerts</dt><dd>Last traded price, <code>last_price_dollars</code> (Get Markets). Compared between two consecutive polls, and against the exchange's own <code>previous_price_dollars</code> (Get Market).</dd>
+      <dt>Tradeability score</dt><dd>Six documented fields — open interest, spread, depth at the touch, price band, time to close, 24-hour volume — summed to 100. A ranking aid, not a probability and not a forecast.</dd>
       <dt>Alert threshold</dt><dd>|change| ≥ $0.10 (the brief's threshold). Moves that happen inside one poll interval are combined into one change.</dd>
       <dt>Universe</dt><dd>Top 30 open markets per topic by money traded (volume × last price), refreshed every 10 minutes. Coverage is partial by design.</dd>
       <dt>Batch reads</dt><dd>Comma-separated <code>tickers</code> on <code>GET /markets</code>, 25 tickers per request.</dd>

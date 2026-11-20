@@ -98,6 +98,7 @@ export const PAGES = [
   { href: "resolved.html", label: "Resolved" },
   { href: "portfolio.html", label: "Portfolio" },
   { href: "strategies.html", label: "Strategies" },
+  { href: "simulator.html", label: "Simulator" },
   { href: "suggestions.html", label: "Suggestions" },
   { href: "questions.html", label: "Questions" },
   { href: "verification.html", label: "Verification" },
@@ -288,6 +289,39 @@ export function lineChart(canvas, series, opts = {}) {
         ctx.beginPath(); ctx.arc(X(p.t), Y(p.y), 2.2, 0, Math.PI * 2); ctx.fill();
       }
     }
+  }
+
+  // jump markers — e.g. the ≥$0.10 swings detected inside a candle series.
+  // Additive: when `opts.markers` is absent the chart is unchanged.
+  if (Array.isArray(opts.markers) && opts.markers.length) {
+    ctx.save();
+    ctx.font = "10.5px ui-monospace, monospace";
+    for (const mk of opts.markers) {
+      if (!Number.isFinite(mk.t)) continue;
+      const x = X(mk.t);
+      if (x < pad.l - 1 || x > pad.l + w + 1) continue;
+      ctx.strokeStyle = mk.dir === "down" ? "#a3231b" : "#0a6b45";
+      ctx.globalAlpha = 0.65;
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, pad.t);
+      ctx.lineTo(x, pad.t + h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      if (mk.y !== null && mk.y !== undefined && Number.isFinite(mk.y)) {
+        const y = Y(mk.y);
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   // last-value label

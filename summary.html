@@ -41,6 +41,11 @@
           <tr><td>Alert on contract moves ≥ $0.10 and test strategies</td><td><a href="alerts.html">Live alerts</a> — All alerts, High-ROI watch, four paper strategies</td><td><span class="tag warn">paper only; model/costs unverified (A1, A5)</span></td></tr>
           <tr><td>Live interactive price graph, x = time, y = price, s/m/h windows</td><td>Category pages — seven windows, with the seconds limitation stated</td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Liquidity: contracts available at a given price</td><td>Category pages — order-book depth with notional value</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Live alerting on swings ≥ $0.10 in either direction, as a scrolling chat</td><td><a href="alerts.html">Live alerts</a> — one chat for every qualifying swing, detected two ways and labelled with the comparison that produced it</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>A second chat filtered to the events the model likes</td><td><a href="alerts.html">Live alerts</a> — High-ROI watch chat, ranked by a transparent tradeability screen</td><td><span class="tag warn">screen, not an edge (F13)</span></td></tr>
+          <tr><td>Every swing readable at a glance, with the official call behind each price</td><td><a href="alerts.html">Live alerts</a> — table view of both feeds, one source link per row</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Automated simulated trades to test different strategies</td><td><a href="simulator.html">Strategy tester</a> — replayed over official candles, scored against real settlement values</td><td><span class="tag yes">done</span></td></tr>
+          <tr><td>Charts showing the events and source links behind a ≥ $0.10 jump</td><td><a href="alerts.html">Alerts</a> + category charts — jump markers and Kalshi's own <code>settlement_sources</code></td><td><span class="tag warn">sources, not causes (F14)</span></td></tr>
           <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td></tr>
           <tr><td>Every row sourced; unconfirmable values blank and flagged</td><td><a href="verification.html">Verification</a> · <a href="flagged.html">Flagged</a></td><td><span class="tag yes">done</span></td></tr>
@@ -81,6 +86,13 @@
         <li><strong>The gas topic was empty</strong> in the demo environment's 1,000-event scan on 2026-11-20 (F4).</li>
         <li><strong>Streaming is unconfirmed</strong> in a browser; configurable polling is used (F10).</li>
         <li><strong>The public rate-limit budget is unpublished</strong> (F3).</li>
+        <li><strong>The model shortlist is a screen, not a validated edge.</strong> Its hit rate is now
+          measured on settled demo markets, but that sample is small and the demo environment is not
+          production (F13).</li>
+        <li><strong>Causal attribution for a price jump is not available</strong> from official sources:
+          Kalshi publishes where a market is <em>decided</em>, not what moved its price (F14).</li>
+        <li><strong>Simulated trades carry no fees, spread or slippage</strong>, so the strategy P&amp;L is
+          optimistic by an unknown amount (F15).</li>
         <li><strong>A test-only dependency has a moderate advisory</strong>; see A10. The static site has no runtime npm dependency.</li>
       </ul>
     </div>
@@ -182,19 +194,34 @@
 </main>
 
 <script type="module">
-import { mountChrome, $ } from "./assets/js/ui.js";
+import { mountChrome, $, esc } from "./assets/js/ui.js";
+import { CLAIMS } from "./assets/js/claims.js";
 mountChrome({ page: "summary.html", title: "Executive summary" });
 
 /* Counts are derived from the registers themselves so this summary cannot drift
- * out of step with the Verification, Flagged and Questions pages. */
-const CLAIMS = 49, VERIFIED = 43, OPEN_FLAGS = 9, REQUIREMENTS = 11, EXECUTED_ORDERS = 0;
+ * out of step with the Verification and Flagged pages: the claim list is the
+ * same array the Verification page renders, and the flag count is read from
+ * the Flagged page's own markup. */
+const VERIFIED = CLAIMS.filter(c => c.status === "verified").length;
+const PARTIAL = CLAIMS.filter(c => c.status === "partially verified").length;
+const UNVERIFIED = CLAIMS.filter(c => c.status === "unverified").length;
+const REQUIREMENTS = 15, EXECUTED_ORDERS = 0;
+
+let OPEN_FLAGS = "—";
+try {
+  const res = await fetch("flagged.html");
+  const html = await res.text();
+  const open = [...html.matchAll(/<h3>(F\d+)[^<]*<span class="tag warn">open<\/span>/g)].length;
+  const total = [...html.matchAll(/<div class="irregularity" id="(F\d+)"/g)].length;
+  OPEN_FLAGS = open || total;
+} catch { /* the summary still renders without the cross-page count */ }
 
 $("#headline").innerHTML = [
   { k: "Requirement areas", v: REQUIREMENTS, m: "all addressed (table above)" },
-  { k: "Claims verified", v: `${VERIFIED} / ${CLAIMS}`, m: "official source + live check" },
+  { k: "Claims verified", v: `${VERIFIED} / ${CLAIMS}`, m: `${PARTIAL} partial · ${UNVERIFIED} unverified` },
   { k: "Open flags", v: OPEN_FLAGS, m: "on the Flagged page" },
   { k: "Orders executed", v: EXECUTED_ORDERS, m: "no key available — F1" }
-].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
+].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 </script>
 </body>
 </html>

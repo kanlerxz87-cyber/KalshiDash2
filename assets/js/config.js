@@ -31,6 +31,9 @@ export const SOURCES = {
   markets:        "https://docs.kalshi.com/api-reference/market/get-markets",
   events:         "https://docs.kalshi.com/api-reference/events/get-events",
   series:         "https://docs.kalshi.com/api-reference/market/get-series-list",
+  getSeries:      "https://docs.kalshi.com/api-reference/market/get-series",
+  exchangeStatus: "https://docs.kalshi.com/api-reference/exchange/get-exchange-status",
+  marketSettlementFields: "https://docs.kalshi.com/api-reference/market/get-market",
   balance:        "https://docs.kalshi.com/api-reference/portfolio/get-balance",
   fills:          "https://docs.kalshi.com/api-reference/portfolio/get-fills",
   positions:      "https://docs.kalshi.com/api-reference/portfolio/get-positions",
@@ -159,4 +162,163 @@ export const RANKING_MODES = [
     formula: "Σ over markets of open_interest_fp" },
   { key: "volume", label: "Most contracts traded",
     formula: "Σ over markets of volume_fp" }
+];
+
+/* ---------------------------------------------------------------------------
+ * Live alert engine.
+ *
+ * The brief asks for alerts on "sudden swings in contract prices greater than
+ * or equal to $0.10 in either direction". Kalshi publishes no "swing" field,
+ * so the test is built from two documented fields on every market:
+ *
+ *   previous_price_dollars  — the price before the exchange's last change
+ *   last_price_dollars      — the most recent trade price
+ *
+ * A "swing" is |last − previous| >= threshold. The same test is also applied
+ * to the difference between two consecutive prices this page observed itself,
+ * which catches moves the exchange's own reference has not yet rolled over.
+ * Both variants are labelled in the feed so the reader always knows which
+ * comparison produced the number.
+ * (https://docs.kalshi.com/api-reference/market/get-market)
+ * ------------------------------------------------------------------------- */
+export const ALERT = {
+  defaultThreshold: 0.10,
+  minThreshold: 0.02,
+  maxThreshold: 0.50,
+  defaultPollMs: 15000,
+  minPollMs: 5000,
+  maxPollMs: 120000,
+  maxMessages: 250,
+  /* Maximum open events scanned per poll. The demo exchange exposes tens of
+   * thousands of events; scanning all of them every few seconds would be
+   * abusive against a public endpoint that has its own, unpublished budget
+   * (https://docs.kalshi.com/getting_started/rate_limits). */
+  maxEventsPerPoll: 6
+};
+
+/* ---------------------------------------------------------------------------
+ * The "model" behind the selective chat.
+ *
+ * This is a TRADEABILITY + MOMENTUM SCREEN, not a probability model. It adds
+ * up points from named components so a reader can see exactly why a market was
+ * surfaced, and it deliberately makes no claim about expected return. The
+ * screen is scored against settled demo markets on the Strategy Tester page,
+ * where the measured hit rate is reported next to the market-implied price.
+ *
+ * Every input is a documented market field:
+ *   open_interest_fp, yes_bid_dollars, yes_ask_dollars,
+ *   yes_bid_size_fp, yes_ask_size_fp, volume_24h_fp, close_time, last_price_dollars
+ * (https://docs.kalshi.com/api-reference/market/get-market)
+ * ------------------------------------------------------------------------- */
+export const TRADE_SCREEN = {
+  passScore: 55,
+  components: [
+    {
+      key: "liquidity",
+      label: "Open interest (contracts outstanding)",
+      max: 25,
+      field: "open_interest_fp",
+      rule: ">= 1,000 → 25 · >= 250 → 18 · >= 50 → 10 · else 0",
+      score: v => v >= 1000 ? 25 : v >= 250 ? 18 : v >= 50 ? 10 : 0
+    },
+    {
+      key: "spread",
+      label: "Bid–ask spread (cost of getting in)",
+      max: 20,
+      field: "yes_ask_dollars − yes_bid_dollars",
+      rule: "<= 0.02 → 20 · <= 0.05 → 12 · <= 0.10 → 5 · else 0",
+      score: v => v <= 0.02 ? 20 : v <= 0.05 ? 12 : v <= 0.10 ? 5 : 0
+    },
+    {
+      key: "depth",
+      label: "Size resting at the touch (bid + ask size)",
+      max: 15,
+      field: "yes_bid_size_fp + yes_ask_size_fp",
+      rule: ">= 100 → 15 · >= 20 → 8 · else 0",
+      score: v => v >= 100 ? 15 : v >= 20 ? 8 : 0
+    },
+    {
+      key: "price",
+      label: "Price not at a lottery extreme",
+      max: 15,
+      field: "last_price_dollars",
+      rule: "0.10 ≤ price ≤ 0.90 → 15 · else 0",
+      score: v => v >= 0.10 && v <= 0.90 ? 15 : 0
+    },
+    {
+      key: "time",
+      label: "Time left before close",
+      max: 15,
+      field: "close_time",
+      rule: ">= 6h → 15 · >= 1h → 8 · else 0",
+      score: hours => hours >= 6 ? 15 : hours >= 1 ? 8 : 0
+    },
+    {
+      key: "activity",
+      label: "Traded volume in the last 24h",
+      max: 10,
+      field: "volume_24h_fp",
+      rule: ">= 100 → 10 · >= 10 → 6 · > 0 → 3 · else 0",
+      score: v => v >= 100 ? 10 : v >= 10 ? 6 : v > 0 ? 3 : 0
+    }
+  ]
+};
+
+/* ---------------------------------------------------------------------------
+ * Simulated-trading strategies.
+ *
+ * Each one is a rule that can be replayed over official 1-minute candlesticks
+ * and scored against the market's own settlement value
+ * (https://docs.kalshi.com/api-reference/market/get-market). `signal` returns
+ * the price at which the rule wants to take a position, or null.
+ * ------------------------------------------------------------------------- */
+export const STRATEGIES = [
+  {
+    key: "momentum",
+    name: "Momentum continuation",
+    rule: "Buy YES when the 1-minute close rises ≥ $0.10 versus the previous close",
+    side: "yes",
+    hold: "settlement",
+    signal: (c, i) => (i > 0 && c.close !== null && c.prevClose !== null && c.close - c.prevClose >= 0.10) ? c.close : null
+  },
+  {
+    key: "dip",
+    name: "Buy the dip",
+    rule: "Buy YES when the 1-minute close falls ≥ $0.10 versus the previous close",
+    side: "yes",
+    hold: "settlement",
+    signal: (c, i) => (i > 0 && c.close !== null && c.prevClose !== null && c.prevClose - c.close >= 0.10) ? c.close : null
+  },
+  {
+    key: "fade",
+    name: "Fade the extreme",
+    rule: "Buy NO when the 1-minute close is ≥ $0.90",
+    side: "no",
+    hold: "settlement",
+    signal: c => (c.close !== null && c.close >= 0.90) ? c.close : null
+  },
+  {
+    key: "confirm",
+    name: "Breakout with volume confirmation",
+    rule: "Buy YES on a ≥ $0.10 up-move whose period volume is above the market's median period volume",
+    side: "yes",
+    hold: "settlement",
+    signal: null /* computed in simulator.js — needs the market's volume series */
+  },
+  {
+    key: "scalp",
+    name: "Round-trip scalper",
+    rule: "Buy YES after a ≥ $0.10 up-move, sell back at entry + $0.10; otherwise hold to settlement",
+    side: "yes",
+    hold: "roundtrip",
+    signal: (c, i) => (i > 0 && c.close !== null && c.prevClose !== null && c.close - c.prevClose >= 0.10) ? c.close : null
+  },
+  {
+    key: "flat",
+    name: "Never trade (control)",
+    rule: "No position — a control row that must return zero trades and zero P&L",
+    side: "yes",
+    hold: "settlement",
+    signal: () => null
+  }
 ];

@@ -18,8 +18,8 @@ import { mountChrome, esc, $, pill, int, src, emptyRow } from "./ui.js";
 import { TOPICS, DEMO } from "./config.js";
 import { api, getAll, classifyEvent } from "./market.js";
 import {
-  THRESHOLD, STRATEGIES, detectMoves, watchCheck, planTrades, updateTrade,
-  summarize, pickUniverse, chunk, num
+  THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
+  watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num
 } from "./alerts-core.js";
 
 const SIM_KEY = "kalshiDash.sim.v1";
@@ -54,7 +54,8 @@ const S = {
   lastPollAt: null,
   lastError: null,
   topic: "all",
-  watching: 0
+  watching: 0,
+  refSeen: new Set()        // (ticker, from, to) already posted as a reference swing
 };
 
 const TOPIC_LABEL = Object.fromEntries(TOPICS.map(t => [t.key, t.label]));
@@ -170,12 +171,28 @@ async function pollOnce() {
 
   const { alerts, next } = detectMoves(S.prev, [...fresh.values()], { threshold: THRESHOLD, at });
   S.prev = next;
+
+  /* Two independent comparisons produce a swing:
+     (a) between two polls of this page, and
+     (b) against the exchange's own previous_price_dollars, which is available
+         on the first poll and is the exchange's reference rather than ours.
+     Each alert records which comparison produced it. */
+  const reference = detectReferenceSwings([...fresh.values()], { threshold: THRESHOLD, at })
+    .filter(s => {
+      const key = `${s.ticker}|${s.from}|${s.to}`;
+      if (S.refSeen.has(key)) return false;
+      S.refSeen.add(key);
+      if (S.refSeen.size > 5000) S.refSeen = new Set([...S.refSeen].slice(-2000));
+      return true;
+    });
+  const allAlerts = mergeAlerts(alerts, reference);
+
   S.polls += 1;
   S.lastPollAt = at;
   S.watching = tickers.length;
 
-  for (const a of alerts) S.watch.set(a.id, watchCheck(a));
-  const plan = planTrades(alerts, S.trades, { watch: S.watch, at });
+  for (const a of allAlerts) S.watch.set(a.id, watchCheck(a));
+  const plan = planTrades(allAlerts, S.trades, { watch: S.watch, at });
   for (const [k, v] of Object.entries(plan.skipped)) S.skipped[k] = (S.skipped[k] || 0) + v;
 
   // Trades opened on this poll are marked with this poll's quotes straight away.
@@ -184,9 +201,9 @@ async function pollOnce() {
   S.trades = capTrades([...updated, ...created]);
   saveTrades();
 
-  S.alerts.push(...alerts);
+  S.alerts.push(...allAlerts);
   if (S.alerts.length > FEED_CAP) S.alerts = S.alerts.slice(-FEED_CAP);
-  for (const a of alerts) ensureEventLinks(a.eventTicker);
+  for (const a of allAlerts) ensureEventLinks(a.eventTicker);
 }
 
 /* Settlement sources for the event behind an alert, read once per event. */
@@ -272,6 +289,8 @@ function msgHTML(a, watchFeed) {
         <span class="tag">${esc(topicLabel(a.topic))}</span>
         ${watchFeed ? `<span class="tag watch">High-ROI watch</span>` : ""}
         <span class="tag ${up ? "yes" : "no"}">${up ? "▲ up" : "▼ down"}</span>
+        <span class="tag">${esc(a.basis || "between two polls")}</span>
+        ${a.screen ? `<span class="tag watch">screen ${a.screen.score}/${a.screen.max}</span>` : ""}
       </div>
       <div class="ttl">${esc(a.title || a.ticker)}</div>
       <div class="body">
@@ -302,7 +321,8 @@ function renderFeed(el, items, watchFeed, emptyText) {
 
 function renderFeeds() {
   const all = feedItems();
-  const watch = feedItems(a => (S.watch.get(a.id) || {}).pass);
+  const watch = feedItems(a => (S.watch.get(a.id) || {}).pass)
+    .sort((a, b) => ((b.screen?.score ?? 0) - (a.screen?.score ?? 0)) || (b.at - a.at));
   const watching = S.watching ? `Watching ${S.watching} markets.` : "";
   renderFeed($("#feed-all"), all, false,
     S.polls ? `No move of $0.10 or more yet. ${watching}` : "Waiting for the first poll…");
@@ -331,6 +351,42 @@ function renderUniverseNote() {
   const per = TOPICS.map(t => `${t.label} ${u.perTopic[t.key] || 0}`).join(" · ");
   el.innerHTML = `Scanned ${int(u.scanned)} open events (${int(u.matchedEvents)} in the five topics; ${int(u.liveMarkets)} live markets). ` +
     `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}`;
+}
+
+/* The same swings as the feeds, as a table. Every row links the official API
+ * response that produced the prices. */
+function renderAlertTable() {
+  const body = $("#alert-rows");
+  if (!body) return;
+  const list = [...S.alerts].reverse().slice(0, 120);
+  if (!list.length) {
+    body.innerHTML = emptyRow(9, "No swing of $0.10 or more recorded yet.");
+    $("#alert-count").textContent = "0 rows";
+    return;
+  }
+  $("#alert-count").textContent = `${list.length} of ${S.alerts.length} recorded`;
+  body.innerHTML = list.map(a => {
+    const w = S.watch.get(a.id) || {};
+    const up = a.direction === "up";
+    const srcs = [
+      src(`${DEMO.rest}/markets/${a.ticker}`, "market"),
+      src(`${DEMO.rest}/events/${a.eventTicker}`, "event")
+    ];
+    return `<tr>
+      <td class="small nowrap">${hms(a.at)} UTC</td>
+      <td><span class="tag">${esc(topicLabel(a.topic))}</span></td>
+      <td class="small">${esc(a.title || a.ticker)}<div class="small muted mono">${esc(a.ticker)}</div></td>
+      <td class="num">${px(a.from)}</td>
+      <td class="num">${px(a.to)}</td>
+      <td class="num ${up ? "pos" : "neg"}">${a.delta > 0 ? "+" : "\u2212"}$${Math.abs(a.delta).toFixed(2)}</td>
+      <td class="small">${esc(a.basis || "between two polls")}</td>
+      <td class="num">${a.screen ? `${a.screen.score}/${a.screen.max}` : `<span class="unv">n/a</span>`}</td>
+      <td>${w.pass === undefined ? `<span class="unv">n/a</span>`
+        : w.pass ? `<span class="tag watch">pass</span>`
+        : `<span class="tag warn">fails ${esc((w.checks || []).filter(c => !c.ok).length)} rule(s)</span>`}</td>
+      <td class="small nowrap">${srcs.join(" ")}</td>
+    </tr>`;
+  }).join("");
 }
 
 function renderSim() {
@@ -385,6 +441,7 @@ function renderAll() {
   renderStatus();
   renderUniverseNote();
   renderFeeds();
+  renderAlertTable();
   renderSim();
   renderTrades();
 }
