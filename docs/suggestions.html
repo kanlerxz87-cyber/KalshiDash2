@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suggestions — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
+<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
+<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html" class="active">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<main>
+<h1>Suggestions — Review Before Anything Is Implemented</h1>
+<p class="muted">Each suggestion has an effort, risk, and a <b>decision gate</b>. Nothing below is implemented until you choose a path. Mark your pick with the radio button; picks are stored only in this browser.</p>
+<div class="card"><table><thead><tr><th>#</th><th>Suggestion</th><th>Why it helps decisions</th><th>Effort / Risk</th><th>Decision gate</th><th>Pick</th></tr></thead><tbody id="rows"></tbody></table></div>
+</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<script>
+const SUGGESTIONS=[
+["S1","WebSocket live ticks (wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2) instead of 2s polling","Real-time prices; less API load; seconds chart becomes truly live","Medium / Low","Approve WS auth approach (needs API key) — see Q3",""],
+["S2","Server-side proxy + scheduler that snapshots markets every minute to a data file","History survives page reloads; enables backtests; works without browser CORS","Medium / Low","Approve hosting for the proxy (GitHub Actions vs. own server) — see Q4",""],
+["S3","Ed25519 key support in-browser (WebCrypto does not support Ed25519 signing)","New Kalshi keys default to Ed25519; RSA-only blocks newer keys","Medium / Medium","Confirm key type you will create — see Q2",""],
+["S4","Outcome-joined P&L: join fills to resolved markets for realized profit per strategy","Turns 'activity' into actual strategy performance","Medium / Low","Approve after S2 (needs stored history)",""],
+["S5","Alerts: price moves >5¢, new high-dollar events, resolutions","Catch decisions in time without watching the screen","Low / Low","Choose channels (browser notifications vs. email)",""],
+["S6","Risk limits: max contracts per market, max daily spend, kill switch","Prevents accidental over-exposure in demo (and later, real) trading","Low / Low","Set numeric limits — see Q5",""],
+["S7","Topic taxonomy from /series categories instead of keywords","Fewer misclassified markets than keyword matching","Low / Low","Review keyword list on Questions page",""],
+["S8","Export CSV of fills, positions, and resolved outcomes","Offline analysis in spreadsheets; audit trail","Low / Low","Approve export format",""]];
+const picks=JSON.parse(localStorage.getItem("kalshi_picks")||"{}");
+$("#rows").innerHTML=SUGGESTIONS.map(([id,s,why,eff,gate])=>`<tr><td><b>${id}</b></td><td>${s}</td><td>${why}</td><td>${eff}</td><td>${gate}</td>
+<td><label style="margin:0"><input type="radio" name="pick" value="${id}" ${picks[id]?"checked":""}> Pick</label></td></tr>`).join("");
+$$("input[name=pick]").forEach(r=>r.onchange=()=>{ const p={}; p[r.value]=true; localStorage.setItem("kalshi_picks",JSON.stringify(p)); });
+</script></body></html>
