@@ -72,12 +72,18 @@ jobs:
 
           probe () {
             local url="$1" needle="$2" label="$3"
-            if curl -s -L --max-time 20 "$url" | grep -qF -- "$needle"; then
+            local body
+            body=$(mktemp)
+            # Fetch to a file first: `curl | grep -q` under `pipefail` fails even
+            # on a match, because grep -q exits early and curl dies of SIGPIPE.
+            curl -s -L --max-time 20 "$url" -o "$body" || true
+            if grep -qF -- "$needle" "$body"; then
               echo "- PASS  $label  (\`$needle\`)" >> "$OUT"
             else
               echo "- FAIL  $label  (missing \`$needle\`)" >> "$OUT"
               fail=$((fail+1))
             fi
+            rm -f "$body"
           }
 
           probe "$BASE/" "Live events by topic" "landing board heading"
