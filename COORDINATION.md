@@ -622,3 +622,28 @@ final integration**.
 - PR: (created below) — "integration: verify canonical alerting engine; close R1 (CI link check covers root site)".
 - Merge: (recorded after merge).
 - GitHub Pages deploy: (recorded after merge).
+
+---
+
+## Session `b6799ff3` — final integration record (branch `arena/b6799ff3-kalshidash2`, 2026-11-20)
+
+Claim commit `00e9c7e` (13:28 UTC) declared four tasks. Two were superseded mid-flight by parallel-claim races (see Flagged R2), two are done. Nothing any other session wrote was overwritten.
+
+| # | Task | Final status | Evidence |
+|---|------|--------------|----------|
+| C1 | Live swing alerts (≥ $0.10, two scrolling feeds, resolution tracking, catalyst links) | **superseded** by `4208a2dd`'s canonical implementation (PR #19) | This session's duplicate `alerts.html`/`assets/js/alerts.js` were discarded at rebase (`git rebase --skip` of `dcdcea4`) and again when the branch was rebuilt on `main`. `4208a2dd`'s files were never modified by this session. |
+| C2 | Automated simulated trades + strategy categorisation | **superseded** by `869f5339`'s strategy tester (task S2: `simulator.html`, `assets/js/simulator.js` — replay over official candles, scored against real settlement values) | This session's `sim.html`/`assets/js/sim.js` lab (reversion-tp / longshot / control-random + categorised ledger + CSV) was discarded when the branch was rebuilt on `main` rather than ship a third simulation implementation. Self-test `tools/test_alerts_sim.mjs` (20 checks) and `package.json` were discarded with it; `869f5339`'s simulator and `4208a2dd`'s paper strategies were never modified. |
+| C3 | Site integration + final integration (link check, PR, merge, Pages confirm, records) | done | Verified on the merged tree 2026-11-20: `python3 tools/check_site_links.py .` — all pages pass; `node --test tests/alerts-core.test.mjs` 18/18; `node evidence/auth-sign-test.mjs` 6/6; `python3 -m unittest discover -s tools -p 'test_*.py'` 2/2; `node --check` on touched modules. Gaps this session planned (chart jump markers, summary/alerts coverage, flagged limitations) were found already implemented by parallel sessions at integration time (`category.js` `detectJumps`/`renderJumps`, `summary.html` rows, Flagged F13–F16) — no duplicate work shipped. |
+| C4 | README Pages-source contradiction (logged by `ff79cca7`) | done | The stale duplicated tail was removed by a parallel session; this session fixed the remaining stale wording in the top note: `pages.yml` is manual-only since PR #17 (verified against `.github/workflows/pages.yml` on `main`), `docs/` is reachable at `/docs/` via the legacy `main:/` build. |
+
+### Request log (session `b6799ff3` → task S2 owner `869f5339`, per the file-scope rules)
+
+Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned by `869f5339` (S2 `in progress`). Three additions from this session's lab design that the strategy tester does not yet have — request to add or explicitly decline:
+
+1. **CSV export of the simulated trade ledger** (brief: "analyze the results of the trades"; S8 in `SUGGESTIONS.md` lists CSV export awaiting a decision).
+2. **A random control-baseline strategy** scored alongside the real ones — without it, no strategy's outperformance can be distinguished from chance.
+3. **Rollups by direction (YES/NO) and by topic** alongside the per-strategy aggregate, since the brief asks to "categorize trades and create strategies based on the type of trade".
+
+### Conflict log additions (session `b6799ff3`)
+
+- 2026-11-20 — Two rebases onto advancing `main` hit ADD/ADD and content conflicts against sessions `4208a2dd` (PR #19), `5c00f4dd` (PRs #20/#21), `869f5339` (S2), and `d379bb35` (PR #24). Resolutions, in every case, by keeping the complete `main` side and dropping this session's duplicates: `COORDINATION.md` (main board kept + this session's records appended), `alerts.html`/`assets/js/alerts.js` (canonical kept), `assets/js/ui.js` PAGES (canonical `Live alerts` + `Simulator` entries kept; this session's entries dropped as redundant), `sim.html`/`assets/js/sim.js` (dropped in favour of `simulator.html`). No file of any other session was discarded or overwritten. One force-with-lease push to this session's own branch updated it to the rebased history.
