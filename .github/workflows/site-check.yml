@@ -24,7 +24,11 @@ jobs:
         run: python -m unittest discover -s tools -p 'test_*.py'
       - name: Validate local links and anchors in the published site
         run: python tools/check_site_links.py .
+      - name: Audit that every published data row carries an official source
+        run: python tools/check_row_sources.py .
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
+      - name: Simulated-trade engine unit tests
+        run: node --test tests/simulator-core.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
