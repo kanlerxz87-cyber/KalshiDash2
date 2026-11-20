@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-20T11:10:43Z |
+| Captured (UTC) | 2026-11-20T11:55:39Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `b3e2c4e84afdd65763668fc8d3a1daa4e8a5d041` |
+| Commit | `2f884e379b872825dfff6b9493ab6de62164ba78` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -19,7 +19,7 @@
 | `GET /markets/KXDEMOFUTHOURLY-26NOV20H12-UP/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /events/KXDEMOFUTHOURLY-26NOV20H12` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV20H12-UP/candlesticks?start_ts=1795086644&end_ts=1795173044&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV20H12-UP/candlesticks?start_ts=1795089339&end_ts=1795175739&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
 **Resolved ids used above:** market `KXDEMOFUTHOURLY-26NOV20H12-UP` → event `KXDEMOFUTHOURLY-26NOV20H12` → series `KXDEMOFUTHOURLY`
 
