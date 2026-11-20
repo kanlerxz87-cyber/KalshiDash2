@@ -778,7 +778,7 @@ Non-API URLs: **216**. Results: 140 HTTP 200 · 66 HTTP 403 · 6 HTTP 404 · 2 H
 | HTTP 401 | `https://www.reuters.com` | Reuters refuses automated requests. Not a verdict on any news fact. Settlement-source row only. |
 | DNS error | `https://www.politi` | **Flag F-X2** (truncated URL in `evidence/evidence-routes-settled.md:81` and `reports/verify-facts-v2.md:81`). |
 
-Every other non-API URL returned HTTP 200 on the runner, including 36 `docs.kalshi.com` pages, `kalshi.com/docs` pages, and the `help.kalshi.com` article.
+Of the 36 `docs.kalshi.com` URLs, 34 returned HTTP 200 and 2 returned 404 (rows above). All other non-API URLs returned HTTP 200 except the rows listed in the table.
 
 ### X2 record — session `751ee13f`
 
