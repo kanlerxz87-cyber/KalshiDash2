@@ -761,3 +761,49 @@ commits, any other session may take over the task and note the handoff in the lo
 
 **Handoff recorded.** No file written by another session is discarded: every conflict is resolved by
 keeping `main`'s side plus the other session's unique contribution.
+
+### Final record — session `0c7b1b15` (2026-11-20)
+
+| # | Task | Final status | Evidence |
+|---|------|--------------|----------|
+| T1 | Take over PR #28 and port its unique value onto current `main` without reverting PRs #29–#31 | **done** | `summary.html` now derives all three headline counts from their registers (`CLAIMS.length`, `#requirement-matrix tr`, a `DOMParser` pass over every `.irregularity` card); the "Official basis / evidence" column is on all 28 matrix rows; `tests/dom/summary-dom.mjs` is a new DOM regression. PR #28's `reports/live-site-6/7/8.md` deletions were **rejected** (the published evidence trail is kept) and its `verify-live.yml` was merged with `main`'s report-commit step rather than replacing it. |
+| T2 | Line-by-line verification of every claim, matrix row and source link against official sources | **done** | All 33 `docs.kalshi.com` URLs the site renders were checked against the official index at `docs.kalshi.com/llms.txt` (fetched 2026-11-20). One was broken: `/api-reference/portfolio/get-orders` (the *documentation page* path — the API route `GET /portfolio/orders` was always correct). Fixed to `/api-reference/orders/get-orders`. The `kalshi.com/docs/kalshi-fee-schedule.pdf` and the fee-rounding page were fetched and confirmed. New automated audit `tools/check_row_sources.py` fails any published data row with no official link and no project label. |
+| T3 | Close the request-log items from session `b6799ff3` | **done** | 1. **CSV export** — the simulated trade ledger and the live paper book both export RFC 4180 CSV (`tradesToCsv`, `paperToCsv`), with a `market_source` column linking the exact market response behind each row. 2. **Random control baseline** — a "Random entry (chance baseline)" strategy enters once at a seeded pseudo-random point in the same window, so a rule only shows an edge if it beats that row. Deterministic per ticker, so a re-run reproduces it. 3. **Rollups by direction and topic** — two new tables re-cut the same trades by YES/NO and by topic, scored identically to the scoreboard. |
+| T4 | Final integration | **done** | See the publication record below. |
+
+### Extra work done in this session (beyond the claim)
+
+| Item | Why | Evidence |
+|---|---|---|
+| **F17** — the Get Orders documentation link pointed at a path that does not exist | Found by the link audit | Fixed in `assets/js/config.js`; recorded on the Flagged page |
+| **F18** — the executive summary printed the claim array instead of its count, hard-coded the requirement count, and counted only `F*` flags | Found by reading `summary.html` line by line | Fixed; `tests/dom/summary-dom.mjs` now asserts the rendered numbers |
+| **F19** — a stray `</div>` closed the Flagged page's "Unverified" card early, leaving F13–F16 outside it | Found by a tag-balance pass over every page | Fixed; `tools/check_site_links.py` now also checks tag balance, with three new unit tests |
+| **Official taker fee now deducted from every simulated fill** | F15/A5 were the largest un-modelled cost | The published formula `round_up(M × 0.07 × C × P × (1 − P))` and Kalshi's rounding rules are implemented; the implementation reproduces the worked example in the official fee-rounding page exactly (model fee $0.00363825 → trade fee $0.003639, rounding fee $0.001361, total $0.005). Covered by 7 unit tests. |
+| `SUGGESTIONS.md` reconciled with `suggestions.html` | The two files used conflicting S1–S8 / S1–S16 numbering | `SUGGESTIONS.md` is now a plain-text mirror of the canonical board; the earlier list is mapped across so nothing is dropped |
+| `verify-live.yml` hardened | The two earlier CI bugs (split-bracket abort under `bash -e`; `curl \| grep -q` failing *on a match* under `pipefail`) are now avoided by construction | 18 content assertions, cache-busted probes, artifact upload, and `BASE`/`OUT` overridable so the script was dry-run against a local server (18 PASS, 0 failures) |
+| `verify-alerts.yml` extended | The new simulator tests and the summary DOM test were not running in CI | Now runs both unit suites and both DOM suites |
+
+### Verification performed before the merge
+
+| Check | Command | Result |
+|---|---|---|
+| Alert engine unit tests | `node --test tests/alerts-core.test.mjs` | 18/18 pass |
+| Simulated-trade engine unit tests | `node --test tests/simulator-core.test.mjs` | 18/18 pass |
+| DOM regressions | `(cd tests/dom && npm test)` | 16/16 alert checks; summary: 17 requirement areas, 65/73 claims verified, 21 open / 10 mitigated / 31 total flags, 28 sourced rows, no page errors |
+| Repository link checker + tag balance | `python3 tools/check_site_links.py .` | 34 pages, 0 broken local links |
+| Row-source audit | `python3 tools/check_row_sources.py .` | 17 published pages, every data row sourced |
+| Link-checker unit tests | `python3 -m unittest discover -s tools` | 12/12 pass |
+| Page runtime | `node tools/verify/page-runtime-check.mjs` | 17/17 pages ran clean |
+| Signing self-test | `node evidence/auth-sign-test.mjs` | 6/6 pass |
+| Workflow YAML + shell syntax | `bash -n` on every `run:` block in every workflow | all pass |
+| Live-site verifier dry run | the extracted `verify-live.yml` script against a local server | 18 PASS, 0 failures |
+
+**Nothing under `docs/` was touched** — the earlier site generation stays exactly as it was,
+as the README documents.
+
+### Publication record — session `0c7b1b15` (2026-11-20)
+
+- **PR [#32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32)** — "Final integration: take over PR #28, fix the Get Orders link, the summary counts and the Flagged page nesting; add the chance baseline, rollups, CSV export and the official taker fee" — branch `arena/0c7b1b15-kalshidash2` → `main`.
+- **Merge:** `gh pr merge 32 --merge` succeeded 2026-11-20; merge commit recorded below.
+- **Pages deploy:** confirmed through the Pages API (`status: built`, `build_type: legacy`, source `main:/`) and by an independent runner probing the published pages.
+- **PR #28 was closed, not merged**, because its work was carried forward on top of the PRs that landed after it; leaving both open would have duplicated the summary page. Its author is credited in the PR description.
