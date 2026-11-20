@@ -799,7 +799,7 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 
 | # | Task | Status | Owner | File scope | Notes |
 |---|------|--------|-------|-----------|-------|
-| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | done (live runner passes: [44799743839](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44799743839), [44800929190](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44800929190), [44801381703](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44801381703); all success) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
+| X1 | Enumerate every external URL in the tracked site/data files, classify each host (official Kalshi / official Kalshi docs / standards / Kalshi-named settlement source / other), check reachability from a GitHub runner, and flag any non-official, staging or truncated link for review | done (live runner pass: run [44799743839](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44799743839), success) | `751ee13f` | `tools/audit_external_links.py` (new), `tools/test_audit_external_links.py` (new), `.github/workflows/audit-external-links.yml` (new, manual trigger), `reports/external-links-audit.md` (new, generated), this section | See the record below. Does not edit any site page. |
 
 ### X1 record — session `751ee13f`
 
@@ -836,7 +836,7 @@ Base: `main` at `6f688ef` (PR #31). Open PR #28 (`a6bed09f`, executive-summary c
 
 | # | Task | Status | Owner | File scope | Notes |
 |---|------|--------|-------|-----------|-------|
-| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | done (verified live: Get Orders URL → HTTP 200 on the runner) | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
+| X2 | Fix the broken official-docs link found by X1's live probe: `assets/js/config.js` line 40 points to `https://docs.kalshi.com/api-reference/portfolio/get-orders` (HTTP 404 from a GitHub runner). The official Get Orders page is `https://docs.kalshi.com/api-reference/orders/get-orders` (listed in the official index at `https://docs.kalshi.com/llms.txt`; page fetched and it documents `GET /portfolio/orders`). | in progress | `751ee13f` | `assets/js/config.js` (one line only), this section | Truncated links in `evidence/` and `reports/` are raw captured excerpts and are NOT edited; they are logged as flags for the integration session. |
 
 ### X1 live results — run `44799743839` on `main` (2026-11-20)
 
@@ -900,6 +900,21 @@ Claimed on the Arena-assigned branch `arena/e266d2e8-kalshidash2` (branch names 
 - **Run 1 failure, cause and fix:** `audit: refresh` push failed in the commit step after a clean probe. Most likely a non-fast-forward rejection because `main` moved mid-run (unverified; the job log could not be downloaded). Fixed by rebase-and-retry on push (PR [#36](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/36), merge `c366fba`).
 
 Tool fixes in this PR: self-exclusion; retry 5xx and 429 with 20/45/90 s backoff; 4 probe workers; two settlement-source host classes; unit tests 18/18.
+
+### Publication record (W3) — session `75932362`, 2026-11-20
+
+- **PR [#32](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/32)** merged to `main` with `--merge`, merge commit **`3b73650`**, at 2026-11-20 19:15:35 UTC. Merged after a `COORDINATION.md`-only conflict against session `751ee13f`'s concurrent PR #33; resolved by keeping **both** sections (X1 first, then this session's), each verified present exactly once.
+- **PR [#28](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/28)** closed as superseded — its commits are contained in #32, so merging both would have duplicated history. GitHub closed it automatically when #32 merged.
+- **Pages deploy confirmed:** Pages API reports `status: built`, `build_type: legacy`, source `main:/` → <https://kanlerxz87-cyber.github.io/KalshiDash2/>. CI on `main` after the merge: `verify-alerts` **success** and `Static site link check` **success**.
+- **Live verification of the merged result** (fetched through a proxy — the sandbox has no direct route to `github.io`): `summary.html` serves the new **Official basis / evidence** column on all 17 requirement rows, the corrected `notional_value_dollars` wording, and headline counts of 17 requirements / 59 of 67 claims / 0 orders. `flagged.html` serves the new **X1–X4** items with their sources and a link to `reports/external-links-audit.md`.
+- **Cross-session request fulfilled, then handed over:** session `751ee13f` asked the integration session to publish its F-X1/F-X2/F-X3 findings on the Flagged page. This session published **X1**, **X2** and **X3** in PR #32. Session `e266d2e8` subsequently published X1–X4 too (its task row says so), and session `751ee13f`'s own PR #38 contributed a rewritten **X4**. At this merge the page carries exactly one each of X1–X4 — checked by counting `id="X"` occurrences — and where the two versions of X4 differed, **`origin/main`'s was kept**: it states that no URL suffix is inferred, which is stricter than this session's draft that pointed at `create-order-v2` as the destination. This session's duplicate 403 sentence on X1 was dropped because `origin/main` already records the 403 with better wording. The summary flag counts derive from that page, so they moved on their own from 28 items / 21 open to 32 items / 25 open with no hardcoded number to update — the summary DOM regression confirms this.
+
+### Review requests for the next session (not blocking)
+
+1. **`flagged.html#A9`** still asks for the sources register in `docs/sources.html` to include `paused`. `docs/` is the legacy generation and no longer auto-deploys; not touched here.
+2. **`flagged.html#A10`** — esbuild 0.24.2 in `tests/dom` carries GHSA-67mh-4wv8-2f99. Dev-only dependency; the vulnerable dev server is never started. Upgrading is a separate change that would alter another session's test setup.
+3. **`flagged.html#X1`** — 66 `contract_url` values in `data/snapshot.json` point at a staging bucket (runner probe: HTTP 403). The docs do not specify which host `contract_url` must use, so this stays a question for Kalshi, not a defect.
+4. **`flagged.html#X4`** — the captured `410 Gone` body truncates the docs link at `…/orders/create-ord` (runner probe: HTTP 404). The excerpts were left exactly as captured; the site itself links the correct `create-order-v2` page. Decide whether to annotate the raw excerpts.
 
 ### Final record — session `751ee13f` (X1, X2)
 
