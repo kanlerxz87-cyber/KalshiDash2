@@ -299,5 +299,27 @@ export const CLAIMS = [
     detail: "assets/js/alert-engine.js is the reusable half; alerts.js is the page, simulator.html drives the engine for paper trades",
     source: "https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/js/alert-engine.js",
     ev: "Live: node tools/verify/page-runtime-check.mjs runs alerts.html and simulator.html clean",
+    status: "verified" },
+
+  // ---- documentation-link audit (session 0c7b1b15, 2026-11-20) ----
+  { cat: "docs", claim: "The official documentation index is published as a machine-readable list",
+    detail: "docs.kalshi.com/llms.txt lists every documentation page and its URL, so each source link on this site can be re-checked independently",
+    source: `${D}/llms.txt`,
+    ev: "Fetched 2026-11-20; used to audit all 33 documentation links this site renders",
+    status: "verified" },
+  { cat: "docs", claim: "Get Orders is published under the orders section, not portfolio",
+    detail: "The reference page is /api-reference/orders/get-orders; /api-reference/portfolio/get-orders does not exist",
+    source: `${D}/api-reference/orders/get-orders`,
+    ev: "Fetched 2026-11-20; the portfolio path returns an error, the orders path returns the Get Orders reference",
+    status: "verified", flag: "F17" },
+  { cat: "docs", claim: "All 33 documentation links on this site resolve",
+    detail: "Every docs.kalshi.com URL rendered by the site was checked against the official index after the Get Orders path was corrected",
+    source: `${D}/llms.txt`,
+    ev: "Audit 2026-11-20: 33/33 present in the official index (flagged.html F17)",
+    status: "verified", flag: "F17" },
+  { cat: "repo", claim: "The simulated-trade engine is scored against the market's own settlement value",
+    detail: "A position held to settlement pays settlement_value_dollars (1.0000 for YES, 0.0000 for NO); the chance baseline enters once at a seeded pseudo-random point in the same window",
+    source: `${D}/api-reference/market/get-market`,
+    ev: "Unit-tested in tests/simulator-core.test.mjs; the baseline is deterministic per ticker so a re-run reproduces it",
     status: "verified" }
 ];

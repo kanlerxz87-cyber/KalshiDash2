@@ -128,14 +128,14 @@ const S = [
   },
   {
     id: "S3", cat: "insight", rec: "yes",
-    status: "partly — simulated P&L now measured; account P&L still needs fills",
+    status: "partly — simulated P&L is measured against a chance baseline and rolled up by direction and topic; account P&L still needs fills",
     title: "Pair fills into round trips and compute realised P&L",
     decision: "Which strategy actually makes money?",
-    evidence: "Fills carry count, YES/NO price, fee, role and outcome side — enough to build entries; positions carry realised P&L to reconcile against.",
+    evidence: "Fills carry count, YES/NO price, fee, role and outcome side — enough to build entries; positions carry realised P&L to reconcile against. On the Strategy Tester the same question is answered for simulated trades: a \"Random entry\" chance baseline enters at a seeded pseudo-random point in the same window, and the trades are re-cut into rollups by direction and by topic.",
     missing: "Fills on the account — Q9.",
     cost: "Medium — matching logic plus reconciliation",
     risk: "Partial fills and multi-fill entries can be paired incorrectly if the matching rule is naive",
-    sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`]
+    sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`, `${D}/api-reference/market/get-market`]
   },
   {
     id: "S4", cat: "insight", rec: "yes",

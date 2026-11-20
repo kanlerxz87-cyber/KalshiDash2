@@ -49,8 +49,12 @@ fetched in the browser and never transcribed into the repo.
   per row. Four paper strategies run automatically on the alerts; no orders are placed.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
   simulated trade is scored against the market's own `settlement_value_dollars`, with the
-  assumptions (no fees, no spread, no slippage) stated above the results. Includes a live
-  paper-trading book driven by the same alert engine as the Live alerts page.
+  assumptions (no fees, no spread, no slippage) stated above the results. A **chance
+  baseline** ("Random entry") enters once at a seeded pseudo-random point in the same window,
+  so a rule only shows an edge if it beats that row. The same trades are re-cut into
+  **rollups by direction (YES/NO) and by topic**, and both the backtest ledger and the live
+  paper book export to CSV. Includes a live paper-trading book driven by the same alert engine
+  as the Live alerts page.
 - **Category pages** (gas, elections, culture, crypto, golf) — the live board for that topic,
   a price chart with 10s → 7d windows, markers on every ≥$0.10 jump inside the official candle
   series, and order-book depth showing how many contracts rest at each price.
@@ -112,8 +116,9 @@ python3 -m http.server 8080
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
 node --test tests/alerts-core.test.mjs    # alert engine unit tests
-(cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures
-python3 tools/check_site_links.py .       # local links and anchors in the published site
+node --test tests/simulator-core.test.mjs # simulated-trade engine: baseline, rollups, CSV
+(cd tests/dom && npm ci && npm test)      # alerts page + executive summary, end-to-end with fixtures
+python3 tools/check_site_links.py .       # local links, anchors and HTML tag balance
 python3 -m unittest discover -s tools     # link-checker tests
 ```
 

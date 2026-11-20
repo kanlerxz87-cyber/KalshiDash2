@@ -73,7 +73,7 @@ const stat = name => {
 
 assert.ok(requirements > 0, "requirement matrix has rows");
 assert.equal(stat("Requirement areas").value, String(requirements));
-assert.equal(sourceRows.length, requirementRows.length + 3 + 5,
+assert.equal(sourceRows.length, requirementRows.length + 6 + 5,
   "requirement, defect, and decision matrices are included in the source audit");
 for (const row of sourceRows) {
   const evidence = row.cells[row.cells.length - 1];

@@ -45,7 +45,7 @@
           <tr><td>Live alerting on swings ≥ $0.10 in either direction, as a scrolling chat</td><td><a href="alerts.html">Live alerts</a> — one chat for every qualifying swing, detected two ways and labelled with the comparison that produced it</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>. The $0.10 threshold is the brief's rule.</td></tr>
           <tr><td>A second chat filtered to the events the model likes</td><td><a href="alerts.html">Live alerts</a> — High-ROI watch chat, ranked by a transparent tradeability screen</td><td><span class="tag warn">screen, not an edge (F13)</span></td><td>Project-defined four-rule screen; not a Kalshi model or ROI claim. Input fields: <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>.</td></tr>
           <tr><td>Every swing readable at a glance, with the official call behind each price</td><td><a href="alerts.html">Live alerts</a> — table view of both feeds, one source link per row</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a> · <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a> (`settlement_sources` are reference links, not causes).</td></tr>
-          <tr><td>Automated simulated trades to test different strategies</td><td><a href="simulator.html">Strategy tester</a> — replayed over official candles, scored against real settlement values</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks ↗</a> · <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market Settlement ↗</a> · <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee Schedule ↗</a>. Strategy assumptions remain hypothetical; fees are not applied.</td></tr>
+          <tr><td>Automated simulated trades to test different strategies</td><td><a href="simulator.html">Strategy tester</a> — replayed over official candles, scored against real settlement values, with a chance baseline, rollups by direction and topic, and CSV export</td><td><span class="tag yes">done</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks ↗</a> · <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market Settlement ↗</a> · <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee Schedule ↗</a>. Strategy assumptions remain hypothetical; fees are not applied.</td></tr>
           <tr><td>Charts showing the events and source links behind a ≥ $0.10 jump</td><td><a href="alerts.html">Alerts</a> + category charts — jump markers and Kalshi's own <code>settlement_sources</code></td><td><span class="tag warn">sources, not causes (F14)</span></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks ↗</a> · <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a>. The exchange lists settlement references, not the cause of a price move.</td></tr>
           <tr><td>Suggestions section for decisions before implementation</td><td><a href="suggestions.html">Suggestions</a></td><td><span class="tag yes">done</span></td><td>Project decision-support content; not an exchange fact or recommendation.</td></tr>
           <tr><td>Clear list of questions, information and answers</td><td><a href="questions.html">Questions</a></td><td><span class="tag yes">done</span></td><td>Project requirements and open decisions; underlying facts link to official docs in <a href="verification.html">Verification</a>.</td></tr>
@@ -101,7 +101,7 @@
 
   <div class="card">
     <h2>4 · Irregularities that changed the build</h2>
-    <p class="sub">Three defects were found in the previously published version by re-checking it against the
+    <p class="sub">Six defects were found in the previously published version by re-checking it against the
       documentation line by line. All are recorded on <a href="flagged.html">Flagged</a> with evidence and
       have been fixed in this build.</p>
     <div class="table-wrap">
@@ -128,6 +128,27 @@
             <td>"Gas" matched Las Vegas; "golf" matched a political market</td>
             <td>Kalshi categories plus scoped series/title patterns; explicit empty states</td>
             <td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a> · <a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>; observed classification cases: <a href="flagged.html#F8">Flagged F8</a>.</td>
+          </tr>
+          <tr>
+            <td><strong>F17</strong></td>
+            <td>The Get Orders documentation link pointed at <code>/api-reference/portfolio/get-orders</code></td>
+            <td>The link 404s instead of opening the reference page</td>
+            <td>Corrected to <code>/api-reference/orders/get-orders</code>; all 33 documentation links were then re-checked against the official index</td>
+            <td><a href="https://docs.kalshi.com/api-reference/orders/get-orders" target="_blank" rel="noopener noreferrer">Get Orders ↗</a> · <a href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">documentation index ↗</a>; audit record: <a href="flagged.html#F17">Flagged F17</a>.</td>
+          </tr>
+          <tr>
+            <td><strong>F18</strong></td>
+            <td>The headline interpolated the claim <em>array</em> instead of its length, hard-coded the requirement count, and counted only <code>F*</code> flags</td>
+            <td>"Claims verified" read <code>59 / [object Object],…</code>; the requirement and flag counts were wrong (15 vs 17, 13 vs 21)</td>
+            <td>All three counts are derived from their registers; a DOM regression test asserts the rendered numbers</td>
+            <td>Project regression test <code>tests/dom/summary-dom.mjs</code>, run in CI by <code>verify-alerts</code>; audit record: <a href="flagged.html#F18">Flagged F18</a>.</td>
+          </tr>
+          <tr>
+            <td><strong>F19</strong></td>
+            <td>A stray <code>&lt;/div&gt;</code> closed the Flagged page's "Unverified" card early</td>
+            <td>Four flag entries rendered outside their card, and the page ended with an unmatched tag</td>
+            <td>Tag removed; the repository's link checker now also verifies tag balance on every page</td>
+            <td>Project check <code>tools/check_site_links.py</code> with three unit tests; audit record: <a href="flagged.html#F19">Flagged F19</a>.</td>
           </tr>
         </tbody>
       </table>
