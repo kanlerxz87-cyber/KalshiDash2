@@ -573,3 +573,52 @@ Branch: `arena/5c00f4dd-kalshidash2`, based on `9c99138` (`main`).
 **C4 verification and sources:** Refreshed the root executive summary and `EXECUTIVE_SUMMARY.md` to cover the merged alert and paper-strategy page, source-backed root site, measured limitations, official demo endpoints, and merge/deploy records. Official references linked in the summary include [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), and [Rate Limits](https://docs.kalshi.com/getting_started/rate_limits). The summaries distinguish documented facts from paper-simulation assumptions and open findings.
 
 **README ownership request (not edited):** README still has a lower section that says Pages publishes `docs/`, contradicting its opening statement and the verified GitHub Pages `main:/` setting. PR #14 remains open and is listed by the board as session `b7dfc4d9`'s README/coordination scope (B6). Per the coordination rule, this session did not edit README; please reconcile the stale paragraph in that owner/integration scope. The root site's canonical URL and `main:/` source are documented above.
+
+---
+
+# Session `d379bb35` — verification + final integration (2026-11-20)
+
+Branch: `arena/d379bb35-kalshidash2` (now tracking `main` at `f74825e`). **Appended only**; the board
+above is preserved unchanged.
+
+**Role correction (logged for transparency):** this session began by building a live alerting
+implementation on the assumption the feature was missing. During the first rebase, `main` was found
+to have advanced past this session's base, and **session `4208a2dd` (PR #19) had already delivered the
+brief's alerting requirement** — `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`,
+tests, a CI workflow, and a committed live-API check — and session `5c00f4dd` had explicitly recorded
+that implementation as **canonical** and instructed that it must not be overwritten with a duplicate.
+Per the coordination rules ("keep scopes non-overlapping"; "if a task requires changing a file owned by
+another session, log the request instead of editing it"), this session **discarded its duplicate
+alerting files** (`git reset --hard origin/main`) rather than shipping a conflicting second
+implementation. Its remaining role is **line-by-line verification of the canonical implementation and
+final integration**.
+
+## Tasks
+
+| ID | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|------------|------------------------|------------------------|
+| V1 | Line-by-line review of the canonical alerting implementation (`alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js`) against official docs | done | `d379bb35` | read-only (no changes to the canonical engine) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement) | No bugs found. Confirmed: `last_price_dollars`/`previous_price_dollars`/`no_ask_dollars`/`yes_bid_size_fp`/`yes_ask_size_fp` are real fields; `settlement_sources[]` (Get Event) is the official, non-fabricated source of the per-alert website links; settlement payout ($1/contract on the correct side) is correct. |
+| V2 | Run the alert test suites (engine + DOM end-to-end) | done | `d379bb35` | `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | official field docs | Engine unit tests **18/18 pass**; DOM end-to-end **16/16 pass** (feeds, watch filter, rule checks, trade sides/entries, marks, resolution, batching ≤ 25, localStorage, no page errors). |
+| V3 | Close R1: make the CI link check cover the root site that is actually deployed | done | `d379bb35` | `.github/workflows/site-check.yml`, `flagged.html` (R1 → mitigated) | `tools/check_site_links.py .` over all 33 HTML pages | Previously the workflow checked only `docs/`; changed to `.` so the root site (served by the legacy `main:/` build) is covered by CI. |
+| V4 | Final integration: full link/build check, PR to `main`, merge, confirm Pages deploy | in progress | `d379bb35` | `COORDINATION.md` (this section) + the files in V3 | `gh` CLI; GitHub Pages | Flagged items do not block merge. |
+
+## Official sources verified this session (fetched 2026-11-20)
+
+| # | Source | URL | What it confirms |
+|---|--------|-----|------------------|
+| V-a | Get Market | https://docs.kalshi.com/api-reference/market/get-market | `last_price_dollars`, `previous_price_dollars`, `yes_bid_size_fp`, `yes_ask_size_fp`, `no_bid_dollars`, `no_ask_dollars`, `volume_fp`, `volume_24h_fp`, `open_interest_fp`, `result`, `status` — all fields the alert engine uses. |
+| V-b | Get Markets | https://docs.kalshi.com/api-reference/market/get-markets | List response `{ markets, cursor }`; `status` filter `unopened/open/paused/closed/settled`. |
+| V-c | Get Event | https://docs.kalshi.com/api-reference/events/get-event | `settlement_sources: [{ name, url }]` — the official per-event website links the alerts page renders (the non-fabricated answer to the brief's "website links"). |
+| V-d | Market settlement | https://docs.kalshi.com/getting_started/market_settlement | $1/contract on the correct yes/no side — basis for the simulator's payout arithmetic. |
+
+## Log
+| Date (UTC) | Session | Entry |
+| --- | --- | --- |
+| 2026-11-20 | `d379bb35` | Started on `arena/d379bb35-kalshidash2` (base `793f741`). Reviewed repo and board. Verified official docs (Get Market, Get Markets, Rate limits, WebSocket, settlement) and built a duplicate alerting implementation. First rebase against advancing `main` revealed session `4208a2dd` had already delivered and merged the alerting feature (PR #19), with `5c00f4dd` recording it as canonical. Discarded the duplicate (`git reset --hard origin/main`) per coordination rules. Re-scoped to verification + final integration. |
+| 2026-11-20 | `d379bb35` | Line-by-line review of `alerts-core.js`/`alerts.js`/`alerts.html` against official docs — no bugs. Ran engine tests (18/18) and DOM test (16/16). Verified `settlement_sources` (Get Event) and `tickers` batch behaviour (committed live check). Closed R1 (CI link check now covers the root site). |
+
+## PR / merge / deploy record (filled by integration session)
+
+- PR: (created below) — "integration: verify canonical alerting engine; close R1 (CI link check covers root site)".
+- Merge: (recorded after merge).
+- GitHub Pages deploy: (recorded after merge).
