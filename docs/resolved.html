@@ -1,33 +1,249 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Resolved Events — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html" class="active">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resolved &amp; Tracked Events — KalshiDash2</title>
+<meta name="description" content="Kalshi demo markets tracked until settlement, with the final yes/no outcome copied verbatim from the API result field.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Resolved Events — Tracked Until Settlement</h1>
-<p class="muted">Watch markets from the <a href="dashboard.html">Live Dashboard</a> (or add a ticker below). Each watched market is polled until it settles; the final outcome is recorded as <b>YES</b> or <b>NO</b> exactly as the API returns it (<code>status</code> / <code>result</code> fields). Watched tickers are stored only in this browser. Source: <a href="https://docs.kalshi.com/api-reference/market/get-market">Get Market</a>.</p>
-<div class="card"><div class="statusbar"><input id="addTicker" placeholder="Market ticker to watch" size="30"><button id="addBtn">Add</button><button class="secondary" id="refreshBtn">Refresh now</button><span id="status" class="pill">Idle</span></div>
-<table><thead><tr><th>Ticker</th><th>Title</th><th>Status</th><th>Result (yes/no)</th><th>Yes bid</th><th>Yes ask</th><th>Last</th><th>Settled at</th><th></th></tr></thead>
-<tbody id="rows"><tr><td colspan="9">No watched markets yet. Add one from the dashboard or above.</td></tr></tbody></table></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
-<script src="assets/app.js"></script><script>
-async function refresh(){
-  const w=Watch.get(), rows=$("#rows");
-  if(!w.length){ rows.innerHTML="<tr><td colspan='9'>No watched markets yet.</td></tr>"; return; }
-  setStatus($("#status"),true,"Polling…");
-  const out=[];
-  for(const t of w){
-    try{ const j=await api(`/markets/${encodeURIComponent(t)}`); const m=j.market||j;
-      const result=(m.result||"").toString().toLowerCase();
-      out.push(`<tr><td><code>${esc(t)}</code></td><td>${esc(m.title||"")}</td><td>${esc(m.status||"")}</td>
-      <td>${result?`<span class="badge ${result==="yes"?"ok":"bad"}">${esc(result.toUpperCase())}</span>`:"— (still open)"}</td>
-      <td>${fmt$(m.yes_bid_dollars)}</td><td>${fmt$(m.yes_ask_dollars)}</td><td>${fmt$(m.last_price_dollars)}</td>
-      <td>${esc(m.settlement_time||m.settled_time||"")}</td><td><button class="secondary" data-rm="${esc(t)}">Remove</button></td></tr>`);
-    }catch(e){ out.push(`<tr><td><code>${esc(t)}</code></td><td colspan='7'>Error: ${esc(e.message)}</td><td><button class="secondary" data-rm="${esc(t)}">Remove</button></td></tr>`); }
+<h1>Resolved &amp; tracked events</h1>
+<p class="muted">Two tables. The first lists markets the exchange has <b>already settled</b>,
+with the outcome copied verbatim from the API <code>result</code> field
+(<code>yes</code> / <code>no</code>; <code>scalar</code> markets are labelled and not counted as
+yes/no). The second lists <b>still-open</b> positions of interest so you can see what is being
+tracked toward resolution.</p>
+<div id="fresh"></div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">How resolution is determined</h2>
+    <span class="src">source:
+      <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener">market settlement</a> ·
+      <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener">Get Market</a></span>
+  </div>
+  <table><tbody>
+    <tr><td style="width:220px"><code>status</code></td>
+      <td>The market's lifecycle stage. The API documents <code>unopened</code>,
+        <code>open</code>, <code>closed</code>, <code>settled</code>
+        (<a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener">Get Markets</a>).</td></tr>
+    <tr><td><code>result</code></td>
+      <td>The determined outcome of the market. Values observed in the schema:
+        <code>yes</code>, <code>no</code>, <code>scalar</code>, and the empty string while
+        undetermined. Only <code>yes</code> and <code>no</code> are counted as yes/no
+        resolutions here.</td></tr>
+    <tr><td><code>settlement_ts</code></td>
+      <td>Settlement timestamp. The schema documents it as filled only for settled markets;
+        the table leaves it blank when the API returns nothing.</td></tr>
+    <tr><td><code>expiration_value</code></td>
+      <td>The source value Kalshi used to settle. Copied verbatim; blank when the API
+        returns an empty string.</td></tr>
+  </tbody></table>
+</div>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Settled markets (yes/no)</h2>
+    <div class="statusbar" style="margin:0">
+      <label class="inline">Result
+        <select id="resFilter">
+          <option value="all">All</option>
+          <option value="yes">Yes only</option>
+          <option value="no">No only</option>
+        </select>
+      </label>
+      <label class="inline">Topic
+        <select id="resTopic"><option value="all">All topics</option></select>
+      </label>
+      <label class="inline"><input type="checkbox" id="resRecent" checked> Last 7 days</label>
+      <input id="resSearch" placeholder="Filter ticker or title" size="18">
+    </div>
+  </div>
+  <p class="small muted">Request: <code>GET /markets?status=settled</code>, paginated by cursor.
+    Rows are markets whose <code>result</code> is exactly <code>yes</code> or <code>no</code>.</p>
+  <div class="scroll"><div id="resTable"></div></div>
+</section>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Tracked until resolution (still open)</h2>
+    <div class="statusbar" style="margin:0">
+      <label class="inline"><input type="checkbox" id="trackOnly" checked> Only markets I flagged to watch</label>
+      <button class="secondary" id="clearWatch">Clear watches</button>
+    </div>
+  </div>
+  <p class="small muted">The live dashboard's top markets are tracked automatically. Click
+    <b>Watch</b> on any row below to keep it here until it settles. When the collector sees the
+    market settle, it moves to the settled table above on the next snapshot. Watches are stored
+    in this browser only (<code>localStorage</code>).</p>
+  <div class="scroll"><div id="openTable"></div></div>
+</section>
+
+<section class="card">
+  <h2>What happens to a watched market</h2>
+  <ol class="small">
+    <li><b>Open.</b> The collector records the market while <code>status</code> is
+      <code>open</code>. Prices, volume and open interest are copied at collection time.</li>
+    <li><b>Determined.</b> Kalshi sets <code>result</code> after the settlement source confirms
+      the outcome. Until it does, this page shows the market in the open table and never
+      guesses a direction.</li>
+    <li><b>Settled.</b> The market appears in the settled table with its
+      <code>result</code>, <code>settlement_ts</code> and <code>expiration_value</code>
+      exactly as returned.</li>
+  </ol>
+  <div class="banner">A settled market leaves the open list only when a later snapshot includes
+    it. If the snapshot banner is stale, the two tables can briefly disagree — the timestamps on
+    each row are the authority, not the page.</div>
+</section>
+</main>
+<footer>Demo environment only — mock funds. Data: Kalshi demo Trade API ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+  KD.renderFreshness($('#fresh'), d);
+
+  const settled = (d.resolutions && d.resolutions.settled) || [];
+  const markets = KD.allMarkets(d);
+  const WATCH_KEY = 'kalshi_watch_v2';
+  const getWatch = () => { try { return JSON.parse(localStorage.getItem(WATCH_KEY) || '[]'); } catch { return []; } };
+  const setWatch = (a) => localStorage.setItem(WATCH_KEY, JSON.stringify(a));
+  const toggleWatch = (t) => {
+    const w = getWatch();
+    const i = w.indexOf(t);
+    if (i >= 0) w.splice(i, 1); else w.push(t);
+    setWatch(w);
+  };
+
+  /* ---------- KPIs ---------- */
+  const yes = settled.filter(r => r.result === 'yes');
+  const no = settled.filter(r => r.result === 'no');
+  const withTs = settled.filter(r => r.settlement_ts);
+  const scalar = settled.filter(r => r.result === 'scalar');
+  $('#kpis').innerHTML = [
+    ['Yes/no resolutions', KD.fmtN(settled.length),
+      `result = yes or no (${KD.fmtN(withTs.length)} with settlement_ts)`],
+    ['Resolved YES', KD.fmtN(yes.length), ''],
+    ['Resolved NO', KD.fmtN(no.length), ''],
+    ['Yes share', (yes.length + no.length) ? KD.pct(yes.length / (yes.length + no.length), 1) : '—',
+      `of ${KD.fmtN(yes.length + no.length)} yes/no resolutions`],
+    ['Scalar (not yes/no)', KD.fmtN(scalar.length), 'excluded from the yes/no counts'],
+    ['Open markets tracked', KD.fmtN(markets.length), 'all five topics'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+      <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  /* ---------- settled markets table ---------- */
+  const tf = $('#resTopic');
+  KD.TOPIC_ORDER.forEach(t => tf.insertAdjacentHTML('beforeend',
+    `<option value="${t}">${KD.esc(KD.TOPIC_LABELS[t])}</option>`));
+
+  /* A settled market carries no topic field of its own, so the topic is looked up
+   * from the live topic files by ticker. If the ticker is not in any topic file the
+   * row is 'unmapped' and is shown only under "All topics" - it is never guessed. */
+  const topicOf = (() => {
+    const map = new Map();
+    for (const t of KD.TOPIC_ORDER) {
+      for (const m of ((d['topic-' + t] || {}).markets || [])) map.set(m.ticker, t);
+    }
+    return (ticker) => map.get(ticker) || 'unmapped';
+  })();
+  const unmapped = settled.filter(r => topicOf(r.ticker) === 'unmapped').length;
+  if (unmapped) {
+    $('#resTopic').insertAdjacentHTML('beforeend',
+      `<option value="unmapped">Unmapped (${unmapped})</option>`);
   }
-  rows.innerHTML=out.join(""); setStatus($("#status"),true,"Live — auto-refresh every 30s");
-}
-$("#addBtn").onclick=()=>{ const t=$("#addTicker").value.trim(); if(t){ Watch.add(t); $("#addTicker").value=""; refresh(); } };
-$("#refreshBtn").onclick=refresh;
-$("#rows").addEventListener("click",e=>{ const t=e.target.closest("[data-rm]")?.dataset.rm; if(t){ Watch.remove(t); refresh(); } });
-refresh(); setInterval(refresh,30000);
-</script></body></html>
+
+  function renderSettled() {
+    const f = $('#resFilter').value, t = tf.value, q = $('#resSearch').value.trim().toLowerCase();
+    const recent = $('#resRecent').checked;
+    const cutoff = Date.now() - 7 * 864e5;
+    const rows = settled.filter(r => {
+      if (f !== 'all' && r.result !== f) return false;
+      if (t !== 'all' && topicOf(r.ticker) !== t) return false;
+      if (q && !((r.ticker || '') + ' ' + (r.title || '')).toLowerCase().includes(q)) return false;
+      if (recent && r.settlement_ts && Date.parse(r.settlement_ts) < cutoff) return false;
+      return true;
+    }).slice(0, 400);
+    $('#resTable').innerHTML = KD.table(
+      ['Result', 'Topic', 'Ticker', 'Title', 'Yes sub-title', 'Settled', 'Settlement value',
+       'Expiration value', 'Last price', 'Volume', 'Open interest', ''],
+      rows.map(r => `<tr>
+        <td>${KD.resultBadge(r.result, r.status)}</td>
+        <td>${topicOf(r.ticker) === 'unmapped'
+          ? '<span class="badge warn">unmapped</span>'
+          : KD.topicBadge(topicOf(r.ticker))}</td>
+        <td><code class="tiny">${KD.esc(r.ticker)}</code></td>
+        <td class="small">${KD.esc(r.title || '')}</td>
+        <td class="small">${KD.esc(r.yes_sub_title || '')}</td>
+        <td class="small">${KD.fmtTs(r.settlement_ts)}</td>
+        <td class="num">${KD.cents(r.settlement_value_dollars)}</td>
+        <td class="small">${KD.esc(r.expiration_value || '—')}</td>
+        <td class="num">${KD.cents(r.last_price_dollars)}</td>
+        <td class="num">${KD.fmtN(r.volume_fp, 2)}</td>
+        <td class="num">${KD.fmtN(r.open_interest_fp, 2)}</td>
+        <td><button class="secondary tiny" data-watch="${KD.esc(r.ticker)}">Watch</button></td>
+      </tr>`), { numCols: [6, 8, 9, 10], empty: 'No settled markets matched these filters.' });
+    bindWatch();
+  }
+
+  /* ---------- open table ---------- */
+  function renderOpen() {
+    const onlyWatch = $('#trackOnly').checked;
+    const w = getWatch();
+    let rows = markets;
+    if (onlyWatch) rows = rows.filter(m => w.includes(m.ticker));
+    if (!onlyWatch) {
+      const vol = (m) => KD.num(m.volume_fp) || -1;
+      rows = [...rows].sort((a, b) => vol(b) - vol(a)).slice(0, 150);
+    }
+    $('#openTable').innerHTML = KD.table(
+      ['Topic', 'Ticker', 'Title', 'Yes bid', 'Yes ask', 'Last', 'Open interest',
+       'Volume', 'Closes', 'Status', ''],
+      rows.map(m => `<tr>
+        <td>${KD.topicBadge(m.topic)}</td>
+        <td><code class="tiny">${KD.esc(m.ticker)}</code></td>
+        <td class="small">${KD.esc(m.title || '')}</td>
+        <td class="num">${KD.cents(m.yes_bid_dollars)}</td>
+        <td class="num">${KD.cents(m.yes_ask_dollars)}</td>
+        <td class="num">${KD.cents(m.last_price_dollars)}</td>
+        <td class="num">${KD.fmtN(m.open_interest_fp, 2)}</td>
+        <td class="num">${KD.fmtN(m.volume_fp, 2)}</td>
+        <td class="small">${KD.fmtTs(m.close_time)}</td>
+        <td class="small">${KD.esc(m.status || '')}</td>
+        <td><button class="secondary tiny" data-watch="${KD.esc(m.ticker)}">
+          ${w.includes(m.ticker) ? 'Watching' : 'Watch'}</button></td>
+      </tr>`), { numCols: [3, 4, 5, 6, 7],
+        empty: onlyWatch ? 'No markets flagged yet. Untick the box to browse the top markets and flag some.'
+          : 'No open markets in the snapshot.' });
+    bindWatch();
+  }
+
+  function bindWatch() {
+    $$('[data-watch]').forEach(b => {
+      b.onclick = () => { toggleWatch(b.dataset.watch); renderSettled(); renderOpen(); };
+    });
+  }
+
+  $('#resFilter').onchange = renderSettled;
+  tf.onchange = renderSettled;
+  $('#resRecent').onchange = renderSettled;
+  $('#resSearch').oninput = renderSettled;
+  $('#trackOnly').onchange = renderOpen;
+  $('#clearWatch').onclick = () => { setWatch([]); renderOpen(); renderSettled(); };
+  renderSettled();
+  renderOpen();
+})();
+</script>
+</body>
+</html>

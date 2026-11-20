@@ -1,17 +1,46 @@
 name: Deploy GitHub Pages
+
+# Publishes docs/ to GitHub Pages.
+#
+# The build is guarded: scripts/verify_site.py must pass before the artifact is
+# uploaded, so a page with a broken internal link, a missing shared asset, a
+# contradictory navigation entry or a malformed data file cannot be deployed.
+#
+# Source: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # Re-deploy after each collection window so the published snapshot stays current
+    # even when the collector commit lands while Pages is mid-deploy.
+    - cron: "25,55 * * * *"
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: false
+
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify site structure
+        run: python scripts/verify_site.py
+      - name: Verify collector compiles
+        run: python -m py_compile scripts/collect_kalshi.py
+
   deploy:
+    needs: verify
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

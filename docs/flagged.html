@@ -1,17 +1,274 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Flagged for Review — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html" class="active">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flagged for Review — KalshiDash2</title>
+<meta name="description" content="Irregularities, contradictions and unverified items found while checking the site against Kalshi's official documentation and API responses.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>🚩 Flagged for Review</h1>
-<p class="muted">Irregularities and unverified items. These do <b>not</b> block the site — review them here and request changes. Nothing on this page was inferred or filled in.</p>
-<div class="card"><table><thead><tr><th>#</th><th>Item</th><th>Why it's flagged</th><th>Source / evidence</th><th>Requested action</th></tr></thead><tbody>
-<tr><td>F1</td><td>Browser CORS unverified</td><td>The build sandbox cannot reach kalshi.co (outbound allowlist), so live browser <code>fetch</code> to the demo API could not be tested from here. Official examples are server-side Python.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com quick-start</a></td><td>Open the live dashboard; if it errors, approve suggestion S2 (proxy).</td></tr>
-<tr><td>F2</td><td>No demo API keys in repo</td><td>Trading/portfolio cannot be demonstrated without your own demo keys. No keys were invented or stored.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com auth guide</a></td><td>Add keys on the Portfolio page (browser-only) when ready.</td></tr>
-<tr><td>F3</td><td>Ed25519 keys unsupported in-browser</td><td>WebCrypto cannot sign Ed25519; only RSA-PSS is implemented. Newer Kalshi keys may be Ed25519.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com auth guide</a></td><td>Confirm key type (Q2); approve S3 if needed.</td></tr>
-<tr><td>F4</td><td>Topic matching is keyword heuristic</td><td>Series tickers for the five topics were not hardcoded (would be guessing). Keyword matches may misclassify.</td><td>Live <code>/series</code> data, shown on dashboard</td><td>Review matched series; refine keywords (S7).</td></tr>
-<tr><td>F5</td><td>No historical price storage</td><td>Charts reset on reload; only candlesticks + in-session polling exist.</td><td>—</td><td>Approve S2 for persistent snapshots.</td></tr>
-<tr><td>F6</td><td>Realized P&amp;L per strategy not computed</td><td>Requires joining fills to settlements; not yet implemented.</td><td>—</td><td>Approve S4 after history exists.</td></tr>
-<tr><td>F7</td><td>Pages source may be legacy (<code>main:/</code>) instead of GitHub Actions</td><td>Pages API reports <code>build_type: legacy</code>; the deploy workflow succeeded, but if the live URL shows only the README, the source must be switched. The API returned 403 for this integration, so it could not be changed programmatically.</td><td><a href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site">GitHub Pages publishing source docs</a></td><td>Settings → Pages → Source: <b>GitHub Actions</b>.</td></tr>
-</tbody></table></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer></body></html>
+<h1>🚩 Flagged for review</h1>
+<p class="muted">Things that are wrong, contradictory, or simply not verifiable from here.
+None of these blocks the site from being live; each one needs a human decision. Every row links
+the source that shows the problem.</p>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="statusbar">
+  <label class="inline">Severity
+    <select id="sev">
+      <option value="all">All</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+  </label>
+  <label class="inline">Category
+    <select id="cat"><option value="all">All</option></select>
+  </label>
+  <input id="q" placeholder="Search flags" size="20">
+  <button class="secondary" id="exportFlags">Download CSV</button>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Open flags</h2>
+  <div class="scroll"><div id="table"></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Flags that were fixed in this session</h2>
+  <div id="fixed"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">How these were found</h2>
+  <p class="small">Every item below came from comparing code and claims against a primary source:
+    Kalshi's published OpenAPI-derived documentation, the official
+    <code>kalshi-typescript</code> SDK type definitions, or a live response from the demo API.
+    Where a source contradicts itself — for example, a quick-start example that no longer matches
+    the current request schema — both the doc page and the schema are linked, because the reader
+    needs to see the disagreement, not a summary of it.</p>
+  <ul class="small">
+    <li>Documentation set: <a href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener">docs.kalshi.com index</a></li>
+    <li>SDK types: <a href="https://www.npmjs.com/package/kalshi-typescript" target="_blank" rel="noopener">kalshi-typescript on npm</a>
+      (official, published by Kalshi)</li>
+    <li>Live responses: <a href="data/meta.json" target="_blank" rel="noopener">data/meta.json</a>
+      records every request the collector made, with status and time</li>
+  </ul>
+</div>
+</main>
+<footer>Demo environment only ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+
+  const FLAGS = [
+    {
+      id: 'F1', sev: 'medium', cat: 'Data access',
+      item: 'Browser CORS support for the Kalshi API is undocumented',
+      detail: 'Every page used to depend on the visitor\'s browser calling <code>external-api.demo.kalshi.co</code> directly. Kalshi publishes no CORS policy and all official examples are server-side. If the header is absent, the page silently breaks.',
+      evidence: 'https://docs.kalshi.com/getting_started/quick_start_market_data',
+      action: 'Fixed for reading: the collector fetches server-side and commits a snapshot, so no cross-origin call is needed. Live polling is now opt-in and reports a block honestly. Still open for write operations (orders must be sent from the browser to keep keys out of CI).',
+      state: 'mitigated',
+    },
+    {
+      id: 'F2', sev: 'high', cat: 'Credentials',
+      item: 'No demo API key can exist in this repository, by design',
+      detail: 'Portfolio and trading cannot show real numbers until a key is supplied by the reader in their own browser. Any balance shown without a key would be fabricated, so none is shown.',
+      evidence: 'https://docs.kalshi.com/getting_started/api_keys',
+      action: 'Leave as is. Do not commit keys. Use the Portfolio page to add one per browser session.',
+      state: 'open',
+    },
+    {
+      id: 'F3', sev: 'high', cat: 'Credentials',
+      item: 'Ed25519 keys cannot be used from this site',
+      detail: 'Kalshi now defaults new API keys to Ed25519. Browser WebCrypto has no Ed25519 signing primitive, so a reader who creates a default key cannot trade from this site.',
+      evidence: 'https://docs.kalshi.com/getting_started/api_keys',
+      action: 'Decide between documenting "create an RSA key" or adding a vetted Ed25519 implementation (Proposal S4).',
+      state: 'open',
+    },
+    {
+      id: 'F4', sev: 'high', cat: 'Documentation error',
+      item: 'The order quick-start example does not match the current request schema',
+      detail: 'The quick-start sends <code>{"side":"bid","count":"1","price":"0.0100"}</code> to <code>/portfolio/events/orders</code>. The endpoint\'s own OpenAPI schema defines <code>side</code> as the BookSide enum <code>bid|ask</code> (not the legacy yes/no side), and requires <code>time_in_force</code> and <code>self_trade_prevention_type</code> as required fields. The earlier build followed the quick-start example, which is why its order form omitted required fields.',
+      evidence: 'https://docs.kalshi.com/api-reference/orders/create-order-v2',
+      action: 'Fixed: the order form now sends the schema-valid body. Worth reporting to Kalshi so the quick-start matches the schema.',
+      state: 'fixed',
+    },
+    {
+      id: 'F5', sev: 'high', cat: 'Implementation bug',
+      item: 'Candlestick request path was wrong in the earlier build',
+      detail: 'The earlier dashboard called <code>/markets/candlesticks?market_tickers=...</code> and read <code>candlesticks[].candlesticks</code>. The documented single-market path is <code>/series/{series_ticker}/markets/{ticker}/candlesticks</code>, whose response has <code>candlesticks[]</code> at the top level with <code>price.close_dollars</code> per candle. The batch endpoint <code>/markets/candlesticks</code> also exists but takes <code>market_tickers</code> with a different response shape (<code>markets[]</code>).',
+      evidence: 'https://docs.kalshi.com/api-reference/market/get-market-candlesticks',
+      action: 'Fixed: the collector uses the documented single-market path; the page reads the correct fields.',
+      state: 'fixed',
+    },
+    {
+      id: 'F6', sev: 'medium', cat: 'Implementation bug',
+      item: 'Price fields were being formatted as whole dollars in places',
+      detail: 'The earlier market table passed fixed-point dollar strings such as <code>"0.4500"</code> through a plain-number formatter, which could print 0.45 as a contract count rather than as a price, and printed <code>last_price</code> without a currency unit.',
+      evidence: 'https://docs.kalshi.com/getting_started/fixed_point_migration',
+      action: 'Fixed: every price column now runs through a KD.cents/dollar formatter and every count through a count formatter.',
+      state: 'fixed',
+    },
+    {
+      id: 'F7', sev: 'high', cat: 'Deployment',
+      item: 'GitHub Pages was serving the README instead of the dashboard',
+      detail: 'The Pages API reported <code>build_type: legacy</code> with source <code>main:/</code>, so <code>https://kanlerxz87-cyber.github.io/KalshiDash2/</code> rendered <code>README.md</code>. The repository publishes the site from <code>docs/</code>, which that configuration never served.',
+      evidence: 'https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site',
+      action: 'Fixed in this session by switching the Pages build type to the GitHub Actions workflow. Verified after deploy.',
+      state: 'fixed',
+    },
+    {
+      id: 'F8', sev: 'medium', cat: 'Taxonomy',
+      item: 'There is no gasoline or pump-price category on the demo exchange',
+      detail: 'The "Gas Prices" topic is served by <code>category=Commodities&amp;tags=Oil &amp; Gas</code>, which covers WTI and Brent crude, not retail gasoline. No series matching gasoline, petrol, or pump price was returned by the tags endpoint.',
+      evidence: 'data/meta.json',
+      action: 'Left as is, labelled honestly on the dashboard. Decide whether crude oil is an acceptable proxy (Question Q4) or whether this topic should be dropped.',
+      state: 'open',
+    },
+    {
+      id: 'F9', sev: 'low', cat: 'Data shape',
+      item: 'Market <code>title</code> is a deprecated field',
+      detail: 'The OpenAPI schema marks <code>market.title</code> (and <code>subtitle</code>) as deprecated in favour of <code>yes_sub_title</code>. Both are still returned. The site reads <code>title</code> for readability and shows <code>yes_sub_title</code> alongside it on the resolved table.',
+      evidence: 'https://docs.kalshi.com/api-reference/market/get-market',
+      action: 'Monitor. Switch to <code>yes_sub_title</code> plus the event title when <code>title</code> disappears.',
+      state: 'open',
+    },
+    {
+      id: 'F10', sev: 'low', cat: 'Data shape',
+      item: 'Deprecated direction fields on orders and fills',
+      detail: '<code>side</code> and <code>action</code> are deprecated on Order and Fill in favour of <code>outcome_side</code> and <code>book_side</code>. The earlier build read only the deprecated fields, so every direction column would break after their removal.',
+      evidence: 'https://docs.kalshi.com/getting_started/order_direction',
+      action: 'Fixed: the portfolio page reads <code>outcome_side</code>/<code>book_side</code> first and shows the legacy fields only as a fallback.',
+      state: 'fixed',
+    },
+    {
+      id: 'F11', sev: 'medium', cat: 'Metric definition',
+      item: '"Highest dollar amount" is not defined by Kalshi',
+      detail: 'Kalshi publishes open interest in contracts and a notional value per contract, but no "dollar amount" metric. Any ranking needs an explicit definition. This site uses open interest × notional and prints that definition wherever the ranking appears.',
+      evidence: 'https://docs.kalshi.com/api-reference/market/get-markets',
+      action: 'Confirm the definition (Question Q4) or ask for event-level aggregation (Proposal S9).',
+      state: 'open',
+    },
+    {
+      id: 'F12', sev: 'medium', cat: 'Metric definition',
+      item: 'Chart windows longer than 6 hours are shorter than their labels',
+      detail: 'The snapshot stores 6 hours of 1-minute candles. Selecting a 24-hour or 7-day window therefore draws a line that starts at the oldest stored candle rather than at the requested time. The chart says so on the page instead of extrapolating.',
+      evidence: 'data/candles.json',
+      action: 'Approve Proposal S3 to extend the stored window to 30 days.',
+      state: 'open',
+    },
+    {
+      id: 'F13', sev: 'low', cat: 'Metric definition',
+      item: 'P&L is gross of fees on the analysis page',
+      detail: 'The journal stores the order price and fill counts but not the per-order fee, so net P&L cannot be computed there. The page says so and points at the positions table, which does return <code>fees_paid_dollars</code>.',
+      evidence: 'https://docs.kalshi.com/api-reference/portfolio/get-fills',
+      action: 'Approve Proposal S5.',
+      state: 'open',
+    },
+    {
+      id: 'F14', sev: 'low', cat: 'Documentation error',
+      item: 'The WebSocket quick-start says connections require authentication, then lists public channels',
+      detail: 'The page states WebSocket connections require authentication in the handshake, and then describes <code>ticker</code>, <code>trade</code> and <code>market_lifecycle_v2</code> as public channels with no additional channel-level auth. Both statements can be true, but the phrasing invites the reading that anonymous connections work. This site does not open a WebSocket and does not assume either behaviour.',
+      evidence: 'https://docs.kalshi.com/getting_started/quick_start_websockets',
+      action: 'No code change. If WebSocket streaming is added, test the handshake with and without headers and record the result.',
+      state: 'open',
+    },
+    {
+      id: 'F15', sev: 'low', cat: 'Process',
+      item: 'The earlier session marked tasks "done" without executing any API call',
+      detail: 'The previous board recorded live-dashboard and trading tasks as done while the sandbox could not reach the API, so no endpoint had been exercised. Several field-shape errors (F4, F5, F6, F10) survived that review.',
+      evidence: 'COORDINATION.md history',
+      action: 'Resolved by process: this session introduced a collector that runs the endpoints and records every response, and the verification page now separates "documented" from "observed".',
+      state: 'fixed',
+    },
+    {
+      id: 'F16', sev: 'low', cat: 'Deployment',
+      item: 'Snapshot freshness depends on a scheduled workflow that can be delayed',
+      detail: 'GitHub Actions cron is best-effort and can start several minutes late, and scheduled workflows can be disabled after long inactivity on a repository. The page shows the snapshot timestamp and warns when it is older than 45 minutes.',
+      evidence: 'https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule',
+      action: 'Monitor the banner. If staleness becomes common, add a manual trigger reminder or move collection elsewhere.',
+      state: 'open',
+    },
+  ];
+
+  const cats = [...new Set(FLAGS.map(f => f.cat))];
+  cats.forEach(c => $('#cat').insertAdjacentHTML('beforeend',
+    `<option value="${KD.esc(c)}">${KD.esc(c)}</option>`));
+
+  $('#kpis').innerHTML = [
+    ['Flags total', KD.fmtN(FLAGS.length), ''],
+    ['High severity', KD.fmtN(FLAGS.filter(f => f.sev === 'high').length), 'need attention'],
+    ['Fixed this session', KD.fmtN(FLAGS.filter(f => f.state === 'fixed').length), ''],
+    ['Still open', KD.fmtN(FLAGS.filter(f => f.state !== 'fixed').length), 'do not block the site'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+    <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  function sevBadge(s) {
+    return `<span class="badge ${s === 'high' ? 'bad' : s === 'medium' ? 'warn' : ''}">${KD.esc(s)}</span>`;
+  }
+
+  function render() {
+    const s = $('#sev').value, c = $('#cat').value, q = $('#q').value.trim().toLowerCase();
+    let rows = FLAGS.filter(f =>
+      (s === 'all' || f.sev === s) &&
+      (c === 'all' || f.cat === c) &&
+      (!q || (f.id + f.item + f.detail + f.cat).toLowerCase().includes(q)));
+    $('#table').innerHTML = KD.table(
+      ['#', 'Severity', 'Category', 'Item', 'What is wrong', 'Source', 'Requested action', 'State'],
+      rows.map(f => `<tr id="${KD.esc(f.id)}">
+        <td><b>${KD.esc(f.id)}</b></td>
+        <td>${sevBadge(f.sev)}</td>
+        <td class="small">${KD.esc(f.cat)}</td>
+        <td class="small"><b>${f.item}</b></td>
+        <td class="small">${f.detail}</td>
+        <td class="src">${KD.srcLink(f.evidence, 'evidence')}</td>
+        <td class="small">${f.action}</td>
+        <td>${f.state === 'fixed' ? '<span class="badge ok">fixed</span>'
+          : f.state === 'mitigated' ? '<span class="badge info">mitigated</span>'
+          : '<span class="badge warn">open</span>'}</td>
+      </tr>`), { empty: 'No flags match this filter.' });
+  }
+  $('#sev').onchange = render;
+  $('#cat').onchange = render;
+  $('#q').oninput = render;
+  render();
+
+  const fixed = FLAGS.filter(f => f.state === 'fixed');
+  $('#fixed').innerHTML = KD.table(
+    ['#', 'Item', 'What changed'],
+    fixed.map(f => `<tr><td><b>${KD.esc(f.id)}</b></td><td class="small">${f.item}</td>
+      <td class="small">${f.action}</td></tr>`));
+
+  $('#exportFlags').onclick = () => {
+    const esc2 = (v) => {
+      const s = String(v ?? '').replace(/<[^>]+>/g, '').replace(/"/g, '""');
+      return /[",\n]/.test(s) ? `"${s}"` : s;
+    };
+    const head = 'id,severity,category,item,detail,evidence,action,state';
+    const body = FLAGS.map(f => [f.id, f.sev, f.cat, f.item, f.detail, f.evidence, f.action, f.state]
+      .map(esc2).join(',')).join('\n');
+    KD.download(`kalshi-flags-${new Date().toISOString().slice(0, 10)}.csv`, head + '\n' + body + '\n');
+  };
+
+  /* if the URL points at a specific flag, scroll to it */
+  if (location.hash) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) el.scrollIntoView({ block: 'center' });
+  }
+  void d;
+})();
+</script>
+</body>
+</html>

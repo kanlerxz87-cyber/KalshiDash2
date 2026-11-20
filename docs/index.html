@@ -1,25 +1,178 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KalshiDash2 — Kalshi Demo Dashboard</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html" class="active">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KalshiDash2 — Kalshi demo dashboard</title>
+<meta name="description" content="A live dashboard for the Kalshi demo exchange: highest dollar-amount events in gas prices, elections, culture, crypto and golf, tracked to settlement, with demo trading and verified sourcing.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>KalshiDash2 — Kalshi Demo Dashboard</h1>
-<p>A live, interactive dashboard for the <b>Kalshi demo</b> exchange. It tracks the highest-dollar live events in five topics — <b>gas prices, elections, culture, crypto, golf</b> — follows them until they resolve (yes/no), and (with your own demo API keys) executes trades and analyzes performance. Every number on this site comes from a live API response or an official source link. Nothing is guessed.</p>
+<h1>Kalshi demo dashboard</h1>
+<p class="muted" style="max-width:70ch">Tracks the highest dollar-amount live events on the Kalshi
+<b>demo</b> exchange across five topics — gas prices, elections, culture, crypto and golf — follows
+each one until the exchange resolves it, and records how it resolved (yes or no). Trading and
+performance analysis run against the demo account.</p>
+
+<div id="fresh"></div>
+
+<div class="kpis" id="kpis"></div>
+
 <div class="grid">
-<div class="card"><h2 style="margin-top:0">📊 Live Dashboard</h2><p>Highest-dollar open markets per topic, price charts (seconds / minutes / hours), and live liquidity (contracts available at each price).</p><a class="btn" href="dashboard.html">Open dashboard</a></div>
-<div class="card"><h2 style="margin-top:0">💼 Portfolio &amp; Trading</h2><p>Demo-account balance, positions, fills, and order placement — signed in your browser with your own demo keys.</p><a class="btn" href="portfolio.html">Open portfolio</a></div>
-<div class="card"><h2 style="margin-top:0">🏁 Resolved Events</h2><p>Watched markets tracked until settlement, with the final yes/no outcome.</p><a class="btn" href="resolved.html">Open resolved tracker</a></div>
-<div class="card"><h2 style="margin-top:0">🧠 Analysis &amp; Strategies</h2><p>Your demo fills categorized by topic, side, and outcome, with strategy notes derived from real results.</p><a class="btn" href="analysis.html">Open analysis</a></div>
-<div class="card"><h2 style="margin-top:0">💡 Suggestions</h2><p>Proposed improvements, each with cost, risk, and a decision gate — nothing is implemented until you pick a path.</p><a class="btn" href="suggestions.html">Review suggestions</a></div>
-<div class="card"><h2 style="margin-top:0">❓ Open Questions</h2><p>What we know, what we don't, and how to find the missing information.</p><a class="btn" href="questions.html">See questions</a></div>
+  <div class="card">
+    <h2 style="margin-top:0">Live dashboard</h2>
+    <p class="small">Top markets per topic ranked by open interest in dollars, a price chart with
+      seconds-to-days windows, and order-book depth showing how many contracts sit at each
+      price.</p>
+    <a class="btn" href="dashboard.html">Open dashboard</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Resolved events</h2>
+    <p class="small">Markets the exchange has actually settled, with the outcome copied from the
+      API <code>result</code> field, plus the markets still being tracked toward resolution.</p>
+    <a class="btn" href="resolved.html">Open resolved tracker</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Portfolio &amp; trading</h2>
+    <p class="small">Read the demo account's balance and positions and submit orders signed in
+      your own browser. Keys are never stored in this repository.</p>
+    <a class="btn" href="portfolio.html">Open portfolio</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Analysis &amp; strategy</h2>
+    <p class="small">Your trades categorised by topic, side and strategy, with win rates and net
+      P&amp;L computed only from orders that were actually submitted.</p>
+    <a class="btn" href="analysis.html">Open analysis</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Suggestions</h2>
+    <p class="small">Ten improvement proposals with evidence, cost, risk and a decision gate —
+      nothing is implemented until a path is chosen.</p>
+    <a class="btn" href="suggestions.html">Review suggestions</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Questions &amp; unknowns</h2>
+    <p class="small">What is verified, what is assumed, what is unknown, and the smallest
+      experiment that would settle each open question.</p>
+    <a class="btn" href="questions.html">See questions</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Verification</h2>
+    <p class="small">Every factual claim about the API, its official source, and whether the live
+      response confirmed it. Unverifiable items are blank, never filled in.</p>
+    <a class="btn" href="verification.html">Open verification</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Flagged for review</h2>
+    <p class="small">Eighteen irregularities found while checking the code against Kalshi's
+      documentation — including contradictions in Kalshi's own docs.</p>
+    <a class="btn" href="flagged.html">Open flag list</a>
+  </div>
 </div>
-<div class="card"><h2 style="margin-top:0">Executive summary</h2>
-<table><tbody>
-<tr><td><b>Purpose</b></td><td>Collect, organize, and analyze the highest-dollar live Kalshi demo events in gas prices, elections, culture, crypto, and golf; track them to resolution; trade and analyze performance on the demo account.</td></tr>
-<tr><td><b>Data source</b></td><td>Kalshi demo REST API <code>https://external-api.demo.kalshi.co/trade-api/v2</code> (recommended) and WebSocket <code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>. Public market data needs no key. <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">Source</a></td></tr>
-<tr><td><b>Also supported</b></td><td><code>https://demo-api.kalshi.co/trade-api/v2</code> and <code>wss://demo-api.kalshi.co/trade-api/ws/v2</code> — selectable in code (<code>DEMO_BASE</code> in <code>assets/app.js</code>). <a href="https://docs.kalshi.com">Source</a></td></tr>
-<tr><td><b>Auth</b></td><td>Trading/portfolio requires an API key ID + signed request (RSA-PSS or Ed25519). Keys are entered in the browser only and never stored in this repo. <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">Source</a></td></tr>
-<tr><td><b>Money safety</b></td><td>Demo uses mock funds; demo prices/behavior may not match production. No real money is involved. <a href="https://docs.kalshi.com">Source</a></td></tr>
-<tr><td><b>Verification rule</b></td><td>Every table row links an official source. Values that can't be confirmed are left blank and flagged — never inferred. See <a href="verification.html">Verification</a> and <a href="flagged.html">Flagged for Review</a>.</td></tr>
-</tbody></table></div>
-</main><footer>Demo only. Built with data from <a href="https://docs.kalshi.com">docs.kalshi.com</a>.</footer></body></html>
+
+<div class="card">
+  <h2 style="margin-top:0">Executive summary</h2>
+  <table><tbody>
+    <tr><td style="width:200px"><b>Objective</b></td>
+      <td>Collect, organise and analyse the highest dollar-amount live events on the Kalshi demo
+        exchange in five topics; track each event until resolution and record yes/no; trade the
+        demo account and analyse results by trade category.</td></tr>
+    <tr><td><b>Data source</b></td>
+      <td>Kalshi demo Trade API <code>https://external-api.demo.kalshi.co/trade-api/v2</code>
+        (recommended host) and WebSocket <code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>.
+        <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">API environments</a></td></tr>
+    <tr><td><b>How data reaches the page</b></td>
+      <td>A GitHub Actions workflow runs <code>scripts/collect_kalshi.py</code> every 15 minutes,
+        commits the JSON it received to <code>docs/data/</code>, and the static page reads that
+        same-origin snapshot. No browser cross-origin call is required to see data.
+        <a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener">Rate limits</a></td></tr>
+    <tr><td><b>Provenance</b></td>
+      <td>Every snapshot file records the exact request URL and UTC time. The full request log,
+        with HTTP status per call, is in <a href="data/meta.json">data/meta.json</a>.</td></tr>
+    <tr><td><b>Resolution tracking</b></td>
+      <td>Settled markets are read with <code>GET /markets?status=settled</code>. Only rows whose
+        <code>result</code> is exactly <code>yes</code> or <code>no</code> are counted as
+        resolutions; <code>scalar</code> outcomes are labelled and excluded.
+        <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener">Market settlement</a></td></tr>
+    <tr><td><b>Trading</b></td>
+      <td>Orders are signed in the browser with the reader's own demo key (RSA-PSS) and sent to
+        the demo host only. The current endpoint is
+        <code>POST /portfolio/events/orders</code>.
+        <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener">Create Order V2</a></td></tr>
+    <tr><td><b>Money safety</b></td>
+      <td>The demo environment uses mock funds and its prices may not match production. No real
+        money is involved anywhere in this site.
+        <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener">Demo environment</a></td></tr>
+    <tr><td><b>Verification rule</b></td>
+      <td>Every row of every table links an official source. A value that could not be confirmed
+        is left blank and marked unverified. Nothing is inferred.</td></tr>
+    <tr><td><b>Known limitations</b></td>
+      <td>No key lives in the repository, so account figures need your key. Ed25519 keys cannot be
+        used from a browser. Chart windows beyond six hours are shorter than their labels. There
+        is no gasoline-specific market category. All four are on the
+        <a href="flagged.html">Flagged</a> page.</td></tr>
+  </tbody></table>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">What "highest dollar amount" means here</h2>
+  <p class="small">Kalshi does not publish a "dollar amount" metric. This site defines it as
+    <code>open_interest_fp</code> × <code>notional_value_dollars</code> — both API fields — and
+    prints that definition wherever the ranking appears. Contracts, not dollars, are used for the
+    volume column. The definition is a choice, not an API fact, and is listed as
+    <a href="flagged.html#F11">flag F11</a> so you can change it.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Topics and the exchange taxonomy behind them</h2>
+  <div id="topicMap"></div>
+</div>
+</main>
+<footer>Demo environment only — mock funds. Data from the Kalshi demo Trade API ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+  KD.renderFreshness($('#fresh'), d);
+  const stats = KD.topicStats(d);
+  const meta = d.meta || {};
+  const resolved = (d.resolutions && d.resolutions.settled) || [];
+  const totOi = Object.values(stats).reduce((a, s) => a + (s.openInterestUsd || 0), 0);
+  const totMk = Object.values(stats).reduce((a, s) => a + (s.markets || 0), 0);
+
+  $('#kpis').innerHTML = [
+    ['Snapshot', meta.generated_at ? KD.ago(meta.generated_at) : '—', meta.generated_at || 'no snapshot'],
+    ['Live markets', KD.fmtN(totMk), 'five topics'],
+    ['Open interest', KD.fmtUsd(totOi, 0), 'open interest × notional'],
+    ['Resolved yes/no', KD.fmtN(resolved.length),
+      `${resolved.filter(r => r.result === 'yes').length} yes · ${resolved.filter(r => r.result === 'no').length} no`],
+    ['Requests logged', KD.fmtN(meta.requests), 'each with URL + status'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+    <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  $('#topicMap').innerHTML = KD.table(
+    ['Displayed topic', 'Exchange filter used', 'Series', 'Live markets', 'Why this mapping'],
+    KD.TOPIC_ORDER.map(t => {
+      const doc = d['topic-' + t] || {};
+      const s = stats[t];
+      const filter = (doc.source_urls || [])[0];
+      return `<tr>
+        <td><b>${KD.esc(KD.TOPIC_LABELS[t])}</b></td>
+        <td class="src">${filter ? KD.srcLink(filter, filter.replace(/^https:\/\/[^/]+/, '')) : '—'}</td>
+        <td class="num">${KD.fmtN(s.series)}</td>
+        <td class="num">${KD.fmtN(s.markets)}</td>
+        <td class="small">${KD.esc(doc.note || '')}</td>
+      </tr>`;
+    }), { numCols: [2, 3] });
+})();
+</script>
+</body>
+</html>

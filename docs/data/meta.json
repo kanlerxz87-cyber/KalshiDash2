@@ -1,0 +1,17 @@
+{
+ "generated_at": "2026-11-20T11:14:48Z",
+ "base_url": "https://external-api.demo.kalshi.co/trade-api/v2",
+ "environment": "demo",
+ "collector": "scripts/collect_kalshi.py",
+ "error": "collector has not run yet - trigger the 'Collect Kalshi demo data' workflow",
+ "requests": 0,
+ "request_log": [
+  {
+   "kind": "none",
+   "url": "",
+   "status": "n/a",
+   "note": "collector has not run yet - trigger the 'Collect Kalshi demo data' workflow",
+   "at": "2026-11-20T11:14:51Z"
+  }
+ ]
+}

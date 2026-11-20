@@ -1,0 +1,12 @@
+{
+ "topic": "crypto",
+ "label": "crypto",
+ "generated_at": "2026-11-20T11:14:48Z",
+ "error": "collector has not run yet - trigger the 'Collect Kalshi demo data' workflow",
+ "markets": [],
+ "top_by_dollars": [],
+ "series": [],
+ "series_count": 0,
+ "market_count": 0,
+ "source_urls": []
+}

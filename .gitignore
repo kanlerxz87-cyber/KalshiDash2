@@ -1,0 +1,5 @@
+# test / scratch artifacts (never part of the published site)
+.tmp-domtest/
+node_modules/
+__pycache__/
+*.pyc

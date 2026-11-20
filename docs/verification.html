@@ -1,22 +1,251 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verification — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html" class="active">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verification — KalshiDash2</title>
+<meta name="description" content="Every claim about the Kalshi API on this site, its official source, and the result of checking it against the live demo API response.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Verification — Line by Line</h1>
-<p class="muted">Every claim below was checked against an official source on 2026-11-20. Live market values are <b>not</b> listed here because they change constantly — they are fetched live in the browser and never transcribed. Anything unconfirmable is blank and marked <span class="badge warn">unverified</span>.</p>
-<div class="card"><table><thead><tr><th>Claim</th><th>Value</th><th>Official source</th><th>Status</th></tr></thead><tbody>
-<tr><td>Recommended demo REST base URL</td><td><code>https://external-api.demo.kalshi.co/trade-api/v2</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Also-supported demo REST host</td><td><code>https://demo-api.kalshi.co/trade-api/v2</code></td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a> (host list)</td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Demo WebSocket URL</td><td><code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code></td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a> (host list)</td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Public market data needs no auth (<code>GET /markets</code>)</td><td>Confirmed in quick-start code</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Order endpoint</td><td><code>POST /portfolio/events/orders</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com — quick-start</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Auth headers</td><td><code>KALSHI-ACCESS-KEY / -SIGNATURE / -TIMESTAMP</code></td><td><a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">docs.kalshi.com — authenticated requests</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Candlestick endpoint &amp; periods (1, 60, 1440 min)</td><td><code>GET /series/{s}/markets/{t}/candlesticks</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks">docs.kalshi.com — API reference</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Orderbook endpoint</td><td><code>GET /markets/{ticker}/orderbook</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-orderbook">docs.kalshi.com — API reference</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Demo uses mock funds; behavior may differ from production</td><td>Stated by Kalshi docs</td><td><a href="https://docs.kalshi.com">docs.kalshi.com</a></td><td><span class="badge ok">verified</span></td></tr>
-<tr><td>Browser CORS for demo API from GitHub Pages</td><td></td><td></td><td><span class="badge warn">unverified</span> — see Flagged for Review</td></tr>
-<tr><td>Series tickers for gas/elections/culture/crypto/golf</td><td></td><td></td><td><span class="badge warn">unverified</span> — discovered live from <code>/series</code>, never hardcoded</td></tr>
-<tr><td>Any specific market price, volume, or balance</td><td></td><td></td><td><span class="badge warn">unverified</span> — live-only, never transcribed</td></tr>
-</tbody></table></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer></body></html>
+<h1>Verification — evidence for every claim</h1>
+<p class="muted">Three kinds of row appear here. <b>Documented</b> rows are checked against
+Kalshi's own documentation. <b>Observed</b> rows are checked against the JSON in
+<code>docs/data/</code>, which records the URL each value came from. Anything that could not be
+checked is left blank and marked <span class="badge warn">unverified</span> — it is never
+filled in.</p>
+
+<div class="statusbar">
+  <label class="inline">Show
+    <select id="filter">
+      <option value="all">Everything</option>
+      <option value="verified">Verified only</option>
+      <option value="unverified">Unverified only</option>
+    </select>
+  </label>
+  <span id="counter" class="pill">—</span>
+  <button class="secondary" id="recheck">Re-run live checks</button>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="card">
+  <h2 style="margin-top:0">Claim checks</h2>
+  <div class="scroll"><div id="table"></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Snapshot provenance</h2>
+  <p class="small muted">Every file under <code>docs/data/</code> records the request that
+    produced it. This table is generated from those files, not typed by hand.</p>
+  <div class="scroll"><div id="provenance"></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Live API probes</h2>
+  <p class="small muted">These run in your browser against the public demo endpoints. If your
+    browser blocks the request (no CORS header), the row says "blocked", which is itself a result
+    — it is recorded rather than hidden.</p>
+  <div class="scroll"><div id="probes"></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">What is deliberately not shown</h2>
+  <ul class="small">
+    <li>No specific balance, position or fill — those need an account key that must not exist
+      in this repository.</li>
+    <li>No forecast, projection or expected value. This site reports what the API returned.</li>
+    <li>No number derived from a field that the API did not return. A dash means "no value",
+      not zero.</li>
+    <li>No production price shown as if it were a demo price, or the reverse.</li>
+  </ul>
+</div>
+</main>
+<footer>Demo environment only ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+
+  /* ---------- observed facts, read straight out of the snapshot ---------- */
+  const obs = [];
+  const addObs = (claim, value, src, ok) => obs.push({ kind: 'observed', claim, value, src, ok });
+
+  const ex = d.exchange && d.exchange.status;
+  addObs('Demo exchange reports itself active',
+    ex ? String(ex.exchange_active) : '', d.exchange && d.exchange.source, !!ex && ex.exchange_active === true);
+  addObs('Trading is enabled on the demo exchange',
+    ex ? String(ex.trading_active) : '', d.exchange && d.exchange.source, !!ex && ex.trading_active === true);
+  addObs('Exchange exposes multiple shards',
+    ex && ex.exchange_index_statuses ? String(ex.exchange_index_statuses.length) : '',
+    d.exchange && d.exchange.source, !!(ex && ex.exchange_index_statuses && ex.exchange_index_statuses.length > 1));
+
+  const seriesDoc = d.series || {};
+  addObs('Series list is readable without an API key',
+    seriesDoc.count !== undefined ? `${seriesDoc.count} series` : '', seriesDoc.source, (seriesDoc.count || 0) > 0);
+
+  for (const t of KD.TOPIC_ORDER) {
+    const doc = d['topic-' + t] || {};
+    addObs(`${KD.TOPIC_LABELS[t]}: open markets found using the documented category/tag filter`,
+      doc.market_count !== undefined ? `${doc.market_count} markets, ${doc.series_count} series` : '',
+      (doc.source_urls || [])[0], (doc.market_count || 0) > 0);
+  }
+
+  const set = (d.resolutions || {}).settled || [];
+  addObs('Settled markets carry a yes/no result field',
+    `${set.filter(r => r.result === 'yes').length} yes, ${set.filter(r => r.result === 'no').length} no`,
+    (d.resolutions || {}).source, set.length > 0);
+
+  const books = ((d.depth || {}).depth || []).filter(b => b.ticker);
+  addObs('Order book returns yes/no bid arrays',
+    books.length ? `${books.length} books, e.g. ${books[0].yes_bid_levels.length} yes levels` : '',
+    (d.depth || {}).source, books.some(b => Array.isArray(b.yes_bid_levels)));
+
+  const cand = ((d.candles || {}).candles || []).filter(c => c.candlesticks);
+  addObs('1-minute candlesticks are available for open markets',
+    cand.length ? `${cand.reduce((a, c) => a + c.candlesticks.length, 0)} candles across ${cand.length} markets` : '',
+    cand.length ? cand[0].source : '', cand.reduce((a, c) => a + c.candlesticks.length, 0) > 0);
+
+  /* ---------- documented claims ---------- */
+  const D = [
+    ['Recommended demo REST base URL', '<code>https://external-api.demo.kalshi.co/trade-api/v2</code>',
+      'https://docs.kalshi.com/getting_started/api_environments'],
+    ['Also-supported demo REST host', '<code>https://demo-api.kalshi.co/trade-api/v2</code>',
+      'https://docs.kalshi.com/getting_started/api_environments'],
+    ['Recommended demo WebSocket URL', '<code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>',
+      'https://docs.kalshi.com/getting_started/api_environments'],
+    ['Demo environment uses mock funds', 'Stated on the demo environment page',
+      'https://docs.kalshi.com/getting_started/demo_env'],
+    ['Public market data needs no authentication', 'Stated in the market data quick-start',
+      'https://docs.kalshi.com/getting_started/quick_start_market_data'],
+    ['Markets endpoint and status filter values', '<code>unopened</code>, <code>open</code>, <code>closed</code>, <code>settled</code>',
+      'https://docs.kalshi.com/api-reference/market/get-markets'],
+    ['Orderbook returns bids only, ascending, best bid last', 'Stated in the orderbook guide',
+      'https://docs.kalshi.com/getting_started/orderbook_responses'],
+    ['Candlestick endpoint path and period intervals', '<code>1</code>, <code>60</code>, <code>1440</code> minutes',
+      'https://docs.kalshi.com/api-reference/market/get-market-candlesticks'],
+    ['Current order endpoint is V2', '<code>POST /portfolio/events/orders</code>; legacy write endpoints return <code>410 Gone</code>',
+      'https://docs.kalshi.com/api-reference/orders/create-order-v2'],
+    ['V2 order body fields', '<code>ticker</code>, <code>side</code> (bid/ask), <code>count</code>, <code>price</code>, <code>time_in_force</code>, <code>self_trade_prevention_type</code>',
+      'https://docs.kalshi.com/api-reference/orders/create-order-v2'],
+    ['Auth header names and pre-sign string', '<code>KALSHI-ACCESS-KEY</code> / <code>-TIMESTAMP</code> / <code>-SIGNATURE</code>; timestamp + method + path without query',
+      'https://docs.kalshi.com/getting_started/api_keys'],
+    ['Signature scheme', 'RSA-PSS with SHA-256, MGF1-SHA-256, salt length = digest length; Ed25519 signs the message directly',
+      'https://docs.kalshi.com/getting_started/api_keys'],
+    ['Timestamp tolerance', '30 seconds in either direction, else <code>401 header_timestamp_expired</code>',
+      'https://docs.kalshi.com/getting_started/api_keys'],
+    ['Direction semantics', '<code>bid ≡ yes</code>, <code>ask ≡ no</code>; legacy <code>side</code>/<code>action</code> deprecated',
+      'https://docs.kalshi.com/getting_started/order_direction'],
+    ['Series list supports category and tags filters', '<code>GET /series?category=&amp;tags=&amp;include_volume=</code>',
+      'https://docs.kalshi.com/api-reference/market/get-series-list'],
+    ['This page cannot sign Ed25519 in the browser', 'WebCrypto in current browsers has no Ed25519 signing',
+      'https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/sign'],
+    ['Demo and production credentials are not interchangeable', 'Stated in the environments page',
+      'https://docs.kalshi.com/getting_started/api_environments'],
+  ].map(([claim, value, src]) => ({ kind: 'documented', claim, value, src, ok: true }));
+
+  /* Things we explicitly could not verify. */
+  const UNVERIFIED = [
+    ['Browser CORS support for the demo API', 'No CORS policy is published.',
+      'https://docs.kalshi.com/getting_started/quick_start_market_data', 'F1'],
+    ['Any specific account balance or P&#38;L', 'Requires the reader\'s own key.', '',
+      'F2'],
+    ['Whether the reader\'s key is RSA or Ed25519', 'Cannot be known from the site.', '', 'F3'],
+    ['A gasoline (pump price) market exists on the demo exchange',
+      'The category/tag query used is recorded; see the flagged entry.', '', 'F-GAS'],
+  ].map(([claim, value, src, ref]) => ({ kind: 'unverified', claim, value, src, ok: false, ref }));
+
+  const ALL = [...D, ...obs, ...UNVERIFIED];
+
+  const total = ALL.length;
+  const good = ALL.filter(r => r.ok).length;
+  const unver = ALL.filter(r => r.kind === 'unverified').length;
+
+  $('#kpis').innerHTML = [
+    ['Checks listed', KD.fmtN(total), 'documented + observed + unverified'],
+    ['Passed', KD.fmtN(good), 'matched the source'],
+    ['Unverified', KD.fmtN(unver), 'left blank on purpose'],
+    ['Snapshot', (d.meta && d.meta.generated_at) || '—', 'collector run time'],
+    ['Requests logged', KD.fmtN(d.meta && d.meta.requests), 'each with URL and status'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+    <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  function render() {
+    const f = $('#filter').value;
+    let rows = ALL;
+    if (f === 'verified') rows = rows.filter(r => r.ok);
+    if (f === 'unverified') rows = rows.filter(r => !r.ok);
+    $('#table').innerHTML = KD.table(
+      ['Type', 'Claim', 'Value observed / documented', 'Official source', 'Result'],
+      rows.map(r => `<tr>
+        <td><span class="badge ${r.kind === 'documented' ? 'info' : r.kind === 'observed' ? '' : 'warn'}">${KD.esc(r.kind)}</span></td>
+        <td class="small">${r.claim}</td>
+        <td class="small">${r.value || '<span class="muted">(blank)</span>'}</td>
+        <td class="src">${r.src ? KD.srcLink(r.src, r.src.replace(/^https?:\/\//, '')) : '<span class="muted">—</span>'}</td>
+        <td>${r.ok ? '<span class="badge ok">verified</span>'
+          : `<span class="badge warn">unverified</span>${r.ref ? ` <a class="tiny" href="flagged.html#${KD.esc(r.ref)}">${KD.esc(r.ref)}</a>` : ''}`}</td>
+      </tr>`));
+    KD.setStatus($('#counter'), true, `${rows.length} of ${total} rows`);
+  }
+  $('#filter').onchange = render;
+  render();
+
+  /* ---------- provenance from the JSON itself ---------- */
+  const files = Object.entries(d).filter(([, v]) => v && (v.generated_at || v.source || v.source_urls));
+  $('#provenance').innerHTML = KD.table(
+    ['File', 'Generated at', 'Request(s) it came from', 'Doc reference'],
+    files.map(([k, v]) => {
+      const urls = v.source_urls || (v.source ? [v.source] : []);
+      const doc = typeof v.docs === 'string' ? v.docs : '';
+      return `<tr>
+        <td><code class="tiny">data/${KD.esc(k)}.json</code></td>
+        <td class="small">${KD.esc(v.generated_at || '—')}</td>
+        <td class="src">${urls.length ? urls.map(u => KD.srcLink(u, u.replace(/^https:\/\/[^/]+/, ''))).join('<br>') : '—'}</td>
+        <td class="src">${doc ? KD.srcLink(doc, 'docs') : '—'}</td>
+      </tr>`;
+    }));
+
+  /* ---------- live probes ---------- */
+  const PROBES = [
+    ['Exchange status', '/exchange/status', 'https://docs.kalshi.com/api-reference/exchange/get-exchange-status'],
+    ['Open markets (2)', '/markets?status=open&limit=2', 'https://docs.kalshi.com/api-reference/market/get-markets'],
+    ['Series list', '/series?limit=2', 'https://docs.kalshi.com/api-reference/market/get-series-list'],
+    ['Tags by category', '/search/tags_by_categories', 'https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories'],
+  ];
+
+  async function runProbes() {
+    $('#probes').innerHTML = PROBES.map(p =>
+      `<tr><td class="small">${KD.esc(p[0])}</td><td><code class="tiny">${KD.esc(p[1])}</code></td>
+       <td class="src">${KD.srcLink(p[2], 'docs')}</td>
+       <td id="probe-${KD.esc(p[1].replace(/\W/g, ''))}"><span class="badge">pending</span></td></tr>`)
+      .join('').replace(/^/, '<table><thead><tr><th>Probe</th><th>Request</th><th>Doc</th><th>Result</th></tr></thead><tbody>')
+      .concat('</tbody></table>');
+
+    for (const p of PROBES) {
+      const cell = $('#probe-' + p[1].replace(/\W/g, ''));
+      try {
+        const j = await KD.publicFetch(p[1]);
+        const keys = Object.keys(j).slice(0, 4).join(', ');
+        cell.innerHTML = `<span class="badge ok">200 OK</span>
+          <span class="tiny">keys: <code>${KD.esc(keys)}</code></span>`;
+      } catch (e) {
+        cell.innerHTML = `<span class="badge bad">blocked / failed</span>
+          <span class="tiny">${KD.esc(e.message)} — this is expected when the browser is not
+          allowed to call the API directly (see <a href="flagged.html#F1">F1</a>).</span>`;
+      }
+    }
+  }
+  $('#recheck').onclick = runProbes;
+  runProbes();
+})();
+</script>
+</body>
+</html>

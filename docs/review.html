@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Repo Review — KalshiDash2</title>
+<meta name="description" content="A line-by-line review of the repository against Kalshi's official documentation and SDK types, with every finding linked to its source.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
+<main>
+<h1>Repository review, line by line</h1>
+<p class="muted">What was checked, against what, and what the check found. Each row states the
+file and line, the claim the code makes, the official source that contradicts or confirms it, and
+what was changed. The full markdown version is
+<a href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/REPO_REVIEW.md" target="_blank" rel="noopener">REPO_REVIEW.md</a>.</p>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="statusbar">
+  <label class="inline">Status
+    <select id="f">
+      <option value="all">All findings</option>
+      <option value="fixed">Fixed</option>
+      <option value="open">Open / documented</option>
+      <option value="ok">Confirmed correct</option>
+    </select>
+  </label>
+  <span id="count" class="pill">—</span>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Findings</h2>
+  <div class="scroll" style="max-height:none"><div id="table"></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Method</h2>
+  <ol class="small">
+    <li>Read every file in the repository and listed each factual claim it makes about Kalshi
+      — endpoints, field names, enum values, authentication rules and semantics.</li>
+    <li>For each claim, opened the corresponding page at
+      <a href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener">docs.kalshi.com</a>
+      and compared it field by field.</li>
+    <li>Cross-checked ambiguous shapes against the official
+      <a href="https://www.npmjs.com/package/kalshi-typescript" target="_blank" rel="noopener">kalshi-typescript</a>
+      SDK, which is generated from Kalshi's OpenAPI specification, and against live demo API
+      responses recorded in <a href="data/meta.json">data/meta.json</a>.</li>
+    <li>Wrote a checker that parses the site and fails the build when a page links to a missing
+      file or uses a field name that is not in the official schema
+      (<code>scripts/verify_site.py</code>).</li>
+  </ol>
+  <p class="small">Known limit: the review is of repository content at the commit shown in the
+    footer of the merged pull request. Kalshi can change its API at any time; the collector will
+    show a broken field as an error rather than as a quietly wrong number.</p>
+</div>
+</main>
+<footer>Demo environment only ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(function () {
+  const R = [
+    ['R1', 'docs/assets/app.js', 'DEMO_BASE', 'Demo REST base URL was <code>https://external-api.demo.kalshi.co/trade-api/v2</code>', 'Confirmed correct',
+      'https://docs.kalshi.com/getting_started/api_environments', 'ok', 'Unchanged.'],
+    ['R2', 'docs/assets/app.js', 'topic keyword matching', 'Topics were matched by scanning series text for keywords such as "gas" and "golf"', 'Wrong approach: the exchange publishes an explicit taxonomy (<code>category</code>, <code>tags</code>) and a tags endpoint; keyword matching misfires (e.g. "gas" matches "Vegas")',
+      'https://docs.kalshi.com/api-reference/market/get-series-list', 'fixed', 'Replaced with <code>GET /series?category=…&amp;tags=…</code> driven by <code>/search/tags_by_categories</code>.'],
+    ['R3', 'docs/dashboard.html', 'loadChart()', 'Candles requested from <code>/markets/candlesticks?market_tickers=…</code> and read from <code>candlesticks[].candlesticks[]</code>', 'Wrong path and wrong response shape for the single-market endpoint; the documented path is <code>/series/{series_ticker}/markets/{ticker}/candlesticks</code> with <code>candlesticks[]</code> at the top level',
+      'https://docs.kalshi.com/api-reference/market/get-market-candlesticks', 'fixed', 'Collector uses the documented path and stores <code>price.close_dollars</code>.'],
+    ['R4', 'docs/assets/app.js', 'marketRow()', 'Prices printed with a plain count formatter; <code>last_price</code> shown without units', 'Confusing and wrong for values under 1.00 — a price of 0.45 appeared as a bare 0.45 next to contract counts',
+      'https://docs.kalshi.com/getting_started/fixed_point_migration', 'fixed', 'Every price uses a cents formatter reading <code>*_dollars</code> fields.'],
+    ['R5', 'docs/portfolio.html', 'fill rows', 'Fill direction read from <code>side</code>', 'Deprecated. The canonical fields are <code>outcome_side</code> and <code>book_side</code>',
+      'https://docs.kalshi.com/getting_started/order_direction', 'fixed', 'Reads the canonical fields first, legacy only as a fallback.'],
+    ['R6', 'docs/portfolio.html', 'placeOrder()', 'Order body sent as <code>{ticker, side, count, price, time_in_force, self_trade_prevention_type, client_order_id}</code> with <code>side</code> taken from a bid/ask selector', 'Body matches the V2 schema; the earlier review claimed the whole body was wrong. On re-check the schema does accept <code>side: bid|ask</code> with a <code>price</code> string — this finding is <b>downgraded</b>. The real defect was that the page offered "Sell Yes (ask)" while labelling it by the legacy vocabulary.',
+      'https://docs.kalshi.com/api-reference/orders/create-order-v2', 'fixed', 'Kept the schema-valid body; relabelled the selector and added pre-flight validation.'],
+    ['R7', 'docs/portfolio.html', 'balance', 'Balance printed through the dollar formatter without handling the cents integer', '<code>balance</code> is an integer in cents; <code>balance_dollars</code> is the string form. Printing the integer as dollars overstates by 100x',
+      'https://docs.kalshi.com/api-reference/portfolio/get-balance', 'fixed', 'Prefers <code>balance_dollars</code> and divides the integer form by 100, labelling which was used.'],
+    ['R8', 'docs/portfolio.html', 'positions', 'Read <code>p.market_positions || p.positions || []</code>', 'Confirmed correct — the response field is <code>market_positions</code>. The fallbacks are harmless but the field names inside the row needed checking',
+      'https://docs.kalshi.com/api-reference/portfolio/get-positions', 'ok', 'Field names verified: <code>position_fp</code>, <code>market_exposure_dollars</code>, <code>realized_pnl_dollars</code>, <code>fees_paid_dollars</code>.'],
+    ['R9', 'docs/resolved.html', 'refresh()', 'Settled check driven by an admin-typed watch list, polled every 30s from the browser', 'Depends on CORS and on the visitor having the watch list in that browser; nothing is tracked when the tab is closed',
+      'https://docs.kalshi.com/api-reference/market/get-markets', 'fixed', 'Settled markets now come from the collector (<code>GET /markets?status=settled</code>); watches are a UI convenience, not the data source.'],
+    ['R10', 'docs/dashboard.html', 'topic list', 'Claimed the five topics map onto Kalshi categories', 'Only four do. There is no gasoline or pump-price category; "Oil &amp; Gas" is crude oil. Golf exists only as a tag under Sports, not a category',
+      'data/meta.json', 'open', 'Documented as an open flag (F8). The dashboard prints the exact filter used and says crude is not gasoline.'],
+    ['R11', '.github/workflows/pages.yml', 'whole file', 'Workflow builds and uploads <code>docs/</code> as a Pages artifact', 'Correct in itself, but the repository\'s Pages setting was <code>legacy</code> from <code>main:/</code>, so the artifact was never used and the live URL served the README',
+      'https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site', 'fixed', 'Pages build type switched to <code>workflow</code>; deploy verified after merge.'],
+    ['R12', 'COORDINATION.md', 'task board', 'Tasks 1–7 marked <code>done</code> while the sandbox could not reach the API and no endpoint had been exercised', 'The board overstated completion; several field-shape errors above (R3, R4, R5, R7) survived because nothing was executed',
+      'COORDINATION.md', 'fixed', 'Board now records what was executed versus what was only read, and this review lists every finding with its source.'],
+    ['R13', 'docs/assets/app.js', 'signRequest()', 'RSA-PSS with SHA-256 and salt length 32 over <code>timestamp + METHOD + path</code>', 'Confirmed correct, including omitting the query string',
+      'https://docs.kalshi.com/getting_started/api_keys', 'ok', 'Unchanged. Added a clearer error when the key is not RSA.'],
+    ['R14', 'docs/assets/app.js', 'pemToArrayBuffer()', 'Imported the PEM as <code>spki</code>', 'Wrong import format for a private key; a private key imports as <code>pkcs8</code>. The old code would throw on every signed request',
+      'https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey', 'fixed', 'Imports as <code>pkcs8</code> and explains the <code>openssl pkcs8</code> conversion for PKCS#1 keys.'],
+    ['R15', 'docs/index.html', 'landing page', 'Presented the site as working', 'The landing page linked to pages that could not have worked (R3, R14) and made no statement of data provenance',
+      '—', 'fixed', 'Rewritten with provenance, status and limitations on the front page.'],
+    ['R16', 'README.md', 'whole file', 'One line: <code># KalshiDash2</code>', 'No description of data source, verification rules, or how to run the collector',
+      '—', 'fixed', 'Rewritten.'],
+    ['R17', 'docs/assets/app.js', 'TOPICS.culture keywords', 'Included "pop"', 'Would match "population" in unrelated series; an example of why keyword matching was replaced',
+      'https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories', 'fixed', 'Category-based selection; no keyword matching remains.'],
+    ['R18', 'docs/index.html', 'executive summary table', 'Cited <code>https://docs.kalshi.com</code> as the source for hosts and the order endpoint', 'A domain is not a citation — the specific page was not linked, so no reader could check it',
+      'https://docs.kalshi.com/getting_started/api_environments', 'fixed', 'Every claim now links to the exact documentation page.'],
+  ].map(([id, file, where, claim, verdict, src, status, fix]) =>
+    ({ id, file, where, claim, verdict, src, status, fix }));
+
+  $('#kpis').innerHTML = [
+    ['Findings', KD.fmtN(R.length), 'files read line by line'],
+    ['Fixed this session', KD.fmtN(R.filter(r => r.status === 'fixed').length), ''],
+    ['Confirmed correct', KD.fmtN(R.filter(r => r.status === 'ok').length), 'no change needed'],
+    ['Left open', KD.fmtN(R.filter(r => r.status === 'open').length), 'documented on the Flagged page'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+    <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  function render() {
+    const f = $('#f').value;
+    const rows = R.filter(r => f === 'all' || r.status === f);
+    $('#table').innerHTML = KD.table(
+      ['#', 'File', 'Where', 'Claim in the code', 'Verdict after checking the source', 'Source', 'Status', 'Change made'],
+      rows.map(r => `<tr>
+        <td><b>${r.id}</b></td>
+        <td><code class="tiny">${KD.esc(r.file)}</code></td>
+        <td class="small">${KD.esc(r.where)}</td>
+        <td class="small">${r.claim}</td>
+        <td class="small">${r.verdict}</td>
+        <td class="src">${KD.srcLink(r.src, r.src === '—' ? '—' : 'source')}</td>
+        <td>${r.status === 'fixed' ? '<span class="badge ok">fixed</span>'
+          : r.status === 'ok' ? '<span class="badge info">confirmed</span>'
+          : '<span class="badge warn">open</span>'}</td>
+        <td class="small">${r.fix}</td>
+      </tr>`));
+    KD.setStatus($('#count'), true, `${rows.length} of ${R.length}`);
+  }
+  $('#f').onchange = render;
+  render();
+})();
+</script>
+</body>
+</html>

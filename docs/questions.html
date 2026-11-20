@@ -1,18 +1,218 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Open Questions — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html" class="active">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Questions &amp; Unknowns — KalshiDash2</title>
+<meta name="description" content="A structured list of what is known, what is assumed, what is unknown, and how each unknown would be resolved with an official source.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Open Questions — What We Know, What We Don't</h1>
-<p class="muted">No decision below should be made until its missing information is found. Each question lists how to discover the answer.</p>
-<div class="card"><table><thead><tr><th>#</th><th>Question</th><th>What we know</th><th>What we don't know</th><th>How to find out</th></tr></thead><tbody>
-<tr><td>Q1</td><td>Does the demo API allow browser (CORS) calls from GitHub Pages?</td><td>Official quick-start uses server-side Python <code>requests</code>. <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">Source</a></td><td>Whether <code>Access-Control-Allow-Origin</code> is sent for browser <code>fetch</code></td><td>Open the live dashboard; if it errors, add the proxy (S2). Check response headers in DevTools.</td></tr>
-<tr><td>Q2</td><td>Which key type will the demo account use — RSA or Ed25519?</td><td>Both are supported; signing differs. <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">Source</a></td><td>Which type your demo account has</td><td>Create a demo key at demo.kalshi.co and note the type; RSA works in-browser today (S3 adds Ed25519).</td></tr>
-<tr><td>Q3</td><td>Is WebSocket streaming wanted, given it needs auth?</td><td>WS requires a signed connection. <a href="https://docs.kalshi.com">Source</a></td><td>Whether polling is acceptable for seconds-level charts</td><td>Try polling first; approve S1 only if latency matters.</td></tr>
-<tr><td>Q4</td><td>Where should history be stored (proxy/scheduler)?</td><td>Browser storage is per-device and volatile</td><td>Hosting preference and budget</td><td>Decide: GitHub Actions cron, own server, or browser-only.</td></tr>
-<tr><td>Q5</td><td>What risk limits apply (max per market / per day)?</td><td>Demo funds are mock; no limits are set yet</td><td>Your risk tolerance</td><td>Set numbers before any automated trading (S6).</td></tr>
-<tr><td>Q6</td><td>Are keyword topic matches accurate enough?</td><td>Matching is heuristic, shown transparently on the dashboard</td><td>False positives/negatives per topic</td><td>Review matched series on the dashboard; refine keywords (S7).</td></tr>
-<tr><td>Q7</td><td>How is realized P&amp;L computed per strategy?</td><td>Fills and positions are available via API</td><td>Fee and settlement accounting rules</td><td>Join fills to resolved markets (S4); verify against <code>/portfolio/positions</code> realized P&amp;L.</td></tr>
-<tr><td>Q8</td><td>Should this ever touch production (real money)?</td><td>Everything here targets the demo host only</td><td>Intent</td><td>Explicit decision required; production keys must never enter this site.</td></tr>
-</tbody></table></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer></body></html>
+<h1>Questions, information gaps and answers</h1>
+<p class="muted">A decision should not be made from an unknown that is disguised as a fact. Each
+row below separates what is <b>verified</b> (with a link), what is <b>assumed</b> (and by whom),
+what is <b>unknown</b>, and the smallest experiment that would settle it.</p>
+
+<div class="statusbar">
+  <label class="inline">Show
+    <select id="filter">
+      <option value="all">All rows</option>
+      <option value="blocking">Blocking a decision</option>
+      <option value="open">Unanswered</option>
+      <option value="answered">Answered</option>
+    </select>
+  </label>
+  <input id="search" placeholder="Search questions" size="24">
+  <span id="count" class="pill">—</span>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Questions that block a decision</h2>
+  <div id="table"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">How to answer each one without guessing</h2>
+  <div id="howto"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">What is still missing from this project</h2>
+  <table><tbody>
+    <tr><td style="width:230px"><b>Real account history</b></td>
+      <td class="small">No demo account credentials exist in this repository, and none should.
+        Every portfolio number is blank until you add a key in your own browser. Anything else
+        would be invented.</td></tr>
+    <tr><td><b>Second snapshot</b></td>
+      <td class="small">Change-over-time metrics (price moves, new top markets, resolutions since
+        last run) need at least two snapshots 15 minutes apart. The first snapshot cannot show
+        a delta.</td></tr>
+    <tr><td><b>Gasoline-specific markets</b></td>
+      <td class="small">The exchange taxonomy has "Oil &amp; Gas" under Commodities but no
+        gasoline/pump-price bucket. See Flagged F-GAS for the exact query used and what came
+        back.</td></tr>
+    <tr><td><b>Sub-minute price history</b></td>
+      <td class="small">The public REST API exposes 1-minute candles at the finest. A seconds
+        chart requires either authenticated WebSocket streaming or repeated polling from the
+        browser, and both need an API key.</td></tr>
+    <tr><td><b>Which of the two demo hosts is canonical</b></td>
+      <td class="small">Kalshi documents one as recommended and the other as "also supported".
+        The collector uses the recommended host and falls back to the other only after a
+        failure, which is recorded in the run log.</td></tr>
+  </tbody></table>
+</div>
+</main>
+<footer>Demo environment only ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(function () {
+  const Q = [
+    {
+      id: 'Q1', blocking: true, status: 'answered',
+      q: 'Does the Kalshi demo REST API allow cross-origin browser requests from GitHub Pages?',
+      known: 'Kalshi documents the REST API for server-side clients and publishes no CORS policy. The official quick-start examples are Python and Node server code.',
+      assumed: 'Assumed by the earlier build: that it works. That assumption was untested.',
+      unknown: 'Whether an <code>Access-Control-Allow-Origin</code> header is returned for a browser origin.',
+      resolve: 'Open the dashboard in a browser with DevTools → Network, or run <code>curl -I -H "Origin: https://kanlerxz87-cyber.github.io"</code> against the demo host and read the headers.',
+      answer: 'Design changed so that the answer no longer matters: the collector fetches server-side and commits a snapshot, and the page reads the snapshot from the same origin.',
+      src: 'https://docs.kalshi.com/getting_started/quick_start_market_data',
+    },
+    {
+      id: 'Q2', blocking: true, status: 'open',
+      q: 'Which key type will the demo account actually use — RSA or Ed25519?',
+      known: 'Kalshi supports both and now defaults new keys to Ed25519. Signing differs: RSA-PSS SHA-256 versus raw Ed25519.',
+      assumed: 'Nothing. The page detects the PEM header and refuses a non-RSA key with an explicit message.',
+      unknown: 'Your key type. Browsers cannot sign Ed25519 through WebCrypto, so an Ed25519 key cannot be used on this site as built.',
+      resolve: 'Look at the first line of the downloaded key file: <code>BEGIN RSA PRIVATE KEY</code> is RSA; <code>BEGIN PRIVATE KEY</code> may be either, so check with <code>openssl pkey -in key.pem -text -noout</code>.',
+      answer: '',
+      src: 'https://docs.kalshi.com/getting_started/api_keys',
+    },
+    {
+      id: 'Q3', blocking: false, status: 'open',
+      q: 'Is the 15-minute snapshot cadence right for tracking events to resolution?',
+      known: 'Resolution timestamps are recorded by the exchange, so a slower poll still captures the outcome; a faster poll captures the moment it changed.',
+      assumed: '15 minutes balances freshness against GitHub Actions minutes.',
+      unknown: 'How quickly you need to learn about a resolution.',
+      resolve: 'Read the resolution lag on the Resolved page for a week: compare <code>settlement_ts</code> with the snapshot time that first included it.',
+      answer: '',
+      src: 'https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule',
+    },
+    {
+      id: 'Q4', blocking: false, status: 'open',
+      q: 'How should "highest dollar amount" be defined?',
+      known: 'The API exposes <code>open_interest_fp</code>, <code>volume_fp</code>, <code>volume_24h_fp</code> and <code>notional_value_dollars</code>.',
+      assumed: 'This site defines it as open interest × notional value, and sorts by that, then by volume. The definition is printed on the dashboard.',
+      unknown: 'Whether you would rather rank by traded volume in dollars, or by event rather than market.',
+      resolve: 'Compare the current ranking against a volume ranking; S9 proposes an event-level scoreboard.',
+      answer: '',
+      src: 'https://docs.kalshi.com/api-reference/market/get-markets',
+    },
+    {
+      id: 'Q5', blocking: false, status: 'answered',
+      q: 'Which endpoint places an order — is <code>/portfolio/events/orders</code> current?',
+      known: 'Yes. The V2 request shape is <code>side: bid|ask</code>, <code>count</code> as a fixed-point string, <code>price</code> as a fixed-point dollar string, plus <code>time_in_force</code> and <code>self_trade_prevention_type</code>.',
+      assumed: 'Nothing.',
+      unknown: '—',
+      resolve: 'Verified against the Create Order V2 reference and the official TypeScript SDK request type.',
+      answer: 'Confirmed current. The legacy <code>/portfolio/orders</code> write endpoints return <code>410 Gone</code>.',
+      src: 'https://docs.kalshi.com/api-reference/orders/create-order-v2',
+    },
+    {
+      id: 'Q6', blocking: false, status: 'answered',
+      q: 'Do the demo markets actually settle, so outcomes can be tracked?',
+      known: 'The demo exchange reports itself active and returns settled markets with a result field.',
+      assumed: 'Nothing.',
+      unknown: '—',
+      resolve: 'The collector requests <code>GET /markets?status=settled</code> and counts only rows whose <code>result</code> is exactly <code>yes</code> or <code>no</code>.',
+      answer: 'Yes for markets that reach settlement; the Resolved page shows the count actually returned in the current snapshot.',
+      src: 'https://docs.kalshi.com/getting_started/market_settlement',
+    },
+    {
+      id: 'Q7', blocking: true, status: 'open',
+      q: 'Crypto and sports markets trade on separate exchange shards. Does that change anything here?',
+      known: 'Markets carry an <code>exchange_index</code>, and the demo status endpoint lists four shards. Order routing defaults to auto-route by ticker when <code>exchange_index</code> is omitted.',
+      assumed: 'Assumed: leaving <code>exchange_index</code> unset is safe because Kalshi documents auto-routing by ticker.',
+      unknown: 'Whether a balance is split per shard for this account, which would make a single balance figure misleading.',
+      resolve: 'Read <code>GET /portfolio/balance</code> and inspect <code>balance_breakdown</code>; if it lists several shards, show per-shard balances.',
+      answer: '',
+      src: 'https://docs.kalshi.com/getting_started/exchange_sharding',
+    },
+    {
+      id: 'Q8', blocking: false, status: 'open',
+      q: 'Should anything here ever touch production, real money or a real key?',
+      known: 'Demo and production credentials are not interchangeable, and demo prices may not match production.',
+      assumed: 'Assumed: no. Every request in this repository targets the demo host only.',
+      unknown: 'Intent.',
+      resolve: 'An explicit decision. If it is ever yes, production keys must never be pasted into a page served from a public repo.',
+      answer: '',
+      src: 'https://docs.kalshi.com/getting_started/api_environments',
+    },
+    {
+      id: 'Q9', blocking: false, status: 'answered',
+      q: 'Can the site show fees and net P&L per trade?',
+      known: 'Fills carry <code>fee_cost</code>, and positions carry <code>fees_paid_dollars</code>.',
+      assumed: 'The journal does not store per-order fees, so the Analysis page reports gross P&L and points at the positions table for fees.',
+      unknown: '—',
+      resolve: 'S5 proposes reading fills after each order and storing the fee.',
+      answer: 'Yes, from fills; not yet wired into the per-row P&L.',
+      src: 'https://docs.kalshi.com/api-reference/portfolio/get-fills',
+    },
+    {
+      id: 'Q10', blocking: false, status: 'open',
+      q: 'What should happen when the exchange is paused?',
+      known: 'The status endpoint reports <code>exchange_active</code> and <code>trading_active</code>, and orders can be submitted with <code>cancel_order_on_pause</code>.',
+      assumed: 'The dashboard displays the status; nothing acts on it.',
+      unknown: 'Whether outstanding demo orders should be cancelled automatically.',
+      resolve: 'Decide policy, then set <code>cancel_order_on_pause: true</code> on new orders if the answer is yes.',
+      answer: '',
+      src: 'https://docs.kalshi.com/api-reference/exchange/get-exchange-status',
+    },
+  ];
+
+  function render() {
+    const f = $('#filter').value, q = $('#search').value.trim().toLowerCase();
+    let rows = Q;
+    if (f === 'blocking') rows = rows.filter(r => r.blocking);
+    else if (f === 'open') rows = rows.filter(r => r.status === 'open');
+    else if (f === 'answered') rows = rows.filter(r => r.status === 'answered');
+    if (q) rows = rows.filter(r => (r.id + r.q + r.known + r.unknown).toLowerCase().includes(q));
+
+    $('#table').innerHTML = KD.table(
+      ['#', 'Question', 'What is known', 'What is assumed', 'What is unknown', 'Status'],
+      rows.map(r => `<tr>
+        <td><b>${r.id}</b>${r.blocking ? '<div class="tiny"><span class="badge warn">blocks</span></div>' : ''}</td>
+        <td class="small"><b>${r.q}</b></td>
+        <td class="small">${r.known}<div class="src">${KD.srcLink(r.src, 'source')}</div></td>
+        <td class="small">${r.assumed}</td>
+        <td class="small">${r.unknown}</td>
+        <td>${r.status === 'answered'
+          ? '<span class="badge ok">answered</span>'
+          : '<span class="badge warn">open</span>'}</td>
+      </tr>`));
+
+    $('#howto').innerHTML = KD.table(
+      ['#', 'Smallest experiment that resolves it', 'Answer, once found'],
+      Q.map(r => `<tr>
+        <td><b>${r.id}</b></td>
+        <td class="small">${r.resolve}</td>
+        <td class="small">${r.answer || '<span class="muted">not yet established</span>'}</td>
+      </tr>`));
+
+    KD.setStatus($('#count'), true, `${rows.length} of ${Q.length} shown`);
+  }
+
+  $('#filter').onchange = render;
+  $('#search').oninput = render;
+  render();
+})();
+</script>
+</body>
+</html>

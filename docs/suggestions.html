@@ -1,24 +1,207 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Suggestions — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html" class="active">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suggestions — KalshiDash2</title>
+<meta name="description" content="Improvement proposals with evidence, cost, risk and a decision gate, so a path can be chosen before anything is implemented.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Suggestions — Review Before Anything Is Implemented</h1>
-<p class="muted">Each suggestion has an effort, risk, and a <b>decision gate</b>. Nothing below is implemented until you choose a path. Mark your pick with the radio button; picks are stored only in this browser.</p>
-<div class="card"><table><thead><tr><th>#</th><th>Suggestion</th><th>Why it helps decisions</th><th>Effort / Risk</th><th>Decision gate</th><th>Pick</th></tr></thead><tbody id="rows"></tbody></table></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
+<h1>Suggestions — decide before building</h1>
+<p class="muted">Each proposal states the evidence it rests on, what it costs, what it risks, and
+the specific decision that has to be made before any work starts. Nothing on this list has been
+implemented. Select a path to record your choice; the choice is stored in this browser only and
+is <b>not</b> an authorisation to build.</p>
+
+<div class="statusbar">
+  <span id="pickStatus" class="pill">no choices recorded</span>
+  <button class="secondary" id="exportPicks">Download decisions CSV</button>
+  <button class="secondary" id="clearPicks">Clear choices</button>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Decision scoreboard</h2>
+  <p class="small muted">Ranked by expected effect on decision quality per unit of effort. The
+    ranking is a judgement, clearly labelled as such — it is not an API value.</p>
+  <div id="scoreboard"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Proposals</h2>
+  <div id="proposals"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Suggested build order</h2>
+  <ol class="small">
+    <li><b>S1 — collect what we already pay for.</b> The collector now runs on a schedule. Before
+      anything else, let a week of snapshots accumulate so change-over-time metrics exist.</li>
+    <li><b>S2 — the two-minute fix that changes the most.</b> Turn on GitHub Pages from the
+      Actions artifact. Without it the site is not public at all.</li>
+    <li><b>S4 — key format.</b> Decide RSA-only or add Ed25519. This gates every trading
+      feature.</li>
+    <li><b>S3 — history depth.</b> Only after S1 has data: extend the candle window so 24 h and
+      7 d charts are honest instead of short.</li>
+    <li>Everything else follows the answers recorded on the
+      <a href="questions.html">Questions</a> page.</li>
+  </ol>
+</div>
+</main>
+<footer>Demo environment only — mock funds ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
 <script>
-const SUGGESTIONS=[
-["S1","WebSocket live ticks (wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2) instead of 2s polling","Real-time prices; less API load; seconds chart becomes truly live","Medium / Low","Approve WS auth approach (needs API key) — see Q3",""],
-["S2","Server-side proxy + scheduler that snapshots markets every minute to a data file","History survives page reloads; enables backtests; works without browser CORS","Medium / Low","Approve hosting for the proxy (GitHub Actions vs. own server) — see Q4",""],
-["S3","Ed25519 key support in-browser (WebCrypto does not support Ed25519 signing)","New Kalshi keys default to Ed25519; RSA-only blocks newer keys","Medium / Medium","Confirm key type you will create — see Q2",""],
-["S4","Outcome-joined P&L: join fills to resolved markets for realized profit per strategy","Turns 'activity' into actual strategy performance","Medium / Low","Approve after S2 (needs stored history)",""],
-["S5","Alerts: price moves >5¢, new high-dollar events, resolutions","Catch decisions in time without watching the screen","Low / Low","Choose channels (browser notifications vs. email)",""],
-["S6","Risk limits: max contracts per market, max daily spend, kill switch","Prevents accidental over-exposure in demo (and later, real) trading","Low / Low","Set numeric limits — see Q5",""],
-["S7","Topic taxonomy from /series categories instead of keywords","Fewer misclassified markets than keyword matching","Low / Low","Review keyword list on Questions page",""],
-["S8","Export CSV of fills, positions, and resolved outcomes","Offline analysis in spreadsheets; audit trail","Low / Low","Approve export format",""]];
-const picks=JSON.parse(localStorage.getItem("kalshi_picks")||"{}");
-$("#rows").innerHTML=SUGGESTIONS.map(([id,s,why,eff,gate])=>`<tr><td><b>${id}</b></td><td>${s}</td><td>${why}</td><td>${eff}</td><td>${gate}</td>
-<td><label style="margin:0"><input type="radio" name="pick" value="${id}" ${picks[id]?"checked":""}> Pick</label></td></tr>`).join("");
-$$("input[name=pick]").forEach(r=>r.onchange=()=>{ const p={}; p[r.value]=true; localStorage.setItem("kalshi_picks",JSON.stringify(p)); });
-</script></body></html>
+const $ = KD.$, $$ = KD.$$;
+(function () {
+  /* Evidence codes map to rows on the Verification and Flagged pages. */
+  const PROPOSALS = [
+    {
+      id: 'S1', title: 'Treat the collector as the product, not the page',
+      why: 'The site currently depends on a browser being able to call the Kalshi API. Kalshi does not document CORS, so that path can break with a browser update. The collector removes the dependency and makes every number reproducible from a run log.',
+      evidence: 'Flagged F1; see <a href="verification.html">Verification V9</a>',
+      effort: 'Low (built in this session)', risk: 'Low — read-only public endpoints',
+      gate: 'None. Running. Decide only the refresh interval (currently 15 min).',
+      scores: [5, 1],
+    },
+    {
+      id: 'S2', title: 'Serve the site from the GitHub Actions artifact',
+      why: 'The repository is no longer served by the legacy branch build, so Pages must deploy the artifact produced by the workflow. Without this, the site a reader opens is the README, not the dashboard.',
+      evidence: 'Flagged F7; workflow <code>.github/workflows/pages.yml</code>',
+      effort: 'Low', risk: 'Low — reversible in repository settings',
+      gate: 'None. Fixed in this session; verify the URL after merge.',
+      scores: [5, 1],
+    },
+    {
+      id: 'S3', title: 'Extend the stored candle window to 30 days',
+      why: 'The snapshot keeps 6 hours of 1-minute candles, so the 24-hour and 7-day chart windows are currently shorter than their labels imply. Storing 30 days of 1-minute candles for the top market in each topic is roughly 43k points per topic — a few MB of JSON.',
+      evidence: 'Dashboard chart notes; <code>docs/data/candles.json</code>',
+      effort: 'Low', risk: 'Medium — repository size grows; consider gzip or 5-minute candles',
+      gate: 'Approve the storage budget before the collector writes it.',
+      scores: [4, 2],
+    },
+    {
+      id: 'S4', title: 'Decide the key format: RSA only, or add Ed25519',
+      why: 'Kalshi now defaults new keys to Ed25519, and browsers cannot sign Ed25519 through WebCrypto. RSA-only means every new key has to be regenerated as RSA. A small in-page Ed25519 implementation removes that constraint but adds a dependency.',
+      evidence: 'Flagged F3; <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener">API keys</a>',
+      effort: 'Medium', risk: 'Medium — new crypto dependency, needs review',
+      gate: 'Choose: (a) RSA only and document it, or (b) add a vetted Ed25519 library.',
+      scores: [4, 2],
+    },
+    {
+      id: 'S5', title: 'Store fees per order so P&amp;L is net, not gross',
+      why: 'The journal records price, count and fill counts but not the fee for each order, so the Analysis page reports gross P&amp;L and tells the reader to read fees elsewhere. Reading <code>GET /portfolio/fills</code> after each order and storing <code>fee_cost</code> closes that gap.',
+      evidence: 'Analysis page note; <a href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener">fee rounding</a>',
+      effort: 'Low', risk: 'Low', gate: 'Approve one extra authenticated read per order.',
+      scores: [4, 1],
+    },
+    {
+      id: 'S6', title: 'Persist the journal server-side instead of in one browser',
+      why: 'The journal lives in <code>localStorage</code>, so analysis is tied to one browser profile. A committed JSON file written by the collector would not work for trades (it has no key), but a small authenticated sync could. Until then the CSV export is the audit trail.',
+      evidence: 'Analysis page limitation note',
+      effort: 'High', risk: 'High — would require a secret store', gate: 'Decide whether any secret may exist in CI.',
+      scores: [3, 4],
+    },
+    {
+      id: 'S7', title: 'Alert on resolution and on large price moves',
+      why: 'The stated goal is tracking events until they resolve. Right now that requires a visit. A GitHub Actions job that diffs consecutive snapshots could open an issue when a tracked market settles.',
+      evidence: 'Resolved page workflow',
+      effort: 'Low', risk: 'Low — issues only, no secrets', gate: 'Approve GitHub Issues as the notification channel.',
+      scores: [3, 1],
+    },
+    {
+      id: 'S8', title: 'Publish a machine-readable API of the snapshot',
+      why: 'The JSON under <code>docs/data/</code> is already public and static. Documenting its shape turns the site into a data source other tools can consume without scraping HTML.',
+      evidence: '<code>docs/data/meta.json</code> records every URL used',
+      effort: 'Low', risk: 'Low', gate: 'Approve a schema and a stability promise.',
+      scores: [2, 1],
+    },
+    {
+      id: 'S9', title: 'Add an event-level scoreboard, not just markets',
+      why: 'A single event can contain dozens of markets, so market-level rankings over-weight multi-outcome events. Aggregating open interest per <code>event_ticker</code> gives a fairer "highest dollar amount" ranking.',
+      evidence: '<code>docs/data/events.json</code> already aggregates by event',
+      effort: 'Low', risk: 'Low', gate: 'Approve the aggregation rule (sum of open interest × notional).',
+      scores: [3, 2],
+    },
+    {
+      id: 'S10', title: 'Re-check the deprecated fields before they disappear',
+      why: 'The OpenAPI schema marks <code>market.title</code>, fill <code>side</code>/<code>action</code>, and order <code>side</code>/<code>action</code> as deprecated. The site reads the deprecated fields only as a fallback, but the fallback will stop working after removal.',
+      evidence: 'Repo review R4, R5, R6',
+      effort: 'Low', risk: 'Low', gate: 'None — already handled by fallbacks; re-verify each snapshot.',
+      scores: [3, 1],
+    },
+  ];
+
+  const PICKS_KEY = 'kalshi_picks_v2';
+  const getPicks = () => { try { return JSON.parse(localStorage.getItem(PICKS_KEY) || '{}'); } catch { return {}; } };
+  const setPicks = (p) => localStorage.setItem(PICKS_KEY, JSON.stringify(p));
+
+  function render() {
+    const picks = getPicks();
+
+    $('#scoreboard').innerHTML = KD.table(
+      ['#', 'Proposal', 'Decision effect (1–5)', 'Effort (1–5)', 'Effect per effort', 'Choice'],
+      PROPOSALS.map(p => {
+        const [eff, cost] = p.scores;
+        return `<tr>
+          <td><b>${p.id}</b></td>
+          <td class="small">${KD.esc(p.title)}</td>
+          <td class="num">${eff}</td>
+          <td class="num">${cost}</td>
+          <td class="num">${(eff / cost).toFixed(1)}</td>
+          <td>${picks[p.id] ? '<span class="badge ok">chosen</span>' : '<span class="badge">open</span>'}</td>
+        </tr>`;
+      }), { numCols: [2, 3, 4] });
+
+    $('#proposals').innerHTML = PROPOSALS.map(p => `
+      <details ${picks[p.id] ? 'open' : ''}>
+        <summary>${p.id} · ${KD.esc(p.title)} ${picks[p.id] ? '<span class="badge ok">chosen</span>' : ''}</summary>
+        <table style="margin-top:8px"><tbody>
+          <tr><td style="width:170px">Why it matters</td><td class="small">${p.why}</td></tr>
+          <tr><td>Evidence</td><td class="small">${p.evidence}</td></tr>
+          <tr><td>Effort</td><td class="small">${KD.esc(p.effort)}</td></tr>
+          <tr><td>Risk</td><td class="small">${KD.esc(p.risk)}</td></tr>
+          <tr><td>Decision gate</td><td class="small">${p.gate}</td></tr>
+          <tr><td>Your choice</td><td>
+            <label class="inline"><input type="radio" name="pick-${p.id}" value="approve" ${picks[p.id] === 'approve' ? 'checked' : ''}> Approve</label>
+            <label class="inline"><input type="radio" name="pick-${p.id}" value="reject" ${picks[p.id] === 'reject' ? 'checked' : ''}> Reject</label>
+            <label class="inline"><input type="radio" name="pick-${p.id}" value="defer" ${picks[p.id] === 'defer' ? 'checked' : ''}> Defer</label>
+          </td></tr>
+        </tbody></table>
+      </details>`).join('');
+
+    $$('input[type=radio]').forEach(r => {
+      r.onchange = () => {
+        const picks2 = getPicks();
+        const id = r.name.replace('pick-', '');
+        picks2[id] = r.value;
+        setPicks(picks2);
+        render();
+      };
+    });
+
+    const n = Object.keys(picks).length;
+    KD.setStatus($('#pickStatus'), n > 0, n ? `${n} of ${PROPOSALS.length} decided` : 'no choices recorded');
+  }
+
+  $('#exportPicks').onclick = () => {
+    const picks = getPicks();
+    const rows = PROPOSALS.map(p =>
+      [p.id, JSON.stringify(p.title), picks[p.id] || 'open',
+       p.scores[0], p.scores[1]].join(','));
+    KD.download(`kalshi-decisions-${new Date().toISOString().slice(0, 10)}.csv`,
+      'id,title,decision,effect,effort\n' + rows.join('\n') + '\n');
+  };
+  $('#clearPicks').onclick = () => { setPicks({}); render(); };
+
+  render();
+})();
+</script>
+</body>
+</html>

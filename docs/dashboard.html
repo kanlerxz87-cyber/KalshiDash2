@@ -1,89 +1,449 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Live Dashboard — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html" class="active">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live Dashboard — KalshiDash2</title>
+<meta name="description" content="Highest dollar-amount live events on the Kalshi demo exchange across gas prices, elections, culture, crypto and golf, with price charts and order-book liquidity.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Live Dashboard — Highest-Dollar Events</h1>
-<p class="muted">Live data from the Kalshi <b>demo</b> API (<code>external-api.demo.kalshi.co/trade-api/v2</code>). Topics are matched against live <code>/series</code> data by keyword — series tickers are never guessed. Ranked by open interest, then volume. Source: <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">docs.kalshi.com quick-start</a>.</p>
-<div class="statusbar"><span id="status" class="pill">Connecting…</span><span id="updated" class="muted small"></span>
-<label style="margin:0">Topic <select id="topic"><option value="gas">Gas Prices</option><option value="elections">Elections</option><option value="culture">Culture</option><option value="crypto">Crypto</option><option value="golf">Golf</option></select></label>
-<label style="margin:0">Series ticker override (optional) <input id="seriesOverride" placeholder="e.g. KXHIGHNY" size="14"></label>
-<button id="refresh">Refresh</button></div>
-<div id="seriesInfo" class="muted small"></div>
-<div class="card"><h2 style="margin-top:0">Top markets by dollar amount</h2>
-<table><thead><tr><th>Ticker</th><th>Title</th><th>Yes bid</th><th>Yes ask</th><th>Last</th><th>Open interest</th><th>Volume</th><th>Status</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="9">Loading…</td></tr></tbody></table></div>
-<div class="card"><h2 style="margin-top:0">Price chart</h2>
-<div class="statusbar"><label style="margin:0">Market ticker <input id="ticker" placeholder="pick from table or type" size="26"></label>
-<label style="margin:0">Time window <select id="window"><option value="60">Last 60 seconds</option><option value="3600">Last 60 minutes</option><option value="86400">Last 24 hours</option></select></label>
-<button id="loadChart">Load chart</button><span id="chartStatus" class="pill">Idle</span></div>
-<canvas id="chart"></canvas>
-<p class="muted small">X axis = time, Y axis = contract price (USD). Seconds view polls the market every 2s; minutes/hours views use the official candlestick endpoint (<code>period_interval</code> 1 / 60). Source: <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks">Get Market Candlesticks</a>.</p></div>
-<div class="card"><h2 style="margin-top:0">Liquidity — order book</h2>
-<div class="statusbar"><button id="loadBook">Load order book</button><span id="bookStatus" class="pill">Idle</span></div>
-<div class="grid"><div><h3>Yes bids (price × contracts)</h3><table><thead><tr><th>Price</th><th>Contracts</th></tr></thead><tbody id="yesBook"></tbody></table></div>
-<div><h3>No bids (price × contracts)</h3><table><thead><tr><th>Price</th><th>Contracts</th></tr></thead><tbody id="noBook"></tbody></table></div></div>
-<p class="muted small">Source: <a href="https://docs.kalshi.com/api-reference/market/get-market-orderbook">Get Market Orderbook</a> (<code>/markets/{ticker}/orderbook</code>).</p></div>
-</main><footer>Demo data only — mock funds, prices may not match production. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
-<script src="assets/app.js"></script><script>
-const rowsEl=$("#rows"), statusEl=$("#status");
-async function loadTopic(){
-  setStatus(statusEl,true,"Loading…"); rowsEl.innerHTML="<tr><td colspan='9'>Loading…</td></tr>";
-  try{
-    const topic=$("#topic").value, override=$("#seriesOverride").value.trim();
-    let markets, seriesInfo;
-    if(override){
-      const j=await api(`/markets?series_ticker=${encodeURIComponent(override)}&status=open&limit=200`);
-      markets=j.markets||[]; seriesInfo=`Series override: <code>${esc(override)}</code> — ${markets.length} open markets.`;
-    } else {
-      const r=await fetchTopicMarkets(topic); markets=r.markets;
-      seriesInfo=`Matched ${r.series.length} live series for “${TOPICS[topic].label}” by keyword: `+(r.series.map(s=>`<code>${esc(s.ticker)}</code>`).join(", ")||"none found — try the series override");
+<h1>Live Dashboard — highest dollar-amount events</h1>
+<p class="muted">Public data from the Kalshi <b>demo</b> exchange. Topics are built from the
+exchange's own taxonomy (<code>category</code> and <code>tags</code> fields), not from keyword
+guesses. Every number below was returned by the API in the snapshot shown in the banner.</p>
+<div id="fresh"></div>
+
+<div class="kpis" id="kpis"></div>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Topic coverage</h2>
+    <span class="src">source: <a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener">Get Series List</a></span>
+  </div>
+  <div id="topicTable"></div>
+</section>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Top live markets by dollar amount</h2>
+    <div class="statusbar" style="margin:0">
+      <label class="inline">Topic
+        <select id="topicFilter">
+          <option value="all">All five topics</option>
+        </select>
+      </label>
+      <label class="inline">Sort
+        <select id="sortBy">
+          <option value="oi">Open interest ($)</option>
+          <option value="vol">Volume (contracts)</option>
+          <option value="close">Close time (soonest)</option>
+        </select>
+      </label>
+      <input id="search" placeholder="Filter ticker or title" size="18">
+    </div>
+  </div>
+  <p class="small muted">Open interest in dollars = <code>open_interest_fp</code> ×
+    <code>notional_value_dollars</code>, both API fields
+    (<a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener">Get Markets</a>).
+    A dash means the API returned no value — it is never filled in.</p>
+  <div class="scroll"><div id="marketTable"></div></div>
+</section>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Price chart</h2>
+    <span class="src">x = time · y = contract price in dollars</span>
+  </div>
+  <div class="statusbar">
+    <label class="inline">Market
+      <select id="chartMarket" style="min-width:320px"></select>
+    </label>
+    <label class="inline">Window
+      <select id="chartRange">
+        <option value="60s">60 seconds</option>
+        <option value="5m">5 minutes</option>
+        <option value="15m">15 minutes</option>
+        <option value="1h" selected>1 hour</option>
+        <option value="6h">6 hours</option>
+        <option value="24h">24 hours</option>
+        <option value="7d">7 days</option>
+      </select>
+    </label>
+    <label class="inline"><input type="checkbox" id="liveMode"> Poll live (needs browser CORS)</label>
+    <button id="chartRefresh">Draw</button>
+    <span id="chartStatus" class="pill">—</span>
+  </div>
+  <div class="chartwrap"><canvas id="chart" height="300"></canvas></div>
+  <div id="chartDetail" class="small muted"></div>
+  <details>
+    <summary>How this chart is built, and what it cannot show</summary>
+    <ul class="small">
+      <li><b>1 hour and shorter:</b> points come from the 1-minute candlestick endpoint
+        <code>GET /series/{series_ticker}/markets/{ticker}/candlesticks</code>, requested with
+        <code>period_interval=1</code>. The snapshot stores the last 6 hours, so all of these
+        windows are covered by real candles.
+        (<a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener">docs</a>)</li>
+      <li><b>24 hours and 7 days:</b> the snapshot only stores 1-minute candles for 6 hours.
+        Longer windows are drawn from those same candles, so the line starts when the
+        collected candles start. It is <i>not</i> extrapolated backwards.</li>
+      <li><b>Seconds:</b> the public REST API has no sub-minute history endpoint. A true
+        seconds view needs either the authenticated WebSocket
+        <code>ticker</code> channel or repeated polling, both of which require this page to
+        reach the API directly from your browser. Kalshi does not document CORS support for
+        that, so it is opt-in and reported honestly (see Flagged F1).</li>
+      <li><b>y axis</b> is the yes-side contract price in dollars (0.00–1.00). The snapshot
+        plots the candlestick <code>price.close_dollars</code> field verbatim.</li>
+    </ul>
+  </details>
+</section>
+
+<section class="card">
+  <div class="flex-between">
+    <h2 style="margin:0">Liquidity — contracts available at each price</h2>
+    <span class="src">source: <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener">orderbook docs</a></span>
+  </div>
+  <div class="statusbar">
+    <label class="inline">Topic book
+      <select id="bookPick"></select>
+    </label>
+    <span id="bookStatus" class="pill">—</span>
+  </div>
+  <div class="grid">
+    <div>
+      <h3>Yes side — bids (buy yes)</h3>
+      <div class="scroll" style="max-height:320px"><div id="yesBook"></div></div>
+    </div>
+    <div>
+      <h3>No side — bids (buy no)</h3>
+      <div class="scroll" style="max-height:320px"><div id="noBook"></div></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div><h3>Depth on yes bids</h3><div class="chartwrap"><canvas id="depthChart" height="200"></canvas></div></div>
+    <div><h3>Book summary</h3><div id="bookSummary"></div></div>
+  </div>
+  <details>
+    <summary>Why there are no asks in this table</summary>
+    <p class="small">Kalshi returns <b>bids only</b> for each side. A yes bid at price X is the
+      same trade as a no ask at 1 − X, so the two sides contain the full book. The
+      "implied ask" columns apply that documented conversion
+      (<a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener">orderbook responses</a>).
+      Arrays are sorted ascending and the <b>best bid is the last element</b>.</p>
+  </details>
+</section>
+
+<section class="card">
+  <h2>What this dashboard does not know</h2>
+  <ul class="small">
+    <li>Historical snapshots accumulate only while the collector runs. The first snapshot has
+      no prior value, so no change-over-time metric is shown until a second snapshot exists.</li>
+    <li>Topic coverage reflects the exchange taxonomy at collection time. Series that are
+      added or retagged after a snapshot are not reflected until the next run.</li>
+    <li>Demo markets use mock funds and may not track real prices
+      (<a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener">demo environment</a>).</li>
+  </ul>
+</section>
+</main>
+<footer>Demo environment only — mock funds. Data: Kalshi demo Trade API ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+  KD.renderFreshness($('#fresh'), d);
+
+  const topics = d.meta.topics || {};
+  const stats = KD.topicStats(d);
+  const markets = KD.allMarkets(d);
+
+  /* ---------- KPI strip ---------- */
+  const totOi = Object.values(stats).reduce((a, s) => a + (s.openInterestUsd || 0), 0);
+  const totMk = Object.values(stats).reduce((a, s) => a + (s.markets || 0), 0);
+  const totSer = Object.values(stats).reduce((a, s) => a + (s.series || 0), 0);
+  const resolved = (d.resolutions && d.resolutions.settled) || [];
+  const yes = resolved.filter(r => r.result === 'yes').length;
+  const no = resolved.filter(r => r.result === 'no').length;
+  const ex = d.exchange && d.exchange.status;
+  $('#kpis').innerHTML = [
+    ['Open interest, all 5 topics', KD.fmtUsd(totOi, 0), 'sum of API open_interest x notional'],
+    ['Live markets tracked', KD.fmtN(totMk), 'status=open, in-topic series'],
+    ['Series in taxonomy', KD.fmtN(totSer), 'category/tag matched'],
+    ['Resolved (all topics)', KD.fmtN(resolved.length), 'result field = yes/no'],
+    ['Resolved yes / no', `${KD.fmtN(yes)} / ${KD.fmtN(no)}`, 'copied from result field'],
+    ['Exchange state', ex ? (ex.exchange_active ? 'Active' : 'Inactive') : '—',
+      ex ? (ex.trading_active ? 'trading enabled' : 'trading paused') : 'no status'],
+  ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+      <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+  /* ---------- topic coverage ---------- */
+  $('#topicTable').innerHTML = KD.table(
+    ['Topic', 'Exchange bucket used', 'Series', 'Live markets', 'Open interest ($)',
+     'Volume (contracts)', 'Snapshot', 'Status'],
+    KD.TOPIC_ORDER.map(t => {
+      const s = stats[t];
+      const doc = d['topic-' + t] || {};
+      return `<tr>
+        <td><b>${KD.esc(s.label)}</b></td>
+        <td class="small">${KD.esc(doc.note || '')}</td>
+        <td class="num">${KD.fmtN(s.series)}</td>
+        <td class="num">${KD.fmtN(s.markets)}</td>
+        <td class="num">${KD.fmtUsd(s.openInterestUsd, 0)}</td>
+        <td class="num">${KD.fmtN(s.volumeContracts)}</td>
+        <td class="small">${KD.esc(doc.generated_at || '—')}</td>
+        <td>${s.error ? `<span class="badge bad">error</span> <span class="tiny">${KD.esc(s.error)}</span>`
+          : s.markets ? '<span class="badge ok">collected</span>'
+          : '<span class="badge warn">no markets</span>'}</td>
+      </tr>`;
+    }), { numCols: [2, 3, 4, 5] });
+
+  /* ---------- topic + market selectors ---------- */
+  const tf = $('#topicFilter');
+  KD.TOPIC_ORDER.forEach(t => tf.insertAdjacentHTML('beforeend',
+    `<option value="${t}">${KD.esc(KD.TOPIC_LABELS[t])}</option>`));
+
+  const chartSel = $('#chartMarket');
+  const sortedForChart = [...markets]
+    .filter(m => KD.num(m.volume_fp) > 0)
+    .sort((a, b) => (KD.num(b.open_interest_fp) || 0) - (KD.num(a.open_interest_fp) || 0));
+  const chartList = (sortedForChart.length ? sortedForChart : markets).slice(0, 120);
+  if (!chartList.length) {
+    chartSel.innerHTML = '<option value="">No markets in snapshot</option>';
+  } else {
+    chartSel.innerHTML = chartList.map(m =>
+      `<option value="${KD.esc(m.ticker)}" data-series="${KD.esc(m.series_ticker || '')}">
+        ${KD.esc(KD.TOPIC_LABELS[m.topic])} · ${KD.esc(m.ticker)} — ${KD.esc((m.title || '').slice(0, 62))}
+      </option>`).join('');
+  }
+
+  /* ---------- market table ---------- */
+  function renderMarkets() {
+    const t = tf.value, q = $('#search').value.trim().toLowerCase();
+    const sort = $('#sortBy').value;
+    let rows = markets.filter(m => (t === 'all' || m.topic === t) &&
+      (!q || (m.ticker + ' ' + (m.title || '') + ' ' + (m.event_ticker || '')).toLowerCase().includes(q)));
+    rows = rows.sort((a, b) => {
+      if (sort === 'vol') return (KD.num(b.volume_fp) || -1) - (KD.num(a.volume_fp) || -1);
+      if (sort === 'close') return String(a.close_time || '9999').localeCompare(String(b.close_time || '9999'));
+      return (KD.num(b.open_interest_dollars) ?? -1) - (KD.num(a.open_interest_dollars) ?? -1);
+    }).slice(0, 300);
+    $('#marketTable').innerHTML = KD.table(
+      ['Topic', 'Ticker', 'Title', 'Yes bid', 'Yes ask', 'Last', 'Open interest',
+       'OI ($)', 'Volume', '24h vol', 'Closes', 'Status', ''],
+      rows.map(m => `<tr>
+        <td>${KD.topicBadge(m.topic)}</td>
+        <td><code class="tiny">${KD.esc(m.ticker)}</code></td>
+        <td class="small">${KD.esc(m.title || '')}<div class="tiny muted">${KD.esc(m.series_title || '')}</div></td>
+        <td class="num">${KD.cents(m.yes_bid_dollars)}</td>
+        <td class="num">${KD.cents(m.yes_ask_dollars)}</td>
+        <td class="num">${KD.cents(m.last_price_dollars)}</td>
+        <td class="num">${KD.fmtN(m.open_interest_fp, 2)}</td>
+        <td class="num">${KD.fmtUsd(m.open_interest_dollars, 0)}</td>
+        <td class="num">${KD.fmtN(m.volume_fp, 2)}</td>
+        <td class="num">${KD.fmtN(m.volume_24h_fp, 2)}</td>
+        <td class="small">${KD.fmtTs(m.close_time)}</td>
+        <td>${KD.esc(m.status || '')}</td>
+        <td><button class="secondary tiny" data-chart="${KD.esc(m.ticker)}">Chart</button></td>
+      </tr>`), { numCols: [3, 4, 5, 6, 7, 8, 9] });
+    $$('#marketTable [data-chart]').forEach(b => {
+      b.onclick = () => {
+        const opt = [...chartSel.options].find(o => o.value === b.dataset.chart);
+        if (opt) { chartSel.value = b.dataset.chart; }
+        else {
+          chartSel.insertAdjacentHTML('afterbegin',
+            `<option value="${KD.esc(b.dataset.chart)}">${KD.esc(b.dataset.chart)}</option>`);
+          chartSel.value = b.dataset.chart;
+        }
+        drawPriceChart();
+        $('#chart').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+    });
+  }
+  tf.onchange = renderMarkets;
+  $('#sortBy').onchange = renderMarkets;
+  $('#search').oninput = renderMarkets;
+  renderMarkets();
+
+  /* ---------- price chart ---------- */
+  const candleDoc = (d.candles && d.candles.candles) || [];
+  let liveTimer = null;
+  let livePoints = [];
+
+  function candlesFor(ticker) {
+    const doc = candleDoc.find(c => c.ticker === ticker);
+    return doc ? doc.candlesticks || [] : [];
+  }
+
+  function drawPriceChart() {
+    const ticker = chartSel.value;
+    if (!ticker) return;
+    const rangeKey = $('#chartRange').value;
+    const range = KD.RANGES[rangeKey];
+    const cs = $('#chartStatus');
+    const isLive = range.mode === 'live';
+
+    if (isLive && !$('#liveMode').checked) {
+      KD.setStatus(cs, null, 'seconds window needs live polling — enable it above');
+      KD.drawChart($('#chart'), [], {
+        empty: 'Seconds and 5/15-minute windows need live polling. Enable "Poll live" to try, or pick 1 hour or longer for the stored candles.',
+      });
+      $('#chartDetail').innerHTML = '';
+      return;
     }
-    $("#seriesInfo").innerHTML=seriesInfo;
-    const top=rankByDollars(markets).slice(0,25);
-    rowsEl.innerHTML=top.length?top.map(m=>marketRow(m,`<td><button class="secondary" data-t="${esc(m.ticker)}">Chart</button> <button class="secondary" data-w="${esc(m.ticker)}">Watch</button></td>`)).join(""):"<tr><td colspan='9'>No open markets matched. This is a live result, not an error — the demo exchange may have no matching series right now.</td></tr>";
-    setStatus(statusEl,true,`Live — ${markets.length} markets, showing top ${top.length}`);
-    $("#updated").textContent="Updated "+new Date().toLocaleTimeString();
-  }catch(e){ setStatus(statusEl,false,"API error: "+e.message); rowsEl.innerHTML=`<tr><td colspan='9'>Could not load: ${esc(e.message)}. Check your connection, then Refresh. (If this persists in a browser, see the Flagged for Review page — browser CORS is unverified.)</td></tr>`; }
-}
-rowsEl.addEventListener("click",e=>{
-  const t=e.target.closest("[data-t]")?.dataset.t, w=e.target.closest("[data-w]")?.dataset.w;
-  if(t){ $("#ticker").value=t; loadChart(); }
-  if(w){ Watch.add(w); e.target.textContent="Watched ✓"; }
-});
-$("#refresh").onclick=loadTopic; $("#topic").onchange=loadTopic;
-let pollTimer=null;
-async function loadChart(){
-  const ticker=$("#ticker").value.trim(); if(!ticker) return;
-  clearInterval(pollTimer); const win=+$("#window").value, cs=$("#chartStatus");
-  const pts=[];
-  const draw=()=>drawChart($("#chart"),pts,{label:ticker});
-  try{
-    if(win===60){
-      setStatus(cs,true,"Polling every 2s (seconds view)…");
-      const tick=async()=>{ const m=await api(`/markets/${encodeURIComponent(ticker)}`);
-        const p=m.market?.last_price_dollars ?? m.last_price_dollars ?? m.market?.last_price;
-        if(p!=null){ pts.push({t:Date.now(),y:Number(p)}); if(pts.length>300)pts.shift(); draw(); } };
-      await tick(); pollTimer=setInterval(tick,2000);
-    } else {
-      setStatus(cs,true,"Loading candlesticks…");
-      const period=win===3600?1:60;
-      const j=await api(`/markets/candlesticks?market_tickers=${encodeURIComponent(ticker)}&period_interval=${period}&start_ts=${Math.floor(Date.now()/1000)-win}&end_ts=${Math.floor(Date.now()/1000)}`);
-      const candles=(j.candlesticks||[]).flatMap(c=>c.candlesticks||[]);
-      for(const c of candles){ const y=c.yes_close_dollars ?? c.yes_close ?? c.close; if(y!=null) pts.push({t:c.end_period_ts*1000,y:Number(y)}); }
-      pts.sort((a,b)=>a.t-b.t); draw();
-      setStatus(cs,!!pts.length,pts.length?`${pts.length} candles`:"No candles in window");
+
+    let pts = [];
+    const now = Date.now();
+    const cutoff = now - range.secs * 1000;
+
+    const raw = candlesFor(ticker);
+    for (const c of raw) {
+      const t = KD.num(c.ts);
+      if (t === null) continue;
+      const ms = t * 1000;
+      if (ms < cutoff) continue;
+      pts.push({ t: ms, y: KD.num(c.price_close), bid: KD.num(c.yes_bid_close), ask: KD.num(c.yes_ask_close),
+                 vol: KD.num(c.volume_fp) });
     }
-  }catch(e){ setStatus(cs,false,e.message); }
-}
-$("#loadChart").onclick=loadChart;
-$("#loadBook").onclick=async()=>{
-  const ticker=$("#ticker").value.trim(); if(!ticker) return;
-  try{ const j=await api(`/markets/${encodeURIComponent(ticker)}/orderbook`);
-    const book=j.orderbook_fp||j.orderbook||{};
-    const fill=(el,levels)=>{ el.innerHTML=(levels||[]).length?levels.map(([p,c])=>`<tr><td>${fmt$(p)}</td><td>${fmtN(c)}</td></tr>`).join(""):"<tr><td colspan='2'>No levels returned</td></tr>"; };
-    fill($("#yesBook"),book.yes_dollars||book.yes); fill($("#noBook"),book.no_dollars||book.no);
-    setStatus($("#bookStatus"),true,"Live order book");
-  }catch(e){ setStatus($("#bookStatus"),false,e.message); }
-};
-loadTopic();
-</script></body></html>
+
+    if (isLive && $('#liveMode').checked) pts = [...livePoints.filter(p => p.t >= cutoff), ...pts];
+    pts.sort((a, b) => a.t - b.t);
+
+    const series = [{ key: 'y', color: '#388bfd', label: 'price (close)', width: 2, fill: 'rgba(56,139,253,.10)' }];
+
+    KD.drawChart($('#chart'), pts, { series, yFmt: v => v.toFixed(2) });
+
+    const doc = candleDoc.find(c => c.ticker === ticker);
+    if (!doc) {
+      KD.setStatus(cs, null, 'no stored candles for this market');
+      $('#chartDetail').innerHTML = `<div class="banner">The snapshot holds candles only for the
+        top market of each topic (see <code>docs/data/candles.json</code>). Pick one of the
+        five charted tickers, or enable live polling.</div>`;
+      return;
+    }
+    KD.setStatus(cs, pts.length > 0, pts.length ? `${pts.length} candles` : 'no candles in window');
+    $('#chartDetail').innerHTML = pts.length
+      ? `<p class="small">${KD.esc(doc.title || ticker)} — ${pts.length} one-minute candles,
+          from ${KD.fmtTs(pts[0].t / 1000)} to ${KD.fmtTs(pts[pts.length - 1].t / 1000)}.
+          Source: ${KD.srcLink(doc.source, 'candlestick request')}.
+          ${doc.count ? '' : '<b>No candles returned by the API for this market.</b>'}</p>`
+      : `<p class="small">The stored candle window (last ${doc.window_hours || 6} h at collection time)
+          has no points inside the selected window. Widen the window.</p>`;
+  }
+
+  function startLivePolling() {
+    clearInterval(liveTimer);
+    if (!$('#liveMode').checked) return;
+    const tick = async () => {
+      const ticker = chartSel.value;
+      if (!ticker) return;
+      try {
+        const j = await KD.publicFetch('/markets/' + encodeURIComponent(ticker));
+        const m = j.market || {};
+        const p = KD.num(m.last_price_dollars);
+        if (p !== null) {
+          livePoints.push({ t: Date.now(), y: p });
+          const keep = Date.now() - 900 * 1000;
+          livePoints = livePoints.filter(x => x.t >= keep);
+          drawPriceChart();
+        }
+      } catch (e) {
+        KD.setStatus($('#chartStatus'), false,
+          'live request blocked: ' + e.message + ' — see Flagged F1');
+        $('#liveMode').checked = false;
+        clearInterval(liveTimer);
+      }
+    };
+    tick();
+    liveTimer = setInterval(tick, 2000);
+  }
+
+  $('#chartRefresh').onclick = drawPriceChart;
+  $('#chartRange').onchange = drawPriceChart;
+  chartSel.onchange = () => { livePoints = []; drawPriceChart(); };
+  $('#liveMode').onchange = () => { if ($('#liveMode').checked) startLivePolling(); else { clearInterval(liveTimer); drawPriceChart(); } };
+  drawPriceChart();
+
+  /* ---------- order book / liquidity ---------- */
+  const depthDocs = (d.depth && d.depth.depth) || [];
+  const bookSel = $('#bookPick');
+  const usable = depthDocs.filter(x => x.ticker);
+  bookSel.innerHTML = usable.length
+    ? usable.map(x => `<option value="${KD.esc(x.topic)}">${KD.esc(x.label)} · ${KD.esc(x.ticker)}</option>`).join('')
+    : '<option value="">No order books in snapshot</option>';
+  if (!usable.length) {
+    bookSel.insertAdjacentHTML('beforebegin',
+      '<span class="pill err">no order books collected</span>');
+  }
+
+  function renderBook() {
+    const t = bookSel.value;
+    const doc = usable.find(x => x.topic === t);
+    if (!doc) return;
+    const yi = KD.cumulative(doc.yes_bid_levels, false);   // best first
+    const ni = KD.cumulative(doc.no_bid_levels, false);
+    const yb = KD.bestBid(doc.yes_bid_levels);
+    const nb = KD.bestBid(doc.no_bid_levels);
+    const yAsk = KD.impliedYesAsk(doc.no_bid_levels);
+    const nAsk = KD.impliedNoAsk(doc.yes_bid_levels);
+
+    $('#yesBook').innerHTML = KD.table(
+      ['Price', 'Contracts', 'Cumulative', 'Implied no ask'],
+      yi.map(r => `<tr><td class="num">${KD.cents(r.price)}</td>
+        <td class="num">${KD.fmtN(r.contracts, 2)}</td>
+        <td class="num">${KD.fmtN(r.cumulative, 2)}</td>
+        <td class="num">${KD.cents(r.price === null ? null : 1 - r.price)}</td></tr>`),
+      { numCols: [0, 1, 2, 3], empty: 'No yes bids resting.' });
+
+    $('#noBook').innerHTML = KD.table(
+      ['Price', 'Contracts', 'Cumulative', 'Implied yes ask'],
+      ni.map(r => `<tr><td class="num">${KD.cents(r.price)}</td>
+        <td class="num">${KD.fmtN(r.contracts, 2)}</td>
+        <td class="num">${KD.fmtN(r.cumulative, 2)}</td>
+        <td class="num">${KD.cents(r.price === null ? null : 1 - r.price)}</td></tr>`),
+      { numCols: [0, 1, 2, 3], empty: 'No no bids resting.' });
+
+    const spreads = (yb && yAsk) ? yAsk.price - yb.price : null;
+    $('#bookSummary').innerHTML = `
+      <table><tbody>
+        <tr><td>Market</td><td><code>${KD.esc(doc.ticker)}</code></td></tr>
+        <tr><td>Title</td><td class="small">${KD.esc(doc.title || '')}</td></tr>
+        <tr><td>Best yes bid</td><td class="num">${KD.cents(yb && yb.price)} <span class="muted small">(${KD.fmtN(yb && yb.contracts, 2)} contracts)</span></td></tr>
+        <tr><td>Best yes ask (implied)</td><td class="num">${KD.cents(yAsk && yAsk.price)} <span class="muted small">(${KD.fmtN(yAsk && yAsk.contracts, 2)})</span></td></tr>
+        <tr><td>Yes spread</td><td class="num">${spreads === null ? '—' : KD.cents(spreads)}</td></tr>
+        <tr><td>Best no bid</td><td class="num">${KD.cents(nb && nb.price)} <span class="muted small">(${KD.fmtN(nb && nb.contracts, 2)})</span></td></tr>
+        <tr><td>Best no ask (implied)</td><td class="num">${KD.cents(nAsk && nAsk.price)} <span class="muted small">(${KD.fmtN(nAsk && nAsk.contracts, 2)})</span></td></tr>
+        <tr><td>Total yes-bid depth</td><td class="num">${KD.fmtN(yi.length ? yi[yi.length - 1].cumulative : null, 2)} contracts</td></tr>
+        <tr><td>Total no-bid depth</td><td class="num">${KD.fmtN(ni.length ? ni[ni.length - 1].cumulative : null, 2)} contracts</td></tr>
+        <tr><td>Collected</td><td class="small">${KD.esc(doc.generated_at)}</td></tr>
+        <tr><td>Source</td><td class="src">${KD.srcLink(doc.source, 'orderbook request')}</td></tr>
+      </tbody></table>`;
+
+    const depthPts = [...doc.yes_bid_levels]
+      .map(([p, c]) => ({ t: KD.num(p) * 10000, y: KD.num(c) }))
+      .filter(p => p.t !== null && p.y !== null)
+      .sort((a, b) => a.t - b.t);
+    KD.drawChart($('#depthChart'), depthPts, {
+      height: 200,
+      series: [{ key: 'y', color: '#3fb950', label: 'contracts at price', width: 2, fill: 'rgba(63,185,80,.12)' }],
+      yFmt: v => KD.fmtN(v, 0),
+      xFmt: d2 => '¢' + Math.round(d2.getTime() / 10000),
+      empty: 'No yes bids to plot.',
+    });
+    $('#bookStatus').className = 'pill live';
+    $('#bookStatus').textContent = 'snapshot ' + (d.depth.generated_at || '');
+  }
+  bookSel.onchange = renderBook;
+  renderBook();
+
+  window.addEventListener('resize', () => { drawPriceChart(); renderBook(); });
+})();
+</script>
+</body>
+</html>

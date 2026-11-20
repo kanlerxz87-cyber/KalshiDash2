@@ -1,53 +1,417 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Portfolio &amp; Trading — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html" class="active">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portfolio &amp; Trading — KalshiDash2</title>
+<meta name="description" content="Read a Kalshi demo account's balance and positions, and submit demo orders, signed in the browser. Keys never leave this tab.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Portfolio &amp; Trading (Demo Account)</h1>
-<p class="muted">Balance, positions, and fills come from your <b>demo</b> account. Trading requires your own demo API key ID + RSA private key — entered below, kept only in this browser tab's <code>sessionStorage</code>, and sent only to the demo API. <b>Never paste a production key here.</b> Sources: <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">authenticated requests</a> · <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">create order</a>.</p>
-<div class="card"><h2 style="margin-top:0">Demo API credentials (browser-only)</h2>
-<label>API key ID <input id="keyId" size="30" autocomplete="off"></label>
-<label>RSA private key (PEM, Ed25519 not supported in-browser yet — see <a href="flagged.html">Flagged</a>) <textarea id="pem" rows="6" style="width:100%" autocomplete="off"></textarea></label>
-<button id="saveCreds">Save in this tab</button> <button class="secondary" id="clearCreds">Clear</button> <span id="credStatus" class="pill">No credentials</span></div>
-<div class="card"><h2 style="margin-top:0">Account</h2>
-<div class="statusbar"><button id="loadAcct">Load balance &amp; positions</button><span id="acctStatus" class="pill">Idle</span></div>
-<div id="balance" class="muted">Not loaded.</div>
-<table><thead><tr><th>Ticker</th><th>Position (contracts)</th><th>Market exposure</th><th>Realized P&amp;L</th><th>Settlement status</th></tr></thead><tbody id="posRows"><tr><td colspan="5">Not loaded.</td></tr></tbody></table></div>
-<div class="card"><h2 style="margin-top:0">Place a demo order</h2>
-<label>Market ticker <input id="oTicker" size="30"></label>
-<label>Side <select id="oSide"><option value="bid">Buy Yes (bid)</option><option value="ask">Sell Yes (ask)</option></select></label>
-<label>Count (contracts) <input id="oCount" type="number" value="1" min="1"></label>
-<label>Price (USD, e.g. 0.50) <input id="oPrice" type="number" step="0.01" min="0.01" max="0.99" value="0.50"></label>
-<button id="placeOrder">Place order</button> <span id="orderStatus" class="pill">Idle</span>
-<p class="muted small">Uses <code>POST /portfolio/events/orders</code> with a fresh <code>client_order_id</code> per order (deduplication). A 201 means accepted, not filled — check <code>remaining_count</code>. Source: <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">quick-start</a>.</p></div>
-<div class="card"><h2 style="margin-top:0">Recent fills</h2>
-<div class="statusbar"><button id="loadFills">Load fills</button><span id="fillsStatus" class="pill">Idle</span></div>
-<table><thead><tr><th>Time</th><th>Ticker</th><th>Side</th><th>Count</th><th>Price</th><th>Fee</th></tr></thead><tbody id="fillRows"><tr><td colspan="6">Not loaded.</td></tr></tbody></table>
-<p class="muted small">Fills feed the <a href="analysis.html">Analysis &amp; Strategies</a> page. Nothing is analyzed until real fills exist.</p></div>
-</main><footer>Demo only — mock funds. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
-<script src="assets/app.js"></script><script>
-const credStatus=$("#credStatus");
-function refreshCredStatus(){ const c=sessionStorage.getItem("kalshi_demo_creds"); setStatus(credStatus,!!c,c?"Credentials in this tab":"No credentials"); }
-$("#saveCreds").onclick=()=>{ sessionStorage.setItem("kalshi_demo_creds",JSON.stringify({keyId:$("#keyId").value.trim(),pem:$("#pem").value.trim()})); $("#pem").value=""; refreshCredStatus(); };
-$("#clearCreds").onclick=()=>{ sessionStorage.removeItem("kalshi_demo_creds"); $("#keyId").value=""; refreshCredStatus(); };
-refreshCredStatus();
-$("#loadAcct").onclick=async()=>{ try{
-  const b=await authApi("/portfolio/balance"); const bal=b.balance_dollars ?? b.balance ?? b.balance_fp;
-  $("#balance").innerHTML=`Balance: <b>${fmt$(bal)}</b> (raw: <code>${esc(JSON.stringify(b))}</code>)`;
-  const p=await authApi("/portfolio/positions?limit=100");
-  const rows=p.market_positions||p.positions||[];
-  $("#posRows").innerHTML=rows.length?rows.map(r=>`<tr><td><code>${esc(r.ticker)}</code></td><td>${fmtN(r.position_fp ?? r.position)}</td><td>${fmt$(r.market_exposure_dollars ?? r.market_exposure)}</td><td>${fmt$(r.realized_pnl_dollars ?? r.realized_pnl)}</td><td>${esc(r.settlement_status||"")}</td></tr>`).join(""):"<tr><td colspan='5'>No positions returned.</td></tr>";
-  setStatus($("#acctStatus"),true,"Live demo account data");
-}catch(e){ setStatus($("#acctStatus"),false,e.message); } };
-$("#placeOrder").onclick=async()=>{ try{
-  const body={ticker:$("#oTicker").value.trim(),side:$("#oSide").value,count:String($("#oCount").value),price:Number($("#oPrice").value).toFixed(4),time_in_force:"good_till_canceled",self_trade_prevention_type:"taker_at_cross",client_order_id:crypto.randomUUID()};
-  const r=await authApi("/portfolio/events/orders",{method:"POST",body});
-  setStatus($("#orderStatus"),true,"Accepted: "+JSON.stringify(r).slice(0,200));
-}catch(e){ setStatus($("#orderStatus"),false,e.message); } };
-$("#loadFills").onclick=async()=>{ try{
-  const f=await authApi("/portfolio/fills?limit=100"); const fills=f.fills||[];
-  $("#fillRows").innerHTML=fills.length?fills.map(x=>`<tr><td>${esc(x.created_time||x.created_ts||"")}</td><td><code>${esc(x.ticker)}</code></td><td>${esc(x.side||"")}</td><td>${fmtN(x.count_fp ?? x.count)}</td><td>${fmt$(x.yes_price_dollars ?? x.price_dollars ?? x.price)}</td><td>${fmt$(x.fee_cost_dollars ?? x.fee_cost)}</td></tr>`).join(""):"<tr><td colspan='6'>No fills returned.</td></tr>";
-  localStorage.setItem("kalshi_fills",JSON.stringify(fills));
-  setStatus($("#fillsStatus"),true,fills.length+" fills saved for analysis");
-}catch(e){ setStatus($("#fillsStatus"),false,e.message); } };
-</script></body></html>
+<h1>Portfolio &amp; trading — demo account</h1>
+<div class="banner bad">
+  <b>Demo only.</b> These endpoints are the Kalshi <b>demo</b> environment, which uses mock
+  funds (<a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener">demo environment docs</a>).
+  <b>Never paste a production key here.</b> Demo keys and production keys are not
+  interchangeable (<a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">environments</a>).
+</div>
+<div class="banner info">
+  <b>Nothing is pre-filled and nothing is simulated.</b> Balance, positions and fills are read
+  from your own demo account. Orders are submitted to the demo exchange. If you have not added
+  a key, every panel below says so instead of showing placeholder numbers.
+</div>
+
+<section class="card">
+  <h2 style="margin-top:0">1 · Demo API key (this browser tab only)</h2>
+  <p class="small">Create a demo key at
+    <a href="https://demo.kalshi.co/account/profile" target="_blank" rel="noopener">demo.kalshi.co → Account → API Keys</a>.
+    Kalshi issues either an <b>RSA</b> key (sign with RSA-PSS, supported here) or an
+    <b>Ed25519</b> key (<b>not</b> supported here — WebCrypto cannot sign Ed25519). If your key
+    file starts with <code>-----BEGIN RSA PRIVATE KEY-----</code> it is RSA.
+    Sources: <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener">API keys</a> ·
+    <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener">authenticated requests</a>.</p>
+  <div class="grid">
+    <div>
+      <label>Key ID (a UUID)</label>
+      <input id="keyId" style="width:100%" autocomplete="off" spellcheck="false">
+      <label>RSA private key, PEM (PKCS#1 or PKCS#8)</label>
+      <textarea id="pem" rows="5" style="width:100%" autocomplete="off" spellcheck="false"
+        placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"></textarea>
+      <div class="statusbar" style="margin-top:10px">
+        <button id="save">Save in this tab</button>
+        <button class="secondary" id="clear">Clear</button>
+        <button class="secondary" id="test">Test connection</button>
+        <span id="credStatus" class="pill">no key</span>
+      </div>
+      <p class="tiny muted">Stored in <code>sessionStorage</code>, which is cleared when the tab
+        closes. It is never written to <code>localStorage</code>, never committed, and the key is
+        only used to sign requests sent to <code>external-api.demo.kalshi.co</code>.</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0">How the signature is built</h3>
+      <ol class="small">
+        <li>Pre-sign text: <code>timestamp + "GET" + "/trade-api/v2/portfolio/balance"</code></li>
+        <li>Sign with RSA-PSS, SHA-256, MGF1-SHA-256, salt length = digest length</li>
+        <li>Send headers <code>KALSHI-ACCESS-KEY</code>, <code>KALSHI-ACCESS-TIMESTAMP</code>
+          (milliseconds), <code>KALSHI-ACCESS-SIGNATURE</code> (base64)</li>
+        <li>The timestamp must be within 30 seconds of Kalshi's clock or the request is
+          rejected with <code>401 header_timestamp_expired</code></li>
+        <li>Query strings are <b>excluded</b> from the signed path</li>
+      </ol>
+      <p class="tiny">Source: <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener">API keys — using a key</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">2 · Account</h2>
+  <div class="statusbar">
+    <button id="loadAcct">Read balance &amp; positions</button>
+    <span id="acctStatus" class="pill">not loaded</span>
+  </div>
+  <div class="kpis" id="acctKpis"></div>
+  <div class="scroll"><div id="positions"></div></div>
+  <p class="tiny muted">Endpoints: <code>GET /portfolio/balance</code> ·
+    <code>GET /portfolio/positions</code>. Fields as returned:
+    <code>balance_dollars</code>, <code>position_fp</code>,
+    <code>market_exposure_dollars</code>, <code>realized_pnl_dollars</code>,
+    <code>fees_paid_dollars</code>.</p>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">3 · Place a demo order</h2>
+  <p class="small">Uses the current V2 order endpoint
+    <code>POST /portfolio/events/orders</code>
+    (<a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener">Create Order V2</a>).
+    Side is <code>bid</code> or <code>ask</code> — <code>ask</code> sells the yes leg, which is
+    the same as buying no
+    (<a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener">order direction</a>).
+    The legacy <code>/portfolio/orders</code> write endpoints return <code>410 Gone</code>.</p>
+  <div class="grid">
+    <div>
+      <label>Market ticker</label>
+      <input id="oTicker" list="marketList" style="width:100%" placeholder="e.g. KXELONMARS-99">
+      <datalist id="marketList"></datalist>
+      <label>Topic (for the journal and analysis)</label>
+      <select id="oTopic" style="width:100%"></select>
+      <label>Side</label>
+      <select id="oSide" style="width:100%">
+        <option value="bid">bid — buy yes</option>
+        <option value="ask">ask — sell yes ( = buy no )</option>
+      </select>
+      <label>Count (contracts, up to 2 decimals)</label>
+      <input id="oCount" type="number" step="0.01" min="0.01" value="1" style="width:100%">
+      <label>Limit price in dollars (0.01–0.99 on most markets)</label>
+      <input id="oPrice" type="number" step="0.01" min="0.01" max="0.99" value="0.50" style="width:100%">
+      <label>Time in force</label>
+      <select id="oTif" style="width:100%">
+        <option value="good_till_canceled">good_till_canceled (rests on the book)</option>
+        <option value="immediate_or_cancel">immediate_or_cancel</option>
+        <option value="fill_or_kill">fill_or_kill</option>
+      </select>
+      <label class="inline" style="margin-top:10px"><input type="checkbox" id="oDry"> Dry run — sign and send nothing</label>
+      <div class="statusbar" style="margin-top:10px">
+        <button id="place">Submit order</button>
+        <span id="orderStatus" class="pill">idle</span>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Request that will be sent</h3>
+      <pre id="preview">{ }</pre>
+      <p class="tiny muted">A <code>201</code> means the order was accepted, not that it is
+        resting. Check <code>fill_count</code> and <code>remaining_count</code> in the response.
+        Every accepted order is appended to the local trading journal so the
+        <a href="analysis.html">Analysis</a> page can report real results.</p>
+      <h3>Pre-flight checks this page runs</h3>
+      <ul class="tiny">
+        <li>Ticker is non-empty and exists in the current snapshot</li>
+        <li>Count &gt; 0 and has at most 2 decimals</li>
+        <li>Price is inside 0.01–0.99 and has at most 4 decimals</li>
+        <li><code>reduce_only</code> is not set (it requires <code>immediate_or_cancel</code>)</li>
+        <li>Demo credentials exist in this tab</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">4 · Orders and fills</h2>
+  <div class="statusbar">
+    <button id="loadOrders">Read orders</button>
+    <button id="loadFills">Read fills</button>
+    <span id="tradeStatus" class="pill">not loaded</span>
+  </div>
+  <div class="scroll"><div id="orders"></div></div>
+  <div class="scroll" style="margin-top:12px"><div id="fills"></div></div>
+  <p class="tiny muted">Endpoints: <code>GET /portfolio/orders</code> ·
+    <code>GET /portfolio/fills</code>. Fill direction uses the canonical
+    <code>outcome_side</code> / <code>book_side</code> fields; legacy <code>side</code> and
+    <code>action</code> are shown only when present.</p>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">5 · Local trading journal</h2>
+  <div class="statusbar">
+    <button id="exportJournal">Download CSV</button>
+    <button class="secondary" id="clearJournal">Clear journal</button>
+    <span id="journalStatus" class="pill">—</span>
+  </div>
+  <div class="scroll"><div id="journal"></div></div>
+  <p class="tiny muted">The journal holds only orders this site submitted from this browser
+    while signed in. It is the input to the <a href="analysis.html">Analysis</a> page, which is
+    why that page can be empty even when the account has trades placed elsewhere.</p>
+</section>
+</main>
+<footer>Demo environment only — mock funds. Keys are never stored in this repository ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+  const markets = KD.allMarkets(d);
+  const byTicker = new Map(markets.map(m => [m.ticker, m]));
+
+  /* ---------- credential panel ---------- */
+  const credStatus = $('#credStatus');
+  function paintCreds() {
+    const c = KD.getCreds();
+    KD.setStatus(credStatus, !!c, c ? 'key saved in this tab' : 'no key');
+    if (c) { $('#keyId').value = c.keyId || ''; }
+  }
+  paintCreds();
+
+  $('#save').onclick = () => {
+    const keyId = $('#keyId').value.trim();
+    const pem = $('#pem').value.trim();
+    if (!keyId) { KD.setStatus(credStatus, false, 'key ID required'); return; }
+    if (!pem) { KD.setStatus(credStatus, false, 'private key required'); return; }
+    if (!/BEGIN (RSA )?PRIVATE KEY/.test(pem)) {
+      KD.setStatus(credStatus, false, 'that is not an RSA private key PEM');
+      return;
+    }
+    KD.setCreds({ keyId, pem });
+    $('#pem').value = '';
+    paintCreds();
+  };
+  $('#clear').onclick = () => { KD.setCreds(null); $('#keyId').value = ''; $('#pem').value = ''; paintCreds(); };
+
+  $('#test').onclick = async () => {
+    KD.setStatus(credStatus, null, 'testing…');
+    try {
+      const j = await KD.authFetch('/portfolio/balance');
+      KD.setStatus(credStatus, true, 'signed request accepted');
+      paintBalance(j);
+    } catch (e) {
+      KD.setStatus(credStatus, false, e.message);
+    }
+  };
+
+  /* ---------- account ---------- */
+  function paintBalance(b) {
+    /* balance_dollars is a fixed-point dollar string; balance is an integer in
+     * cents. Prefer the string and divide the integer form by 100, and label which
+     * was used so the figure is auditable. */
+    const usd = b.balance_dollars !== undefined
+      ? KD.num(b.balance_dollars)
+      : (KD.num(b.balance) !== null ? KD.num(b.balance) / 100 : null);
+    const pv = KD.num(b.portfolio_value);
+    $('#acctKpis').innerHTML = [
+      ['Available balance', KD.fmtUsd(usd), b.balance_dollars !== undefined ? 'balance_dollars' : 'balance (KD.cents) / 100'],
+      ['Portfolio value', pv !== null ? KD.fmtUsd(pv / 100) : '—', 'portfolio_value (KD.cents) / 100'],
+      ['Updated', KD.fmtTs(KD.num(b.updated_ts)), 'updated_ts'],
+    ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+      <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+  }
+
+  $('#loadAcct').onclick = async () => {
+    const st = $('#acctStatus');
+    KD.setStatus(st, null, 'reading…');
+    try {
+      const b = await KD.authFetch('/portfolio/balance');
+      paintBalance(b);
+      const p = await KD.authFetch('/portfolio/positions?limit=200');
+      const rows = p.market_positions || [];
+      $('#positions').innerHTML = KD.table(
+        ['Ticker', 'Position', 'Exposure', 'Realized P&L', 'Fees paid', 'Total traded', 'Updated'],
+        rows.map(r => {
+          const m = byTicker.get(r.ticker);
+          return `<tr>
+            <td><code class="tiny">${KD.esc(r.ticker)}</code>${m ? `<div class="tiny muted">${KD.esc((m.title || '').slice(0, 60))}</div>` : ''}</td>
+            <td class="num">${KD.fmtN(r.position_fp ?? r.position, 2)}</td>
+            <td class="num">${KD.fmtUsd(r.market_exposure_dollars ?? r.market_exposure)}</td>
+            <td class="num">${KD.fmtUsd(r.realized_pnl_dollars ?? r.realized_pnl)}</td>
+            <td class="num">${KD.fmtUsd(r.fees_paid_dollars)}</td>
+            <td class="num">${KD.fmtUsd(r.total_traded_dollars)}</td>
+            <td class="small">${KD.fmtTs(KD.num(r.last_updated_ts))}</td>
+          </tr>`;
+        }), { numCols: [1, 2, 3, 4, 5], empty: 'The account returned no open positions.' });
+      KD.setStatus(st, true, `${rows.length} positions · live from demo API`);
+    } catch (e) {
+      KD.setStatus(st, false, e.message);
+      $('#positions').innerHTML = `<div class="empty">${KD.esc(e.message)}</div>`;
+    }
+  };
+
+  /* ---------- order form ---------- */
+  $('#marketList').innerHTML = markets.slice(0, 2000)
+    .map(m => `<option value="${KD.esc(m.ticker)}">${KD.esc((m.title || '').slice(0, 70))}</option>`).join('');
+  $('#oTopic').innerHTML = KD.TOPIC_ORDER
+    .map(t => `<option value="${t}">${KD.esc(KD.TOPIC_LABELS[t])}</option>`).join('') +
+    '<option value="other">Other / uncategorised</option>';
+
+  function buildOrder() {
+    return {
+      ticker: $('#oTicker').value.trim(),
+      side: $('#oSide').value,
+      count: Number($('#oCount').value).toFixed(2),
+      price: Number($('#oPrice').value).toFixed(4),
+      time_in_force: $('#oTif').value,
+      self_trade_prevention_type: 'taker_at_cross',
+      client_order_id: crypto.randomUUID(),
+    };
+  }
+  function preview() {
+    try { $('#preview').textContent = JSON.stringify(buildOrder(), null, 2); }
+    catch { $('#preview').textContent = '{ }'; }
+  }
+  ['#oTicker', '#oSide', '#oCount', '#oPrice', '#oTif'].forEach(s => {
+    $(s).addEventListener('input', preview);
+    $(s).addEventListener('change', preview);
+  });
+  preview();
+
+  $('#place').onclick = async () => {
+    const st = $('#orderStatus');
+    const body = buildOrder();
+    /* pre-flight */
+    if (!body.ticker) return KD.setStatus(st, false, 'ticker required');
+    if (!byTicker.has(body.ticker)) {
+      const ok = confirm(`Ticker ${body.ticker} is not in the current snapshot. Submit anyway?`);
+      if (!ok) return KD.setStatus(st, false, 'not submitted (ticker not in snapshot)');
+    }
+    const c = Number(body.count), p = Number(body.price);
+    if (!(c > 0) || Math.round(c * 100) !== c * 100) return KD.setStatus(st, false, 'count must be > 0 with at most 2 decimals');
+    if (!(p >= 0.01 && p <= 0.99)) return KD.setStatus(st, false, 'price must be between 0.01 and 0.99');
+    if (!$('#oDry').checked && !KD.getCreds()) return KD.setStatus(st, false, 'no key in this tab');
+
+    if ($('#oDry').checked) {
+      KD.setStatus(st, null, 'dry run — nothing sent');
+      return;
+    }
+    KD.setStatus(st, null, 'submitting…');
+    try {
+      const res = await KD.authFetch('/portfolio/events/orders', { method: 'POST', body });
+      const row = {
+        ts: new Date().toISOString(),
+        mode: 'demo',
+        ticker: body.ticker,
+        topic: $('#oTopic').value,
+        event_ticker: (byTicker.get(body.ticker) || {}).event_ticker || '',
+        side: body.side,
+        count: body.count,
+        price: body.price,
+        time_in_force: body.time_in_force,
+        order_id: res.order_id || '',
+        client_order_id: body.client_order_id,
+        fill_count: res.fill_count ?? '',
+        remaining_count: res.remaining_count ?? '',
+        status: 'accepted',
+        resolve: '',
+        strategy: KD.classifyTrade(body),
+        note: '',
+      };
+      KD.Journal.add(row);
+      renderJournal();
+      KD.setStatus(st, true, `accepted: filled ${res.fill_count ?? '—'}, remaining ${res.remaining_count ?? '—'}`);
+      $('#preview').textContent = JSON.stringify(res, null, 2);
+    } catch (e) {
+      KD.setStatus(st, false, e.message);
+    }
+  };
+
+  /* ---------- orders & fills ---------- */
+  const statusEl = $('#tradeStatus');
+  $('#loadOrders').onclick = async () => {
+    KD.setStatus(statusEl, null, 'reading orders…');
+    try {
+      const j = await KD.authFetch('/portfolio/orders?limit=200');
+      const rows = j.orders || [];
+      $('#orders').innerHTML = KD.table(
+        ['Created', 'Ticker', 'Side / action', 'Type', 'Yes price', 'Count', 'Filled', 'Status'],
+        rows.map(o => `<tr>
+          <td class="small">${KD.fmtTs(o.created_time)}</td>
+          <td><code class="tiny">${KD.esc(o.ticker)}</code></td>
+          <td class="small">${KD.esc(o.outcome_side || '')}${o.book_side ? ' / ' + KD.esc(o.book_side) : ''}${
+            o.side || o.action ? `<div class="tiny muted">legacy: ${KD.esc(o.action || '')} ${KD.esc(o.side || '')}</div>` : ''}</td>
+          <td class="small">${KD.esc(o.type || '')}</td>
+          <td class="num">${KD.cents(o.yes_price_dollars ?? (KD.num(o.yes_price) !== null ? KD.num(o.yes_price) / 100 : null))}</td>
+          <td class="num">${KD.fmtN(o.initial_count_fp ?? o.count, 2)}</td>
+          <td class="num">${KD.fmtN(o.remaining_count_fp ?? o.remaining_count, 2)}</td>
+          <td class="small">${KD.esc(o.status || '')}</td>
+        </tr>`), { numCols: [4, 5, 6], empty: 'No orders returned.' });
+      KD.setStatus(statusEl, true, `${rows.length} orders`);
+    } catch (e) { KD.setStatus(statusEl, false, e.message); }
+  };
+
+  $('#loadFills').onclick = async () => {
+    KD.setStatus(statusEl, null, 'reading fills…');
+    try {
+      const j = await KD.authFetch('/portfolio/fills?limit=200');
+      const rows = j.fills || [];
+      $('#fills').innerHTML = KD.table(
+        ['Time', 'Ticker', 'Outcome side', 'Book side', 'Count', 'Yes price', 'Fee', 'Taker'],
+        rows.map(f => `<tr>
+          <td class="small">${KD.fmtTs(f.created_time || KD.num(f.ts))}</td>
+          <td><code class="tiny">${KD.esc(f.ticker || f.market_ticker)}</code></td>
+          <td class="small">${KD.esc(f.outcome_side || f.side || '')}</td>
+          <td class="small">${KD.esc(f.book_side || '')}</td>
+          <td class="num">${KD.fmtN(f.count_fp ?? f.count, 2)}</td>
+          <td class="num">${KD.cents(f.yes_price_dollars ?? (KD.num(f.yes_price) !== null ? KD.num(f.yes_price) / 100 : null))}</td>
+          <td class="num">${KD.fmtUsd(f.fee_cost)}</td>
+          <td class="small">${f.is_taker === undefined ? '—' : (f.is_taker ? 'yes' : 'no')}</td>
+        </tr>`), { numCols: [4, 5, 6], empty: 'No fills returned.' });
+      KD.setStatus(statusEl, true, `${rows.length} fills`);
+    } catch (e) { KD.setStatus(statusEl, false, e.message); }
+  };
+
+  /* ---------- journal ---------- */
+  function renderJournal() {
+    const rows = KD.Journal.all().slice().reverse();
+    $('#journal').innerHTML = KD.table(
+      ['When', 'Topic', 'Ticker', 'Side', 'Price', 'Count', 'TIF', 'Filled', 'Remaining', 'Strategy', 'Order ID'],
+      rows.map(r => `<tr>
+        <td class="small">${KD.fmtTs(r.ts)}</td>
+        <td>${KD.topicBadge(r.topic)}</td>
+        <td><code class="tiny">${KD.esc(r.ticker)}</code></td>
+        <td class="small">${KD.esc(r.side)}</td>
+        <td class="num">${KD.cents(r.price)}</td>
+        <td class="num">${KD.fmtN(r.count, 2)}</td>
+        <td class="small">${KD.esc(r.time_in_force)}</td>
+        <td class="num">${KD.fmtN(r.fill_count, 2)}</td>
+        <td class="num">${KD.fmtN(r.remaining_count, 2)}</td>
+        <td class="small">${KD.esc(r.strategy || KD.classifyTrade(r))}</td>
+        <td><code class="tiny">${KD.esc((r.order_id || '').slice(0, 18))}</code></td>
+      </tr>`), { numCols: [4, 5, 7, 8],
+        empty: 'No orders submitted from this browser yet. The Analysis page reads this journal.' });
+    KD.setStatus($('#journalStatus'), true, `${rows.length} rows`);
+  }
+  $('#exportJournal').onclick = () => {
+    const csv = KD.Journal.exportCsv();
+    if (!csv) return KD.setStatus($('#journalStatus'), false, 'nothing to export');
+    KD.download(`kalshi-demo-journal-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
+  $('#clearJournal').onclick = () => {
+    if (confirm('Clear the local trading journal? This cannot be undone.')) { KD.Journal.clear(); renderJournal(); }
+  };
+  renderJournal();
+})();
+</script>
+</body>
+</html>

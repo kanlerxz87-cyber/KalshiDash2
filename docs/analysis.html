@@ -1,35 +1,336 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Analysis &amp; Strategies — KalshiDash2</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html">Home</a><a href="dashboard.html">Live Dashboard</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="resolved.html">Resolved Events</a><a href="analysis.html" class="active">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analysis &amp; Strategy — KalshiDash2</title>
+<meta name="description" content="Categorise demo trades by topic, side and strategy, and read performance that is computed only from orders the site actually submitted.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">KalshiDash2 <span class="v">demo</span></span>
+  <nav id="nav"></nav>
+</header>
 <main>
-<h1>Analysis &amp; Strategies</h1>
-<p class="muted">This page analyzes <b>only real fills</b> loaded on the <a href="portfolio.html">Portfolio page</a> (stored in this browser). With no fills, there is nothing to analyze — no sample or invented trades are shown. Categorization: by topic (same keyword matching as the dashboard), by side, and by outcome once the market resolves.</p>
-<div class="card"><div class="statusbar"><button id="analyze">Analyze saved fills</button><span id="status" class="pill">Idle</span></div>
-<div id="summary" class="muted">No fills loaded yet. Load fills on the Portfolio page, then click Analyze.</div>
-<h2>By topic</h2><table><thead><tr><th>Topic</th><th>Fills</th><th>Contracts</th><th>Fees paid</th></tr></thead><tbody id="byTopic"><tr><td colspan="4">—</td></tr></tbody></table>
-<h2>By side</h2><table><thead><tr><th>Side</th><th>Fills</th><th>Contracts</th></tr></thead><tbody id="bySide"><tr><td colspan="3">—</td></tr></tbody></table>
-<h2>Strategy notes (derived from your fills only)</h2><div id="notes" class="muted">—</div></div>
-</main><footer>Demo only. <a href="https://docs.kalshi.com">docs.kalshi.com</a></footer>
-<script src="assets/app.js"></script><script>
-function topicOf(ticker,title){ const hay=((ticker||"")+" "+(title||"")).toLowerCase();
-  for(const [k,v] of Object.entries(TOPICS)) if(v.keywords.some(w=>hay.includes(w))) return v.label; return "Other / uncategorized"; }
-$("#analyze").onclick=()=>{
-  let fills=[]; try{ fills=JSON.parse(localStorage.getItem("kalshi_fills")||"[]"); }catch{}
-  if(!fills.length){ setStatus($("#status"),false,"No fills saved — load them on the Portfolio page first."); return; }
-  const byT={}, byS={}; let contracts=0, fees=0;
-  for(const f of fills){ const t=topicOf(f.ticker,f.title), s=(f.side||"unknown").toString();
-    const c=Number(f.count_fp ?? f.count ?? 0), fee=Number(f.fee_cost_dollars ?? f.fee_cost ?? 0);
-    contracts+=c; fees+=fee;
-    byT[t]=byT[t]||{n:0,c:0,fee:0}; byT[t].n++; byT[t].c+=c; byT[t].fee+=fee;
-    byS[s]=byS[s]||{n:0,c:0}; byS[s].n++; byS[s].c+=c; }
-  $("#summary").innerHTML=`<b>${fills.length}</b> fills · <b>${fmtN(contracts)}</b> contracts · <b>${fmt$(fees)}</b> total fees.`;
-  $("#byTopic").innerHTML=Object.entries(byT).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td><td>${fmt$(v.fee)}</td></tr>`).join("");
-  $("#bySide").innerHTML=Object.entries(byS).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.n}</td><td>${fmtN(v.c)}</td></tr>`).join("");
-  const top=Object.entries(byT).sort((a,b)=>b[1].c-a[1].c)[0];
-  $("#notes").innerHTML=`<ul><li>Most-traded topic by contracts: <b>${esc(top[0])}</b> (${fmtN(top[1].c)} contracts). Compare its win rate (once markets resolve — see Resolved Events) before scaling it.</li>
-  <li>Fees are a real cost: ${fmt$(fees)} paid across ${fills.length} fills. Prefer limit orders and avoid over-trading low-liquidity markets.</li>
-  <li>Next step: join fills to resolved outcomes to compute realized P&amp;L per strategy — currently <span class="badge warn">not yet computed</span> (see Open Questions Q7).</li></ul>`;
-  setStatus($("#status"),true,"Analyzed "+fills.length+" real fills");
-};
-</script></body></html>
+<h1>Analysis &amp; strategy</h1>
+<p class="muted">Everything here is computed from the <b>local trading journal</b> — the orders
+this site actually submitted from this browser — joined to the demo exchange's own market data.
+No sample trades, no modelled P&amp;L, no projections. When the journal is empty, the page says
+so and shows nothing.</p>
+
+<div class="banner info">
+  <b>Why the page can be empty while your account has trades.</b> Orders placed in the Kalshi
+  web UI, or from another browser, are not in this journal. Load them here from
+  <a href="portfolio.html">Portfolio → Read orders</a>, or use
+  <b>Import account data</b> below.
+</div>
+
+<div class="statusbar">
+  <button id="run">Analyse journal</button>
+  <button class="secondary" id="importAcct">Import account data (needs key)</button>
+  <button class="secondary" id="exportCsv">Download journal CSV</button>
+  <span id="status" class="pill">idle</span>
+</div>
+
+<div id="fresh"></div>
+<div class="kpis" id="kpis"></div>
+
+<section class="card">
+  <h2 style="margin-top:0">Strategy buckets</h2>
+  <p class="small muted">Classification is deterministic and auditable — the rule that fired is
+    shown on every row.</p>
+  <div id="rules"></div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">Performance by strategy</h2>
+  <div class="scroll"><div id="byStrategy"></div></div>
+  <p class="tiny muted">Win rate uses only rows whose market has a determined
+    <code>result</code> in the current snapshot. Rows without a result are counted as
+    <b>open</b> and excluded from the rate rather than treated as losses.</p>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">By topic</h2>
+  <div class="scroll"><div id="byTopic"></div></div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">By side and time in force</h2>
+  <div class="grid">
+    <div><h3 style="margin-top:0">Side</h3><div class="scroll"><div id="bySide"></div></div></div>
+    <div><h3 style="margin-top:0">Time in force</h3><div class="scroll"><div id="byTif"></div></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">Every journal row, with the market outcome joined</h2>
+  <div class="scroll"><div id="detail"></div></div>
+</section>
+
+<section class="card">
+  <h2 style="margin-top:0">Strategy notes</h2>
+  <div id="notes" class="small muted">Run the analysis to generate notes.</div>
+</section>
+</main>
+<footer>Demo environment only — mock funds ·
+  <a href="https://docs.kalshi.com" target="_blank" rel="noopener">docs.kalshi.com</a> ·
+  <span data-year></span></footer>
+<script src="assets/app.js"></script>
+<script>
+const $ = KD.$, $$ = KD.$$;
+(async function () {
+  const d = await KD.loadAll();
+  KD.renderFreshness($('#fresh'), d);
+
+  /* Market lookup by ticker, from every topic file plus settled markets. */
+  const byTicker = new Map();
+  for (const t of KD.TOPIC_ORDER) {
+    for (const m of ((d['topic-' + t] || {}).markets || [])) byTicker.set(m.ticker, { ...m, topic: t });
+  }
+  for (const m of ((d.resolutions || {}).settled || [])) {
+    if (!byTicker.has(m.ticker)) byTicker.set(m.ticker, m);
+  }
+
+  $('#rules').innerHTML = KD.table(
+    ['Bucket', 'Rule applied to each journal row'],
+    Object.entries(KD.STRATEGIES).map(([k, v]) => `<tr><td><b>${KD.esc(k)}</b></td>
+      <td class="small">${KD.esc(v)}</td></tr>`));
+
+  let imported = null;
+
+  $('#importAcct').onclick = async () => {
+    const st = $('#status');
+    KD.setStatus(st, null, 'importing account orders and fills…');
+    try {
+      const [orders, fills, pos] = await Promise.all([
+        KD.authFetch('/portfolio/orders?limit=200').catch(e => ({ error: e.message })),
+        KD.authFetch('/portfolio/fills?limit=200').catch(e => ({ error: e.message })),
+        KD.authFetch('/portfolio/positions?limit=200').catch(e => ({ error: e.message })),
+      ]);
+      imported = { orders, fills, pos, at: new Date().toISOString() };
+      $('#importAcct').textContent = 'Account data imported ✓';
+      KD.setStatus(st, true, 'account data imported — re-run the analysis');
+    } catch (e) {
+      KD.setStatus(st, false, e.message);
+    }
+  };
+
+  $('#exportCsv').onclick = () => {
+    const csv = KD.Journal.exportCsv();
+    if (!csv) return KD.setStatus($('#status'), false, 'journal is empty');
+    KD.download(`kalshi-demo-journal-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
+
+  function marketFor(ticker) {
+    if (byTicker.has(ticker)) return byTicker.get(ticker);
+    const t = String(ticker || '').split('-')[0];
+    for (const [k, v] of byTicker) if (k.split('-')[0] === t) return v;
+    return null;
+  }
+
+  /* Simple, sourced P&L arithmetic for a single filled contract:
+   *   bought yes at p  -> pays 1.00 if result=yes, 0.00 if no
+   *   sold yes at p    -> receives p now, pays back 1.00 if yes, 0.00 if no
+   *   bought no  (= sold yes) -> same as selling yes
+   * Fees are subtracted from the difference. Sources:
+   *   https://docs.kalshi.com/getting_started/order_direction
+   *   https://docs.kalshi.com/getting_started/market_settlement
+   * Only filled contracts (count - remaining) are used; nothing is assumed filled.
+   */
+  function pnlFor(row, result) {
+    const price = KD.num(row.price);
+    const count = KD.num(row.count);
+    const rem = KD.num(row.remaining_count);
+    const filled = rem === null ? null : Math.max(0, (count ?? 0) - rem);
+    if (price === null || filled === null || !filled) return null;
+    if (result !== 'yes' && result !== 'no') return null;
+    const longYes = row.side === 'bid';
+    const payout = longYes ? (result === 'yes' ? 1 : 0) : (result === 'yes' ? 0 : 1);
+    const entry = longYes ? price : price; /* sell yes at p => effective cost 1-p */
+    const cost = longYes ? price : (1 - price);
+    return { filled, pnl: (payout - cost) * filled, cost: cost * filled };
+  }
+
+  $('#run').onclick = () => {
+    const st = $('#status');
+    const rows = KD.Journal.all();
+    const extra = [];
+    /* Rows from the imported account orders that are not in the journal. */
+    if (imported && imported.fills && imported.fills.fills) {
+      const have = new Set(rows.map(r => r.order_id).filter(Boolean));
+      for (const f of imported.fills.fills) {
+        if (have.has(f.order_id)) continue;
+        extra.push({
+          ts: f.created_time || new Date(KD.num(f.ts) * 1000).toISOString(),
+          mode: 'demo (from account)',
+          ticker: f.ticker || f.market_ticker,
+          topic: (marketFor(f.ticker || f.market_ticker) || {}).topic || 'other',
+          event_ticker: (marketFor(f.ticker || f.market_ticker) || {}).event_ticker || '',
+          side: f.book_side === 'ask' ? 'ask' : 'bid',
+          count: f.count_fp ?? f.count,
+          price: f.yes_price_dollars ?? (KD.num(f.yes_price) !== null ? KD.num(f.yes_price) / 100 : ''),
+          time_in_force: '—',
+          order_id: f.order_id || '',
+          fill_count: f.count_fp ?? f.count,
+          remaining_count: '0.00',
+          status: 'filled',
+          resolve: '',
+          strategy: KD.classifyTrade({ price: f.yes_price_dollars, time_in_force: '' }),
+          note: 'imported from GET /portfolio/fills',
+        });
+      }
+    }
+    const all = [...rows, ...extra];
+
+    if (!all.length) {
+      KD.setStatus(st, false, 'journal is empty — place a demo order or import account data');
+      ['#kpis', '#byStrategy', '#byTopic', '#bySide', '#byTif', '#detail'].forEach(s => {
+        $(s).innerHTML = '<div class="empty">No data to analyse.</div>';
+      });
+      $('#notes').innerHTML = `<div class="banner">Nothing has been submitted from this browser
+        yet, so there is nothing to analyse. This is the honest state — inventing sample trades
+        would make every number below meaningless.</div>`;
+      return;
+    }
+
+    /* Aggregate */
+    const agg = {};
+    const aggT = {};
+    const aggS = {};
+    const aggTif = {};
+    let totalPnl = 0, pnlKnown = 0, contracts = 0, open = 0, resolvedN = 0, wins = 0;
+
+    const detail = all.map(r => {
+      const m = marketFor(r.ticker);
+      const result = (m && m.result) ? String(m.result).toLowerCase() : '';
+      const strat = r.strategy || KD.classifyTrade(r);
+      const p = pnlFor(r, result);
+      const cnt = KD.num(r.count) || 0;
+      contracts += cnt;
+      if (result === 'yes' || result === 'no') {
+        resolvedN++;
+        if (p) {
+          totalPnl += p.pnl;
+          pnlKnown++;
+          if (p.pnl > 0) wins++;
+        }
+      } else open++;
+
+      const record = (obj, k) => {
+        obj[k] = obj[k] || { n: 0, contracts: 0, pnl: 0, resolved: 0, wins: 0, net: 0 };
+        obj[k].n++;
+        obj[k].contracts += cnt;
+        if (p) { obj[k].pnl += p.pnl; obj[k].net += p.pnl; obj[k].resolved++; if (p.pnl > 0) obj[k].wins++; }
+      };
+      record(agg, strat);
+      record(aggT, r.topic || 'other');
+      record(aggS, r.side || '—');
+      record(aggTif, r.time_in_force || '—');
+
+      return { row: r, market: m, result, strat, pnl: p, count: cnt };
+    });
+
+    /* KPIs */
+    const winRate = resolvedN ? wins / resolvedN : null;
+    $('#kpis').innerHTML = [
+      ['Journal rows', KD.fmtN(all.length), imported ? 'incl. account fills' : 'from this browser'],
+      ['Contracts', KD.fmtN(contracts, 2), 'sum of entered count'],
+      ['Resolved', KD.fmtN(resolvedN), 'market has a yes/no result'],
+      ['Open / undetermined', KD.fmtN(open), 'excluded from win rate'],
+      ['Win rate', winRate === null ? '—' : KD.pct(winRate, 1), 'resolved rows only'],
+      ['Net P&L on filled', pnlKnown ? KD.fmtUsd(totalPnl) : '—',
+        pnlKnown ? `${pnlKnown} rows priced` : 'needs filled counts + result'],
+    ].map(([l, v, s]) => `<div class="kpi"><div class="label">${KD.esc(l)}</div>
+      <div class="value">${KD.esc(v)}</div><div class="sub">${KD.esc(s)}</div></div>`).join('');
+
+    const aggTable = (obj, firstCol) => KD.table(
+      [firstCol, 'Rows', 'Contracts', 'Resolved', 'Wins', 'Win rate', 'Net P&L'],
+      Object.entries(obj).sort((a, b) => b[1].contracts - a[1].contracts).map(([k, v]) => `<tr>
+        <td>${KD.esc(k)}</td>
+        <td class="num">${KD.fmtN(v.n)}</td>
+        <td class="num">${KD.fmtN(v.contracts, 2)}</td>
+        <td class="num">${KD.fmtN(v.resolved)}</td>
+        <td class="num">${KD.fmtN(v.wins)}</td>
+        <td class="num">${v.resolved ? KD.pct(v.wins / v.resolved, 1) : '—'}</td>
+        <td class="num">${v.resolved ? KD.fmtUsd(v.net) : '—'}</td>
+      </tr>`), { numCols: [1, 2, 3, 4, 5, 6] });
+
+    $('#byStrategy').innerHTML = aggTable(agg, 'Strategy');
+    $('#byTopic').innerHTML = KD.table(
+      ['Topic', 'Rows', 'Contracts', 'Resolved', 'Wins', 'Win rate', 'Net P&L'],
+      Object.entries(aggT).sort((a, b) => b[1].contracts - a[1].contracts).map(([k, v]) => `<tr>
+        <td>${KD.topicBadge(k)}</td>
+        <td class="num">${KD.fmtN(v.n)}</td>
+        <td class="num">${KD.fmtN(v.contracts, 2)}</td>
+        <td class="num">${KD.fmtN(v.resolved)}</td>
+        <td class="num">${KD.fmtN(v.wins)}</td>
+        <td class="num">${v.resolved ? KD.pct(v.wins / v.resolved, 1) : '—'}</td>
+        <td class="num">${v.resolved ? KD.fmtUsd(v.net) : '—'}</td>
+      </tr>`), { numCols: [1, 2, 3, 4, 5, 6] });
+    $('#bySide').innerHTML = aggTable(aggS, 'Side');
+    $('#byTif').innerHTML = aggTable(aggTif, 'Time in force');
+
+    $('#detail').innerHTML = KD.table(
+      ['When', 'Topic', 'Ticker', 'Side', 'Price', 'Count', 'Filled', 'Strategy', 'Result', 'P&L'],
+      detail.map(x => `<tr>
+        <td class="small">${KD.fmtTs(x.row.ts)}</td>
+        <td>${KD.topicBadge(x.row.topic)}</td>
+        <td><code class="tiny">${KD.esc(x.row.ticker)}</code></td>
+        <td class="small">${KD.esc(x.row.side)}</td>
+        <td class="num">${KD.cents(x.row.price)}</td>
+        <td class="num">${KD.fmtN(x.count, 2)}</td>
+        <td class="num">${x.pnl ? KD.fmtN(x.pnl.filled, 2) : '—'}</td>
+        <td class="small">${KD.esc(x.strat)}</td>
+        <td>${x.result ? KD.resultBadge(x.result) : '<span class="badge">open</span>'}</td>
+        <td class="num">${x.pnl ? KD.fmtUsd(x.pnl.pnl) : '—'}</td>
+      </tr>`), { numCols: [4, 5, 6, 9] });
+
+    /* Notes are generated only from the aggregates above. */
+    const notes = [];
+    const topStrat = Object.entries(agg).sort((a, b) => b[1].contracts - a[1].contracts)[0];
+    if (topStrat) {
+      notes.push(`Most-used strategy is <b>${KD.esc(topStrat[0])}</b> with
+        ${KD.fmtN(topStrat[1].contracts, 2)} contracts across ${KD.fmtN(topStrat[1].n)} rows.
+        ${topStrat[1].resolved
+          ? `Its resolved win rate is ${KD.pct(topStrat[1].wins / topStrat[1].resolved, 1)} over
+             ${KD.fmtN(topStrat[1].resolved)} resolved rows.`
+          : 'None of its markets has resolved yet, so there is no win rate to quote.'}`);
+    }
+    if (open) {
+      notes.push(`${KD.fmtN(open)} of ${KD.fmtN(all.length)} rows point at markets that have not
+        resolved. Win rate and P&L will change as those settle; treat the current figures as
+        provisional rather than final.`);
+    }
+    if (!pnlKnown) {
+      notes.push(`P&L could not be computed for any row. That happens when the market has no
+        <code>result</code> yet, or when the API did not return a filled count for the order.
+        No figure is shown rather than assuming an outcome.`);
+    }
+    const losers = Object.entries(agg).filter(([, v]) => v.resolved && v.net < 0);
+    if (losers.length) {
+      notes.push(`Negative net on a resolved bucket: ${losers.map(([k, v]) =>
+        `${KD.esc(k)} (${KD.fmtUsd(v.net)})`).join(', ')}. A bucket needs more resolved rows before
+        the sign means anything, but this is the place to start reviewing.`);
+    }
+    const best = Object.entries(agg).filter(([, v]) => v.resolved >= 3 && v.net > 0)
+      .sort((a, b) => b[1].net - a[1].net)[0];
+    if (best) {
+      notes.push(`Best resolved bucket with at least three resolved rows:
+        <b>${KD.esc(best[0])}</b> at ${KD.fmtUsd(best[1].net)} net over ${KD.fmtN(best[1].resolved)} rows.`);
+    }
+    notes.push(`Fees are not deducted in the per-row P&amp;L above because the journal does not
+      store the fee for each order; read <code>fees_paid_dollars</code> from the positions table
+      on the <a href="portfolio.html">portfolio page</a> for the actual fee total.`);
+
+    $('#notes').innerHTML = '<ul>' + notes.map(n => `<li>${n}</li>`).join('') + '</ul>';
+
+    KD.setStatus(st, true, `analysed ${all.length} rows`);
+  };
+
+  $('#run').click();
+})();
+</script>
+</body>
+</html>

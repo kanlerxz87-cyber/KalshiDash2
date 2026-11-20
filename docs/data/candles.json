@@ -1,0 +1,5 @@
+{
+ "generated_at": "2026-11-20T11:14:48Z",
+ "error": "collector has not run yet - trigger the 'Collect Kalshi demo data' workflow",
+ "candles": []
+}
