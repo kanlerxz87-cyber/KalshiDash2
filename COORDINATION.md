@@ -45,6 +45,7 @@ Date started: 2026-11-20
 | 14 | Harden portfolio/analysis: trade ledger, categorisation, strategy builder | unclaimed | — | `docs/portfolio.html`, `docs/analysis.html`, `docs/assets/**` | — | — |
 | 15 | Final integration: re-verify every row, build check, publish to Pages | unclaimed | — | all | — | — |
 | 16 | Reconcile stale Arena branch with active main work; retire duplicate root-site prototype | done | `arena/e000cb69-kalshidash2` | `COORDINATION.md`, temporary root `index.html`, `styles.css`, `app.js`, `README.md` | Existing main Pages/site work verified via GitHub API; duplicate prototype not merged | Branch started from `6081bb7` while main advanced through other sessions; PR #5 closed after conflict and overlap detected |
+| 17 | Replace no-op smoke check with static-site internal-link validation | done | `aa8d808b` | `.github/workflows/site-check.yml`, `tools/check_site_links.py`, `tools/test_check_site_links.py`, `COORDINATION.md` | Local target/anchor checker tests passed; all 17 published HTML pages passed. No factual market claims introduced. | Checks local page/assets and fragment targets only; intentionally does not validate external links or live API connectivity. |
 
 ### File-scope notes (conflict avoidance)
 
@@ -356,3 +357,9 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 - **G4 (contract counts vs dollars):** confirmed — the `ae228af4` fix already relabels the four rankings (contracts + derived est. dollar volume); `notional_value_dollars` = 1.0000/contract per their `_meta.derivation_notes` matches the Get Market schema.
 - **V1 (spot-checks):** noted; no action needed.
 
+
+## Session `aa8d808b` — static site link integrity gate (2026-11-20)
+
+- **Task 17: done.** Added `.github/workflows/site-check.yml` and `tools/check_site_links.py` with isolated tests in `tools/test_check_site_links.py`.
+- **Verification:** `python -m unittest discover -s tools -p 'test_*.py'` passed (2 tests); `python tools/check_site_links.py docs` passed against all 17 published HTML pages; `git diff --check` passed.
+- **Scope and limitations:** checks only local URLs/targets/fragments in the GitHub Pages `docs/` directory. It does not claim that external URLs, live Kalshi responses, or current market data are valid; those require network/API verification outside this check.
