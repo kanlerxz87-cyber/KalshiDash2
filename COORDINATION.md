@@ -2,9 +2,9 @@
 
 This repository had no prior `COORDINATION.md`, task claims, application code, or market-data files when this session began. Work is on the assigned active Arena branch `arena/e000cb69-kalshidash2`; branch/worktree names remain governed by the session instructions.
 
-| Task                                                                                | Status | Owner/session                | File scope                                                                                                       |
-| ----------------------------------------------------------------------------------- | ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Build an evidence-first Kalshi demo dashboard, documentation, and GitHub Pages site | done   | `arena/e000cb69-kalshidash2` | `index.html`, `styles.css`, `app.js`, `README.md`, `COORDINATION.md`, `.nojekyll`, `.github/workflows/pages.yml` |
+| Task                                                                                | Status | Owner/session                | File scope                                                                        |
+| ----------------------------------------------------------------------------------- | ------ | ---------------------------- | --------------------------------------------------------------------------------- |
+| Build an evidence-first Kalshi demo dashboard, documentation, and GitHub Pages site | done   | `arena/e000cb69-kalshidash2` | `index.html`, `styles.css`, `app.js`, `README.md`, `COORDINATION.md`, `.nojekyll` |
 
 ## Verification and sources
 
@@ -20,8 +20,8 @@ This repository had no prior `COORDINATION.md`, task claims, application code, o
   - Authenticated positions and fills schemas: https://docs.kalshi.com/api-reference/portfolio/get-positions and https://docs.kalshi.com/api-reference/portfolio/get-fills
   - Order lifecycle / authorization prerequisites: https://docs.kalshi.com/getting_started/quick_start_create_order
   - Market settlement background: https://docs.kalshi.com/getting_started/market_settlement
-  - GitHub Pages custom workflow requirements: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
-- Verification performed: `node --check app.js` passed; Python's HTML parser accepted `index.html`; a repository check confirmed all 12 navigation routes, local assets, and all 26 static table rows have official HTTPS source links; a local HTTP smoke test returned HTTP 200 for `/`, `index.html`, `styles.css`, and `app.js`.
+  - GitHub Pages branch publishing sources: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+- Verification performed: `node --check app.js` passed; Python's HTML parser accepted `index.html`; a repository check confirmed all 12 navigation routes, local assets, and all 26 static table rows have official HTTPS source links; a local HTTP smoke test returned HTTP 200 for `/`, `index.html`, `styles.css`, and `app.js`. GitHub Pages API inspection confirmed this public repository already uses `main`/root publishing (`build_type: legacy`) and reported the existing site status as `built` before this change; the merge-triggered publication of the new page remains to be checked.
 - Live API data was not verified from the sandbox. Outbound network restrictions prevented a direct runtime request to Kalshi demo endpoints. The UI therefore reports current API failures and never substitutes example values. Browser-side CORS availability also remains unverified.
 
 ## Flagged irregularities / decisions not made
@@ -30,9 +30,9 @@ This repository had no prior `COORDINATION.md`, task claims, application code, o
 2. The site displays individual market records, not a complete event-grouped dashboard. Topic assignment is only a transparent title/subtitle/ticker keyword match and may miss/incorrectly include markets.
 3. No demo-account credentials or account authorization were supplied. Portfolio metrics, fills, performance, and trade execution remain blank/unimplemented. Private keys must stay server-side; demo-only authorization, order limits, approval policy, and a kill switch remain design decisions.
 4. The selected-market chart samples public REST state every 15 seconds in browser memory; it is not a historical/guaranteed exchange stream. Official candlesticks document 1-, 60-, and 1,440-minute intervals. Reloading clears observations.
-5. Pages deployment still depends on repository Pages settings and successful workflow checks; those settings cannot be established by the local static-site smoke test.
+5. The repository Pages API confirmed publishing from `main`/root and a pre-change `built` status. Post-merge publication of the new files and the resulting live page still need confirmation.
 
 ## Log
 
 - 2026-11-20: Claimed and pushed the task-board entry before starting the site work. No other task claims existed.
-- 2026-11-20: Completed the static dashboard and evidence/decision pages, validated the official source references listed above, and recorded remaining gaps. No account-specific or live market values were invented. GitHub PR/deployment outcome: pending.
+- 2026-11-20: Completed the static dashboard and evidence/decision pages, validated the official source references listed above, and recorded remaining gaps. No account-specific or live market values were invented. The repository already used branch-based Pages publishing, so no custom workflow was added; a request to switch Pages to Actions returned HTTP 403 and was not needed. PR/deployment outcome: pending.

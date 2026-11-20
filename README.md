@@ -24,7 +24,7 @@ Then visit `http://localhost:8000`. Live API access depends on the browser's net
 
 ## GitHub Pages
 
-`.github/workflows/pages.yml` builds no framework; it checks JavaScript syntax, packages only `index.html`, `styles.css`, `app.js`, and `.nojekyll`, and deploys on pushes to `main` (with manual dispatch supported). To publish, the repository's Pages publishing source must be set to **GitHub Actions** and the workflow must pass. Repository settings and a successful Pages deployment cannot be verified from this checkout alone.
+GitHub Pages was already enabled for this repository and configured to publish the `main` branch root (`build_type: legacy`); GitHub's Pages API reported the existing site as `built` at `https://kanlerxz87-cyber.github.io/KalshiDash2/` before these changes. This static site adds a root `index.html`, local CSS/JS, and `.nojekyll`, so a merge to `main` is the publishing change. Verify the post-merge Pages build at the repository's Actions/Pages status. The public site must not contain account credentials.
 
 ## Official source references
 
@@ -39,7 +39,7 @@ Then visit `http://localhost:8000`. Live API access depends on the browser's net
 - [Get positions](https://docs.kalshi.com/api-reference/portfolio/get-positions)
 - [Get fills](https://docs.kalshi.com/api-reference/portfolio/get-fills)
 - [Create-order quick start](https://docs.kalshi.com/getting_started/quick_start_create_order)
-- [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+- [GitHub Pages publishing sources](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
 ## Repository review
 
