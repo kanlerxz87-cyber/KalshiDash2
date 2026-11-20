@@ -28,9 +28,9 @@
         <thead><tr>
           <th>Market</th><th>Status</th><th class="num">Last</th><th class="num">YES bid</th>
           <th class="num">YES ask</th><th class="num">Open interest</th><th class="num">Volume</th>
-          <th class="num">Money traded</th><th>Result</th><th></th>
+          <th class="num">Money traded</th><th>Result</th><th>Actions</th><th>Official source</th>
         </tr></thead>
-        <tbody id="ev-markets"><tr><td colspan="10"><div class="empty">Loading…</div></td></tr></tbody>
+        <tbody id="ev-markets"><tr><td colspan="11"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a id="ev-source" href="#" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a>
@@ -46,8 +46,8 @@
       value in dollars.</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Market</th><th>Result</th><th class="num">Settlement value</th><th class="num">Expiration value</th><th>Close time</th><th>Rules (primary)</th></tr></thead>
-        <tbody id="ev-resolution"><tr><td colspan="6"><div class="empty">Loading…</div></td></tr></tbody>
+        <thead><tr><th>Market</th><th>Result</th><th class="num">Settlement value</th><th class="num">Expiration value</th><th>Close time</th><th>Rules (primary)</th><th>Official source</th></tr></thead>
+        <tbody id="ev-resolution"><tr><td colspan="7"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -65,7 +65,7 @@
 
 <script type="module">
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
-import { SOURCES } from "./assets/js/config.js";
+import { DEMO, SOURCES } from "./assets/js/config.js";
 import { api, num, classifyEvent, Watchlist } from "./assets/js/market.js";
 import { TOPICS } from "./assets/js/config.js";
 
@@ -84,7 +84,7 @@ if (!eventTicker) {
 }
 
 async function load() {
-  $("#ev-source").href = `https://external-api.demo.kalshi.co/trade-api/v2/events/${encodeURIComponent(eventTicker)}`;
+  $("#ev-source").href = `${DEMO.rest}/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`;
   try {
     const j = await api.get(`/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`);
     const ev = j.event || j;
@@ -133,8 +133,9 @@ async function load() {
         <td class="num">${money(mt)}</td>
         <td>${tag}</td>
         <td><button class="secondary tiny" data-watch="${esc(m.ticker)}">Track</button></td>
+        <td><a href="${esc(`${DEMO.rest}/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td>
       </tr>`;
-    }).join("") : emptyRow(10, "This event returned no markets.");
+    }).join("") : emptyRow(11, "This event returned no markets.");
 
     $("#ev-resolution").innerHTML = markets.length ? markets.map(m => {
       const r = (m.result || "").toLowerCase();
@@ -146,8 +147,9 @@ async function load() {
         <td class="num">${m.expiration_value === "" || m.expiration_value === undefined ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
         <td class="nowrap small">${dt(m.close_time)}</td>
         <td class="small">${esc(m.rules_primary || "")}</td>
+        <td><a href="${esc(`${DEMO.rest}/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td>
       </tr>`;
-    }).join("") : emptyRow(6, "No markets.");
+    }).join("") : emptyRow(7, "No markets.");
 
     $("#track-all").onclick = () => {
       let n = 0;

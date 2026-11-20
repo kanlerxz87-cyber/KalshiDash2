@@ -44,9 +44,9 @@
       <table>
         <thead><tr>
           <th>Time</th><th>Market</th><th>Topic</th><th>Side</th><th class="num">Contracts</th>
-          <th class="num">Price paid</th><th class="num">Premium</th><th class="num">Fee</th><th>Role</th>
+          <th class="num">Price paid</th><th class="num">Premium</th><th class="num">Fee</th><th>Role</th><th>Official source</th>
         </tr></thead>
-        <tbody id="fills"><tr><td colspan="9"><div class="empty">No fills loaded.</div></td></tr></tbody>
+        <tbody id="fills"><tr><td colspan="10"><div class="empty">No fills loaded.</div></td></tr></tbody>
       </table>
       <div class="table-note" id="fills-note">
         Premium = contracts × price paid. Fees come from the API's <code>fee_cost</code>.
@@ -59,15 +59,15 @@
     <div class="card">
       <h2>By topic</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>Topic</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th><th class="num">Fees</th></tr></thead>
-        <tbody id="by-topic"><tr><td colspan="5"><div class="empty">No data.</div></td></tr></tbody>
+        <thead><tr><th>Topic</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th><th class="num">Fees</th><th>Official source</th></tr></thead>
+        <tbody id="by-topic"><tr><td colspan="6"><div class="empty">No data.</div></td></tr></tbody>
       </table></div>
     </div>
     <div class="card">
       <h2>By side &amp; role</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>Bucket</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th></tr></thead>
-        <tbody id="by-side"><tr><td colspan="4"><div class="empty">No data.</div></td></tr></tbody>
+        <thead><tr><th>Bucket</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th><th>Official source</th></tr></thead>
+        <tbody id="by-side"><tr><td colspan="5"><div class="empty">No data.</div></td></tr></tbody>
       </table></div>
     </div>
   </div>
@@ -82,7 +82,7 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Strategy</th><th>Rule (API fields)</th><th>Evidence needed</th><th>Status</th><th>Risk</th>
+          <th>Strategy</th><th>Rule (API fields)</th><th>Evidence needed</th><th>Status</th><th>Risk</th><th>Official source</th>
         </tr></thead>
         <tbody id="strategies"></tbody>
       </table>
@@ -104,42 +104,48 @@ const STRATEGIES = [
     rule: "outcome_side = yes AND price < your estimated probability",
     evidence: "Fills with outcome_side=yes and their realised settlement result",
     risk: "Model risk: a wrong probability estimate loses the premium",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.fills, SOURCES.marketSettlement]
   },
   {
     name: "Fade the extreme",
     rule: "Buy NO when yes_ask ≥ 0.90 and volume_fp is thin",
     evidence: "Fills at extreme prices plus the market's settled `result`",
     risk: "Extremes resolve correctly far more often than intuition suggests",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.markets, SOURCES.marketSettlement]
   },
   {
     name: "Maker-first execution",
     rule: "is_taker = false on most fills",
     evidence: "The `is_taker` flag on every fill, compared with fees paid",
     risk: "Maker orders may never fill and leave you exposed to news",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.fills]
   },
   {
     name: "Event, not market, exposure",
     rule: "Spread orders across markets of one event instead of one market",
     evidence: "Fills grouped by event_ticker",
     risk: "Mutually exclusive markets can produce a guaranteed loss if overbought",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.events, SOURCES.fills]
   },
   {
     name: "Concentration by topic",
     rule: "Cap premium per topic at a fixed share of balance",
     evidence: "By-topic premium table above, compared with balance history",
     risk: "Cap limits upside during a genuinely mispriced stretch",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.balance, SOURCES.positions]
   },
   {
     name: "Resolution-aware exit",
     rule: "Sell before close_time instead of holding to settlement",
     evidence: "Fills, positions and each market's close_time and result",
     risk: "Exit liquidity may be worse than settlement value",
-    status: "untested"
+    status: "untested",
+    sources: [SOURCES.fills, SOURCES.positions, SOURCES.marketSettlement]
   }
 ];
 
@@ -149,6 +155,7 @@ $("#strategies").innerHTML = STRATEGIES.map(s => `<tr>
   <td class="small">${esc(s.evidence)}</td>
   <td><span class="tag warn">${esc(s.status)}</span></td>
   <td class="small">${esc(s.risk)}</td>
+  <td class="small">${s.sources.map((url, i) => src(url, `official source ${i + 1}`)).join(" · ")}</td>
 </tr>`).join("");
 
 /* ------------------------------- fills ---------------------------------- */
@@ -196,7 +203,7 @@ $("#load").onclick = async () => {
     const j = await api.fills();
     const fills = j.fills || [];
     if (!fills.length) {
-      $("#fills").innerHTML = emptyRow(9, "The demo account returned no fills, so there is nothing to analyse yet.");
+      $("#fills").innerHTML = emptyRow(10, "The demo account returned no fills, so there is nothing to analyse yet.");
       pill($("#status"), "live", "0 fills");
       return;
     }
@@ -227,6 +234,7 @@ $("#load").onclick = async () => {
         <td class="num">${money(r.cost)}</td>
         <td class="num">${money(r.fee)}</td>
         <td>${r.is_taker === true ? "taker" : r.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
+        <td>${src(SOURCES.fills, "fills API docs")}</td>
       </tr>`;
     }).join("");
 
@@ -234,14 +242,15 @@ $("#load").onclick = async () => {
       const topic = TOPICS.find(t => t.key === g.key);
       return `<tr><td>${topic ? esc(topic.label) : `<span class="unv">outside scope</span>`}</td>
         <td class="num">${int(g.n)}</td><td class="num">${dec(g.contracts)}</td>
-        <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td></tr>`;
-    }).join("") : emptyRow(5, "No data.");
+        <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td><td>${src(SOURCES.fills, "fills API docs")}</td></tr>`;
+    }).join("") : emptyRow(6, "No data.");
 
     const sideRows = [...analysis.bySide, ...analysis.byTaker];
     $("#by-side").innerHTML = sideRows.length ? sideRows.map(g => `<tr>
       <td>${esc(g.key)}</td><td class="num">${int(g.n)}</td>
-      <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td></tr>`).join("")
-      : emptyRow(4, "No data.");
+      <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td>
+      <td>${src(SOURCES.fills, "fills API docs")}</td></tr>`).join("")
+      : emptyRow(5, "No data.");
 
     $("#fills-note").innerHTML = `Premium = contracts × price paid. ${analysis.totals.missingPrice
       ? `<strong>${analysis.totals.missingPrice} fill(s) had no price</strong> and are excluded from premium totals.` : ""}
@@ -250,7 +259,7 @@ $("#load").onclick = async () => {
     pill($("#status"), "live", `${fills.length} fills analysed`);
   } catch (e) {
     pill($("#status"), "err", e.message);
-    $("#fills").innerHTML = emptyRow(9, "Fills request failed: " + e.message);
+    $("#fills").innerHTML = emptyRow(10, "Fills request failed: " + e.message);
   }
 };
 
