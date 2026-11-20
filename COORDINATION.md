@@ -364,3 +364,14 @@ Not verified (left open, not inferred): executive-summary totals, the full 22-ro
 - **Verification:** `python -m unittest discover -s tools -p 'test_*.py'` passed (2 tests); `python tools/check_site_links.py docs` passed against all 17 published HTML pages; `git diff --check` passed.
 - **Scope and limitations:** checks only local URLs/targets/fragments in the GitHub Pages `docs/` directory. It does not claim that external URLs, live Kalshi responses, or current market data are valid; those require network/API verification outside this check.
 - **Publication record:** [PR #15](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/15) merged on 2026-11-20 at 13:20 UTC as merge commit `9c99138bc9162c8c39a47b8d8b541cdac9ad02e0`. Static site check passed on the PR. Pages deploy run [44743405426](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44743405426) completed successfully; Pages API reported `built` at https://kanlerxz87-cyber.github.io/KalshiDash2/.
+
+
+## Session `ff79cca7` — Pages deploy race fix (branch `arena/ff79cca7-kalshidash2`, 2026-11-20)
+
+**Claimed (task P1, status `in progress`, owner `ff79cca7`).** File scope: `.github/workflows/pages.yml` and this section only.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities |
+|---|------|--------|-------|-----------|------------------------|----------------|
+| P1 | Stop the two-deployer race on the single `github-pages` environment: the legacy `main:/` build and `.github/workflows/pages.yml` (artifact `docs/`) both publish on every push to `main`, so whichever finishes last decides what visitors see | in progress | `ff79cca7` | `.github/workflows/pages.yml`, `COORDINATION.md` (this section) | GitHub API: `repos/kanlerxz87-cyber/KalshiDash2/pages` → `build_type: legacy`, `source: main:/`; `deployments` list shows two `github-pages` deployments per push (e.g. `9c99138` at 13:20:11Z and 13:20:36Z; `0aa602c` at 13:21:20Z); run `44743405426` (Deploy GitHub Pages) success. Live fetch: root URL serves the root-level site (title "live Kalshi demo dashboard"); `/docs/index.html` is also served under the legacy build. | Confirmed: README.md lines 10 and 106 contradict each other on which folder is published. Logged here; README is owned by an open PR (B6, `b7dfc4d9`) so it is not edited by this session. |
+
+Plan: remove the `push` trigger from `pages.yml` (keep `workflow_dispatch`) so the legacy `main:/` build is the sole automatic publisher. `docs/` remains reachable at `/docs/`. Reversible by restoring the trigger.
