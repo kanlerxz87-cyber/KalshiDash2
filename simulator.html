@@ -28,8 +28,9 @@
         <a href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a>.</li>
       <li>One trade per market per strategy, taken at the <strong>first</strong> signal.</li>
       <li>A position held to settlement pays the market's own
-        <code>settlement_value_dollars</code> — 1.0000 for YES, 0.0000 for NO
-        (<a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a>).</li>
+        <code>settlement_value_dollars</code> — 1.0000 for YES, 0.0000 for NO; the NO contract entry price is
+        calculated as 1 − the YES quote (<a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a>).</li>
+      <li>The seeded random-control baseline chooses one pseudo-random candle and side per market. It is reproducible for the same market ticker/history, not a forecast, and is not evidence of statistical significance.</li>
       <li>The demo exchange holds mock funds and its prices may not match production
         (<a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">demo environment ↗</a>).</li>
     </ul>
@@ -96,9 +97,22 @@
   </div>
 
   <div class="card">
+    <h2>Results by topic and direction</h2>
+    <p class="sub">Rollups use the same simulated contracts as the strategy scoreboard. Topic comes from the event's API-backed classifier; direction is the simulated YES or NO position. Each row links to the official market and candlestick documentation used by this run.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Group</th><th class="num">Trades</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Hit rate</th><th class="num">P&amp;L / contract</th><th class="num">Capital / contract</th><th class="num">ROI</th><th>Official source</th></tr></thead>
+        <tbody id="breakdowns"><tr><td colspan="9"><div class="empty">Run a backtest to populate topic and direction rollups.</div></td></tr></tbody>
+      </table>
+      <div class="table-note">P&amp;L and capital are summed across one-contract simulated entries; ROI is summed P&amp;L ÷ summed entry capital. Unscored / missing fields are not treated as zero. Category assignment details are on the <a href="verification.html">Verification</a> page.</div>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Simulated trade ledger</h2>
     <p class="sub">Every simulated trade produced by the run above, with the official API response behind each row.</p>
     <div class="toolbar">
+      <button id="export-csv" class="secondary" disabled>Export CSV</button>
       <span class="spacer"></span>
       <span id="ledger-count" class="pill idle">0 trades</span>
     </div>
@@ -166,6 +180,9 @@
           <tr><td>Price history</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">GET candlesticks ↗</a></td>
             <td class="mono small">price.close_dollars, price.previous_dollars, volume_fp</td></tr>
+          <tr><td>NO-leg complementary price relationship</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">orderbook pricing ↗</a></td>
+            <td class="mono small">NO ask = $1.00 − YES bid; see reciprocal relationship</td></tr>
           <tr><td>Settlement mechanics ($1 per winning contract)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">market settlement ↗</a></td>
             <td class="mono small">—</td></tr>
@@ -182,7 +199,9 @@
 import { mountChrome, esc, money, money4, int, dec, pct, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { STRATEGIES, TRADE_SCREEN, ALERT } from "./assets/js/config.js";
 import {
-  loadSettledUniverse, loadHistory, toSeries, replayAll, aggregate, Paper
+  loadSettledUniverse, loadHistory, toSeries, replayAll, replayRandomControl,
+  aggregate, aggregateBreakdowns, tradesToCsv, RANDOM_CONTROL, marketSourceUrl,
+  eventSourceUrl, Paper
 } from "./assets/js/simulator.js";
 import { api, getAll, classifyEvent, num, screenMarket } from "./assets/js/market.js";
 import { AlertEngine, topicLabel } from "./assets/js/alert-engine.js";
@@ -197,9 +216,12 @@ $("#run").addEventListener("click", async () => {
   const limit = Math.max(5, Math.min(100, Number($("#universe").value) || 25));
   const minutes = Math.max(60, Math.min(1440, Number($("#minutes").value) || 600));
   const topic = $("#topic").value;
+  lastRun = null;
+  $("#export-csv").disabled = true;
 
   pill($("#status"), "warn", "loading universe…");
   $("#scoreboard").innerHTML = emptyRow(10, "Loading finalized markets…");
+  $("#breakdowns").innerHTML = emptyRow(9, "Loading…");
   $("#ledger").innerHTML = emptyRow(10, "Loading…");
 
   try {
@@ -227,10 +249,14 @@ $("#run").addEventListener("click", async () => {
       if (!series.length) continue;
       withHistory++;
       trades.push(...replayAll(STRATEGIES, series, m));
+      const baseline = replayRandomControl(series, m);
+      if (baseline) trades.push(baseline);
     }
 
     lastRun = { trades, universe: scoped.length, withHistory, errors, minutes, topic, historyRequests };
+    $("#export-csv").disabled = false;
     renderScoreboard();
+    renderBreakdowns();
     renderLedger();
     renderKpis();
     pill($("#status"), "live",
@@ -239,6 +265,19 @@ $("#run").addEventListener("click", async () => {
     pill($("#status"), "err", e.message);
     $("#scoreboard").innerHTML = emptyRow(10, "Backtest failed: " + e.message);
   }
+});
+
+$("#export-csv").addEventListener("click", () => {
+  if (!lastRun) return;
+  const blob = new Blob(["\uFEFF", tradesToCsv(lastRun.trades)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `kalshidash-simulated-trades-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 function renderKpis() {
@@ -264,7 +303,7 @@ function renderKpis() {
 function renderScoreboard() {
   const agg = aggregate(lastRun.trades);
   const rows = [];
-  for (const s of STRATEGIES) {
+  for (const s of [...STRATEGIES, RANDOM_CONTROL]) {
     const g = agg.find(x => x.key === s.key);
     if (!g) {
       rows.push(`<tr>
@@ -297,7 +336,30 @@ function renderScoreboard() {
     `Run: ${int(lastRun.universe)} finalized market(s), ${int(lastRun.withHistory)} with price history, ` +
     `${int(lastRun.historyRequests)} candlestick request(s), ${int(lastRun.minutes)}-minute window. ` +
     `P&amp;L per contract = payout − entry price; ROI = total P&amp;L ÷ total capital deployed. ` +
-    `No fees, no spread, no slippage. <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Settlement rules ↗</a>`;
+    `No fees, no spread, no slippage. The seeded random control is a reproducible comparison baseline, not a statistical test or a prediction. <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Settlement rules ↗</a>`;
+}
+
+function renderBreakdowns() {
+  const groups = aggregateBreakdowns(lastRun.trades);
+  if (!groups.length) {
+    $("#breakdowns").innerHTML = emptyRow(9, "No scored trades to break down.");
+    return;
+  }
+  $("#breakdowns").innerHTML = groups.map(g => {
+    const sources = [...new Map(lastRun.trades.filter(t => g.tickers.includes(t.ticker)).map(t => [t.ticker, t])).values()];
+    return `<tr>
+      <td><strong>${esc(g.dimension)} · ${esc(g.value)}</strong></td>
+      <td class="num">${int(g.trades)}</td><td class="num">${int(g.wins)}</td><td class="num">${int(g.losses)}</td>
+      <td class="num">${g.winRate === null ? `<span class="unv">n/a</span>` : (g.winRate * 100).toFixed(1) + "%"}</td>
+      <td class="num">${money(g.pnl)}</td><td class="num">${money(g.capital)}</td>
+      <td class="num">${g.roi === null ? `<span class="unv">n/a</span>` : (g.roi * 100).toFixed(1) + "%"}</td>
+      <td class="small"><details><summary>${int(sources.length)} source market(s)</summary><div>${sources.map(t =>
+        `<a class="src-link" href="${esc(marketSourceUrl(t.ticker))}" target="_blank" rel="noopener noreferrer">${esc(t.ticker)} market ↗</a> ` +
+        `<a class="src-link" href="${esc(eventSourceUrl(t.eventTicker))}" target="_blank" rel="noopener noreferrer">event ↗</a>`
+      ).join("<br>")}</div></details>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">candlestick docs ↗</a></td>
+    </tr>`;
+  }).join("");
 }
 
 function renderLedger() {

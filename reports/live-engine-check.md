@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-20T13:53:07.952Z
+- Run at: 2026-11-20T19:20:26.043Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -12,7 +12,7 @@
 
 | Topic | Market | From | To | Δ | Basis | Screen |
 | --- | --- | --- | --- | --- | --- | --- |
-| culture | `KXTVSEASONRELEASEACOURTOFTHORNSANDROSES-30-JAN` | 0.90 | 0.80 | -0.10 | exchange previous_price_dollars | 65/100 |
+| culture | `KXGTA6SONGS-30-MOB` | 0.01 | 0.53 | +0.52 | exchange previous_price_dollars | 78/100 |
 | elections | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 | exchange previous_price_dollars | 50/100 |
 
 - Markets with a readable previous price: 2777
@@ -21,8 +21,8 @@
 | Market | previous_price_dollars | last_price_dollars | Δ |
 | --- | --- | --- | --- |
 | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 |
+| `KXGTA6SONGS-30-MOB` | 0.01 | 0.53 | +0.52 |
 | `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
-| `KXTVSEASONRELEASEACOURTOFTHORNSANDROSES-30-JAN` | 0.90 | 0.80 | -0.10 |
 | `KXNEXTSPEAKER-31-HJEF` | 0.97 | 0.99 | +0.02 |
 | `KXNEXTNATOSECGEN-99-KIOH` | 0.02 | 0.02 | 0.00 |
 | `KXNEXTNATOSECGEN-99-KKAL` | 0.15 | 0.15 | 0.00 |
@@ -37,7 +37,7 @@
 - With a yes/no result and a settlement value: 12
 
 - Markets with usable one-minute history: 1
-- History requests that failed: 8
+- History requests that failed: 0
 - Simulated trades produced: 0
 
 _No strategy fired in this universe._

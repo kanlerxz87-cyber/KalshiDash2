@@ -22,6 +22,9 @@
  *     fee schedule is linked from the page.
  *   - A position held to settlement pays the market's own
  *     `settlement_value_dollars` (1.0000 for YES, 0.0000 for NO).
+ *   - Trade prices are represented on the YES leg; an NO contract's entry
+ *     price is the complement (1 - YES price), consistent with Kalshi's
+ *     documented reciprocal YES/NO pricing.
  *   - One trade per market per strategy, taken at the first signal.
  */
 import { STRATEGIES } from "./config.js";
@@ -164,15 +167,20 @@ export function replayStrategy(strategy, series, market) {
 
   const side = strategy.side || "yes";
   const settle = num(market.settlement_value_dollars);
+  const entryPrice = side === "yes" ? entry.price : 1 - entry.price;
   let exitPrice = null;
   let exitReason = "";
   let exitTs = null;
 
   if (strategy.hold === "roundtrip") {
-    const target = entry.price + 0.10;
+    const targetYesPrice = side === "yes" ? entry.price + 0.10 : entry.price - 0.10;
     for (let j = entryIndex + 1; j < series.length; j++) {
-      if (series[j].close !== null && series[j].close >= target - CLOSE_EPS) {
-        exitPrice = series[j].close;
+      const yesPrice = series[j].close;
+      const reached = yesPrice !== null && (side === "yes"
+        ? yesPrice >= targetYesPrice - CLOSE_EPS
+        : yesPrice <= targetYesPrice + CLOSE_EPS);
+      if (reached) {
+        exitPrice = side === "yes" ? yesPrice : 1 - yesPrice;
         exitReason = "target +$0.10 reached";
         exitTs = series[j].t;
         break;
@@ -183,11 +191,11 @@ export function replayStrategy(strategy, series, market) {
   let pnl = null;
   let payout = null;
   if (exitPrice !== null) {
-    payout = side === "yes" ? exitPrice : 1 - exitPrice;
-    pnl = payout - entry.price;
+    payout = exitPrice;
+    pnl = payout - entryPrice;
   } else if (settle !== null) {
     payout = side === "yes" ? settle : 1 - settle;
-    pnl = payout - entry.price;
+    pnl = payout - entryPrice;
     exitReason = "held to settlement";
     exitTs = market.settlement_ts ? Date.parse(market.settlement_ts) : null;
   }
@@ -200,14 +208,75 @@ export function replayStrategy(strategy, series, market) {
     eventTitle: market.event_title,
     topic: market.topic,
     side,
-    entryPrice: entry.price,
+    entryPrice,
+    yesPriceAtEntry: entry.price,
     entryTs: entry.t,
     exitPrice,
     exitReason: exitReason || "no priced period after entry",
     exitTs,
     payout,
     pnlPerContract: pnl,
-    capitalPerContract: entry.price,
+    capitalPerContract: entryPrice,
+    result: (market.result || "").toLowerCase(),
+    settlementValue: settle,
+    category: market.category,
+    seriesTicker: market.series_ticker
+  };
+}
+
+/* Reproducible random-control trade: one randomly selected candle and side
+ * per market, generated from a ticker-seeded PRNG. This is a baseline, not a
+ * market prediction; repeated runs over the same inputs produce the same
+ * trade. It uses the same close-fill / settlement assumptions as the rules. */
+export const RANDOM_CONTROL = {
+  key: "random-control",
+  name: "Random control (seeded)",
+  rule: "One deterministic pseudo-random entry candle and side per market; held to settlement"
+};
+
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6D2B79F5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function tickerSeed(ticker = "") {
+  let hash = 2166136261;
+  for (const char of String(ticker)) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  return hash >>> 0;
+}
+
+export function replayRandomControl(series, market) {
+  const valid = (series || []).filter(c => Number.isFinite(c.close) && c.close >= 0 && c.close <= 1);
+  const settle = num(market.settlement_value_dollars);
+  if (!valid.length || settle === null || !market.ticker) return null;
+  const random = seededRandom(tickerSeed(market.ticker));
+  const entry = valid[Math.floor(random() * valid.length)];
+  const side = random() < 0.5 ? "yes" : "no";
+  const entryPrice = side === "yes" ? entry.close : 1 - entry.close;
+  const payout = side === "yes" ? settle : 1 - settle;
+  return {
+    strategyKey: RANDOM_CONTROL.key,
+    strategyName: RANDOM_CONTROL.name,
+    ticker: market.ticker,
+    eventTicker: market.event_ticker,
+    eventTitle: market.event_title,
+    topic: market.topic,
+    side,
+    entryPrice,
+    yesPriceAtEntry: entry.close,
+    entryTs: entry.t,
+    exitPrice: null,
+    exitReason: "held to settlement (random control)",
+    exitTs: market.settlement_ts ? Date.parse(market.settlement_ts) : null,
+    payout,
+    pnlPerContract: payout - entryPrice,
+    capitalPerContract: entryPrice,
     result: (market.result || "").toLowerCase(),
     settlementValue: settle,
     category: market.category,
@@ -260,6 +329,68 @@ export function aggregate(trades) {
       avgPnl: n ? g.pnl / n : null
     };
   });
+}
+
+/* Aggregate scored results across topic and direction. The labels derive from
+ * the event classification and side recorded on each simulated trade. */
+export function aggregateBreakdowns(trades) {
+  const groups = new Map();
+  for (const t of trades) {
+    for (const [dimension, value] of [["Topic", t.topic || "unclassified"], ["Direction", (t.side || "").toUpperCase() || "unavailable"]]) {
+      const key = `${dimension}:${value}`;
+      if (!groups.has(key)) groups.set(key, {
+        dimension, value, trades: 0, wins: 0, losses: 0, flat: 0, pnl: 0, capital: 0, tickers: []
+      });
+      const g = groups.get(key);
+      g.trades++;
+      if (!g.tickers.includes(t.ticker)) g.tickers.push(t.ticker);
+      if (Number.isFinite(t.pnlPerContract)) {
+        g.pnl += t.pnlPerContract;
+        g.capital += Number.isFinite(t.capitalPerContract) ? t.capitalPerContract : 0;
+        if (t.pnlPerContract > 0) g.wins++;
+        else if (t.pnlPerContract < 0) g.losses++;
+        else g.flat++;
+      }
+    }
+  }
+  return [...groups.values()].map(g => ({
+    ...g,
+    roi: g.capital > 0 ? g.pnl / g.capital : null,
+    winRate: g.wins + g.losses > 0 ? g.wins / (g.wins + g.losses) : null
+  })).sort((a, b) => a.dimension.localeCompare(b.dimension) || a.value.localeCompare(b.value));
+}
+
+const CSV_COLUMNS = [
+  ["strategy", t => t.strategyName], ["ticker", t => t.ticker], ["event_ticker", t => t.eventTicker],
+  ["event_title", t => t.eventTitle], ["topic", t => t.topic], ["side", t => t.side],
+  ["entry_price_per_contract", t => t.entryPrice], ["yes_price_at_entry", t => t.yesPriceAtEntry],
+  ["entry_time", t => t.entryTs == null ? "" : new Date(t.entryTs).toISOString()],
+  ["exit_price_per_contract", t => t.exitPrice ?? ""], ["exit_reason", t => t.exitReason],
+  ["settlement_result", t => t.result], ["settlement_value", t => t.settlementValue ?? ""],
+  ["payout_per_contract", t => t.payout ?? ""], ["pnl_per_contract", t => t.pnlPerContract ?? ""],
+  ["capital_per_contract", t => t.capitalPerContract ?? ""], ["market_source", t => marketSourceUrl(t.ticker)],
+  ["event_source", t => eventSourceUrl(t.eventTicker)], ["candlestick_docs", () => "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"]
+];
+
+export function marketSourceUrl(ticker = "") {
+  return `https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(ticker)}`;
+}
+export function eventSourceUrl(ticker = "") {
+  return `https://external-api.demo.kalshi.co/trade-api/v2/events/${encodeURIComponent(ticker)}`;
+}
+
+function csvCell(value) {
+  const text = value == null ? "" : String(value);
+  // Protect spreadsheet users from formula injection in exchange-provided text;
+  // keep numeric negatives numeric rather than prefixing them as text.
+  const safe = typeof value === "string" && /^\s*[=+@\-\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
+export function tradesToCsv(trades) {
+  return [CSV_COLUMNS.map(([name]) => csvCell(name)).join(","),
+    ...(trades || []).map(t => CSV_COLUMNS.map(([, get]) => csvCell(get(t))).join(","))
+  ].join("\r\n");
 }
 
 /* --------------------------------------------------------------------------

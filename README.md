@@ -48,9 +48,13 @@ fetched in the browser and never transcribed into the repo.
   the comparison that produced it. A table view of the same events carries one official API link
   per row. Four paper strategies run automatically on the alerts; no orders are placed.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
-  simulated trade is scored against the market's own `settlement_value_dollars`, with the
-  assumptions (no fees, no spread, no slippage) stated above the results. Includes a live
-  paper-trading book driven by the same alert engine as the Live alerts page.
+  simulated trade is scored against the market's own `settlement_value_dollars`, with YES and NO
+  entry prices handled as complements and the assumptions (no fees, no spread, no slippage) stated
+  above the results. Includes a reproducible seeded random-control baseline, rollups by topic and
+  YES/NO direction, CSV export of the simulated ledger, and a live paper-trading book driven by the
+  same alert engine as the Live alerts page. The random baseline is a comparison, not a prediction
+  or statistical significance test; historical NO-side results from before the correction are flagged
+  on the Flagged for Review page.
 - **Category pages** (gas, elections, culture, crypto, golf) — the live board for that topic,
   a price chart with 10s → 7d windows, markers on every ≥$0.10 jump inside the official candle
   series, and order-book depth showing how many contracts rest at each price.
@@ -112,6 +116,7 @@ python3 -m http.server 8080
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
 node --test tests/alerts-core.test.mjs    # alert engine unit tests
+node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests
 (cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures
 python3 tools/check_site_links.py .       # local links and anchors in the published site
 python3 -m unittest discover -s tools     # link-checker tests
