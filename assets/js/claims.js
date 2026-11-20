@@ -357,5 +357,5 @@ export const CLAIMS = [
     detail: "The board reads at most 10 pages of 200 open events; the API reports no total, so the share scanned is not knowable from the response",
     source: `${D}/api-reference/events/get-events`,
     ev: "The page now labels a page-budget-limited scan as partial; the uncovered share is unmeasured (X8)",
-    status: "unverified", flag: "X8" }
+    status: "unverified", flag: "Y8" }
 ];
