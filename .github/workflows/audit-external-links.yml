@@ -1,0 +1,38 @@
+name: External link audit
+
+# Probes every non-API external URL in the repository from a GitHub runner
+# (the agent sandbox cannot reach kalshi.com or docs.kalshi.com) and commits
+# reports/external-links-audit.md. Manual trigger only, to avoid churn.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-external-links
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Unit tests for the auditor
+        run: cd tools && python3 -m unittest test_audit_external_links -v
+      - name: Probe external URLs and write the report
+        run: python3 tools/audit_external_links.py --check
+      - name: Commit the refreshed report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/external-links-audit.md
+          if git diff --cached --quiet; then
+            echo "No change in the audit report."
+          else
+            git commit -m "audit: refresh external link report [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
