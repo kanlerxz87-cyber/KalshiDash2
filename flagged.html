@@ -367,9 +367,9 @@
     </div>
 
     <div class="irregularity" id="R1">
-      <h3>R1 — The Pages link check covers <code>docs/</code>, not the root site that visitors see <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> <code>.github/workflows/site-check.yml</code> runs <code>tools/check_site_links.py docs</code>. GitHub Pages is configured with source <code>main:/</code>, so the root site (<code>index.html</code>, <code>alerts.html</code> and the rest) is what visitors see, and CI does not check it.</p>
-      <p><strong>Checked here:</strong> running the same checker on the repository root passes (33 HTML files, no broken local links or anchors), including the new page. CI is unchanged.</p>
+      <h3>R1 — The Pages link check covered <code>docs/</code>, not the root site that visitors see <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>.github/workflows/site-check.yml</code> ran <code>tools/check_site_links.py docs</code>. GitHub Pages is configured with source <code>main:/</code>, so the root site (<code>index.html</code>, <code>alerts.html</code> and the rest) is what visitors see, and CI did not check it.</p>
+      <p><strong>Checked here:</strong> running the same checker on the repository root passes (33 HTML files, no broken local links or anchors), including the alerts page. The CI workflow now runs <code>tools/check_site_links.py .</code> so the whole published tree — root site and <code>docs/</code> — is covered on every push and PR.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">Pages publishing source ↗</a></p>
     </div>
   </div>
