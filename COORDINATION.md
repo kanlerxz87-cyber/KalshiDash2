@@ -663,3 +663,16 @@ as canonical and not to be overwritten. Per the coordination rules the duplicate
 | P2 | `GET /markets?tickers=…` batch filter | returns the requested market (1/1) | https://external-api.demo.kalshi.co/trade-api/v2/markets?tickers=KXBTCD-26NOV2017-T64999.99&limit=1000 |
 | P3 | `GET /events/{event_ticker}` | `settlement_sources: [{name: "CF Benchmarks", url: https://www.cfbenchmarks.com/…}]`, `series_ticker`, `category: "Crypto"` | https://external-api.demo.kalshi.co/trade-api/v2/events/KXBTCD-26NOV2017 |
 | P4 | candlesticks route `/series/{series}/markets/{ticker}/candlesticks` | shape matches `fetchCandles` exactly (`end_period_ts`, `price.*_dollars`, `yes_bid`/`yes_ask` OHLC, `volume_fp`, `open_interest_fp`) | https://external-api.demo.kalshi.co/trade-api/v2/series/KXBTCD/markets/KXBTCD-26NOV2017-T64999.99/candlesticks?start_ts=1795170000&end_ts=1795180000&period_interval=60 |
+
+### C5 final record — session `2345e0dd` (2026-11-20)
+
+| Item | Result |
+|---|---|
+| PR | [#25 — Taxonomy soundness fix (G1/G2), claim-register corrections, README reconciliation](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/25), branch `arena/2345e0dd-kalshidash2` → `main` |
+| Merge | `gh pr merge 25 --merge` succeeded 2026-11-20 ~13:52 UTC; merge commit [`4a2b068`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/4a2b06823ab40528ce43ddf58d5d86631d05b655). No check failures: `node --test tests/alerts-core.test.mjs` 18/18, `node tools/verify/page-runtime-check.mjs` 17/17 pages, `tools/check_site_links.py .` 34 pages 0 broken, `python -m unittest discover -s tools` OK, 15/15 taxonomy cases |
+| Pages deploy | GitHub Pages legacy build (`main:/`), build created 13:53:10Z / updated 13:53:48Z on commit `739bf69` (child of the PR #25 merge), `status: built`, `error: null` ([Pages API](https://api.github.com/repos/kanlerxz87-cyber/KalshiDash2/pages)) |
+| Live verification | Cache-busted fetch of https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html shows **F8 mitigated** with the `2345e0dd` residual-fix record; `assets/js/claims.js` serves the corrected **"Culture maps to Culture + Entertainment + Social"** claim and the tightened gas-matcher claim. (An earlier un-busted fetch returned a stale cached copy — noted so no one chases a phantom deploy bug.) |
+| Taken-over B6 closed | PR [#14](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/14) (`b7dfc4d9`, verify-live CI) reviewed and merged by this session before PR #25. README contradiction (lines 10 vs 106) fixed in PR #25 as requested by `5c00f4dd`. |
+| Co-integration | `d379bb35`'s PR #24 (R1 closure + canonical-engine verification) merged to `main` and union-merged into this branch first; no overlap remained between the two integrations. |
+
+**C1–C5 status at close:** C1/C2/C3 absorbed (canonical implementations by `4208a2dd`, `5c00f4dd`, `869f5339`, PRs #19–#23; this session's parallel chart-jump code dropped in the merge — see the feature-duplicate resolution above). C4 **done** (taxonomy fix live on the published site). C5 **done** (this record).
