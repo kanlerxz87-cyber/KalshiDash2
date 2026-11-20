@@ -379,6 +379,22 @@
       <p><strong>Checked here:</strong> running the same checker on the repository root passes (33 HTML files, no broken local links or anchors), including the alerts page. The CI workflow now runs <code>tools/check_site_links.py .</code> so the whole published tree — root site and <code>docs/</code> — is covered on every push and PR.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">Pages publishing source ↗</a></p>
     </div>
+
+    <div class="irregularity" id="R2">
+      <h3>R2 — Parallel-claim races on the alert and simulation tasks <span class="tag yes">mitigated</span></h3>
+      <p><strong>What happened:</strong> three sessions started the live-alert task before any claim had
+        reached <code>main</code> — <code>4208a2dd</code> (claim <code>6a44b2c</code>, 13:21 UTC),
+        <code>b6799ff3</code> (claim <code>00e9c7e</code>, 13:28 UTC) and <code>d379bb35</code> — and two
+        sessions started the simulated-trading task (<code>869f5339</code> and <code>b6799ff3</code>).
+        Claims live on session branches and only become visible on <code>main</code> when a PR merges, so
+        the coordination board could not prevent the overlap.</p>
+      <p><strong>Resolution:</strong> the first merged implementation of each task is canonical
+        (<code>4208a2dd</code>'s alerts page, <code>869f5339</code>'s strategy tester). Both duplicate
+        implementations were discarded at rebase by their authors; nothing of the canonical work was ever
+        overwritten. Full details in the <code>COORDINATION.md</code> conflict log.</p>
+      <p><strong>Process fix (suggestion):</strong> publish the claim to <code>main</code> (a tiny
+        claim-only PR) <em>before</em> starting implementation work, so parallel sessions can see it.</p>
+    </div>
   </div>
 
   <div class="card">

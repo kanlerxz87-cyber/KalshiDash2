@@ -679,6 +679,31 @@ as canonical and not to be overwritten. Per the coordination rules the duplicate
 
 ---
 
+## Session `b6799ff3` — final integration record (branch `arena/b6799ff3-kalshidash2`, 2026-11-20)
+
+Claim commit `00e9c7e` (13:28 UTC) declared four tasks. Two were superseded mid-flight by parallel-claim races (see Flagged R2), two are done. Nothing any other session wrote was overwritten.
+
+| # | Task | Final status | Evidence |
+|---|------|--------------|----------|
+| C1 | Live swing alerts (≥ $0.10, two scrolling feeds, resolution tracking, catalyst links) | **superseded** by `4208a2dd`'s canonical implementation (PR #19) | This session's duplicate `alerts.html`/`assets/js/alerts.js` were discarded at rebase (`git rebase --skip` of `dcdcea4`) and again when the branch was rebuilt on `main`. `4208a2dd`'s files were never modified by this session. |
+| C2 | Automated simulated trades + strategy categorisation | **superseded** by `869f5339`'s strategy tester (task S2: `simulator.html`, `assets/js/simulator.js` — replay over official candles, scored against real settlement values) | This session's `sim.html`/`assets/js/sim.js` lab (reversion-tp / longshot / control-random + categorised ledger + CSV) was discarded when the branch was rebuilt on `main` rather than ship a third simulation implementation. Self-test `tools/test_alerts_sim.mjs` (20 checks) and `package.json` were discarded with it; `869f5339`'s simulator and `4208a2dd`'s paper strategies were never modified. |
+| C3 | Site integration + final integration (link check, PR, merge, Pages confirm, records) | done | Verified on the merged tree 2026-11-20: `python3 tools/check_site_links.py .` — all pages pass; `node --test tests/alerts-core.test.mjs` 18/18; `node evidence/auth-sign-test.mjs` 6/6; `python3 -m unittest discover -s tools -p 'test_*.py'` 2/2; `node --check` on touched modules. Gaps this session planned (chart jump markers, summary/alerts coverage, flagged limitations) were found already implemented by parallel sessions at integration time (`category.js` `detectJumps`/`renderJumps`, `summary.html` rows, Flagged F13–F16) — no duplicate work shipped. |
+| C4 | README Pages-source contradiction (logged by `ff79cca7`) | done | The stale duplicated tail was removed by a parallel session, and session `2345e0dd` landed the corrected top-note wording (verified here against `.github/workflows/pages.yml` on `main`: manual-only since PR #17). This session produced an equivalent fix but the merge kept `2345e0dd`'s version — theirs was already more precise. |
+
+### Request log (session `b6799ff3` → task S2 owner `869f5339`, per the file-scope rules)
+
+Not implemented here because `simulator.html`/`assets/js/simulator.js` are owned by `869f5339` (S2 `in progress`). Three additions from this session's lab design that the strategy tester does not yet have — request to add or explicitly decline:
+
+1. **CSV export of the simulated trade ledger** (brief: "analyze the results of the trades"; S8 in `SUGGESTIONS.md` lists CSV export awaiting a decision).
+2. **A random control-baseline strategy** scored alongside the real ones — without it, no strategy's outperformance can be distinguished from chance.
+3. **Rollups by direction (YES/NO) and by topic** alongside the per-strategy aggregate, since the brief asks to "categorize trades and create strategies based on the type of trade".
+
+### Conflict log additions (session `b6799ff3`)
+
+- 2026-11-20 — Two rebases onto advancing `main` hit ADD/ADD and content conflicts against sessions `4208a2dd` (PR #19), `5c00f4dd` (PRs #20/#21), `869f5339` (S2), and `d379bb35` (PR #24). Resolutions, in every case, by keeping the complete `main` side and dropping this session's duplicates: `COORDINATION.md` (main board kept + this session's records appended), `alerts.html`/`assets/js/alerts.js` (canonical kept), `assets/js/ui.js` PAGES (canonical `Live alerts` + `Simulator` entries kept; this session's entries dropped as redundant), `sim.html`/`assets/js/sim.js` (dropped in favour of `simulator.html`). No file of any other session was discarded or overwritten. One force-with-lease push to this session's own branch updated it to the rebased history.
+
+---
+
 # Session `a6bed09f` — live alerts, paper simulation, final integration
 
 Started: 2026-11-20T13:18Z. Branch: `arena/a6bed09f-kalshidash2` (Arena-fixed current branch; work stays here).
@@ -720,3 +745,7 @@ PR [#25](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/25) merged the ind
 ### Branch remote synchronization (2026-11-20)
 
 The already-published Arena branch had two commits not in this rebased local history: `09db2d7` (coordination reconciliation) and `a9de9a3` (read-only live alert probe, 13:38:58Z). Merged `origin/arena/a6bed09f-kalshidash2` to retain those commits and make the branch push a fast-forward. Kept the current coordination record, which already includes the reconciliation and more recent integration updates. Kept the current `reports/alerts-live-check.md` capture (13:40:01Z, run against `f74825e`) because it is newer than the remote branch's 13:38:58Z capture; both are read-only observations of the same API behavior.
+
+### Main synchronization after PR #27 (2026-11-20)
+
+PR [#27](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/27) merged at 14:02:40Z as `4cffc65`, adding the mitigated R2 parallel-claim race record to `flagged.html` and the `b6799ff3` coordination section. After incorporating that register change, local DOM tests confirm 21 open + 7 mitigated flags (28 total), 17 requirement rows, 59/67 claims (6 partial, 2 unverified), and evidence/project labels on all 25 summary rows. The Pages build for `4cffc65` reported `built` (run `44749695601`). A manual `verify-live-site` dispatch on that commit (run `44749751336`) failed while the pre-PR-28 workflow was still on `main`; its logs were not retrievable, so the failing assertion is unconfirmed. This is not a result from the rewritten verifier in this branch. The live-facts report generated at 14:02:16Z on `854f0be` is newer than the 13:59:56Z report in the PR #27 merge and is retained as the latest read-only capture.
