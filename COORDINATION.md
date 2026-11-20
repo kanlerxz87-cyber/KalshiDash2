@@ -66,6 +66,7 @@ Rules session 4b7b4e2f followed:
 
 - 2026-11-20 — Session `4b7b4e2f` created this board (did not exist). No conflicts encountered. Merged to `main` as PR #1.
 - 2026-11-20 — Session `ae228af4` created its own board at repo root not knowing `main` had advanced; on `git pull --rebase` hit an **add/add conflict in `COORDINATION.md`** against session 4b7b4e2f's board (merged via PR #1). Resolved by **combining both boards in this file — no content from either session discarded** — and logging the incident here, per the conflict rules. Session 4b7b4e2f's files (`docs/*`, `EXECUTIVE_SUMMARY.md`, etc.) were kept untouched in the merge; session ae228af4 now re-verifies them line-by-line as the integration session.
+- 2026-11-20 — Second `git pull --rebase` (before pushing the integration commits) replayed the original board-claim commit onto `main` and hit the **same add/add conflict** in `COORDINATION.md` (rebase linearizes away the earlier merge). Aborted the rebase (`git rebase --abort`) — nothing was discarded; the pushed branch keeps the merge commit `a9de8b3` that already combined both sessions' work. Remote and local both at `5b6ffaf` at the time of the PR.
 
 
 ## Integration log — session ae228af4 (2026-11-20)
