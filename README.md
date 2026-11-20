@@ -3,8 +3,9 @@
 > **Two generations of the site live in this repository.**
 >
 > * `docs/` — the site built by the first sessions (`4b7b4e2f`, `210dfcb8`). Live dashboard for the **Kalshi demo** exchange: highest-dollar events in gas prices, elections, culture, crypto, and golf — tracked until they resolve (yes/no), with demo trading and performance analysis.
-> * `site/` — the verified rebuild documented below. It fixes three defects found in `docs/`
->   (see `site/flagged.html` F6–F8) and is written to be publishable from the repository root.
+> * **repository root** — the verified rebuild documented below (`index.html`, `categories/`,
+>   `assets/`, `evidence/`). It fixes three defects found in `docs/` (see `flagged.html` F6–F8).
+>   This is what GitHub Pages serves, because the Pages source is `main:/`.
 >
 > `COORDINATION.md` records which session owns what. Nothing from the earlier generation was
 > deleted by this merge.
@@ -38,14 +39,13 @@ open through resolution, with a demo portfolio, trade analysis and a decision re
 - No value is inferred. A field the API did not return renders as `n/a`, never as `$0.00`.
 - Computed figures name their formula; API figures name the endpoint that produced them.
 - Every claim on the **Verification** page links an official Kalshi source, and where possible
-  a captured live response committed under `site/tools/`.
+  a captured live response committed under `evidence/`.
 - Anything unconfirmed is listed on **Flagged for review** with the evidence that would close it.
 
 ## Layout
 
 ```
-site/                     the published site (no build step, no dependencies)
-  index.html              overview board
+index.html                overview board            <- published site root (Pages: main:/)
   summary.html            executive summary
   categories/*.html       one page per topic
   event.html              single-event detail
@@ -56,9 +56,10 @@ site/                     the published site (no build step, no dependencies)
   questions.html          questions, information, answers
   verification.html       claim register with official sources
   flagged.html            irregularities + unverified items
+  categories/*.html       one page per topic
   assets/js/*.js          client, market data, chart, UI (ES modules)
   assets/css/app.css
-  tools/                  captured API evidence + signing self-test
+  evidence/               captured API evidence + signing self-test
 reports/                  raw CI captures of the demo API
 COORDINATION.md           shared task board for parallel sessions
 ```
@@ -68,17 +69,17 @@ COORDINATION.md           shared task board for parallel sessions
 Any static server works; ES modules require HTTP, not `file://`:
 
 ```bash
-cd site && python3 -m http.server 8080
+python3 -m http.server 8080
 ```
 
 ## Verification
 
 ```bash
-node site/tools/auth-sign-test.mjs   # 6/6 signing-rule checks
+node evidence/auth-sign-test.mjs      # 6/6 signing-rule checks
 ```
 
-See `site/verification.html` for the full claim register and
-`site/flagged.html` for everything that could not be confirmed.
+See `verification.html` for the full claim register and `flagged.html` for everything
+that could not be confirmed.
 
 Demo environment only: funds are mock, and demo prices may not reflect production markets.
 Not affiliated with or endorsed by Kalshi.

@@ -111,13 +111,20 @@ concurrent sessions merge cleanly instead of fighting over one table.
 |---|------|--------|-------|-----------|
 | B1 | Capture official API facts required by the brief (CORS, taxonomy, candlestick limits, order routes, settled results) | done | `b7dfc4d9` | `reports/**`, `tools/verify/**`, `.github/workflows/verify-facts.yml` |
 | B2 | Line-by-line audit of the published `docs/` site against official docs | done | `b7dfc4d9` | none (read-only) |
-| B3 | Corrected site built on the same facts (overview, 5 category pages, event, resolved, portfolio, strategies, suggestions, questions, verification, flagged) | done | `b7dfc4d9` | `site/**` |
-| B4 | Deterministic signing-rule self-test (6 checks) | done | `b7dfc4d9` | `tools/verify/auth-sign-test.mjs`, `site/tools/` |
-| B5 | Runtime + link verification of all 15 pages | done | `b7dfc4d9` | `site/**` |
+| B3 | Corrected site built on the same facts (overview, 5 category pages, event, resolved, portfolio, strategies, suggestions, questions, verification, flagged) | done | `b7dfc4d9` | root `*.html`, `categories/**`, `assets/**` |
+| B4 | Deterministic signing-rule self-test (6 checks) | done | `b7dfc4d9` | `tools/verify/auth-sign-test.mjs`, `evidence/` |
+| B5 | Runtime + link verification of all 15 pages | done | `b7dfc4d9` | root `*.html`, `categories/**` |
 | B6 | PR + merge + Pages deploy | in progress | `b7dfc4d9` | `README.md`, `COORDINATION.md` |
 
+Layout decision (2026-11-20T11:30Z): the verified pages were built under `site/` but the
+repository's Pages source is `main:/` (legacy), which cannot serve a subdirectory. Rather than
+ask for a Pages setting change, the pages were moved to the **repository root** at merge time
+(`index.html`, `categories/`, `assets/`, `evidence/`) and the `site/` staging folder was removed
+so there is exactly one copy. `docs/` is untouched and its deploy workflow still exists, but with
+`main:/` as the source it is no longer what visitors see.
+
 Scope note: this session touched **no** file under `docs/**`, `scripts/**` or
-`data/**`. It shipped to a new `site/` tree and rewrote the root `README.md`
+`data/**`. It added its pages and rewrote the root `README.md`
 (claimed by no active session) to describe it.
 
 ## Sources used
@@ -158,16 +165,16 @@ Scope note: this session touched **no** file under `docs/**`, `scripts/**` or
 5. **Not verified**: any end-to-end authenticated flow, because no demo API key exists
    for this build. Recorded as F1/F2 on the Flagged page; no performance claim is made.
 
-## Irregularities found (details on `site/flagged.html`)
+## Irregularities found (details on `flagged.html`)
 
 | ID | Finding |
 | --- | --- |
-| F6 | **`docs/assets/app.js` could never authenticate.** It imports the private key with `subtle.importKey("spki", …)` (a private key is PKCS#8) and signs `ts + METHOD + "/portfolio/balance"` without the `/trade-api/v2` prefix. Both are rejected per the official signing rules; the self-test proves it. Fix: `site/assets/js/kalshi.js`. |
+| F6 | **`docs/assets/app.js` could never authenticate.** It imports the private key with `subtle.importKey("spki", …)` (a private key is PKCS#8) and signs `ts + METHOD + "/portfolio/balance"` without the `/trade-api/v2` prefix. Both are rejected per the official signing rules; the self-test proves it. Fix: `assets/js/kalshi.js`. |
 | F7 | **`docs/portfolio.html` mislabels sides.** The option `"Sell Yes (ask)"` sends `side: "ask"`, which per the documented table is *buy NO*. A user would open the opposite position. Fix: the new form asks buying YES / buying NO. |
 | F8 | **`docs/assets/app.js` topic matching is unsound.** Keyword-matching the full `/series` catalogue (16,643 rows) matched "gas" → `KXNBALASVEGAS` and "golf" → `KXTRUMPGOLFD`, and gas has no Kalshi category at all. Fix: category-based mapping with explicit gas/golf exception lists plus honest empty states. |
 | F9 | **The brief's "seconds" chart axis has no data source.** Kalshi publishes no seconds-resolution history (intervals are 1/60/1440 *minutes*). Mitigated: ≤5 min windows are accumulated live samples, labelled as such; longer windows use real candlesticks. |
 | F10 | **Browser WebSocket streaming unconfirmed** — the handshake needs headers a browser `WebSocket` cannot set. Polling used instead; flagged. |
-| F11 | **Seven sessions wrote concurrently**; `main` advanced several times mid-session. This session stayed inside `site/**` and did not edit any claimed file. |
+| F11 | **Seven sessions wrote concurrently**; `main` advanced several times mid-session. This session added only new files plus the unclaimed root `README.md`. |
 
 ## Handoff / conflict log
 
