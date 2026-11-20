@@ -395,6 +395,49 @@
       <p><strong>Process fix (suggestion):</strong> publish the claim to <code>main</code> (a tiny
         claim-only PR) <em>before</em> starting implementation work, so parallel sessions can see it.</p>
     </div>
+
+    <div class="irregularity" id="X1">
+      <h3>X1 — 66 contract links point at a Kalshi staging bucket <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> in the captured demo API data (<code>data/snapshot.json</code>),
+        136 occurrences covering 66 unique <code>contract_url</code> values point at
+        <code>kalshi-public-docs-staging.s3.us-east-1.amazonaws.com</code>, while the sibling
+        <code>contract_terms_url</code> points at <code>assets.kalshi.com</code>. Counted by walking the JSON,
+        not by grep.</p>
+      <p><strong>Why it is not treated as an error:</strong> the official Get Series List reference documents
+        that series objects carry <code>contract_url</code> and <code>contract_terms_url</code>, but it does
+        <em>not</em> state which host <code>contract_url</code> must use. So this is a question for Kalshi,
+        not a verified defect.</p>
+      <p><strong>Impact boundary:</strong> no published page links these URLs — they appear only in the raw
+        capture. The demo dashboard renders titles, prices and the event's own
+        <code>settlement_sources</code>, never <code>contract_url</code>.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
+    </div>
+
+    <div class="irregularity" id="X2">
+      <h3>X2 — A truncated URL in two captured excerpts <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>https://www.politi</code> appears at
+        <code>evidence/evidence-routes-settled.md:81</code> and <code>reports/verify-facts-v2.md:81</code>.
+        The raw excerpt was cut mid-URL when it was captured.</p>
+      <p><strong>Status here:</strong> it is not a usable link and is deliberately not published as one. The
+        excerpts are historical captures kept for the record; the live pages never render a raw capture.</p>
+      <p class="small"><strong>Source of the finding:</strong>
+        <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
+    </div>
+
+    <div class="irregularity" id="X3">
+      <h3>X3 — Third-party names come from the API, not from this site's reporting <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> names such as Guardian, Reuters, NYTimes, AP, ESPN, FIFA and
+        CF Benchmarks appear on the site only because they are returned inside an event's
+        <code>settlement_sources[]</code> array.</p>
+      <p><strong>Why it matters:</strong> those entries confirm <em>what the exchange says will determine an
+        event</em>. They are reference links, not a news report, and they are never presented as the cause of a
+        price move.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a>
+        · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
+    </div>
   </div>
 
   <div class="card">
