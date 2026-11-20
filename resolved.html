@@ -79,7 +79,7 @@
 <script type="module">
 import { mountChrome, esc, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { DEMO } from "./assets/js/config.js";
-import { api, getAll, Watchlist, classifyEvent } from "./assets/js/market.js";
+import { api, getAll, Watchlist, classifyEvent, classifyMultivariate } from "./assets/js/market.js";
 
 mountChrome({ page: "resolved.html", title: "Resolved" });
 
@@ -144,6 +144,16 @@ async function loadRecent() {
     // Resolve event -> topic using the event detail, cached per event ticker.
     const evCache = new Map();
     const rows = [];
+    const combos = [];
+    /* The newest settled markets in the demo environment are overwhelmingly
+     * multivariate ("combo") markets: on 2026-11-20 19:20Z the first page of
+     * GET /markets?status=settled was two Exotics combos, whose event record has
+     * a generic title and no usable category. Filing them by title would be
+     * wrong, so combos are set aside here and classified from their documented
+     * `mve_selected_legs` at the end, exactly as the category pages do.
+     * (https://docs.kalshi.com/api-reference/events/get-multivariate-events)
+     * Without this step the settled list silently drops to "nothing for this
+     * topic" while the exchange is in fact resolving markets. */
     for (const m of markets) {
       let ev = evCache.get(m.event_ticker);
       if (ev === undefined) {
@@ -151,11 +161,37 @@ async function loadRecent() {
         catch { ev = null; }
         evCache.set(m.event_ticker, ev);
       }
+      const isCombo = Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0
+        || m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || "");
+      if (isCombo) { combos.push({ m, ev }); continue; }
       rows.push({ m, ev, topic: ev ? classifyEvent(ev) : null });
       if (rows.length >= 400) break;
     }
+    /* Classify the combos by leg, reusing one look-up per leg event. */
+    const legCache = new Map();
+    const legLookup = async (t) => {
+      if (!legCache.has(t)) {
+        try { const j = await api.get(`/events/${encodeURIComponent(t)}`); legCache.set(t, j.event || j); }
+        catch { legCache.set(t, null); }
+      }
+      return legCache.get(t);
+    };
+    for (const { m, ev } of combos) {
+      const c = await classifyMultivariate({ event_ticker: m.event_ticker, markets: [m] }, legLookup);
+      if (!c) continue;
+      rows.push({
+        m,
+        ev: ev || null,
+        topic: c.topic,
+        combo: c,
+        /* Keep the order stable: newest settlements first, as the API returns. */
+        _order: markets.indexOf(m)
+      });
+    }
     window.__recentRows = rows;
-    pill($("#recent-status"), "live", `live · ${rows.length} settled markets`);
+    window.__recentCombos = combos.length;
+    pill($("#recent-status"), "live",
+      `live · ${rows.length} settled markets${combos.length ? ` · ${combos.length} combos resolved by their legs` : ""}`);
     renderRecent();
   } catch (e) {
     pill($("#recent-status"), "err", e.message);
@@ -167,12 +203,16 @@ function renderRecent() {
   const all = window.__recentRows || [];
   const f = $("#filter").value;
   const rows = f === "all" ? all.filter(r => r.topic) : all.filter(r => r.topic === f);
-  $("#recent").innerHTML = rows.length ? rows.slice(0, 150).map(({ m, topic }) => {
+  $("#recent").innerHTML = rows.length ? rows.slice(0, 150).map(row => {
+    const { m, topic } = row;
     const r = (m.result || "").toLowerCase();
     const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="unv">${esc(m.result || "blank")}</span>`;
+    const comboNote = row.combo
+      ? `<span class="tag warn">combo</span> <span class="small muted">legs: ${row.combo.bases.map(b => `${esc(b.topic)} (${esc(b.event_ticker)})`).join(" · ")}</span>`
+      : "";
     return `<tr>
       <td><strong>${esc(m.title || m.yes_sub_title || m.ticker)}</strong>
-        <div class="mono muted small">${esc(m.ticker)}</div></td>
+        <div class="mono muted small">${esc(m.ticker)}</div>${comboNote}</td>
       <td><a href="categories/${esc(topic)}.html">${esc(topic)}</a></td>
       <td>${tag}</td>
       <td class="num">${money4(m.settlement_value_dollars)}</td>

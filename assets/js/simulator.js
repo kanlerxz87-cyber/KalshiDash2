@@ -101,7 +101,7 @@ export async function loadHistory(market, { minutes = 1440, interval = 1 } = {})
   try {
     const res = await fetchCandles(
       { ticker: market.ticker, event_ticker: market.event_ticker, series_ticker: market.series_ticker },
-      { seconds: end - start, interval }
+      { seconds: end - start, interval, endTs: end }
     );
     return { points: res.points, rawCount: res.rawCount, error: null, source: res.source };
   } catch (e) {

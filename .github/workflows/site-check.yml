@@ -26,6 +26,8 @@ jobs:
         run: python tools/check_site_links.py .
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
+      - name: Taxonomy + multivariate classifier tests
+        run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
         run: node --test tests/simulator-core.test.mjs
       - name: Page runtime and local-link check
