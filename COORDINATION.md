@@ -1012,3 +1012,16 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 | W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
 
 **Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+
+### Results — session `7930e2cd` (2026-11-21)
+
+| # | Task | Result |
+|---|------|--------|
+| W1 | Math verification | **done** — `reports/verify-math-7930e2cd.md`. Every formula in `alerts-core.js`, `simulator.js`, `market.js` (`fetchCandles`/`detectJumps`/`swingOf`/`eventContext`), `kalshi.js` (`deriveQuote`) and `config.js` constants checked against official docs fetched 2026-11-21 ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) incl. the 5,000-period cap, [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses) reciprocal rule + spread formula, [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Fee schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits)). All correct as written; no hallucinated values, no inferred fields, no silent zeros. One wording/formula alignment request (win-rate denominator excludes flats; scoreboard text says "share of scored trades") logged below for the integration session — **not edited here** (`simulator.js`/`simulator.html` are shared outputs). |
+| W2 | Live-site + snapshot | **done** — `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (all published pages HTTP 200 with the `KalshiDash2` marker). `collect` run [44875599643](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875599643) **success**; `data/snapshot.json` refreshed to `2026-11-21T06:28:13Z`, `errors: []`, committed to `main` as `97b6298`. Snapshot topics: gas 228 series / 59 events, elections 2710 / 23, culture 2 / 0, crypto 321 / 100, golf 134 / 37 (markets capped at 200/topic by the collector). Culture 0 events is the demo environment's state in this scan, not a site defect. |
+| W3 | Local suite | **done** on this branch: `alerts-core` 18/18 · `simulator-core` 5/5 · `taxonomy` 10/10 · signing self-test 6/6 · `check_site_links.py` 34 pages 0 broken · python unittest 18 OK · `page-runtime-check` 17/17 pages + 34 links · `git diff --check` clean. |
+
+**Requests logged for the integration session (not edited here):**
+- R-7930-1: Align the simulator win-rate denominator with the scoreboard wording (flats excluded from `wins/(wins+losses)` in `aggregate`/`aggregateBreakdowns` vs. "share of scored trades" in `simulator.html`). Files: `assets/js/simulator.js`, `simulator.html`. Source: `reports/verify-math-7930e2cd.md`.
+
+**No claims held by `7930e2cd` after this record.** File scope touched: `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new).
