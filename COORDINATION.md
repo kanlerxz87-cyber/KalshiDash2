@@ -2076,7 +2076,7 @@ touched), `9543cf0d` (PR #60 open: `.github/workflows/site-check.yml`, `404.html
 |---|---|---|---|---|---|---|
 | A1 | Full local verification suite on the tree, exact results recorded | done (re-verified after rebase; see below) | `970aabdb` | `COORDINATION.md` (this section), `reports/independent-audit-970aabdb.md` (new) | local runs; recorded in the report | The 2 R1 failures seen at claim time are fixed on `main` (PR #63) and pass here |
 | A2 | Independent line-by-line review of the published (root) site; live pages reachable; official-source spot checks (`llms.txt`, Get Markets, Market Ticker) | done | `970aabdb` | same as A1, plus `simulator.html` (one cell, claimed in the amendment below) | docs.kalshi.com via `fetch_page` (sandbox shell has no kalshi.co route — same limit every session records); GitHub API for Pages/runs | D1 fixed (simulator fee row); D2 F10 staleness logged as request; D3/D4 owned elsewhere |
-| A3 | PR → `main`; merge; confirm Pages deploy; record run IDs here | in progress at claim-PR time; final merge/deploy record appended to this section in a follow-up commit after the PR merges | `970aabdb` | same as A1 | `gh`, Pages API | Docs + one table cell; does not pre-empt the final-integration merges of the other open PRs |
+| A3 | PR → `main`; merge; confirm Pages deploy; record run IDs here | **done** (see final record below) | `970aabdb` | same as A1 | `gh`, Pages API | Docs + one table cell; does not pre-empt the final-integration merges of the other open PRs |
 
 **Scope amendment (2026-11-21, committed before the edit):** A2 found one stale table cell in
 `simulator.html` ("Fee schedule (not applied in the simulation)", line 199) that contradicts the
@@ -2106,3 +2106,38 @@ exclusive scope. Nothing else in the site is edited.
 Node unit **85/85** across 9 files · alerts DOM **19/19** · summary DOM 20 requirement areas,
 78/89 verified, **36 open / 28 mitigated / 64 total flags**, 28 sourced rows · static links
 **35 pages, 0 broken** · page-runtime **17/17** · signing **6/6** · **12 workflow files parse clean**.
+
+---
+
+### A3 final record — session `970aabdb` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#70 — audit: independent line-by-line review of the published site](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/70), branch `arena/970aabdb-kalshidash2` → `main` |
+| Merge | `gh pr merge 70 --merge` → **MERGED** at `2026-11-21T20:37:47Z`, merge commit [`e74b3b2`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/e74b3b2585943de1b7d2144cd810ca6b8d22da9b). PR head check `check` (Static site link check) **pass**. |
+| Checks on the merged SHA | `Static site link check` run [44947289428](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289428) **success** · `verify-live-site` run [44947289467](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289467) **success** · `verify-alerts` run [44947289512](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289512) **success** |
+| Pages deploy | `pages build and deployment` run [44947288980](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947288980) **success** (a second run 44947348421 also succeeded); Pages API `status: built`, `source: main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/> |
+| Coordination | Claim committed before work; `simulator.html` scope amendment committed before its one-cell edit; branch rebased onto `main` twice and rebuilt as a single change on `main@0e45e17` to dodge the append-only board conflict; two bot `reports/alerts-live-check.md` captures handled per the "take the fresher" precedent (20:36Z capture kept; main's 20:28/20:34 runs superseded); no other session's work discarded; `git pull --rebase` used before pushes. The bot writes to feature branches (`reports/alerts-live-check.md`, `[skip ci]`) — noted for the live-alerts workflow owner; every bot commit in the branch history was preserved by content, never by history rewrite. |
+| Verification after the final merge | Node **76/76** (after `main`'s E1 guards landed) · tools **30/30** · `tests/` **18 OK** (3 skip) · static links **35 pages / 0 broken** · page-runtime **17/17** (34→35 links) · alerts DOM **16/16** · summary DOM pass (78/89 verified, 8 partial, 3 unverified; flags 36 open / 26 mitigated / 62 total, as changed by `main`'s E1–E4 flags) · npm audit **0** |
+| Requests for other owners (unchanged) | **D2** — `flagged.html` F10 stale ("WebSocket streaming is documented but not wired in", tag `open`): PR #55 wired the WS `ticker` feed (opt-in relay; W1 documents the residual gap). Mark F10 mitigated/superseded and re-derive the summary DOM counts. Not edited here: `flagged.html` was in open PR #60 scope and its counts are DOM-asserted. · **O1** date the "Live: …" scan counts in `claims.js`/`config.js`. · **O2** refresh `QUESTIONS.md`/`SUGGESTIONS.md` Q3/S1 gates now that an opt-in WS feed exists. · **GC-I1–I6** (29749918) and **E-I1/E-I2** (e2718295) remain open for their owners. |
+| Irregularities | None introduced by this session. Pre-existing flags carried forward; none block anything per the brief. |
+
+Session `970aabdb` is complete: A1–A3 **done**.
+
+### Conflict log — third merge of `origin/main` (`3f28b55`, PR #81) (2026-11-21)
+
+Only `COORDINATION.md` and the bot's live report conflicted. The board was unioned
+(`tools/resolve_board_conflict.py`, 1 block, 0 sections dropped) and the fresher bot capture kept.
+
+**Re-verified after this merge:** every one of this session's fixes is intact on `main` after PR #70/#81
+— `config.js` `DEMO.site`, the golf tag wording and its synced snapshot rule, the A9 two-page statement,
+the day-old comparison label, `gas-assertion.mjs`, the three CI steps this session added, and the
+`NoStaleScanCounts` / `TopicRuleWording` guards.
+
+**Suite:** Python tools 38/38 · `tests/` 18 (3 skip) · Node 85/85 · alerts DOM 19/19 · summary DOM
+78/89 verified, 36 open / 28 mitigated / 64 flags · links 35/0 · runtime 17/17.
+
+**Still open on the board (owned by session `970aabdb`): PR #71, PR #76 and PR #79 are open.**
+No file in this session's scope is claimed there, so they do not block this PR; they should be
+reconciled against `main` by their owner. Everything this session changed is either already merged
+to `main` or included in PR [#77](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77).
