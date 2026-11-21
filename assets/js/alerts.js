@@ -29,10 +29,12 @@ const SIM_CAP = 500;
 const FEED_CAP = 300;
 const BATCH = 25;
 const PER_TOPIC = 30;
-/* One series lookup per distinct series, cached for the page's life. 60 keeps the
- * extra read cost bounded on top of the event scan (public reads are rate-limited
- * and Kalshi publishes no numeric budget for unauthenticated traffic — flag A8). */
-const SERIES_LOOKUP_CAP = 60;
+/* One series lookup per distinct series, cached for the page's life, ordered by
+ * how many events each series carries so the budget goes where it buys the most
+ * coverage. 30 keeps the added read cost modest on top of the event scan: public
+ * reads are rate-limited and Kalshi publishes no numeric budget for unauthenticated
+ * traffic (flag A8), and several CI workflows hit the same API when a push lands. */
+const SERIES_LOOKUP_CAP = 30;
 const UNIVERSE_TTL_MS = 10 * 60 * 1000;
 const MAX_BACKOFF_S = 300;
 const LIVE_STATUSES = ["active", "open"];

@@ -35,10 +35,11 @@ import { getAll, classifyEvent, num, screenMarket, getEvent, eventContext, fetch
 
 /* -------------------------------------------------------------------------- */
 
-/* One series lookup per distinct series, cached for the page's life; bounded so
- * a scan cannot spend an unbounded number of public reads (Kalshi publishes no
- * numeric budget for unauthenticated traffic — flag A8). */
-const SERIES_LOOKUP_CAP = 60;
+/* One series lookup per distinct series, cached for the page's life, ordered by
+ * event count so the budget covers the most events; bounded because a scan must
+ * not spend an unbounded number of public reads (Kalshi publishes no numeric
+ * budget for unauthenticated traffic — flag A8). */
+const SERIES_LOOKUP_CAP = 30;
 
 export class AlertEngine {
   constructor({

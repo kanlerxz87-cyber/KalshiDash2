@@ -138,8 +138,19 @@ export function clearSeriesCategoryCache() { SERIES_CATEGORIES.clear(); }
  * Returns { requested, fetched, cached, failed, capped } so the caller can
  * disclose how many events were classified from the series record versus the
  * deprecated event field, instead of implying full coverage. */
-export async function fetchSeriesCategories(tickers, { cap = 40, fetcher } = {}) {
-  const unique = [...new Set((tickers || []).filter(Boolean).map(String))];
+export async function fetchSeriesCategories(tickers, { cap = 30, fetcher } = {}) {
+  /* Order by how often each series appears in the scan, so the lookups that are
+   * actually spent cover the most events. A scan of the open events on the demo
+   * exchange touches far more distinct series than the cap allows; spending the
+   * budget on one-off series while a series with fifty live events waits would
+   * waste it. */
+  const counts = new Map();
+  for (const t of (tickers || [])) {
+    if (!t) continue;
+    const k = String(t);
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const unique = [...counts.keys()].sort((a, b) => (counts.get(b) - counts.get(a)) || a.localeCompare(b));
   const get = fetcher || ((path) => api.get(path));
   let cached = 0, fetched = 0, failed = 0, capped = 0;
   for (const ticker of unique) {
