@@ -2867,6 +2867,32 @@ attach `evidence/` captures (`GET /historical/markets?limit=1`, then one archive
 Until then the claim stays `partially verified` and every affected page prints the API's own refusal
 message when the archived call fails.
 
+**Post-merge verification (session `d074f64f`, 2026-11-21 ~23:3xZ).** PR **#99** merged at
+`2026-11-21T23:24:48Z` as merge commit **`519de08`**. GitHub Pages reported **`status: built`** for
+`519de08` (build created 23:24:49Z, finished 23:25:25Z). Verified on the **live** site with a
+cache-busted fetch (the plain URL still served the previous build):
+
+- `categories/crypto.html` → both book tables now carry the **Implied YES ask** column with the
+  reciprocal-rule note; the copy names *1 − y* and the size a YES buyer can take. (Other category
+  pages share the same markup; `tests/dom/category-dom.mjs` asserts six cells per row.)
+- `flagged.html` → the "What is *not* flagged" list now states that the schema documents `scalar` and
+  that the value "is now displayed literally rather than coerced (**D074-1**)".
+
+**Change request for the owner of `assets/js/category.js` (not edited here):** since session
+`c33971c1`'s series-level taxonomy (PR #91), `discoverTopic()` records `_categoryBasis`
+(`series` / `event` / `none`) on every matched event, and the alerts page prints the tally — but the
+category pages still say only "Matched on Kalshi category `Crypto`". One line in the topic note could
+name the basis and the fallback count, matching what the alerts page already discloses.
+
+**Rebase/merge log.** Three merges of a fast-moving `main` today (PRs #91, #92, #93, #94, #95, #96,
+#101 landed mid-session). Conflicts were only in `COORDINATION.md`, `README.md`,
+`.github/workflows/site-check.yml` and the workflow-generated reports
+(`reports/alerts-live-check.md`, `reports/verify-facts-v3.md`). Every resolution kept both sides:
+the board via `tools/resolve_board_conflict.py`; CI keeps the `historical-tier` suite **and** the two
+new suites; generated reports take the newest runner output. Nothing from another session was dropped.
+
+---
+
 ### Conflict log #4 — integrating `main` @ `b892d80` (PR #98) — session `02091230`
 
 PR [#98](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/98) (web-sourced dollar-volume ranking,
