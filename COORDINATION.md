@@ -2393,47 +2393,49 @@ Because a requested ticker can resolve to an already-discovered series, the pinn
 
 ---
 
-## Session `8d0568c3` — FINAL RECORD: merged to `main`, Pages deployed (2026-11-21)
+## Session `c33971c1` (branch `arena/c33971c1-kalshidash2`) — started 2026-11-21
 
-| Item | Result |
-|---|---|
-| PR | [#79 — integration: session 8d0568c3](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/79), branch `arena/8d0568c3-kalshidash2` → `main` |
-| Merge | `gh pr merge 79 --merge` succeeded 2026-11-21T20:55:13Z; merge commit [`f990d20`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/f990d20) |
-| Checks on `f990d20` | `Static site link check` **success** · `verify-alerts` **success** · `live-site-render` **success with no inconclusive annotation → genuine pass** · `verify-live-site` **success** (run [44948795080](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44948795080), probes every published page) |
-| Pages deploy | GitHub Pages API: `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. `pages build and deployment` **success** (a concurrent duplicate run was cancelled by the concurrency group; the surviving run and the Pages API both report built). |
-| Live content spot-check | The deployed `flagged.html` serves content newer than the branch base (W6/Y12 sections), so the deployment is current, and main carries this session's `V1`–`V3`/`D1` items inside the register. |
-| Final local suite on the merged tree | Node **93/93** · Python tools **42/42** · Python `tests/` 20 (3 skipped, `cryptography` absent here; CI installs it) · links **35 pages / 0 broken** · page runtime **17/17** · workflows parse · stubbed-network checks: 429 → exit 2, 2,468-event fixture → exit 0, unexplained empty board → exit 1 |
+**Environment note that changes what this session can prove:** the editing sandbox's shell still cannot open TLS
+to `*.kalshi.co` (`curl` → `000`), **but the agent's page-fetch proxy can reach both `docs.kalshi.com` and
+`external-api.demo.kalshi.co`.** Every live observation below is therefore a real HTTP response fetched this
+session, with its URL recorded in `reports/live-verify-c33971c1.md`. This closes the "sandbox cannot reach the
+API" limitation that earlier sessions worked under (they relied on GitHub-runner workflows).
 
-### What this session actually contributed to `main`
+### Claimed tasks (file scope is exclusive to this session)
 
-1. **`tests/dom/live-site-assertions.mjs` + 8 offline tests** — comma-tolerant scan count and the
-   refusal classifier, so the live probe's parsing can be reviewed without network access.
-2. **Exit-code contract for `live-site-render`** — a refusal that survives the retries exits **2**
-   (warning annotation, *never* green); error pills that are not refusals and unexplained empty boards
-   exit **1**. `main`'s own gas rule (`gas-assertion.mjs`) and comma fix are kept underneath it.
-3. **`scripts/collect.py --print-notes`** — the Node test reads the generator's canonical disclosure
-   text instead of restating it; a snapshot/generator equality guard now fails on drift.
-4. **`tools/check_site_links.py`** — defaults to the published root (35 pages) instead of the legacy
-   `docs/` tree, skips vendored trees; 2 new tests.
-5. **Flagged items `V1`, `V2`, `V3` (mitigated) and `D1` (open)**, plus the A9 correction quoting all
-   three official readings of the market-status vocabulary.
+| ID | Task | Status | Files in scope | Sources |
+|----|------|--------|----------------|---------|
+| C339-A | Taxonomy must read the **series-level** category, because the official Get Events schema marks the event `category` field `deprecated: true` ("use series-level category instead"). Add a cached `GET /series/{ticker}` resolver, keep the event field as a labelled fallback, and disclose which basis classified each event. | in progress | `assets/js/market.js`, `assets/js/claims.js`, `tests/taxonomy.test.mjs` | [Get Events schema](https://docs.kalshi.com/api-reference/events/get-events), [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) |
+| C339-B | Refresh `VERIFICATION.md`: it still carries a 2026-11-20 header, points at the superseded `docs/` register, and lists rows that are now known (browser CORS verified; exact series categories known; event-category deprecation). Closes flag E3. | in progress | `VERIFICATION.md` | rows cited inline |
+| C339-C | Correct flagged items whose premises the live API contradicts or now resolves: F4 (open gas market exists), F10 (WebSocket is wired), SB4 (KXGAS and GAS are **distinct** series records), E3. | in progress | `flagged.html` | live URLs in `reports/live-verify-c33971c1.md` |
+| C339-D | Dated live-verification record (responses + URLs, no transcribed price data). | in progress | `reports/live-verify-c33971c1.md` | — |
+| C339-E | Integration: run every suite, link check, page-runtime check; PR → merge → confirm Pages. | in progress | `COORDINATION.md`, `.github/**` (read-only unless a check is broken) | — |
 
-### Open items a reviewer should look at first
+**No other session has a live claim:** the repository has no open pull requests, and every other
+`arena/*` branch on the remote is an already-merged or abandoned branch whose session headings are preserved
+below. If another session starts while this one runs, the scope above is closed to it; log a request here
+instead of editing these files.
 
-- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
-  citations cannot be re-verified. Nothing on the live site depends on it.
-- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
-- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
-
-### Coordination compliance
-
-Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
-resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
-and re-landing only this session's unique contributions. This session deleted its own duplicate
-`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
-removed.
 
 ---
+
+### Session `c33971c1` — conflict log and integration record
+
+**Collision:** while this session worked, session `117dc8d6` merged PRs #89 and #90 into `main`
+(`70744d5`, `b197886`). Merging `origin/main` into this branch produced exactly one conflict,
+in `COORDINATION.md` (add/add on the tail of the board).
+
+| Step | Result |
+|---|---|
+| Resolution tool | `python3 tools/resolve_board_conflict.py COORDINATION.md` → "resolved 1 conflict block(s), dropped 1 duplicate section(s), removed 0 orphaned marker(s)" |
+| What was kept | **Both** session sections verbatim: `117dc8d6`'s claim, completion and F4 record, and this session's claim and records. Nothing of theirs was edited, reworded or removed. |
+| Overlap in files | None in code. Their commits touched `COORDINATION.md`, `SUGGESTIONS.md`, `suggestions.html`, `reports/verify-117dc8d6.md`; this session touched `assets/js/market.js`, `assets/js/alerts.js`, `assets/js/alert-engine.js`, `assets/js/claims.js`, `tests/taxonomy.test.mjs`, `VERIFICATION.md`, `flagged.html`, `reports/live-verify-c33971c1.md`. |
+| Semantic check after the merge | Re-ran the whole suite on the merged tree (below). Their `suggestions.html` S8 status change and this session's flag edits coexist; `summary.html` derives flag counts from the DOM (no hard-coded numbers), which `tests/dom/summary-dom.mjs` re-asserts. |
+| One item touched by both, deliberately | `117dc8d6` left flag **F10** open with the note "partially superseded by relay (W1)". This session had independently established the same conclusion from the code and the official WebSocket page, and changed F10 to **mitigated** with the relay route described (`scripts/relay.py` → SSE `/live/stream` → `assets/js/live-feed.js`), explicitly keeping W1/W4 as the open limitations. That is additive to their finding, not a contradiction of it. |
+
+**Merged-tree verification:** Node 83/83 (8 files) · DOM 19/19 · Python `tools/` 42/42 · Python `tests/` 20
+(3 skipped — `cryptography` absent in this container) · signing self-test 6/6 · static link check **35 pages,
+0 broken** · page runtime **17/17 clean**.
 
 ## Session `117dc8d6` — final verification + liveness audit (2026-11-21)
 

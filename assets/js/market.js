@@ -96,9 +96,95 @@ export async function classifyMultivariate(ev, legEventLookup) {
   return { topic: counts[0].topic, mixed: counts.length > 1, bases, counts };
 }
 
-export function classifyEvent(ev) {
+/* ---------------- series-level categories ----------------
+ *
+ * The official Get Events schema marks the *event* object's `category` field
+ * `deprecated: true` — "Event category (deprecated, use series-level category
+ * instead)" (https://docs.kalshi.com/api-reference/events/get-events). The
+ * series-level equivalents are documented on Get Series / Get Series List:
+ * `category` (primary) and `categories` (the discovery list, which is what the
+ * `category` query filter matches).
+ *   https://docs.kalshi.com/api-reference/market/get-series
+ *   https://docs.kalshi.com/api-reference/market/get-series-list
+ *
+ * So the taxonomy prefers the series record and keeps the deprecated event
+ * field only as a labelled fallback. Series are fetched at most once each per
+ * page life and capped per scan, because public reads are rate-limited and a
+ * series lookup is one extra request per distinct series.
+ */
+const SERIES_CATEGORIES = new Map(); // series_ticker -> { cats, primary, failed }
+
+/* Seed the cache (also used by tests and by callers that already hold a series
+ * record, so a page never re-requests what it has). */
+export function primeSeriesCategories(entries) {
+  for (const [ticker, value] of Object.entries(entries || {})) {
+    if (!ticker) continue;
+    const cats = Array.isArray(value) ? value : (value && value.cats) || [];
+    const primary = Array.isArray(value) ? null : (value && value.primary) || null;
+    SERIES_CATEGORIES.set(String(ticker), {
+      cats: [...new Set([...cats, primary].filter(Boolean))],
+      primary,
+      failed: false
+    });
+  }
+}
+
+export function clearSeriesCategoryCache() { SERIES_CATEGORIES.clear(); }
+
+/* Resolve the series-level categories for a set of series tickers.
+ * Returns { requested, fetched, cached, failed, capped } so the caller can
+ * disclose how many events were classified from the series record versus the
+ * deprecated event field, instead of implying full coverage. */
+export async function fetchSeriesCategories(tickers, { cap = 40, fetcher } = {}) {
+  const unique = [...new Set((tickers || []).filter(Boolean).map(String))];
+  const get = fetcher || ((path) => api.get(path));
+  let cached = 0, fetched = 0, failed = 0, capped = 0;
+  for (const ticker of unique) {
+    if (SERIES_CATEGORIES.has(ticker)) { cached += 1; continue; }
+    if (fetched + failed >= cap) { capped += 1; continue; }
+    try {
+      const json = await get(`/series/${encodeURIComponent(ticker)}`);
+      const series = (json && json.series) || json || {};
+      const cats = Array.isArray(series.categories) ? series.categories : [];
+      const primary = series.category || null;
+      SERIES_CATEGORIES.set(ticker, {
+        cats: [...new Set([...cats, primary].filter(Boolean))],
+        primary,
+        failed: false
+      });
+      fetched += 1;
+    } catch {
+      /* A failed lookup is not a category. Leave the event to the documented
+       * fallback rather than guessing. */
+      SERIES_CATEGORIES.set(ticker, { cats: [], primary: null, failed: true });
+      failed += 1;
+    }
+  }
+  return { requested: unique.length, fetched, cached, failed, capped };
+}
+
+export function seriesCategoriesFor(ticker) {
+  return ticker ? SERIES_CATEGORIES.get(String(ticker)) || null : null;
+}
+
+/* Classify an event and report WHICH field decided it, so the UI can say
+ * "series category" or "event category (deprecated field)". */
+export function classifyEventWithBasis(ev) {
+  if (!ev) return { topic: null, basis: "none", categories: [] };
+  const series = seriesCategoriesFor(ev.series_ticker);
+  const useSeries = !!(series && series.cats && series.cats.length);
+  const cats = useSeries ? series.cats : [ev.category].filter(Boolean);
+  return {
+    topic: classifyEvent(ev, useSeries ? cats : null),
+    basis: useSeries ? "series" : (cats.length ? "event" : "none"),
+    categories: cats
+  };
+}
+
+export function classifyEvent(ev, seriesCats) {
   if (!ev) return null;
-  const cats = [ev.category].filter(Boolean);
+  const resolved = seriesCats || seriesCategoriesFor(ev.series_ticker)?.cats;
+  const cats = (resolved && resolved.length ? resolved : [ev.category]).filter(Boolean);
   const titles = [ev.title, ev.sub_title].filter(Boolean);
   const series = [ev.series_ticker].filter(Boolean);
 
@@ -215,7 +301,27 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
     }
   }
 
-  const matched = events.filter(e => (e._combo ? e._mve?.topic === topicKey : classifyEvent(e) === topicKey));
+  /* Prefer the series-level category (the field Get Events tells clients to
+   * use) over the deprecated event `category`. One lookup per distinct series,
+   * cached for the life of the page and capped per scan; anything not resolved
+   * keeps the documented fallback and is counted, never assumed. */
+  const seriesTickers = events.filter(e => !e._combo).map(e => e.series_ticker);
+  const seriesCoverage = await fetchSeriesCategories(seriesTickers, { cap: 60 });
+
+  const matched = events.filter(e => {
+    if (e._combo) return e._mve?.topic === topicKey;
+    const verdict = classifyEventWithBasis(e);
+    e._topic = verdict.topic;
+    e._categoryBasis = verdict.basis;
+    e._categories = verdict.categories;
+    return verdict.topic === topicKey;
+  });
+  const basisTally = { series: 0, event: 0, none: 0 };
+  for (const e of events) {
+    if (e._combo) continue;
+    const b = e._categoryBasis || classifyEventWithBasis(e).basis;
+    basisTally[b] = (basisTally[b] || 0) + 1;
+  }
   const markets = [];
   for (const ev of matched) {
     for (const m of ev.markets || []) {
@@ -224,6 +330,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
         _event_ticker: ev.event_ticker,
         _event_title: ev.title,
         _category: ev.category,
+        _categories: ev._categories || null,
+        _categoryBasis: ev._categoryBasis || null,
         _series_ticker: ev.series_ticker,
         _source: `${DEMO.rest}/events?status=${ev._status}&with_nested_markets=true`
       });
@@ -234,6 +342,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
     events: matched,
     markets,
     scanned: events.length,
+    categoryBasis: basisTally,
+    seriesCoverage,
     perStatus: { ...perStatus, multivariate: mveScanned },
     capped: { ...capped, multivariate: mveCapped },
     source: `${DEMO.rest}/events?with_nested_markets=true`

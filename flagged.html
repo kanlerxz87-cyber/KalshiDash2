@@ -146,13 +146,20 @@
     </div>
 
     <div class="irregularity" id="F4">
-      <h3>F4 — The demo environment has no open gas-price markets <span class="tag warn">open</span></h3>
+      <h3>F4 — The demo environment has no open gas-price markets <span class="tag yes">mitigated</span></h3>
       <p><strong>What is unverified:</strong> whether any gas-price market is currently tradable on the demo
         exchange.</p>
       <p><strong>Why:</strong> scanning 1,000 open events on 2026-11-20 returned zero gas-price events.
         Gasoline series exist (<code>KXAAAGAS*</code>, <code>KXGAS</code>) but none were open in that scan.</p>
       <p><strong>Status here:</strong> the gas page shows an explicit empty state naming the scan size,
         rather than a blank table that looks like a loading bug.</p>
+      <p><strong>Re-checked 2026-11-21 (session <code>c33971c1</code>, live):</strong> the premise no longer
+        holds. <code>GET /events?status=open&amp;series_ticker=KXAAAGASW</code> returned one open gas-price event,
+        <code>KXAAAGASW-26NOV23</code> <em>"US gas prices this week"</em> (sub-title
+        <em>"On Nov 23, 2026"</em>, settlement source AAA <code>https://gasprices.aaa.com/</code>). The flag is
+        therefore closed as an <em>observation about 2026-11-20</em>, not a standing property of the demo
+        exchange. What remains true and unchanged: the page renders whatever the scan returns and names the scan
+        size, so a genuinely empty result is still shown as empty rather than invented.</p>
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence §G ↗</a></p>
     </div>
@@ -184,15 +191,24 @@
     </div>
 
     <div class="irregularity" id="F10">
-      <h3>F10 — WebSocket streaming is documented but not wired in <span class="tag warn">open</span></h3>
+      <h3>F10 — WebSocket streaming is documented but not wired in <span class="tag yes">mitigated</span></h3>
       <p><strong>What is unverified:</strong> that the browser can open an authenticated WebSocket to the demo
         environment and receive <code>ticker</code> or <code>orderbook_delta</code> messages.</p>
       <p><strong>Why:</strong> the WebSocket handshake requires signed headers, and the connect signature
         covers <code>timestamp + "GET" + "/trade-api/ws/v2"</code>. Sending custom headers from a browser
         <code>WebSocket</code> is not possible, so a browser-only stream would need a workaround this build
         did not validate.</p>
-      <p><strong>Status here:</strong> polling is used instead, and each chart states which source produced
-        its points. Streaming is listed on the questions page with what would be needed to confirm it.</p>
+      <p><strong>Status when written:</strong> polling was used instead, and each chart states which source
+        produced its points.</p>
+      <p><strong>Updated 2026-11-21 (session <code>c33971c1</code>, code re-read and exercised by the test
+        suite):</strong> the stream is wired in, through the only route that keeps the browser-only rule — a
+        same-origin relay. <code>scripts/relay.py</code> opens the signed Kalshi WebSocket server-side, and
+        republishes each <code>ticker</code> frame to the page as Server-Sent Events on <code>/live/stream</code>
+        (<code>/live/status</code> reports whether a socket is actually up). <code>assets/js/live-feed.js</code>
+        consumes it with <code>EventSource</code>, the alerts page names the running source in its status pill,
+        and it falls back to the REST poll when the relay is absent — stating that it did. The browser cannot
+        open the Kalshi socket itself, and that limit is unchanged: see <strong>W1</strong> (opt-in, needs a demo
+        key) and <strong>W4</strong> (the relay signs with a key server-side, outside the browser-only rule).</p>
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></p>
     </div>
@@ -989,7 +1005,7 @@
     </div>
 
     <div class="irregularity" id="AB3">
-      <h3>AB3 — The published taxonomy reads a field Kalshi marks deprecated <span class="tag warn">open</span></h3>
+      <h3>AB3 — The published taxonomy reads a field Kalshi marks deprecated <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the Get Events schema annotates the event object's
         <code>category</code> as <code>deprecated: true</code> — <em>"Event category (deprecated, use series-level
         category instead)"</em>. The site classifies elections / culture / crypto from
@@ -1000,9 +1016,18 @@
         <code>GET /series/{series_ticker}</code> lookup per distinct series, which adds API calls to a page that
         already throttles itself against the public rate budget. That is a design change for the owner of
         <code>assets/js/market.js</code> / <code>assets/js/alerts.js</code>, not a silent edit here.</p>
-      <p><strong>What would close it:</strong> read <code>category</code> from the series (already in the
-        repository's source list as <code>SOURCES.getSeries</code>), keep <code>ev.category</code> as the
-        fallback, and say which is authoritative in the taxonomy note.</p>
+      <p><strong>Fixed 2026-11-21 (session <code>c33971c1</code>):</strong> the taxonomy now resolves
+        <code>GET /series/{series_ticker}</code> for the series behind each event, reads its
+        <code>categories[]</code> list together with its primary <code>category</code>, and classifies from
+        that. Each lookup is cached for the life of the page and capped per scan (60 series), because public
+        reads are rate-limited. The deprecated event field survives only as a <em>labelled fallback</em>:
+        <code>classifyEventWithBasis()</code> returns <code>basis: "series" | "event" | "none"</code>, the alert
+        page prints the tally it used ("topic came from the series record for N events, and from the deprecated
+        event <code>category</code> field for M"), and <code>tests/taxonomy.test.mjs</code> pins the precedence so
+        a later edit cannot silently revert it.</p>
+      <p><strong>Residual (still visible, not hidden):</strong> a series beyond the per-scan cap, or a lookup
+        that fails, falls back to the deprecated field and is counted in that tally — the site does not claim
+        full series coverage.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events schema ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series (series-level category) ↗</a></p>
@@ -1165,7 +1190,7 @@
     </div>
 
     <div class="irregularity" id="E3">
-      <h3>E3 — <code>VERIFICATION.md</code> still carries a 2026-11-20 header and points at the superseded <code>docs/</code> flag set <span class="tag warn">open</span></h3>
+      <h3>E3 — <code>VERIFICATION.md</code> still carries a 2026-11-20 header and points at the superseded <code>docs/</code> flag set <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> the root summary's header says "Checked 2026-11-20" and its closing line
         sends readers to "<code>docs/flagged.html</code> (F1–F7 plus doc discrepancies D1–D3)". The published
         site is now the root generation, whose register is this page (flags through <code>Z2</code>), so the
@@ -1174,8 +1199,15 @@
         (demo endpoints, contract-count semantics, <code>notional_value_dollars</code>, orderbook shape,
         candlestick intervals and limits, fee rounding, Create Order V2 body) is still accurate against the
         official pages.</p>
-      <p><strong>What would close it:</strong> re-date the header and repoint the closing line at this page. Not
-        edited here because <code>VERIFICATION.md</code> is inside another session's open pull request.</p>
+      <p><strong>What would close it:</strong> re-date the header and repoint the closing line at this page.</p>
+      <p><strong>Fixed 2026-11-21 (session <code>c33971c1</code>):</strong> <code>VERIFICATION.md</code> was
+        rewritten. The header now reads <em>Checked 2026-11-21</em>; the closing pointer names this page as the
+        register for the published site and marks <code>docs/flagged.html</code> as unmaintained history; the
+        two rows that were still marked <em>unverified</em> but had since been proven (browser CORS from the
+        Pages origin — captured headers in <code>evidence/evidence-cors-taxonomy.md</code>; the topic category
+        vocabulary) were corrected; and six rows were added from documentation and live responses checked that
+        day, including the two that close AB3 and SB4. The file also states, per row, whether the claim rests on
+        a document or on a live request.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a> ·
@@ -1234,7 +1266,7 @@
     </div>
 
     <div class="irregularity" id="SB4">
-      <h3>SB4 — <code>KXGAS</code> and <code>GAS</code> appear to be the same series; not officially confirmed <span class="tag warn">unverified</span></h3>
+      <h3>SB4 — <code>KXGAS</code> and <code>GAS</code>: the earlier alias inference was wrong <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> session <code>32b15793</code> verified that
         <code>GET /series/KXGAS</code> returns title <em>"Gas weekly"</em> with the EIA weekly retail-gasoline
         settlement source. The collector then requested that endpoint by ticker, and the snapshot gained a
@@ -1242,11 +1274,22 @@
         (category <code>Economics</code>, <code>contract_terms_url …/GAS.pdf</code>). No row with ticker
         <code>KXGAS</code> exists in the snapshot, and <code>KXGAS</code> never appeared in any snapshot before
         the direct lookup was added.</p>
-      <p><strong>Why it is flagged rather than stated:</strong> the alias relationship is <em>inferred</em> from
-        those observations. Neither the Get Series reference nor any other official page read for this review
-        says that <code>KXGAS</code> resolves to <code>GAS</code>, and this sandbox cannot reach the API to ask
-        again. The site therefore does not claim it. What <em>is</em> confirmed: the EIA "Gas weekly" series is
-        now present in the snapshot and matched by the Gas topic.</p>
+      <p><strong>Why it was flagged:</strong> the alias relationship was <em>inferred</em> from those
+        observations. No official page says that <code>KXGAS</code> resolves to <code>GAS</code>.</p>
+      <p><strong>Corrected 2026-11-21 (session <code>c33971c1</code>, live responses):</strong> the two calls
+        return two <em>distinct</em> series records, each carrying its own ticker —
+        <code>GET /series/KXGAS</code> → <code>"ticker": "KXGAS"</code>, and
+        <code>GET /series/GAS</code> → <code>"ticker": "GAS"</code>. Both are titled <em>"Gas weekly"</em>, both
+        are category <code>Economics</code>, both name the same EIA weekly retail-gasoline settlement source, and
+        both point at the same contract terms document (<code>…/GAS.pdf</code>). So the snapshot's
+        <code>GAS</code> row is <em>not</em> evidence that <code>KXGAS</code> resolves to <code>GAS</code>. Whether
+        one ticker is a rename of the other is still stated nowhere official, and the site still claims no
+        alias — but the inference is withdrawn, and both tickers are now matched by the Gas topic on their own
+        series patterns (<code>/^KXA{3}GAS/i</code>, <code>/^KXGAS$/i</code>).</p>
+      <p class="small"><strong>Live evidence (fetched 2026-11-21):</strong>
+        <code>https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS</code> ·
+        <code>https://external-api.demo.kalshi.co/trade-api/v2/series/GAS</code>
+        — captured in <code>reports/live-verify-c33971c1.md</code>.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
