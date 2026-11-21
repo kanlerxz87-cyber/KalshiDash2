@@ -2676,7 +2676,7 @@ State at claim time (verified, not assumed): `gh pr list --state open` → **no 
 | U2 | Fix U-I1 and remove two pieces of dead/unsafe code found in the same pass | unclaimed → **in progress** | `02091230` | `assets/js/market.js`, `index.html` | Local Node + page-runtime suite after the edit | **U-I2**: `rankEvents()` emits a `seriesUrl` that is an *event* URL and whose ternary has identical branches; nothing reads it. **U-I3**: `analyseFills()` computes `notional = count × 1` ("$1 per contract at settlement") although the documented `notional_value_dollars` need not be $1 for scalar markets; nothing renders it. |
 | U3 | Alert feed: let a trader track an alerted market to resolution and open the event detail page, without leaving the feed | **in progress** | `02091230` | `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs` | Alerts DOM test + page runtime + a new unit test for the helper that builds the watch entry | Uses only documented fields already on the alert (`ticker`, `to`, quotes, OI). No new inference. |
 | U4 | Publish two newly verified facts (fee-table parity; WS whole-dollar notional exists) in the registers, with sources | **in progress** | `02091230` | `assets/js/claims.js`, `suggestions.html` | Claim register renders; suggestions page link check | `dollar_volume` / `dollar_open_interest` are documented **only** on the WS ticker payload, not on REST market objects; the suggestion says so explicitly. |
-| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | unclaimed | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
+| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | **done** | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
 
 **Claim committed and pushed before any edit to the files above.**
 
@@ -2868,3 +2868,11 @@ row. Nothing from any session was discarded. Own-branch pushes after rebase used
 **Open items a reviewer should look at first:** A11's *ranking column* is still the proxy (deliberate — the official
 figure sits beside it, never merged); F5 (`GET /series` paging) is unchanged and no site figure depends on it; the
 fee-schedule PDF remains **unverified** on the Sources page because the build sandbox cannot read it.
+
+**Board record itself.** This section was committed on the session branch and merged in its own small PR
+([#103](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/103), `MERGED` 2026-11-21T23:23:25Z, merge commit
+`68cd5e0fe3a0fb8c7e44157861eb7675aedfff93`), because `main` accepts `COORDINATION.md` edits only through a PR.
+Final Pages state after that merge: build `519de080` (a descendant of the board record) is **`built`**, so the
+published site is generated from a tree that contains both PR #94 and this record. Builds `68cd5e0`, `e8474483`,
+`519de080` (first attempt) and `dfd79661` reported `Page build failed.` within seconds of a neighbouring push —
+the same race described above; the retry of `519de080` built in 52.6 s and is what the site serves.
