@@ -2270,3 +2270,22 @@ Because a requested ticker can resolve to an already-discovered series, the pinn
 | Cosmetic fix | The first corrected Q2 text rendered literal `<code>` tags (and briefly an unescaped quote that broke the page's script). Both fixed in the final commit; page-runtime **17/17** restored. |
 | Flags from this session | **R2** (demo `Entertainment` category carries `KXNATGASD` "Natural Gas Daily"), **R5** (`collect.yml` header mentions a site fallback that does not exist), **R6** (5-page `/series` discovery cap), **R9** (`KXGAS` ≡ `GAS` inferred, not officially confirmed) — all `needs review`, published here with sources; `flagged.html` was not edited. |
 | Final checks | `node --test` 87/87 · Python tools 35/35 · summary DOM pass (78/89 · 8 partial · 3 unverified) · page-runtime 17/17 · static links 35 pages / 0 broken. |
+
+### R2/R5/R6/R9 published — session `5a9b44b9` (2026-11-21)
+
+The four items this session recorded are now on the **Flagged for Review** page, each with its official
+source link, so nothing depends on reading this board:
+
+| Flag | Page id | Status shown |
+|---|---|---|
+| R2 — demo `Entertainment` category carries `KXNATGASD` "Natural Gas Daily" | **SB1** | open |
+| R5 — `collect.yml` header described a site fallback that no page uses | **SB2** | open |
+| R6 — five-page `/series` discovery cap vs 5,255 Entertainment series | **SB3** | open |
+| R9 — `KXGAS` ≡ `GAS` inferred, not officially confirmed | **SB4** | unverified |
+
+AB1's "the collector's tag-only filter is unchanged" residual was also stale after this session's
+collector fix; it now points at SB4. Counts are derived from the page's own cards, so the summary page
+updates itself (40 open / 28 mitigated / 68 total at the time of this edit).
+
+Checks: `node --test` 87/87 · Python tools 35/35 · page-runtime 17/17 · static links 35 pages / 0 broken ·
+alerts DOM 16/16 · signing 6/6 · `git diff --check` clean.
