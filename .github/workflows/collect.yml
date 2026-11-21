@@ -56,6 +56,14 @@ jobs:
               print("  ERR", e[:160])
           PY
 
+      # Guards the disclosure wording: this job commits with [skip ci], so without
+      # this gate a generator wording change could land on main with the metadata
+      # suites red (observed at bbdc3a0 — see Session e2718295 on COORDINATION.md).
+      - name: Validate snapshot metadata against the collector and the site
+        run: |
+          python3 -m unittest discover -s tools -p 'test_*.py'
+          node --test tests/activity-proxy.test.mjs
+
       - name: Commit snapshot
         run: |
           git config user.name "github-actions[bot]"
