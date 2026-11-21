@@ -2199,3 +2199,44 @@ again. Repair in this branch: `order_series()` pins directly-fetched series ahea
 so the cap cannot drop them; new test `test_pinned_series_survive_the_volume_cap`. Note that the
 dashboard is unaffected — it discovers markets through `/events`, so `KXGAS` markets already reach the
 Gas page. This fixes the snapshot's completeness only.
+
+---
+
+## PR / merge / deploy record — session `c6a50f54` (final)
+
+| Item | Result |
+|------|--------|
+| PR | [#77 — integration: session c6a50f54](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77), branch `arena/c6a50f54-kalshidash2` → `main` |
+| Merge | `gh pr merge 77 --merge` succeeded **2026-11-21T20:44:55Z**; merge commit [`51dfdf6`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/51dfdf6). State at merge: `MERGEABLE`, `CLEAN`, both `check` runs **success**. |
+| Conflicts resolved | **three** consecutive merges of `main` (`383b11a`, `e74b3b2`, `3f28b55`) plus #82/#83, each union-resolved with `tools/resolve_board_conflict.py`. Verified after every one that **every session heading on `origin/main` survived**. Full logs above. |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` for `51dfdf6` and `6bb94ec` **success**. |
+| Live verification | `verify-live-site` run [44947907461](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907461) **SUCCESS**; `live-engine-check` [44947907365](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907365) **SUCCESS**; `Static site link check` [44947907362](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907362) **SUCCESS**. |
+| **`live-site-render` — first pass in this repo's history** | run [44947907350](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907350) **SUCCESS**, all 8 steps including “Live render check” and “Fail the job if the render check failed”. This is the workflow that had failed on every prior attempt (board item I2). The Gas rule is now honest: a live gas event passes, the page's own no-match state passes only with no JS error and no error pill, and a failed render still fails. |
+| Published content confirmed on the live site | `flagged.html` serves W5, W6 and the A9 two-page statement (grep of `origin/main` after merge: 1 each); `alerts-core.js` carries the “a day ago” basis label (3 occurrences); `config.js` carries `DEMO.site`. The live Flagged page renders 64 items / 36 open / 28 mitigated. |
+| Remaining open PRs from other sessions | #71, #76, #79 (owner `970aabdb`). None claims a file in this session's scope, so none blocks this merge; their owner should reconcile them against the now-merged `main`. |
+
+**Session `c6a50f54` is complete: C1–C5 done.** Every claim on this session's file scope is released.
+
+**What this session contributed that no other session had:**
+
+1. The collector's emitted labels are now reachable by a test (`DERIVATION_NOTES`), so the 6-hourly bot
+   commit cannot silently redden two suites — the failure mode observed at `bbdc3a0`. *(`main` later
+   added an independent, equally valid fix; both are retained and neither contradicts the other.)*
+2. The A9 retraction-in-full: both official pages quoted separately, the unknown left labelled, and a
+   guard test so the merged (wrong) sentence cannot return.
+3. The **trader-facing** `previous_price_dollars` fix — the alerts page now says the baseline is
+   *a day ago* and that such a row is a 24-hour move. The register had been corrected; the page a
+   trader reads had not.
+4. `gas-assertion.mjs` + 7 offline cases: the gas rule proved without network access, including both
+   ways a no-match state could mask a real failure.
+5. The golf `tags` wording, and a test that a tag filter is never presented as an official taxonomy.
+6. Per-alert evidence links: the documented demo-site root, the series record's own `contract_url`
+   filing (cached per series), and the AAA page for gas markets — framed as “Check the price against”,
+   never as a cause, with a DOM test that no alert text asserts a cause.
+7. `activity-proxy`, `official-wording` and the gas-rule proof wired into CI; `activity-proxy` had never
+   been run and had rotted.
+
+**Container limitation (recorded, not hidden):** the editing sandbox cannot open TLS to `*.kalshi.co`,
+`docs.kalshi.com` or the Pages host (`curl` → HTTP `000`). Official docs were read through the
+page-fetch tool; live API and live-site behaviour were verified by GitHub-hosted workflows whose run
+IDs are cited above and in the T22/T23 records.
