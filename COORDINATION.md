@@ -1957,3 +1957,172 @@ simulations still behave (429 → exit 2; 2,468-event fixture → exit 0).
 
 For comparison, `main`'s own render runs before this branch — `5515a7c6` and `461aab9e` — carry **no**
 inconclusive annotation, so the live check does genuinely pass against the demo API when the site is healthy.
+
+---
+
+Checks on the edited tree: static link check 17 pages pass · page-runtime **17/17**, 34 links 0 broken ·
+summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated** (the page computes
+these from the DOM, so no hard-coded figure was changed). `flagged.html` was not claimed by any other
+active session at the time of this edit; PRs #60, #69 and #70 were inspected first and were all
+`CONFLICTING`, and none of them had been merged.
+
+### E1–E4 publication record — session `e2718295` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR #1 (fix) | [#67](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/67) — "fix: snapshot-metadata drift on main (2 red checks) + independent line-by-line verification"; merged `2026-11-21T20:25:42Z` as [`cbf0df9`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/cbf0df9e0cade50ab0289ee3882195b722d596e1). PR head check `check` (Static site link check) **success**. |
+| PR #2 (flagged page) | [#72](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/72) — "feat(flagged): publish session e2718295's irregularities on the Flagged for Review page"; merged `2026-11-21T20:30:55Z` as [`0e45e17`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/0e45e17c949b025ee9d219420182066e0fb8cec8). PR head check `check` **success**. |
+| Pages deployment | On `0e45e17`: `pages build and deployment` **success**, `Static site link check` **success**, `verify-live-site` **success**; Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. The transient `errored` state seen during the merge window resolved to `built` without intervention (concurrency cancellations of superseded builds). |
+| Live check of the new page | <https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html> served with cache-buster: section **6 · Documentation wording and scheduled-refresh drift** and cards `E1`–`E3` are present on the deployed page. |
+| Local suite on merged `main` (`0e45e17`) | Python tools **30/30** · Node **73/73** (main had gained two tests by then) · static link check 17 pages pass. |
+| Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
+| Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
+
+
+## Session `5a9b44b9` — independent verification + collector taxonomy alignment
+
+Branch: `arena/5a9b44b9-kalshidash2`, rebased onto `main` `91754f1` (originally branched from `bbdc3a0`).
+Report: `reports/review-5a9b44b9.md` (sources, findings R1–R7, reproducible checks).
+
+**Coordination note.** When this session started, `f2176447` had just claimed final integration
+(F1–F4: `tests/dom/live-site.mjs`, PR #60, merges). This session took **no** part of that scope and
+did not touch `tests/dom/live-site.mjs`, PR #60, or `flagged.html`. Four further sessions merged
+while it worked; the branch was rebased and every duplicate of their work was dropped.
+
+| ID | Task | Status | Owner | Files touched | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| V1 | Verify the five-topic rules and every official `SOURCES` URL; publish an independent line-by-line report | **done** | `5a9b44b9` | `reports/review-5a9b44b9.md` (new) | Fetched 2026-11-21: [llms.txt](https://docs.kalshi.com/llms.txt), [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) (+ candlesticks, websocket index). All 28 `SOURCES` URLs matched the official index | See R2, R5, R6 |
+| V2 | Align `scripts/collect.py` with the dashboard taxonomy | **done** | `5a9b44b9` | `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` (one note string) | Official `/series` parameters only for discovery; local narrowing mirrors `assets/js/config.js`. Replay over the committed snapshot: 17 gasoline series kept, 23 oil/energy/natgas/diesel/power rows dropped; Culture now queries Culture + Social + Entertainment | Removes rows the dashboard already excludes; adds nothing |
+| V3 | Correct three published statements contradicted by the repo's own evidence | **done** | `5a9b44b9` | `assets/js/claims.js` (gas-category evidence), `assets/js/config.js` (undated Election/Crypto counts), `questions.html` (Q2 `Culture` category) | Evidence: `data/probe/api_surface.json`, `reports/verify-facts-v3.md` §G, `data/snapshot.json`; details in report §3 R4 | Scope amended after the fact — see disclosure below |
+| V4 | Verify the regenerated snapshot after the `collect` workflow runs on `main` (culture non-empty, gas gasoline-only) | unclaimed — blocked until this branch merges | — | this section | `gh workflow run collect`, run logs, `data/snapshot.json` | If live filters return no Culture series, record the finding; do not work around it |
+
+**Scope-amendment disclosure (required by the board):** V3's files (`claims.js`, `config.js`,
+`questions.html`) were not in the advance claim (which covered `scripts/collect.py`,
+`tools/test_collect.py`, `data/snapshot.json`, a new report and this board). No other session held
+them (`grep` of open PRs: PR #72 owns `flagged.html`, PR #73 owns `tests/dom/live-site.mjs`). They
+were edited because they publish statements contradicted by committed evidence; each correction is
+listed with its source in the report. No other session's work was replaced.
+
+**Conflict log (required):**
+
+| Collision | Resolution |
+|---|---|
+| `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` — session `e2718295` had already fixed the two red metadata checks on `main` (`4df6552`, `f25ecd7`) with a `DERIVATION_NOTES` single source + drift test + CI gate | Kept **main's** canonical fix; dropped this session's duplicate sentence-level test changes entirely. Re-applied only the taxonomy change on top of the new structure, and updated the one `topic_rules` note string so the new drift test passes. `diff` proves no other snapshot line changed. |
+| Five open PRs (#60, #70, #71, #72, #73, #74) and 25 new commits on `main` while this session worked | Rebased onto `91754f1` (no merge of other branches, no force-push over a CI report commit; this branch's own history was reset only after saving its files). `COORDINATION.md` re-appended rather than merged, so no session's section was rewritten. |
+
+**Checks on the rebased tree:** `node --test` 73/73 · Python tools 33/33 (30 from `main` + 3 new
+taxonomy tests) · `tests/` 18 OK / 3 skipped (`cryptography` unavailable) · alerts DOM 16/16 ·
+summary DOM pass (78/89 verified · 8 partial · 3 unverified; flags 32 open / 23 mitigated / 55
+total) · page-runtime 17/17 (34 links) · static link check 34 pages / 0 broken · signing self-test
+6/6 · `git diff --check` clean. `tests/dom/live-site.mjs` was not run to completion: it needs live
+Kalshi network access, which this sandbox does not have (recorded by every prior session).
+
+**Requests to the integration session** (also in report §6): publish R2 (demo `Entertainment`
+category carrying the natural-gas series `KXNATGASD`), R5 (`collect.yml` header mentions a
+"site offline fallback" that no page reads) and R6 (five-page `/series` discovery cap) on
+`flagged.html`; dispatch `collect` after merge and confirm Gas/Culture counts (V4).
+
+### Rebase record #2 — integrating session `32b15793` (AB1: `KXGAS`) — session `5a9b44b9`
+
+`main` moved twice more during this session (PR #71 `32b15793`, PR #72 `e2718295`, plus `[skip ci]`
+report commits). The branch was rebased onto `9a12909`; nothing was reverted.
+
+- **Adopted, not duplicated:** `32b15793`'s taxonomy fix. `assets/js/config.js` now matches
+  `KXAAAGAS*`, `AAAGAS*` (via title) and `KXGAS`, with tightened title patterns — that is `main`'s
+  version and this session's earlier gas `seriesPatterns`/`titlePatterns` text was **not** restored.
+- **Extended to the collector:** because `32b15793` found `KXGAS` only via
+  [Get Series](https://docs.kalshi.com/api-reference/market/get-series) (`GET /series/KXGAS`), and
+  `grep -c KXGAS data/snapshot.json` returns **0**, the tag-based collector could never have captured
+  it. `scripts/collect.py` now performs that documented direct lookup (`direct_series: ["KXGAS"]`) in
+  addition to the category discovery, then applies the same gasoline rule. New test:
+  `test_gas_uses_official_categories_then_the_gasoline_rule` asserts the `/series/KXGAS` call and that
+  the row is kept.
+- `assets/js/claims.js` gas entry now names all three families (`KXAAAGAS*`, `AAAGAS*`, `KXGAS`) and
+  records that `KXGAS` is fetched by ticker because it carries no tag.
+- `reports/review-5a9b44b9.md` updated: source S3b (Get Series), KXGAS evidence, gas rule text.
+
+Checks after rebase #2: `node --test` 73/73 · Python tools 33/33 · static links 35 pages / 0 broken ·
+page-runtime 17/17 · summary DOM pass · alerts DOM 16/16. Flagged items now **R2, R5, R6** (status
+`needs review` — publication on `flagged.html` belongs to the integration session, which currently
+owns that file via its own PRs).
+
+## Session `970aabdb` — independent audit of the published site (2026-11-21)
+
+Branch: `arena/970aabdb-kalshidash2`, branched from `main` at `bbdc3a0`
+(`chore(data): refresh Kalshi demo snapshot [skip ci]`, 2026-11-21T19:29Z). The branch was
+rebased onto `main` at `b254e21` mid-session (PR #63/#65 landed under it), then merged twice more
+as `main` advanced; because the append-only board conflicts on every concurrent merge, the branch
+was finally **rebuilt as a single change on top of `main` at `0e45e17`** (PRs #72/#73/#74 and the
+19:29Z snapshot refresh included), carrying exactly this session's three file changes and this
+section — nothing else. Every board entry above was read before this claim was written and
+re-read after each merge.
+
+**Overlap avoidance.** Active sessions at claim time: `0d6f4f1f` (R1: `scripts/collect.py` +
+`data/snapshot.json` wording — merged via PR #63 during this session; R2 — done, PR #65),
+`f2176447` (final integration takeover, incl. I2 `tests/dom/live-site.mjs` and PR #60 — not
+touched), `9543cf0d` (PR #60 open: `.github/workflows/site-check.yml`, `404.html`,
+`assets/js/live-feed.js`, `scripts/relay.py`, `flagged.html`, `questions.html`,
+`VERIFICATION.md`, `docs/*`, `tests/*`). This session edited no shared file except one claimed
+`simulator.html` table cell (scope amendment below), and added one new report.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| A1 | Full local verification suite on the tree, exact results recorded | done (re-verified after rebase; see below) | `970aabdb` | `COORDINATION.md` (this section), `reports/independent-audit-970aabdb.md` (new) | local runs; recorded in the report | The 2 R1 failures seen at claim time are fixed on `main` (PR #63) and pass here |
+| A2 | Independent line-by-line review of the published (root) site; live pages reachable; official-source spot checks (`llms.txt`, Get Markets, Market Ticker) | done | `970aabdb` | same as A1, plus `simulator.html` (one cell, claimed in the amendment below) | docs.kalshi.com via `fetch_page` (sandbox shell has no kalshi.co route — same limit every session records); GitHub API for Pages/runs | D1 fixed (simulator fee row); D2 F10 staleness logged as request; D3/D4 owned elsewhere |
+| A3 | PR → `main`; merge; confirm Pages deploy; record run IDs here | **done** (see final record below) | `970aabdb` | same as A1 | `gh`, Pages API | Docs + one table cell; does not pre-empt the final-integration merges of the other open PRs |
+
+**Scope amendment (2026-11-21, committed before the edit):** A2 found one stale table cell in
+`simulator.html` ("Fee schedule (not applied in the simulation)", line 199) that contradicts the
+page's own assumptions section and the fee-modelled scoreboard note (fees ARE modelled since
+session `bc079e84` BC2, with round-up taker fee and no settlement fee). No test asserts the string
+(checked: `grep -rn "not applied in the simulation"` = only `simulator.html:199`; `tests/` and
+`tools/` have no Fee-schedule row assertion). No other active claim names `simulator.html`
+(`0d6f4f1f` = collect.py/snapshot; `f2176447` = live-site.mjs + PR #60 files; `9543cf0d` = PR #60
+file list). The fix is one table cell. `simulator.html` is therefore added to this session's
+exclusive scope. Nothing else in the site is edited.
+
+**Claim commit:** this section is committed and pushed immediately, before any other work.
+
+### A3 final record — session `970aabdb` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#70 — audit: independent line-by-line review of the published site](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/70), branch `arena/970aabdb-kalshidash2` → `main` |
+| Merge | `gh pr merge 70 --merge` → **MERGED** at `2026-11-21T20:37:47Z`, merge commit [`e74b3b2`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/e74b3b2585943de1b7d2144cd810ca6b8d22da9b). PR head check `check` (Static site link check) **pass**. |
+| Checks on the merged SHA | `Static site link check` run [44947289428](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289428) **success** · `verify-live-site` run [44947289467](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289467) **success** · `verify-alerts` run [44947289512](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947289512) **success** |
+| Pages deploy | `pages build and deployment` run [44947288980](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947288980) **success** (a second run 44947348421 also succeeded); Pages API `status: built`, `source: main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/> |
+| Coordination | Claim committed before work; `simulator.html` scope amendment committed before its one-cell edit; branch rebased onto `main` twice and rebuilt as a single change on `main@0e45e17` to dodge the append-only board conflict; two bot `reports/alerts-live-check.md` captures handled per the "take the fresher" precedent (20:36Z capture kept; main's 20:28/20:34 runs superseded); no other session's work discarded; `git pull --rebase` used before pushes. The bot writes to feature branches (`reports/alerts-live-check.md`, `[skip ci]`) — noted for the live-alerts workflow owner; every bot commit in the branch history was preserved by content, never by history rewrite. |
+| Verification after the final merge | Node **76/76** (after `main`'s E1 guards landed) · tools **30/30** · `tests/` **18 OK** (3 skip) · static links **35 pages / 0 broken** · page-runtime **17/17** (34→35 links) · alerts DOM **16/16** · summary DOM pass (78/89 verified, 8 partial, 3 unverified; flags 36 open / 26 mitigated / 62 total, as changed by `main`'s E1–E4 flags) · npm audit **0** |
+| Requests for other owners (unchanged) | **D2** — `flagged.html` F10 stale ("WebSocket streaming is documented but not wired in", tag `open`): PR #55 wired the WS `ticker` feed (opt-in relay; W1 documents the residual gap). Mark F10 mitigated/superseded and re-derive the summary DOM counts. Not edited here: `flagged.html` was in open PR #60 scope and its counts are DOM-asserted. · **O1** date the "Live: …" scan counts in `claims.js`/`config.js`. · **O2** refresh `QUESTIONS.md`/`SUGGESTIONS.md` Q3/S1 gates now that an opt-in WS feed exists. · **GC-I1–I6** (29749918) and **E-I1/E-I2** (e2718295) remain open for their owners. |
+| Irregularities | None introduced by this session. Pre-existing flags carried forward; none block anything per the brief. |
+
+Session `970aabdb` is complete: A1–A3 **done**.
+
+### Session `5a9b44b9` — V5 verification attempt + collector publish reliability fix
+
+**V5 result so far: not achieved.** The refreshed snapshot did not reach `main`.
+
+| Attempt | Run | Result | Evidence |
+|---|---|---|---|
+| 1 | [44947239975](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947239975) | job success, **no snapshot commit** | `data/snapshot.json` still `generated_at 2026-11-21T19:29:02Z`; no `chore(data)` commit after `bbdc3a0` |
+| 2 | [44947401192](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947401192) | job success, **no snapshot commit** | same; `main` gained PR #81 during the run |
+
+Cause found by reading `collect.yml` line by line: the commit step ended with
+`git push || echo "push skipped (branch protected or diverged)"`. `main` moves constantly while the
+~2-minute collection runs, so the push is rejected, the rejection is swallowed, and the job still
+reports success. This is a real reliability defect, not a data defect: the scheduled refresh can
+stay stale indefinitely with no failure signal.
+
+**Repair (R8):** the commit step now rebases onto `origin/main` and retries the push up to four
+times, and **fails the job** (`::error::` + exit 1) if it still cannot publish, so a stale snapshot
+is visible in CI instead of silent. No change to what is collected.
+
+| ID | Task | Status | Owner | Files | Verification |
+|---|---|---|---|---|---|
+| V5 | Confirm the regenerated snapshot on `main` (Culture non-empty; Gas gasoline-only; `KXGAS` present) | in progress — blocked on a publish that survives concurrent merges | `5a9b44b9` | this section, `.github/workflows/collect.yml` | Re-dispatch after the R8 fix lands; record the run and the topic counts |
+| R8 | Stop swallowing snapshot push rejections | **done** in this branch | `5a9b44b9` | `.github/workflows/collect.yml` | Workflow YAML inspected; retry loop + non-zero exit on failure |
+
+**Offline verification that the new taxonomy does what it claims (no live API needed):** replaying
+`collect.collect_series` over the committed series rows keeps exactly the 17 gasoline series and
+drops the 23 oil/nat-gas/diesel/power/barrels rows; Culture issues the three documented category
+queries. Covered by `tools/test_collect.py::TopicTaxonomyTests` (3 tests).

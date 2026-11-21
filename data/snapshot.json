@@ -15,7 +15,7 @@
    "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
    "sampled_last_trade_time": "Latest created_time among valid trade rows returned for the market; not necessarily the latest market trade.",
    "ranking": "events/markets sorted by volume_24h_fp desc, then volume_fp desc (contract volume, not dollar volume).",
-   "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching."
+   "topic_rules": "Discovery uses only official Kalshi `category` / `tags` filters. Where no category covers a topic (retail gasoline), the same explicit series-family + title rule and exclusions as the dashboard (assets/js/config.js) are applied locally; they can only narrow the official candidate list, never add to it."
   },
   "collection_scope": {
    "coverage": "sampled; no full-exchange completeness claim",
