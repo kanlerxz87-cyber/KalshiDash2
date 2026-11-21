@@ -60,6 +60,7 @@ export class LiveFeed {
     this.source = null;      // EventSource
     this.retryS = 1;
     this.closed = false;
+    this.upstreamConnected = false;
     this.timer = null;
     this.frames = 0;
   }
@@ -71,6 +72,8 @@ export class LiveFeed {
 
   stop() {
     this.closed = true;
+    this.upstreamConnected = false;
+    this.last.clear();
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     if (this.source) { try { this.source.close(); } catch { /* already closed */ } this.source = null; }
   }
@@ -90,22 +93,29 @@ export class LiveFeed {
 
     es.onopen = () => {
       this.retryS = 1;
-      this.onState(FEED_STATE.LIVE, "connected to the Kalshi demo WebSocket ticker feed");
+      // SSE connectivity alone does not establish the upstream socket state.
+      this.onState(FEED_STATE.CONNECTING, "connected to relay; waiting for WebSocket state");
     };
 
     es.onmessage = (ev) => {
       let data;
       try { data = JSON.parse(ev.data); } catch { return; }
       if (!data) return;
-      if (data.type === "hello") {
-        if (data.state) this.onState(FEED_STATE.LIVE, `relay state: ${data.state}`);
+      if (data.type === "hello" || data.type === "state") {
+        const detail = `relay state: ${data.state || "unknown"}${data.detail ? " — " + data.detail : ""}`;
+        if (data.state === "connected") {
+          this.upstreamConnected = true;
+          this.onState(FEED_STATE.LIVE, detail);
+        } else {
+          // Discard pre-disconnect quotes: compare fresh ticks only after recovery.
+          // This also lets the caller resume REST alert detection for every ticker.
+          this.upstreamConnected = false;
+          this.last.clear();
+          this.onState(FEED_STATE.UNAVAILABLE, detail);
+        }
         return;
       }
-      if (data.type === "state") {
-        this.onState(FEED_STATE.LIVE, `relay state: ${data.state}${data.detail ? " — " + data.detail : ""}`);
-        return;
-      }
-      if (data.type !== "ticker") return;
+      if (data.type !== "ticker" || !this.upstreamConnected) return;
 
       this.frames += 1;
       const quote = fromTickerFrame(data);
@@ -120,6 +130,8 @@ export class LiveFeed {
       // EventSource retries on its own, but only while the page lives; the
       // state callback tells the page to show the polling fallback.
       if (this.closed) return;
+      this.upstreamConnected = false;
+      this.last.clear();
       this.onState(FEED_STATE.UNAVAILABLE, "the relay stream is not available");
       this._scheduleRetry();
     };
