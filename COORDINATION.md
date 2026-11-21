@@ -1082,3 +1082,33 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 **Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
 
 **Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+# Session `3b869340` — line-by-line re-verification + `previous_price_dollars` wording fix + final integration
+
+Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from `8ea5c85` on `main`).
+
+**Takeover note (60-minute stale-claim rule):** every prior `in progress` claim on this board is from 2026-11-20 with last commit `8ea5c85` at 20:32Z (>9h ago, no commits since). No other session has an in-flight edit. This session takes over the shared registers (`assets/js/claims.js`, `flagged.html`) as the integration session for the fix below, and records the handoff here. No other session's work is discarded.
+
+**Fresh line-by-line verification performed 2026-11-21 (official docs fetched and read this session):**
+
+| # | Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| V-1 | Demo REST `external-api.demo.kalshi.co/trade-api/v2` recommended; `demo-api.kalshi.co` also supported; WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` + `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo environment](https://docs.kalshi.com/getting_started/demo_env) | Correct — matches `assets/js/config.js` `DEMO`/`ALTERNATES` |
+| V-2 | Market fields: `yes_bid/ask_dollars`, `yes_bid/ask_size_fp`, `no_bid/ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `result` ∈ yes/no/scalar/"", `open_interest_fp`, `previous_price_dollars`, `settlement_value_dollars`, `price_ranges`, `mve_selected_legs[].event_ticker`; `yes_sub_title` canonical, `no_sub_title` deprecated; NO `no_bid_size_fp`/`no_ask_size_fp` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema) | Correct — confirms Y2 fix (no NO-size field exists) |
+| V-3 | `notional_value_dollars` = "The total value of a single contract at settlement in dollars" | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | Correct — site's "not traded dollar volume" wording is exact |
+| V-4 | Candlesticks `period_interval` ∈ {1, 60, 1440}, `start_ts`/`end_ts` required, `price.close_dollars` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Correct — matches `fetchCandles` + `CANDLE` |
+| V-5 | Orderbook `orderbook_fp.yes/no_dollars` = `[price, count]` string pairs, bids only, reciprocal YES/NO, unknown ticker → 200 empty, no auth | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) + [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses) | Correct — matches `deriveQuote` |
+| V-6 | `POST /portfolio/events/orders` V2 body (`ticker`, `side`, `count`, `price`, `time_in_force`, `self_trade_prevention_type`, `client_order_id`) | [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) | Correct — matches `KalshiClient.createOrder` |
+| V-7 | Settlement: YES holders $1, NO holders $1 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | Correct — matches simulator/alert P&L |
+| V-8 | Direction `bid ≡ yes`, `ask ≡ no` | [Order Direction](https://docs.kalshi.com/getting_started/order_direction) | Correct — confirms F7 fix |
+| V-9 | Signing: `KALSHI-ACCESS-KEY/-TIMESTAMP/-SIGNATURE`, pre-sign `timestamp + METHOD + path` without query, RSA-PSS SHA-256 salt=digest, Ed25519 direct, PKCS#8/PKCS#1 PEM | [API Keys](https://docs.kalshi.com/getting_started/api_keys) | Correct — matches `kalshi.js` |
+| V-10 | `GET /events` excludes multivariate events; `settlement_sources[]` = `{name, url}` | [Get Events](https://docs.kalshi.com/api-reference/events/get-events) | Correct — confirms Y4 fix |
+| V-11 | `*_dollars` = dollar strings ≤4dp, `*_fp` = contract quantities ≤2dp, `price_ranges` is source of truth for valid prices | [Fixed-Point](https://docs.kalshi.com/getting_started/fixed_point_migration) | Correct — matches `snapToGrid` |
+| V-12 | Fills: `outcome_side`/`book_side`, `count_fp`, `yes/no_price_dollars`, `is_taker`, `fee_cost` | [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) | Correct — matches `strategies.html` |
+| V-13 | **`previous_price_dollars` semantics** | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | **IRREGULARITY — see Z1 below.** Docs: "Price for the last traded YES contract on this market a day ago in dollars". Site claims (claims.js, marked `verified`): "the price before the exchange's last change". Wording not supported by docs. |
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|------------------------|------------------------|
+| Z1 | Correct `previous_price_dollars` wording: reword claims.js claim to quote docs, downgrade to `partially verified`, fix code comments in `config.js`/`alerts-core.js`/`alert-engine.js`/`market.js`, add Flagged Z1 card, note in `EXECUTIVE_SUMMARY.md` | in progress | `3b869340` | `assets/js/claims.js`, `assets/js/config.js`, `assets/js/alerts-core.js`, `assets/js/alert-engine.js`, `assets/js/market.js` (comments only), `flagged.html` (Z1 card only), `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) schema fetched 2026-11-21 | Behaviour unchanged: alerts still compare `last_price_dollars` vs `previous_price_dollars` and label the basis "exchange previous price" (the field name, accurate). Only the interpretation wording is corrected. Counts derive dynamically, so summary/flagged headlines stay in sync. |
+| Z2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | unclaimed | — | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
