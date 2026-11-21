@@ -38,7 +38,7 @@ jobs:
       - name: Unit tests (alert engine)
         run: node --test tests/alerts-core.test.mjs
 
-      - name: Unit tests (live feed: WebSocket ticker + REST fallback)
+      - name: "Unit tests (live feed: WebSocket ticker + REST fallback)"
         run: node --test tests/live-core.test.mjs
 
       - name: DOM regression tests (alerts + executive summary)

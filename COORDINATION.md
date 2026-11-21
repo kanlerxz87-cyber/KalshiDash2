@@ -1412,3 +1412,13 @@ after a merge commit: `git pull --rebase` began linearizing the merge and replay
 commits (`e0096d6` conflicted). Aborted with `git rebase --abort` exactly as session `ae228af4`
 did — nothing discarded; the branch ref and the remote both hold the merge commit `5dbf5d7`.
 When a branch carries a merge of `main`, push directly (remote is an ancestor) instead of rebasing.
+
+**CI breakage found and fixed (2026-11-21, integration duty):** every `verify-alerts` run since
+commit `978c223` (session `1607f1f9`, 06:37 UTC) failed instantly with **zero jobs** — on every
+branch and on `main` — because of a workflow-file parse error: the step name
+`Unit tests (live feed: WebSocket ticker + REST fallback)` contains an unquoted `: ` that YAML
+reads as a mapping ("bad indentation of a mapping entry (41:36)", reproduced with `js-yaml`
+locally). One-line fix: the name is now quoted. All 12 workflow files parse clean afterwards.
+`verify-alerts.yml` was not in any active claim (last owner `75932362`, closed; the breaking edit
+was an unlogged extension of `1607f1f9`'s W1). Logged here per the coordination rules. The same
+commit's `site-check.yml` additions parse fine and were not touched.
