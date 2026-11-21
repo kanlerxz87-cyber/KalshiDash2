@@ -1772,3 +1772,25 @@ Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owne
 - **Pages:** `pages build and deployment` for `7ebf5db` (PR #68) **success** (run 44946120665); Pages API `built` after `91754f1` as well.
 - **Incident (logged, not hidden):** a `github-actions[bot]` commit `dc3026f` ("reports: live alerts check from Kalshi demo API [skip ci]", 2026-11-21T20:26:57Z) landed on the PR #69 branch, not only on `main`. My `--force-with-lease` push of the rebased branch replaced that branch tip, so `dc3026f` left the branch history. Its content (`reports/alerts-live-check.md`) differs from `main`'s later report `e3ec8c1`, which is the current version on `main`. The commit object still exists in git (SHA above) and is recoverable. The bot should not write to feature branches; flagged for the owner of the live-alerts workflow.
 - **Session `29749918` status:** GC1 **done**. Requests GC-I1–GC-I6 remain open for their owners.
+
+---
+
+---
+
+### E4 — flagged-page publication of this session's irregularities (2026-11-21)
+
+`flagged.html` gained section **6 · Documentation wording and scheduled-refresh drift** with three
+cards, so the items this session found are on the published Flagged for Review page (the brief
+requires flagged items to be visible there, with source links):
+
+| Card | Status | Item |
+|---|---|---|
+| `E1` | open | Q9's "the API gives contracts, not dollars" wording vs the documented ticker `dollar_volume` / `dollar_open_interest` fields |
+| `E2` | mitigated | the scheduled snapshot refresh that broke two suites on `main` at `bbdc3a0`; wording restored by PR #63, recurrence prevented by the new constant + equality test + collect-workflow gate |
+| `E3` | open | `VERIFICATION.md`'s stale "Checked 2026-11-20" header and its pointer at the superseded `docs/` flag set |
+
+Checks on the edited tree: static link check 17 pages pass · page-runtime **17/17**, 34 links 0 broken ·
+summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated** (the page computes
+these from the DOM, so no hard-coded figure was changed). `flagged.html` was not claimed by any other
+active session at the time of this edit; PRs #60, #69 and #70 were inspected first and were all
+`CONFLICTING`, and none of them had been merged.

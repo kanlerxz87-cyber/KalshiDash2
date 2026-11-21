@@ -873,6 +873,72 @@
   </div>
 
   <div class="card">
+    <h2>6 · Documentation wording and scheduled-refresh drift (session <code>e2718295</code>, added 2026-11-21)</h2>
+    <p class="sub">Found while re-verifying the repository's interface claims against the official
+      documentation, one page at a time. The report with every quote and link is
+      <a href="reports/verify-facts-e2718295.md">reports/verify-facts-e2718295.md</a>.</p>
+
+    <div class="irregularity" id="E1">
+      <h3>E1 — Q9 says "the API gives contracts, not dollars", but the ticker stream also carries dollar fields <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the open-questions table answers "what does <em>highest dollar amount</em>
+        mean?" with "API gives contracts (<code>*_fp</code>), not dollars; notional = one contract's settlement value".
+        That is true of the REST ranking fields this dashboard uses, but read literally it is incomplete:
+        the documented WebSocket <code>ticker</code> payload carries integer <code>dollar_volume</code> and
+        <code>dollar_open_interest</code> alongside <code>volume_fp</code> and <code>open_interest_fp</code>.
+        The REST market object also returns <code>notional_value_dollars</code>.</p>
+      <p><strong>Impact:</strong> wording only. The ranking the site uses (<code>volume_fp</code> ×
+        <code>last_price_dollars</code>) is still labelled a proxy everywhere (A11), and no displayed number depends
+        on this sentence.</p>
+      <p><strong>What would close it:</strong> reword Q9 to "REST market objects report contract counts
+        (<code>*_fp</code>) plus <code>notional_value_dollars</code> (one contract at settlement); the WebSocket
+        ticker also carries integer <code>dollar_volume</code> / <code>dollar_open_interest</code>." The wording
+        lives in <code>QUESTIONS.md</code> and <code>questions.html</code>; it was logged rather than edited
+        because that page is inside another session's open pull request.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="E2">
+      <h3>E2 — A scheduled snapshot refresh broke two test suites on <code>main</code> and nobody noticed <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the <code>Collect demo snapshot</code> workflow regenerates
+        <code>data/snapshot.json</code> every six hours from <code>scripts/collect.py</code> and commits it with
+        <code>[skip ci]</code>. At <code>bbdc3a0</code> the regenerated disclosure text no longer matched the
+        phrases two suites assert, so <code>main</code> carried a failing Python test (1 of 28) and a failing Node
+        test (1 of 71) — and because the commit skips CI, nothing caught it.</p>
+      <p><strong>Status:</strong> the wording was restored in PR #63 (session <code>0d6f4f1f</code>), and this
+        session removed the possibility of a silent repeat: the text now lives in one
+        <code>DERIVATION_NOTES</code> constant in <code>scripts/collect.py</code>, an exact
+        generator↔snapshot equality test plus an official-semantics test run in
+        <code>tools/test_collect.py</code>, and the collect workflow runs both metadata suites
+        <em>before</em> the bot commit. No captured price, volume, order-book level, candlestick, timestamp or
+        source URL was changed by the fix.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market (contract-count fields) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades (sample pagination) ↗</a> ·
+        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report</a></p>
+    </div>
+
+    <div class="irregularity" id="E3">
+      <h3>E3 — <code>VERIFICATION.md</code> still carries a 2026-11-20 header and points at the superseded <code>docs/</code> flag set <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the root summary's header says "Checked 2026-11-20" and its closing line
+        sends readers to "<code>docs/flagged.html</code> (F1–F7 plus doc discrepancies D1–D3)". The published
+        site is now the root generation, whose register is this page (flags through <code>Z2</code>), so the
+        pointer and the date read as current when they are not.</p>
+      <p><strong>Impact:</strong> navigational only. Every row of that summary re-checked in this session's audit
+        (demo endpoints, contract-count semantics, <code>notional_value_dollars</code>, orderbook shape,
+        candlestick intervals and limits, fee rounding, Create Order V2 body) is still accurate against the
+        official pages.</p>
+      <p><strong>What would close it:</strong> re-date the header and repoint the closing line at this page. Not
+        edited here because <code>VERIFICATION.md</code> is inside another session's open pull request.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a> ·
+        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report</a></p>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
