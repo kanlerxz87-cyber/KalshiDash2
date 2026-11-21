@@ -80,16 +80,11 @@ import sys
 import time
 
 try:
-    import websockets
-except ImportError:
-    sys.exit("This script needs the 'websockets' package: pip install websockets")
-
-try:
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 except ImportError:
-    serialization = None
+    serialization = None  # only needed for authenticated commands
 
 DEFAULT_WS_URL = "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2"
 # The WebSocket path that must be signed. From the official docs:
@@ -217,6 +212,10 @@ def normalize_error(data):
 
 
 async def run(args, key_id, private_key):
+    # Imported here so the pure helpers above (subscribe_command,
+    # handle_message, normalize_error) stay importable without the package.
+    import websockets
+
     url = args.ws_url
     ensure_demo(url)
 
