@@ -150,7 +150,7 @@ class SnapshotMetadataTests(unittest.TestCase):
         self.assertIn("not traded-dollar volume", collect.DERIVATION_NOTES["contract_volume"])
         sample_note = collect.DERIVATION_NOTES["sampled_yes_price_times_contracts"]
         self.assertIn("No min_ts time bound", sample_note)
-        self.assertIn("not actual all-side cash turnover", sample_note)
+        self.assertIn("not asserted as actual all-side cash turnover", sample_note)
         # The note must quote the sample limits it actually used, so it cannot
         # claim a different sample size than the collector performs.
         self.assertIn(f"{collect.TRADE_SAMPLE_MAX_PAGES} pages", sample_note)
@@ -160,6 +160,35 @@ class SnapshotMetadataTests(unittest.TestCase):
         self.assertNotIn("dollar_volume", notes)
         self.assertNotIn("traded_notional_dollars", notes)
         self.assertIn("sampled", meta["collection_scope"]["coverage"])
+
+    def test_snapshot_notes_match_the_generator_exactly(self):
+        """Guards the scheduled refresh: collect.py must emit the snapshot's notes.
+
+        The `Collect demo snapshot` workflow rewrites data/snapshot.json every six
+        hours and commits with [skip ci]. Before this test, a wording change in the
+        generator could therefore land on `main` with the two metadata suites red
+        (observed at bbdc3a0). Exact equality makes that drift fail in the workflow
+        itself, before the bot commit is pushed.
+        """
+        self.assertEqual(
+            self.snapshot["_meta"]["derivation_notes"],
+            dict(collect.DERIVATION_NOTES),
+            "collect.py DERIVATION_NOTES must match data/snapshot.json derivation_notes",
+        )
+
+    def test_generator_notes_state_the_official_field_semantics(self):
+        """The disclosure wording must stay factually exact per the official schema."""
+        notes = collect.DERIVATION_NOTES
+        # GET /markets: volume_fp / volume_24h_fp are contract counts; notional_value_dollars
+        # is the value of a single contract at settlement.
+        self.assertIn("contract-count fields", notes["contract_volume"])
+        self.assertIn("not traded-dollar volume", notes["contract_volume"])
+        self.assertIn("single contract at settlement", notes["contract_volume"])
+        self.assertNotIn("notional_value_dollars is cumulative", notes["contract_volume"])
+        # GET /markets/trades: no time bound is requested and the page count is capped.
+        self.assertIn("No min_ts time bound", notes["sampled_yes_price_times_contracts"])
+        self.assertIn("pagination is capped", notes["sampled_yes_price_times_contracts"])
+        self.assertIn("not asserted as actual all-side cash turnover", notes["sampled_yes_price_times_contracts"])
 
     def test_market_rows_keep_official_source_and_unambiguous_sampled_field_names(self):
         for topic in self.snapshot["topics"].values():

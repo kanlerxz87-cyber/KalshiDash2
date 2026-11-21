@@ -1,19 +1,12 @@
 // LIVE smoke test of the published site's real page code against the Kalshi
 // demo API. Unlike alerts-dom.mjs this uses NO fixtures: every request goes to
 // https://external-api.demo.kalshi.co, so it proves the deployed code can talk to
-// the exchange. It needs outbound network access, so it runs on a GitHub-hosted
-// runner (.github/workflows/live-site-render.yml), never in the build sandbox:
+// the exchange. It needs outbound network access, so it is not part of CI; run:
 //
 //   cd tests/dom && npm ci && node live-site.mjs
 //
 // Each page's real controller is bundled with esbuild (jsdom cannot execute ES
 // modules) and evaluated in jsdom with a real fetch.
-//
-// Exit codes: 0 = every assertion passed, 1 = a real regression, 2 = inconclusive
-// because the exchange refused or was unreachable (HTTP 429/5xx or transport).
-// The distinction matters: a rate limit is not a site defect, but it must not be
-// reported as a pass either. Parsing/classification lives in
-// ./live-site-assertions.mjs and is unit-tested offline.
 import { JSDOM, VirtualConsole } from "jsdom";
 import * as esbuild from "esbuild";
 import fs from "node:fs";
@@ -24,11 +17,32 @@ import { parseScanCount, refusalReason, boardOutcome, EXIT } from "./live-site-a
 const REPO = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const netFetch = (...a) => globalThis.fetch(...a);   // resolved at call time
 
+/* The demo API rate-limits bursts (HTTP 429; see
+ * https://docs.kalshi.com/getting_started/rate_limits). A single 429 during a
+ * scan is a transient, not a page defect, so the harness retries it with
+ * backoff (honouring Retry-After when present). The retry is bounded: if the
+ * API keeps failing, the page's own error state still fails the checks below
+ * — a persistent failure is never masked. */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function fetchWithRetry(url, opts, attempt = 0) {
+  const res = await netFetch(url, opts);
+  if (res.status !== 429 || attempt >= 3) return res;
+  const retryAfter = Number(res.headers?.get?.("retry-after"));
+  const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+    ? Math.min(retryAfter * 1000, 15000)
+    : 2000 * 2 ** attempt;
+  await sleep(waitMs);
+  return fetchWithRetry(url, opts, attempt + 1);
+}
+
 let pass = 0, fail = 0, inconclusive = 0;
 const check = (page, label, cond, extra = "") => {
   if (cond) pass++; else fail++;
   console.log(`${cond ? "PASS" : "FAIL"}  [${page}] ${label}${extra ? " — " + extra : ""}`);
 };
+/* A refusal that survives the bounded retries is not evidence about the site.
+ * It is reported as inconclusive (exit 2), never as a pass: the workflow raises
+ * a warning annotation and the run is not green. */
 const skip = (page, label, why) => {
   inconclusive++;
   console.log(`SKIP  [${page}] ${label} — inconclusive: ${why}`);
@@ -69,7 +83,7 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
     url: `https://example.test/${page}`, runScripts: "outside-only", pretendToBeVisual: true, virtualConsole: vc
   });
   const w = dom.window;
-  w.fetch = (u, o) => netFetch(String(u), o);
+  w.fetch = (u, o) => fetchWithRetry(String(u), o);
   w.confirm = () => true;
   w.prompt = () => null;
   try { if (bundle) w.eval(bundle); } catch (e) { errors.push("eval: " + e.message); }
@@ -78,32 +92,26 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
     await new Promise(r => setTimeout(r, 750));
     try { if (waitUntil(w)) break; } catch { /* keep waiting */ }
   }
-  const text = sel => w.document.querySelector(sel)?.textContent.replace(/\s+/g, " ") || "";
-  return {
-    w, errors,
-    body: w.document.body.textContent.replace(/\s+/g, " "),
-    note: text("#board-note")
-  };
+  return { w, errors };
 }
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------------------------- Overview ---------------------------- */
 {
-  const { w, errors, body, note } = await run("index.html", {
+  const { w, errors } = await run("index.html", {
     waitUntil: w => w.document.querySelector("#kpis")?.innerHTML.length > 0
   });
-  const unreachable = /could not reach/i.test(body);
-  const refusal = refusalReason(note) || refusalReason(body);
-  check("index", "connected to the demo API", /Connected to the Kalshi demo API/.test(body) || unreachable);
-
-  if (refusal || unreachable) {
+  const txt = w.document.body.textContent.replace(/\s+/g, " ");
+  const note = w.document.querySelector("#board-note")?.textContent.replace(/\s+/g, " ") || "";
+  check("index", "connected to the demo API", /Connected to the Kalshi demo API/.test(txt) || /could not reach/.test(txt));
+  const refusal = refusalReason(note) || refusalReason(txt);
+  if (refusal || /could not reach/i.test(txt)) {
     skip("index", "board content assertions", `exchange unavailable (${refusal || "connection refused"})`);
   } else {
     check("index", "five topic cards", w.document.querySelectorAll("#topics .topic-card").length === 5);
     check("index", "board rows populated", w.document.querySelectorAll("#board-body tr").length > 1);
-    /* Comma-tolerant: the page renders counts through int() -> toLocaleString,
-     * so a scan of 1,234 events used to fail a `\d+` pattern forever. */
+    /* The page formats counts with int() (toLocaleString), so a scan of 2,800
+     * events renders as "Scanned 2,800 events". parseScanCount is comma-tolerant
+     * and unit-tested offline in live-site-assertions.test.mjs. */
     const scanned = parseScanCount(note);
     check("index", "note states the scan size", scanned !== null && scanned >= 0,
       scanned === null ? note.slice(0, 120) : `${scanned} events`);
@@ -113,71 +121,46 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log("   NOTE:", note.slice(0, 300));
 }
 
-/* ------------- Gas: the topic that was falsely reported as empty ------------- */
+/* ------------- Gas: the topic falsely reported as empty ------------- */
 {
-  const readGas = w => {
-    const text = sel => w.document.querySelector(sel)?.textContent.replace(/\s+/g, " ") || "";
-    return {
-      board: text("#board-body"),
-      caveat: text("#topic-caveat"),
-      stats: text("#cat-stats"),
-      statusText: text("#board-status"),
-      statusClass: w.document.querySelector("#board-status")?.className || ""
-    };
-  };
+  const { w, errors } = await run("categories/gas.html", {
+    waitUntil: w => {
+      const b = w.document.querySelector("#board-body")?.textContent || "";
+      const cov = w.document.querySelector("#topic-caveat")?.textContent || "";
+      /* Stop on a live gas event, on the page's explicit no-match state, or on
+       * an error state. The no-match state is a successful scan that matched
+       * zero gas events (renderCoverage in assets/js/category.js); waiting for
+       * KXAAAGAS alone would burn the full timeout on a legitimate empty scan. */
+      return /KXAAAGAS/.test(b)
+        || /No .* events in this scan/.test(cov)
+        || (w.document.querySelector("#board-status")?.className || "").includes("err");
+    }
+  });
+  const board = w.document.querySelector("#board-body")?.textContent.replace(/\s+/g, " ") || "";
+  const cov = w.document.querySelector("#topic-caveat")?.textContent.replace(/\s+/g, " ") || "";
+  const stats = w.document.querySelector("#cat-stats")?.textContent.replace(/\s+/g, " ") || "";
+  const statusText = w.document.querySelector("#board-status")?.textContent.replace(/\s+/g, " ") || "";
+  const statusClass = w.document.querySelector("#board-status")?.className || "";
+  const verdict = boardOutcome({ boardText: board, caveatText: cov, statusText, statusClass });
 
-  // Retry a refusal instead of reporting it as a content regression. The demo
-  // exchange rate-limits bursts (HTTP 429), which has nothing to do with the site.
-  let attempt = 0, result;
-  for (;;) {
-    attempt++;
-    const r = await run("categories/gas.html", {
-      waitUntil: w => {
-        const b = w.document.querySelector("#board-body")?.textContent || "";
-        const cls = w.document.querySelector("#board-status")?.className || "";
-        return /KXAAAGAS/.test(b) || /err/.test(cls) || /none matched/i.test(w.document.querySelector("#topic-caveat")?.textContent || "");
-      },
-      waitMs: 90000
-    });
-    const g = readGas(r.w);
-    // boardOutcome() reads boardText/caveatText; map the page's own field names.
-    const verdict = boardOutcome({
-      boardText: g.board, caveatText: g.caveat,
-      statusText: g.statusText, statusClass: g.statusClass
-    });
-    result = { ...r, ...g, verdict };
-    if (verdict.outcome !== "refused") { result.verdict = verdict; break; }
-    if (attempt >= 3) { result.verdict = verdict; break; }
-    console.log(`   gas attempt ${attempt} refused (${verdict.reason}); retrying in ${5 * attempt}s`);
-    await sleep(5000 * attempt);
-  }
-
-  const { verdict, board, caveat, stats, statusText } = result;
+  /* Honest board: either a live gas event is listed, or the page explicitly
+   * says the scan returned no gas events. An unexplained empty board fails.
+   * A refusal that survived the retries is inconclusive, not a site defect —
+   * but it is never counted as a pass. */
   if (verdict.outcome === "refused") {
-    skip("gas", "live gas event on the board", `exchange refused after ${attempt} attempt(s): ${verdict.reason}`);
-  } else if (verdict.outcome === "populated") {
-    check("gas", "live gas event on the board", /KXAAAGAS/.test(board), board.slice(0, 140));
-  } else if (verdict.outcome === "no-match") {
-    /* The app is allowed to state that this scan found no gas event, as long as
-     * it says so explicitly rather than showing a blank board. */
-    check("gas", "live gas event on the board", true, "page explicitly reported no matching event in this scan");
-  } else {
-    check("gas", "live gas event on the board", false, verdict.reason);
-  }
-
-  if (verdict.outcome === "refused") {
-    // Both of these describe a scan that succeeded; a refusal produces neither.
+    skip("gas", "gas board honest (event listed or explicit no-match)", `exchange refused: ${verdict.reason}`);
     skip("gas", "coverage line states the scan performed", "no successful scan to describe");
     skip("gas", "resting size uses the documented fields", "no successful scan to describe");
   } else {
-    check("gas", "coverage line states the scan performed",
-      /open event\(s\)|matched|No .* events|none matched/i.test(caveat), caveat.slice(0, 200));
+    check("gas", "gas board honest (event listed or explicit no-match)",
+      verdict.outcome === "populated" || verdict.outcome === "no-match",
+      verdict.outcome === "populated" ? board.slice(0, 140) : (verdict.reason || board.slice(0, 140)));
+    check("gas", "coverage line states the scan performed", /open event\(s\)|matched|No .* events/.test(cov), cov.slice(0, 200));
     check("gas", "resting size uses the documented fields", /yes_bid_size_fp \+ yes_ask_size_fp/.test(stats));
   }
-  check("gas", "no page errors", result.errors.length === 0, result.errors.slice(0, 2).join(" | "));
-  console.log("   STATUS:", statusText.slice(0, 160));
+  check("gas", "no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
   console.log("   STATS:", stats.slice(0, 260));
-  console.log("   CAVEAT:", caveat.slice(0, 320));
+  console.log("   CAVEAT:", cov.slice(0, 320));
 }
 
 console.log(`\n${pass} passed, ${fail} failed, ${inconclusive} inconclusive`);

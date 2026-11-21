@@ -31,7 +31,7 @@ jobs:
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
       - name: Live-feed unit tests
-        run: node --test tests/live-core.test.mjs
+        run: node --test tests/live-core.test.mjs tests/live-feed-state.test.mjs
       - name: Taxonomy + multivariate classifier tests
         run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
@@ -47,10 +47,5 @@ jobs:
       # comma/rate-limit handling cannot regress without a network run.
       - name: Live-render verifier parsing tests
         run: node --test tests/dom/live-site-assertions.test.mjs
-      # Relay status gating: LIVE only after the exchange confirms the ticker
-      # subscription, and tick baselines reset on disconnect so a stale quote
-      # cannot fabricate a $0.10 swing.
-      - name: Live-feed relay-state tests
-        run: node --test tests/live-feed-state.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs

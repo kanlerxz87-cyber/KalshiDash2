@@ -44,7 +44,7 @@ test("captured trade arithmetic is not named or described as exact dollar notion
 
   const sample = generated.sampled_yes_price_times_contracts;
   assert.match(sample, /No min_ts time bound/);
-  assert.match(sample, /not actual all-side cash turnover/);
+  assert.match(sample, /not asserted as actual all-side cash turnover/);
   assert.match(generated.contract_volume, /fixed-point contract counts/);
   assert.match(generated.contract_volume, /not traded-dollar volume/);
   assert.ok(!Object.hasOwn(notes, "traded_notional_dollars"));

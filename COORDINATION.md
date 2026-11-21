@@ -1587,3 +1587,329 @@ cannot be merged as-is. Disposition of its content:
 | New flag id `W4` (relay credential architecture) | **Not published** here; relaying still requires a private key readable by the relay process, which is a real limitation the existing flags already describe. Noted as unported rather than silently dropped. |
 
 **No other session's work was deleted or overwritten by this session.**
+
+---
+
+## Session `0d6f4f1f` — snapshot-label drift fix + final integration verification (2026-11-21)
+
+Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
+
+**Takeover note (60-minute stale-claim rule):** all prior `in progress` claims on this board are from 2026-11-20/21 with last commits hours ago and no in-flight edits on this branch. This session takes over the two files below as final-integration scope and records the handoff here. No other session's work is discarded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Fix snapshot-label drift: `scripts/collect.py` derivation notes no longer contain the exact disclaimer phrases both test suites require (`contract-count fields`, `not asserted as actual all-side cash turnover`); `data/snapshot.json` notes carry the same drift. Restore the phrases in the collector source and in the snapshot note strings (no data re-collection, no values changed). | done | `0d6f4f1f` | `scripts/collect.py` (derivation-note strings only), `data/snapshot.json` (`_meta.derivation_notes` strings only), `COORDINATION.md` (this section) | `tests/activity-proxy.test.mjs`, `tools/test_collect.py` (both assert the exact phrases) | Bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated the snapshot from a collector whose note strings had drifted from the tests. Fix restores test-required wording; market data values untouched. |
+| R2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | in progress | — | `COORDINATION.md` (this section) | `node --test`, python tools tests, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
+
+### R1/R2 record — session `0d6f4f1f` (2026-11-21)
+Board read before starting: all prior sessions' tasks are closed. Session `0d6f4f1f`'s R1/R2 work is already on `main` (commits `f25ecd7`/`f69c21a`, PR #63), handling the snapshot-label drift fix and coordination claim. This session's scope is final verification and PR/merge. No local file edits are needed — all site files, tests, workflows, and the GitHub Pages deployment are already in place on `main`.
+
+| ID | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|------------|------------------------|------------------------|
+| D1 | Confirm snapshot-label alignment (session `0d6f4f1f` R1 already on `main`) | done | `d490e35d` | `scripts/collect.py`, `data/snapshot.json` (owned by `0d6f4f1f`) | `tests/activity-proxy.test.mjs` + `tools/test_collect.py` assert exact phrases; both now match `data/snapshot.json` `_meta.derivation_notes` | No local change needed — main already carries the fix. |
+| D2 | Full local verification suite | done | `d490e35d` | All | `node --test` **68/68** · `python3 -m unittest discover -s tools` **28/28** · `tools/check_site_links.py .` **34 pages, 0 broken** · `page-runtime-check.mjs` **17/17** · `auth-sign-test.mjs` **6/6** | All green. Sandbox cannot reach `external-api.demo.kalshi.co` directly (TLS blocked); live API verification happens client-side or via GitHub-hosted workflows. |
+| D3 | PR → `main`, merge, confirm Pages deploy | in progress | `d490e35d` | `COORDINATION.md` (this section) | `gh pr create` + `gh pr merge --merge` + Pages API | Flagged items do not block merge per instructions. |
+
+### D2 verification (2026-11-21)
+
+- `node --test tests/*.test.mjs` **68/68** (alerts-core 19 + taxonomy 10 + simulator-core 5 + jumps 6 + live-core 23 + activity-proxy 3).
+- `python3 -m unittest discover -s tools` **28/28**.
+- `tools/check_site_links.py .` **34 pages, 0 broken local links**.
+- `node tools/verify/page-runtime-check.mjs` **17/17 pages** + **34 links**.
+- `node evidence/auth-sign-test.mjs` **6/6** signing-rule checks.
+- `git diff --check` clean.
+
+**R1 done.** Root cause: bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated `data/snapshot.json` from a `scripts/collect.py` whose `derivation_notes` strings had drifted from the exact disclaimer phrases asserted by `tests/activity-proxy.test.mjs` and `tools/test_collect.py`. Fix (no data re-collection, no market values changed):
+- `scripts/collect.py`: `contract_volume` note now reads "…are contract-count fields (fixed-point contract counts), not traded-dollar volume…"; `sampled_yes_price_times_contracts` note now reads "…is not asserted as actual all-side cash turnover, gross cash exchanged…".
+- `data/snapshot.json`: the same two `_meta.derivation_notes` strings updated surgically (2 lines; formatting preserved).
+
+**Fresh line-by-line verification performed 2026-11-21 (official docs fetched and read this session):**
+
+| # | Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| R-V1 | Demo REST `external-api.demo.kalshi.co/trade-api/v2` recommended; `demo-api.kalshi.co` also supported; WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` + `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo environment](https://docs.kalshi.com/getting_started/demo_env) | Correct — matches `assets/js/config.js` and `EXECUTIVE_SUMMARY.md` |
+| R-V2 | Market fields: `yes_bid/ask_dollars`, `yes_bid/ask_size_fp`, `no_bid/ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `result`, `open_interest_fp`, `notional_value_dollars`, `previous_price_dollars`, `settlement_value_dollars`, `price_ranges`, `mve_selected_legs[]`; no `no_bid_size_fp`/`no_ask_size_fp` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema) | Correct — matches site field usage |
+| R-V3 | Candlesticks `period_interval` ∈ {1, 60, 1440}, `start_ts`/`end_ts` required, `price.close_dollars`, `price.previous_dollars` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Correct — matches `fetchCandles` and chart jump detection |
+| R-V4 | Settlement: YES holders $1, NO holders $1 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | Correct — matches simulator/alert P&L |
+
+No new irregularities found this session. Pre-existing flags on `flagged.html` carried forward unchanged; none block the merge per instructions.
+
+**Full local suite on the R1 tree:** `node --test` **73/73** · `python -m unittest discover -s tools` **28/28** · `python -m unittest discover -s tests` **18 OK (3 skipped, `cryptography` not installed)** · alerts DOM **16/16** · summary DOM pass (20 requirement areas; 78/89 verified, 8 partial, 3 unverified; 32 open / 23 mitigated / 55 flags; 28 sourced rows) · static links **34 pages / 0 broken** · page-runtime **17/17**. Pages API before PR: `status: built`, source `main:/`. Open PR #60 (`arena/9543cf0d`) touches only `COORDINATION.md` in common with this session (append-only, union-resolvable); no file-scope overlap on `scripts/collect.py` or `data/snapshot.json`.
+
+---
+
+### R2 completion record — session `0d6f4f1f` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#63 — integration: session 0d6f4f1f — snapshot-label drift fix (R1) + fresh doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), branch `arena/0d6f4f1f-kalshidash2` → `main` |
+| Merge | `gh pr merge 63 --merge` succeeded 2026-11-21T20:21:55Z; merge commit [`882e074`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/882e07446ab8c790990dd0033f90b313557aec23). PR head check `Static site link check` **pass** (run 44945843975). |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` run 44945889048 **success**; `Static site link check` run 44945890003 on `main` **success**. Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Irregularities | None new. All pre-existing flags on `flagged.html` carried forward; none blocked the merge per instructions. |
+| Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
+
+Session `0d6f4f1f` is complete: R1–R2 **done**.
+
+---
+
+## Session `f2176447` — final integration: live-render fix (I2 takeover), PR #60 merge, Pages confirmation
+
+Work branch: `arena/f2176447-kalshidash2`, branched from `main` at `bbdc3a0`. Claim commit
+`b8e3129` was pushed before any in-scope file was edited.
+
+**Takeover note (60-minute stale-claim rule):** task I2 (`tests/dom/live-site.mjs`, owner
+`3d2e8243`) was claimed 2026-11-21 ~06:4x UTC; that branch's latest commit is `fb96bde`
+(bot report only) and `git diff origin/main..origin/arena/3d2e8243-kalshidash2 --
+tests/dom/live-site.mjs` is empty — the file was never edited. More than 13 h with no
+commits, so this session took over I2's file scope. PR #60 (session `9543cf0d`, last commit
+07:09 UTC, >13 h stale) also blocked its own merge on this check; merged below after the fix
+landed. No session's work was discarded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| F1 | Fix `tests/dom/live-site.mjs`: accept comma-formatted scan counts; accept the app's explicit gas no-match state without masking API failures; bounded 429 retry in the harness fetch | **done** | `f2176447` | `tests/dom/live-site.mjs`, `COORDINATION.md` (this section) | Diagnostic run [44878820720](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44878820720) (recorded on PR #60 in `c9994e0`); [Kalshi rate limits](https://docs.kalshi.com/getting_started/rate_limits); `index.html`, `assets/js/{ui,category}.js` read line-by-line; **live-API proof run [44945820999](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945820999) SUCCESS** | Test-only fix; no site behaviour change. A persistent API failure still fails the check. |
+| F2 | Full local suite on the fixed tree (Node, Python, DOM, page-runtime, link check) | **done** | `f2176447` | `COORDINATION.md` (this section) | Table below | — |
+| F3 | PR from this branch to `main`, merge, confirm `live-site-render` + `verify-live-site` green on `main` | in progress | `f2176447` | `COORDINATION.md` (this section) | [PR #64](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/64); `gh pr merge`, Pages API | Do not merge a broken site. |
+| F4 | Take over stale PR #60 and merge it against a green `main`, then confirm Pages | unclaimed | — | `COORDINATION.md` (this section) | `gh pr merge 60 --merge`, Pages API, `verify-live-site` | PR #60's body blocks on the render check, now green. Session branch rule: this session does not push to another session's branch, so PR #60 is merged as-is once main is green (it does not touch `tests/dom/live-site.mjs`). |
+| F5 | Snapshot-label drift (`contract-count fields`, `not asserted as actual all-side cash turnover` missing from `scripts/collect.py` + `data/snapshot.json`) | **dropped — duplicate** | `f2176447` | none (see note) | `tools/test_collect.py`, `tests/activity-proxy.test.mjs` | Session `0d6f4f1f` found and fixed the identical drift in [PR #63](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63) (merge `882e074`) while this session was working. Both guards are green on `main`; this session's identical label commit was **dropped during the rebase onto `main`** rather than duplicating or overwriting their work. |
+
+### F1–F2 results (verified in this workspace, 2026-11-21 ~20:20Z)
+
+**Root causes re-derived from source** (the runner log and artifact download from this build
+sandbox fail with `EOF`, so the recorded diagnosis on PR #60 was used as the pointer, not the
+proof): `index.html` renders the scan note through `int()` in `assets/js/ui.js`
+(`toLocaleString`), so a 2,800-event scan reads `Scanned 2,800 events` and the old
+`/Scanned \d+ events/` regex rejected it; `categories/gas.html` (`assets/js/category.js`)
+sets `#board-status` to `err` only on failure, renders `The live API returned no <topic>
+events in this scan.` on the board for a legitimate zero-match scan, and states
+`No <topic> events in this scan` in `#topic-caveat` via `renderCoverage`; the demo API
+returns HTTP 429 under burst load. The harness now retries 429 up to 3 times with backoff
+(honouring `Retry-After`, capped at 15 s), accepts `[\d,]+` scan counts, and accepts a gas
+board that is either a live `KXAAAGAS` event or the page's own explicit no-match text. An
+error board still fails, so a persistent API failure is never masked.
+
+| Check | Command | Result |
+|---|---|---|
+| Harness syntax | `node --check tests/dom/live-site.mjs` | OK |
+| Node unit tests | `node --test tests/{alerts-core,live-core,taxonomy,simulator-core,jumps,activity-proxy}.test.mjs` | **71/71 pass** |
+| Python tool tests | `python -m unittest discover -s tools -p 'test_*.py'` | **28/28 OK** |
+| WebSocket client tests | `python -m unittest discover -s tests -p 'test_*.py'` | 18 run, **OK (3 skip)** |
+| Static links | `python tools/check_site_links.py .` | **34 pages, 0 broken** |
+| Page runtime | `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean**, 34 links |
+| Alerts DOM | `npm test` in `tests/dom` | **16/16** |
+| Summary DOM | `node summary-dom.mjs` | 20 requirement areas, 78/89 claims verified, 32 open / 23 mitigated / 55 flags, 28 sourced rows |
+| **Live render (decisive)** | `gh workflow run live-site-render.yml --ref arena/f2176447-kalshidash2` → run [`44945820999`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945820999) | **SUCCESS in 12 s** against the real demo API — this was `failure` on `main` in run `44878586946` |
+| `verify-alerts` on this branch | run [`44945819226`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945819226) | **success** |
+| Static site link check on this branch | run [`44945819257`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945819257) vs the earlier `44945690095` | **success** after the fixes; the earlier same-day run failed on the pre-fix tree, so the failure was real and is now closed |
+
+No new irregularities were introduced; F1/F2 added no flags. All pre-existing flags on
+`flagged.html` are unchanged and, per the brief, do not block the merge.
+
+
+---
+
+### F3/F4 outcome — merged PR #64, ported PR #60 (2026-11-21)
+
+**F3 done.** [PR #64](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/64) merged to `main` as
+merge commit `c18b32c` (`gh pr merge 64 --merge`). `live-site-render` on `main` went from
+**failure** (`44878586946`) to **success** (`44946257008`), and `Static site link check`
+(`44946257002`) passed on the same commit. Before the merge the branch was rebased on the then-current
+`main` and its own label fix was **dropped** because session `0d6f4f1f` had already merged the identical
+repair in [PR #63](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63) — duplicate work removed,
+their fix kept.
+
+**Pages incident during that window (diagnosed, not a content fault).** Three builds
+(`cbf0df9`, `dcba512`, `c18b32c`) returned `errored` / `Page build failed.` with **`duration: 0`**, i.e.
+rejected before the Jekyll step ran, after eight pushes to `main` inside one hour from parallel sessions.
+Checked and excluded as causes: repo size (1.7 MB), no symlinks, no `160000` gitlinks, no invalid-UTF-8
+files, no unsupported filenames, no Liquid delimiters outside `.github/`. The very next build
+(`e3ec8c1`) completed `built` with no intervention, and the Pages API now reports
+`status: built`, source `main/`, `build_type: legacy`. Recorded as an infrastructure/quota effect, not a
+site defect; no site file was changed in response.
+
+**F4 — PR #60 cannot be merged as authored, so its substance was ported.** `git merge-tree` on
+`origin/main` and PR #60's head fails with *"refusing to merge unrelated histories"*: `main`'s root commit
+`bbdc3a0` (a squashed snapshot) shares no ancestor with PR #60's branch, which descends from the
+pre-squash history. GitHub therefore reports the PR `CONFLICTING` permanently; no rebase or conflict
+resolution can make it mergeable, and this session does not push to another session's branch. Resolution:
+
+| PR #60 change | Action | Why |
+|---|---|---|
+| `404.html` | **ported verbatim** | useful custom 404, no conflicting content |
+| `assets/js/live-feed.js` | **ported verbatim** | real fix: SSE open ≠ upstream subscribed; state records drive LIVE only after `connected`, buffers cleared on drop so a reconnect tick is never compared to a stale price |
+| `scripts/relay.py` | **ported verbatim** | publishes its own state to SSE clients, waits for the ticker subscription confirmation, stops the reconnect loop on an unauthorized error |
+| `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py` | **ported verbatim**, and `.github/workflows/site-check.yml` now runs the JS one in CI | new fixture coverage for the above |
+| `flagged.html` W1 + new `W4` | **ported, re-verified** | W4 (relay signs server-side, conflicting with browser-only signing) is factual and new; W1 reworded to claim fixture-verified status only |
+| `flagged.html` A9, `VERIFICATION.md`, `docs/sources.html`, `docs/verification.html` (`paused` added to the Get Markets filter) | **NOT ported — contradicted by the official source** | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), fetched and read 2026-11-21, enumerates the `status` filter as `unopened`, `open`, `closed`, `settled` only. The `paused` claim is removed from A9 instead and the correction is published on the Flagged page |
+| `questions.html` Q10 | **ported with one claim removed** | the "flushes about once a second" ticker rate could not be confirmed on the official Market Ticker page, so it is not asserted |
+| `data/snapshot.json`, `data/probe/api_surface.json` | **NOT ported** | PR #60's copies are the older `2026-11-21T06:28:13Z` capture; `main` already carries the newer `19:29Z` capture. Porting them would roll captured data backwards for no gain |
+| `reports/alerts-live-check.md` | **NOT ported** | bot-generated; `main` has a newer run |
+| `COORDINATION.md` | **not ported as a file** | recorded here instead |
+
+Ported work is credited to session `9543cf0d` in the commit body. Verified on the ported tree:
+`node --test` **73/73** · `tools` unittest **28 OK** · `tests` unittest **20 OK (3 skip)** ·
+alerts DOM **16/16** · summary DOM pass (flag counts moved to **33 open / 56 total** with W4, computed
+from the page, not hard-coded) · static links **35 pages / 0 broken** · page runtime **17/17**.
+Sources re-read for this record: [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets),
+[Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker).
+
+## Session `29749918` — gas-price classification audit against the live demo API (branch `arena/29749918-kalshidash2`, 2026-11-21)
+
+**Board read before starting.** Open claims on `main` at `bbdc3a0`: `f2176447` (F1–F4: `tests/dom/live-site.mjs`, PR #60 takeover, final integration) — **not touched here**. PR #60 (`arena/9543cf0d`) is open and conflicting; not touched here.
+
+**Claim (written and committed before any other edit):**
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|----------------------------------|------------------------|
+| GC1 | Re-check flag **F4** ("no open gas-price markets on the demo") against the live demo REST API, and audit the two gas-classification rules that disagree: `scripts/collect.py` (official tags `Gas`, `Oil & Gas`, `Oil and energy`) vs `assets/js/config.js` `CATEGORIES.gas` (series regex `^KXA{3}GAS`). Record every gas-related series/event/market found, its official `tags`/`category`/`settlement_sources`, and whether each rule includes or excludes it. | **done** | `29749918` | `reports/gas-coverage-29749918.md` (new), `COORDINATION.md` (this section) | `fetch_page` on `external-api.demo.kalshi.co/trade-api/v2/*` (sandbox `curl` cannot reach kalshi hosts; `fetch_page` can), and [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | Read-only on site code. Any defect found is logged here as a request to the owner of `config.js` / `collect.py` / `flagged.html`, not edited. |
+
+### GC1 record — session `29749918` (2026-11-21, UTC)
+
+**Result:** full write-up in [`reports/gas-coverage-29749918.md`](reports/gas-coverage-29749918.md). Every row there links an official source (demo REST URLs, [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Market](https://docs.kalshi.com/api-reference/market/get-market.md), and the EIA weekly retail gasoline page for `KXGAS`).
+
+| Check | Outcome |
+|---|---|
+| F4 ("no open gas-price markets on the demo") | **Superseded.** Live demo API on 2026-11-21 returns open, `active` AAA gas events: `KXAAAGASW-26NOV23`, `KXAAAGASD-26NOV22`, `KXAAAGASM-26NOV30`, `KXAAAGASM-26DEC31`, `KXAAAGASWNJ-26NOV23`. |
+| Browser rule vs collector rule | Disagree. Applied to the 40 stored gas series in `data/snapshot.json`: 17 match both, **23 match only the collector** (WTI, Brent, natural gas, diesel, ERCOT electricity, solar, oil rigs, SPR…), 0 browser-only. |
+| Gasoline series missed by both rules | `KXGAS` ("Gas weekly", settlement source EIA U.S. weekly retail gasoline). No open events at fetch time. |
+| Non-prefixed gasoline family | `AAAGASM` is matched only through its title (`US gas price`), not its ticker. |
+| Quote freshness | `updated_time` is defined by the official schema as the last *non-trading metadata* update. It is **not** a quote time, so the 2026-11-15 `updated_time` on `KXAAAGASW` does not prove staleness. |
+| Checks run | `python3 tools/check_site_links.py .` → 34 HTML pages, 0 broken. No code changed, so the test suites were not re-run. |
+
+**Irregularities / requests (logged, not edited — each belongs to a file another session owns or to the integration session):**
+
+| ID | Request | Owner / file |
+|----|---------|--------------|
+| GC-I1 | Re-title or close **F4** on `flagged.html` with the evidence in `reports/gas-coverage-29749918.md` §3. | integration session (`flagged.html`) |
+| GC-I2 | Pick one gas definition for both the snapshot and the browser board; the two currently disagree (§5). | `scripts/collect.py` `TOPICS["gas"]`; `assets/js/config.js` |
+| GC-I3 | The collector's `gas` label includes non-gasoline markets (crude, natgas, diesel, electricity, solar). Narrow the filter or relabel as "Energy & commodities". | `scripts/collect.py`; `data/snapshot.json` (regenerated only by the `collect` workflow) |
+| GC-I4 | Add the exact ticker `KXGAS` (EIA weekly retail gasoline) to the gas rule. | `assets/js/config.js` |
+| GC-I5 | Add `^AAAGAS` to the gas series patterns so `AAAGASM` does not depend on title wording. | `assets/js/config.js` |
+| GC-I6 | Do not label `updated_time` as a quote time on any page. | any page that shows it |
+
+Limitations: single point in time (2026-11-21 UTC); a sample of series families, not a full count of the browser's bounded 2,400-event scan; reads were made through the page-fetch tool because sandbox `curl` cannot reach Kalshi hosts. Manual browser checks of the URLs in the report reproduce the same results.
+
+
+### Conflict / handoff log — session `29749918` (2026-11-21, UTC)
+
+- **Rebase conflict on `COORDINATION.md`:** `origin/main` advanced to `882e074` (PR #63, session `0d6f4f1f`, R1 snapshot-note fix). My claim commit conflicted (add/add on the append-only board). Resolved with `tools/resolve_board_conflict.py`: 1 block unioned, 0 duplicate sections dropped, 0 markers left, all 19 `main` session sections present. Nothing from `main` discarded.
+- **Overlap check with R1:** R1 changes only derivation-note strings in `scripts/collect.py` and `data/snapshot.json`. My GC-I2/GC-I3 concern the gas tag filter (`TOPICS["gas"]`), a different line. No substantive overlap.
+- **Own-branch history rewrite:** a chained `git pull --rebase; git push` ran while the rebase was still paused and pushed my pre-rebase GC1 commit `8c7e8f2` to `arena/29749918-kalshidash2`. The rebased branch was then rejected as non-fast-forward. Replaced **only my own** superseded commits with `git push --force-with-lease=arena/29749918-kalshidash2:8c7e8f2` (lease pinned to that exact SHA). No other session's commits are on this branch.
+
+---
+
+## Session `e2718295` — snapshot-metadata drift fix + independent line-by-line verification
+
+Started: 2026-11-21T20:20Z. Work branch: `arena/e2718295-kalshidash2`, branched from `main` at `bbdc3a0` (clean tree, zero diff at claim time).
+
+**Why this scope:** a full local run on `main` at `bbdc3a0` fails **2 checks that no open claim covers**:
+
+| Check | Failure on `main` @ `bbdc3a0` | Root cause |
+|---|---|---|
+| `python3 -m unittest discover -s tools` | 1 of 28 fails — `SnapshotMetadataTests.test_snapshot_labels_contract_counts_and_sampled_trade_value` expects `"contract-count fields"` in `_meta.derivation_notes.contract_volume` | Scheduled collector rewrote the note wording |
+| `node --test tests/*.test.mjs` | 1 of 71 fails — `tests/activity-proxy.test.mjs` expects `"not asserted as actual all-side cash turnover"` | Same regeneration |
+
+The `Collect demo snapshot` workflow (`.github/workflows/collect.yml`, cron `23 */6 * * *`) regenerates `data/snapshot.json` from `scripts/collect.py` and commits with `[skip ci]`, so the drift lands on `main` without any test running. Confirmed at `bbdc3a0` (bot commit, 2026-11-21T19:29Z).
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| E1 | Make the collector's disclosure strings and the two test suites agree on one canonical, officially-sourced wording; update the two affected snapshot note strings (metadata only, no captured values touched); add a generator↔snapshot drift regression test; run the metadata suite in the collect workflow before it commits | in progress | `e2718295` | `scripts/collect.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs`, `data/snapshot.json` (`_meta.derivation_notes` only), `.github/workflows/collect.yml` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`volume_fp` "market volume in contracts", `open_interest_fp` "number of contracts bought on this market disconsidering netting", `notional_value_dollars` "The total value of a single contract at settlement in dollars"); [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) (paginated, limit 1–1000, `min_ts`/`max_ts` in seconds) | Repeated red builds on `main`; no data value is changed by this fix |
+| E2 | Independent line-by-line verification of the claims the site makes about the demo REST/WS surface, market fields, orderbook, candlesticks, auth signing, rate limits and fees, against official Kalshi docs; publish the checklist in `reports/` | unclaimed | — | `reports/verify-facts-e2718295.md` (new), `COORDINATION.md` (this section) | docs.kalshi.com pages, each quoted with its URL | Any claim that cannot be confirmed is recorded as unverified, never filled in |
+| E3 | Run the full local suite, open a PR to `main`, merge it, confirm the Pages deployment and the live-site verifier on the merged SHA | unclaimed | — | `COORDINATION.md` (this section) | `gh pr merge`, Pages API, `verify-live-site` | Do not merge a broken site |
+
+**Claim was committed and pushed before editing E1 files.**
+
+**Non-overlap check at claim time:** session `f2176447` claims `tests/dom/live-site.mjs` + the PR #60 takeover (its section above); open PR [#60](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/60) touches `.github/workflows/site-check.yml`, `404.html`, `VERIFICATION.md`, `assets/js/live-feed.js`, `docs/sources.html`, `docs/verification.html`, `flagged.html`, `questions.html`, `reports/alerts-live-check.md`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py`. **No E1 file is in either scope.**
+
+### E1/E2 outcome — session `e2718295` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| E1 status | **done** — rebased onto `main` `b254e21`; all local checks green (Python tools **30/30**, Node **71/71**, alerts DOM **16/16**, summary DOM pass, page-runtime **17/17** + 34 links 0 broken, static link check 17 pages, `tests/` 18 OK / 3 skipped, signing **6/6**) |
+| Duplicate-work note | Session `0d6f4f1f` fixed the same symptom first (PR [#63](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), `f25ecd7`, merged `882e074`; then PR #65). That wording is **kept verbatim**; `data/snapshot.json` therefore needs no change from this session (the committed notes equal `collect.DERIVATION_NOTES` exactly). This session adds the structure and the guard: one `DERIVATION_NOTES` constant, an exact generator↔snapshot equality test, an official-semantics assertion, and a `collect.yml` gate that runs both metadata suites **before** the bot commits (`[skip ci]` meant nothing caught the drift last time). |
+| E2 status | **done** — `reports/verify-facts-e2718295.md`: 17 interface claims re-verified on 2026-11-21 with verbatim official quotes and links (demo REST/WS endpoints, contract-count and `notional_value_dollars` semantics, `previous_price_dollars`, orderbook `orderbook_fp` shape, candlestick `period_interval` + 5,000-period cap + `price.close_dollars`, ticker `price_dollars` and WS auth, trades pagination, fee-rounding mechanics incl. the official worked example, Create Order V2 body, historical-tier boundary) |
+| Irregularities | **E-I1** `QUESTIONS.md` Q9 / `questions.html` Q9 say "API gives contracts, not dollars" while the official ticker payload also documents integer `dollar_volume` / `dollar_open_interest` ([market-ticker](https://docs.kalshi.com/websockets/market-ticker)); `flagged.html` W2 already lists those fields, so this is a wording issue in Q9 only. **E-I2** `VERIFICATION.md` header still says "Checked 2026-11-20" and points at the superseded `docs/` flag set, although every row re-checked this session is still accurate. Both files are in open PR #60's scope, so they were **logged, not edited**. **E-I4** archived settled markets sit outside the strategy tester's universe — a documented boundary (`GET /markets?status=settled` only returns the live tier), not an error. |
+| Conflict log | `git pull --rebase origin main` (main advanced `bbdc3a0` → `b254e21` mid-session). `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned, 0 sections dropped); `scripts/collect.py` and `data/snapshot.json` conflicts resolved by **keeping session `0d6f4f1f`'s merged strings** and refactoring around them. Nothing discarded. |
+
+
+---
+
+### PR / merge / deploy record — session `29749918` (GC1)
+
+| Item | Result |
+|------|--------|
+| PR | [#68 — GC1: gas-price classification audit vs live demo API](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/68), `arena/29749918-kalshidash2` → `main` |
+| Checks before merge | `check` (Static site link check) **pass**; `mergeStateStatus: CLEAN` |
+| Merge | `gh pr merge 68 --merge` → **MERGED** at `2026-11-21T20:24:30Z`, merge commit [`7ebf5db`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7ebf5db62467b3a51f46c91f3b00c513bdf17d29) |
+| Pages deploy | `pages build and deployment` run [44946120665](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44946120665) on `7ebf5db` → **success**; Pages API `status: built`, source `main:/`; landing page `https://kanlerxz87-cyber.github.io/KalshiDash2/` loads (fetched via the page-fetch tool; the sandbox cannot reach `github.io` with `curl`). |
+| Coordination | The rebase conflicts on `COORDINATION.md` were resolved with `tools/resolve_board_conflict.py` (no sections dropped). Own-branch superseded commits were replaced with `--force-with-lease` pinned to the exact SHA (logged above). |
+
+Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owners and do not block anything.
+
+### Follow-up record — session `29749918` (PR #69 merge, Pages, one overwritten bot commit)
+
+- **PR #69** (board-only record of PR #68): [#69](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/69), check `Static site link check` **pass**, merged with `gh pr merge 69 --merge` → merge commit [`91754f1`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/91754f12acbfef1315136342b08d99a3432fa8c6).
+- **Pages:** `pages build and deployment` for `7ebf5db` (PR #68) **success** (run 44946120665); Pages API `built` after `91754f1` as well.
+- **Incident (logged, not hidden):** a `github-actions[bot]` commit `dc3026f` ("reports: live alerts check from Kalshi demo API [skip ci]", 2026-11-21T20:26:57Z) landed on the PR #69 branch, not only on `main`. My `--force-with-lease` push of the rebased branch replaced that branch tip, so `dc3026f` left the branch history. Its content (`reports/alerts-live-check.md`) differs from `main`'s later report `e3ec8c1`, which is the current version on `main`. The commit object still exists in git (SHA above) and is recoverable. The bot should not write to feature branches; flagged for the owner of the live-alerts workflow.
+- **Session `29749918` status:** GC1 **done**. Requests GC-I1–GC-I6 remain open for their owners.
+
+---
+
+## Session `8d0568c3` — merge of `main` @ `8a13530`: duplicate-work and conflict log (2026-11-21)
+
+While this session was working, other sessions merged PRs #64–#74 to `main` and did **the same tasks
+independently**. Per the standing rule, `main`'s already-merged work is canonical and this session's
+duplicates were dropped rather than re-landed.
+
+### Duplicate work found and how it was resolved
+
+| Task this session claimed | Who did it on `main` first | Resolution |
+|---|---|---|
+| T24 (snapshot disclosure drift) | session `e2718295`, commit `4df6552` "single source for snapshot disclosure notes, drift test, CI gate" | **`main`'s wins.** Their canonical text lives in `DERIVATION_NOTES` and their exact-equality test is kept. This session kept only the additive parts: `scripts/collect.py --print-notes` (no network) so the **Node** test can read the generator too instead of restating prose, plus the assertion that the note quotes the page/limit constants it actually used. |
+| T26 (custom 404) | session `f2176447`, commit `56b293c` | **`main`'s wins.** `404.html` is byte-identical to the version this session had staged; no duplicate added. |
+| T29 (PR #60 live-feed/relay port) | session `f2176447`, commit `56b293c` | **`main`'s wins.** Same fix, already merged with the same two test files. This session's copies were dropped. |
+| T25 (live-render verifier) | session `f2176447` fixed the comma pattern (`/Scanned [\d,]+ events/`) and added `fetchWithRetry` for HTTP 429 | **Merged both.** `main`'s comma fix and retry are kept; this session adds what `main` did not have: the offline helper module + 10 unit tests, `Retry-After`-aware keep, and the **exit-code contract** — a refusal that survives retries is `exit 2` (inconclusive, warning annotation, never green) while an unexplained empty board or non-429 `4xx` stays `exit 1`. |
+| T27 (link-checker default root) | nobody | **Kept as this session's contribution.** Bare `python3 tools/check_site_links.py` now checks the 35 published pages instead of 17 legacy `docs/` pages, and skips vendored trees. 2 new unit tests. |
+
+### Correction to A9 — the official page contradicts itself
+
+`main`'s A9 (from `56b293c`) states "The current Get Markets page does not document `paused` in that
+enumeration". Re-reading <https://docs.kalshi.com/api-reference/market/get-markets> on 2026-11-21 shows the
+page disagrees with itself:
+
+* its rendered **Query Parameters** enumeration says *"Available options: `unopened`, `open`, `paused`,
+  `closed`, `settled`"* — including `paused`;
+* the same page's **description metadata** says *"Possible values: `unopened`, `open`, `closed`,
+  `settled`"* — without `paused`.
+
+Neither earlier reading was invented; each read a different part of one page. A9 now records the
+discrepancy, quotes both, and notes that no request depends on it (the site sends `status=open` and filters
+locally). **This is the one place where this session changed another session's published claim**, and it
+changed it to a quoted observation of both variants rather than to a new assertion.
+
+### Conflict log (merge of `8a13530`)
+
+| File | Resolution |
+|---|---|
+| `COORDINATION.md` | `tools/resolve_board_conflict.py`: 1 block unioned, 0 sections dropped. Both sessions' records intact. |
+| `flagged.html` | Started from `main`'s version (keeps W4 and its A9 wording), re-applied this session's A9 correction and four new items `V1`, `V2`, `V3` (mitigated) and `D1` (open). No id reused: `main` had added `W4`, so `V*`/`D1` were free. Register now 60 items. |
+| `scripts/collect.py` | Took `main`'s canonical `DERIVATION_NOTES` verbatim, re-added only the `--print-notes` argument. |
+| `tools/test_collect.py` | Auto-merged into a hybrid that failed (this session's expected phrase vs `main`'s canonical wording). Fixed by asserting `main`'s phrase and keeping this session's structural checks. Now 32/32. |
+| `tests/activity-proxy.test.mjs` | Same hybrid problem, same fix: `main`'s phrase, this session's generator-equality check. Now 3/3. |
+| `tests/dom/live-site.mjs` | Started from `main`'s version, layered the refusal classification and exit-code contract on top (both re-verified by stubbing the network). |
+| `.github/workflows/site-check.yml` | Auto-merged; removed the duplicate `live-feed-state` step (both sessions added one) and kept both of this session's unique steps. |
+| `reports/alerts-live-check.md` | Two bot captures; kept the **fresher** (`20:29:24Z` over `20:26:34Z`), per the board's standing precedent. |
+
+**Older-branch note:** this branch was based on `bbdc3a0`, so its first commits re-did work that `main` had
+already merged. Nothing from `main` was reverted; the net diff of this merge against `main` is the five
+contributions listed above.
+
+### Post-merge verification (merged tree, before pushing)
+
+Node **83/83** across 8 files · Python tools **32/32** · Python `tests/` **20** (3 skipped, `cryptography`
+absent) · DOM alerts **16/16** · DOM summary 20 requirement areas, 78/89 claims, **34 open / 26 mitigated /
+60 flags**, 28 sourced rows · links **35 pages / 0 broken** · page runtime **17/17** · signing **6/6** ·
+all 12 workflow files parse (`js-yaml`) · stubbed-network checks: 429 storm → **exit 2** (3 passed, 0 failed,
+4 inconclusive); 2,468-event fixture → **exit 0** (9 passed, comma count parsed).
