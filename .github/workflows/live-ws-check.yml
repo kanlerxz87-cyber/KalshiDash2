@@ -1,0 +1,69 @@
+name: live-ws-check
+
+# Verifies the Kalshi WebSocket ticker client against the official Kalshi DEMO
+# WebSocket endpoint and commits the result to reports/.
+#
+# Why this has to run on a runner: the build sandbox cannot open TLS to
+# *.kalshi.co ("socket disconnected before secure TLS connection was
+# established"), so the WebSocket handshake can only be proven where both
+# github.io and kalshi.co are reachable — a GitHub-hosted runner.
+#
+# What it proves:
+#   1. The documented WebSocket host is reachable and the handshake is accepted
+#      with the three signed KALSHI-ACCESS-* headers.
+#   2. The `subscribe` command is accepted and the server answers `subscribed`.
+#   3. The `ticker` channel delivers messages whose field names match the
+#      documented payload (price_dollars, yes_bid_dollars, ...).
+#   4. The ticker payload is mapped onto the site's own reading shape and the
+#      >= $0.10 swing test works on a real frame.
+#
+# The report is committed even when the check fails, so a red run still leaves
+# evidence behind.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/kalshi_ws.py"
+      - "scripts/relay.py"
+      - "assets/js/live-core.js"
+      - "assets/js/live-feed.js"
+      - "tools/verify/live-ws-check.py"
+      - ".github/workflows/live-ws-check.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-ws-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: python3 -m pip install --upgrade pip && pip install websockets cryptography requests
+
+      - name: Run the live WebSocket check
+        run: python3 tools/verify/live-ws-check.py reports/live-ws-check.md
+
+      - name: Commit the report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/live-ws-check.md
+          if git diff --staged --quiet; then
+            echo "no change"
+          else
+            git commit -m "reports: live WebSocket check against the Kalshi demo API [skip ci]"
+            git push || echo "push skipped (branch protected or diverged)"
+          fi
