@@ -15,7 +15,7 @@
    "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
    "sampled_last_trade_time": "Latest created_time among valid trade rows returned for the market; not necessarily the latest market trade.",
    "ranking": "events/markets sorted by volume_24h_fp desc, then volume_fp desc (contract volume, not dollar volume).",
-   "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching."
+   "topic_rules": "Discovery uses only official Kalshi `category` / `tags` filters. Where no category covers a topic (retail gasoline), the same explicit series-family + title rule and exclusions as the dashboard (assets/js/config.js) are applied locally; they can only narrow the official candidate list, never add to it."
   },
   "collection_scope": {
    "coverage": "sampled; no full-exchange completeness claim",
@@ -258,7 +258,7 @@
  "topics": {
   "gas": {
    "label": "Gas Prices",
-   "rule": "Selected with the server-side `tags` parameter (Gas / Oil & Gas / Oil and energy). The Get Series List spec leaves the tags parameter's matching semantics undescribed, so this is a filter these URLs applied, not a documented taxonomy.",
+   "rule": "Selected from the official categories Economics / Commodities plus the directly fetched KXGAS series, then restricted to the retail-gasoline series families (KXAAAGAS*, AAAGAS*, KXGAS) and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded - the same rule the dashboard applies.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 228,
    "series": [
@@ -11083,7 +11083,7 @@
   },
   "elections": {
    "label": "Elections",
-   "rule": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Elections.",
+   "rule": "Selected by the official Kalshi category 'Elections'.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 2710,
    "series": [
@@ -22126,7 +22126,7 @@
   },
   "culture": {
    "label": "Culture",
-   "rule": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Culture.",
+   "rule": "Selected by the official Kalshi categories 'Culture', 'Social' and 'Entertainment' - the same three categories the dashboard maps to Culture.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 2,
    "series": [
@@ -22172,7 +22172,7 @@
   },
   "crypto": {
    "label": "Crypto",
-   "rule": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Crypto.",
+   "rule": "Selected by the official Kalshi category 'Crypto'.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 321,
    "series": [
@@ -33546,7 +33546,7 @@
   },
   "golf": {
    "label": "Golf",
-   "rule": "Selected with the server-side `tags` parameter (Golf). The Get Series List spec leaves the tags parameter's matching semantics undescribed, so this is a filter these URLs applied, not a documented taxonomy.",
+   "rule": "Selected with the server-side `tags` parameter (Golf). The Get Series List spec does not describe how `tags` matching works, so this is the filter the request applied, not a documented taxonomy.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 134,
    "series": [

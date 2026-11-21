@@ -7,9 +7,9 @@
  */
 export const DEMO = {
   rest: "https://external-api.demo.kalshi.co/trade-api/v2",
-  /* The demo market site, documented verbatim as https://demo.kalshi.co/ .
-   * Only the root is linked: the demo-environment guide does not document a
-   * per-market URL path, so none is assembled here. */
+  /* The demo market site, documented verbatim as https://demo.kalshi.co/ in
+   * https://docs.kalshi.com/getting_started/demo_env . Only the root is linked:
+   * that guide documents no per-market URL path, so none is assembled. */
   site: "https://demo.kalshi.co/",
   ws: "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2",
   signPath: "/trade-api/v2",            // pre-sign WS text: ts + "GET" + "/trade-api/ws/v2"
@@ -112,12 +112,10 @@ export const TOPICS = [
     categoryPatterns: [/^Elections$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    /* No scan counts are published here. A count written into this note is a
-     * point-in-time observation, and the previous counts on this panel ("740 of
-     * 1,000 live events", "only 2 live events" for Crypto) were wrong within a
-     * day: the 2026-11-21 snapshot holds 86 crypto events. The page prints the
-     * scan it just performed instead. */
-    note: "Matched on Kalshi category `Elections`. The count on this page is the scan it just ran, not a stored total.",
+    /* No count is hard-coded: the observed share changes with every scan. The
+     * 2026-11-20 capture (740 of 1,000 events) is recorded in reports/verify-facts-v3.md
+     * §G and in claims.js with its date, not presented here as current. */
+    note: "Matched on Kalshi category `Elections`.",
     verifiedCategory: "Elections",
     sources: ["events"]
   },
@@ -141,7 +139,10 @@ export const TOPICS = [
     categoryPatterns: [/^Crypto$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi category `Crypto`. The count on this page is the scan it just ran, not a stored total.",
+    /* Same rule as Elections: the live event count changes and is not
+     * hard-coded (the 2026-11-21 snapshot holds 86 crypto events from a
+     * 40-series cap, so any fixed number would mislead). */
+    note: "Matched on Kalshi category `Crypto`.",
     verifiedCategory: "Crypto",
     sources: ["events"]
   },
