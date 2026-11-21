@@ -1710,3 +1710,17 @@ The `Collect demo snapshot` workflow (`.github/workflows/collect.yml`, cron `23 
 | Irregularities | **E-I1** `QUESTIONS.md` Q9 / `questions.html` Q9 say "API gives contracts, not dollars" while the official ticker payload also documents integer `dollar_volume` / `dollar_open_interest` ([market-ticker](https://docs.kalshi.com/websockets/market-ticker)); `flagged.html` W2 already lists those fields, so this is a wording issue in Q9 only. **E-I2** `VERIFICATION.md` header still says "Checked 2026-11-20" and points at the superseded `docs/` flag set, although every row re-checked this session is still accurate. Both files are in open PR #60's scope, so they were **logged, not edited**. **E-I4** archived settled markets sit outside the strategy tester's universe — a documented boundary (`GET /markets?status=settled` only returns the live tier), not an error. |
 | Conflict log | `git pull --rebase origin main` (main advanced `bbdc3a0` → `b254e21` mid-session). `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned, 0 sections dropped); `scripts/collect.py` and `data/snapshot.json` conflicts resolved by **keeping session `0d6f4f1f`'s merged strings** and refactoring around them. Nothing discarded. |
 
+
+---
+
+### PR / merge / deploy record — session `29749918` (GC1)
+
+| Item | Result |
+|------|--------|
+| PR | [#68 — GC1: gas-price classification audit vs live demo API](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/68), `arena/29749918-kalshidash2` → `main` |
+| Checks before merge | `check` (Static site link check) **pass**; `mergeStateStatus: CLEAN` |
+| Merge | `gh pr merge 68 --merge` → **MERGED** at `2026-11-21T20:24:30Z`, merge commit [`7ebf5db`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7ebf5db62467b3a51f46c91f3b00c513bdf17d29) |
+| Pages deploy | `pages build and deployment` run [44946120665](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44946120665) on `7ebf5db` → **success**; Pages API `status: built`, source `main:/`; landing page `https://kanlerxz87-cyber.github.io/KalshiDash2/` loads (fetched via the page-fetch tool; the sandbox cannot reach `github.io` with `curl`). |
+| Coordination | The rebase conflicts on `COORDINATION.md` were resolved with `tools/resolve_board_conflict.py` (no sections dropped). Own-branch superseded commits were replaced with `--force-with-lease` pinned to the exact SHA (logged above). |
+
+Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owners and do not block anything.
