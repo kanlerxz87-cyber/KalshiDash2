@@ -2494,6 +2494,42 @@ conflict by keeping both changes and re-running every suite before pushing.
 
 ## Session `f468e69b` — current-turn independent product/source audit
 
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
+
+---
+
+## Session `0ecc28c2` — independent line-by-line re-verification + final integration (branch `arena/0ecc28c2-kalshidash2`, 2026-11-21)
+
+**Claimed at 2026-11-21T23:10Z.** Branch base: `cc9112b` (merge of PR #88, `main`). No other session
+holds a claim on the files below; every prior `in progress` claim on this board is older than the
+60-minute stale-claim window (last commits 20:55Z or earlier), so this session takes the scope over
+and records the handoff here. Nothing from any other session is discarded.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| Z1 | Line-by-line re-verification of the published site's official-source claims; record every check with the official URL it was checked against | **in progress** | `0ecc28c2` | `reports/session-review-0ecc28c2.md` (new), this section | docs.kalshi.com (fetched this session, see report) | — |
+| Z2 | Run every local suite on the branch base and record exact counts | **in progress** | `0ecc28c2` | this section, `reports/session-review-0ecc28c2.md` | local `node --test`, `python3 -m unittest`, `tools/check_site_links.py` | — |
+| Z3 | Final integration for this branch: PR → `main`, merge, confirm Pages deploy, record PR link + merge result | **in progress** | `0ecc28c2` | this section | `gh pr create` / `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+**File scope note:** this session deliberately does **not** edit `index.html`, `assets/js/**`,
+`data/snapshot.json`, `scripts/collect.py`, or any page owned by a currently-running session
+(`117dc8d6` has a final-verification job running on its own branch as this claim lands). Findings that
+require a change in those files are logged as requests on this board and as items in the report,
+never silently rewritten.
+
+---
+
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
 |---|---|---|---|---|---|---|
 | F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |

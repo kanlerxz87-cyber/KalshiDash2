@@ -1089,6 +1089,50 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events schema ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series (series-level category) ↗</a></p>
     </div>
+
+    <div class="irregularity" id="AC1">
+      <h3>AC1 — The exchange-status strip does not repeat a documented caveat about 5xx bodies <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the <em>Get Exchange Status</em> reference warns that when the
+        default index's status cannot be read the response is <code>500</code>, <code>503</code> or
+        <code>504</code>, and that <em>"its body can be an <code>ExchangeStatus</code> with
+        <code>exchange_active</code> and <code>trading_active</code> set to <code>false</code>, or an error
+        object, and in neither case does it mean the exchange is paused."</em> The landing page reads those
+        two flags to render its "trading is active" strip.</p>
+      <p><strong>Why it is flagged rather than changed here:</strong> the reader lives in
+        <code>assets/js/ui.js</code>, which is outside this session's file scope. If a 5xx body were parsed
+        as a normal status object, the strip could read "paused" during a gateway timeout — an
+        outage reported as a trading halt.</p>
+      <p><strong>What would close it:</strong> read the flags only from an HTTP <code>200</code> response,
+        and render "status unavailable" for any other code, exactly as the reference instructs.</p>
+      <p><strong>Not asserted:</strong> that the page currently mis-reports. This session did not observe a
+        5xx from the demo host, and the sandbox cannot reach it (see the container note in
+        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a>). The gap is
+        that the defence is not evidenced either way.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AC2">
+      <h3>AC2 — Three topic rows cited a glossary page that does not contain the claim <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the claim register's rows <em>"Elections is a category"</em>,
+        <em>"Crypto is a category"</em> and <em>"Golf lives inside Sports"</em> linked the
+        <em>Kalshi Glossary</em>. That page explains what a category is and uses the monthly US gas price
+        series as its worked example; it does not enumerate <code>Elections</code>, <code>Crypto</code> or
+        <code>Sports</code>, and says nothing about golf. The claims themselves were right — the <em>links</em>
+        did not support them.</p>
+      <p><strong>Fixed:</strong> the three rows now cite <em>Get Series List</em> (the page that defines the
+        <code>category</code> field and is the page the captured vocabulary was read from) and name
+        <em>Get Tags for Series Categories</em> as the official category-to-tag map. The observed values are
+        unchanged and come from the committed capture <code>data/probe/api_surface.json</code>:
+        Elections 5,420 · Crypto 642 · Sports 8,486 series.</p>
+      <p><strong>Why this class of defect is easy to miss:</strong> the link checker proves a link resolves,
+        not that the linked page says what the row claims. Suggested guard in
+        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a> §4 S3.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories" target="_blank" rel="noopener noreferrer">Get Tags for Series Categories ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/terms" target="_blank" rel="noopener noreferrer">Glossary (what the page actually says) ↗</a></p>
+    </div>
   </div>
 
   <div class="card">
