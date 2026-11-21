@@ -218,7 +218,6 @@
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/scripts/relay.py" target="_blank" rel="noopener noreferrer">scripts/relay.py ↗</a> ·
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/js/live-feed.js" target="_blank" rel="noopener noreferrer">assets/js/live-feed.js ↗</a></p>
     </div>
-  </div>
 
     <div class="irregularity" id="F13">
       <h3>F13 — The shortlist chat is a tradeability screen, not a validated edge <span class="tag warn">open</span></h3>
@@ -1353,6 +1352,21 @@
         Verified by the page-runtime check (17/17) and the DOM suites after the change.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/index.html" target="_blank" rel="noopener noreferrer">index.html on main ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §D</a></p>
+    </div>
+
+    <div class="irregularity" id="K3">
+      <h3>K3 — Four cards of the "Unverified" section rendered outside their section container <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> a stray <code>&lt;/div&gt;</code> after F10 closed section 2's card early, so
+        F13–F16 were laid out directly in the page body (no card background or padding) and the section's real closing
+        tag became an unmatched end tag that browsers silently drop. A tag-balance pass over the page found it; the same
+        imbalance is present in the base commit, so it predates this session.</p>
+      <p><strong>Impact:</strong> presentation only — every card, link and anchor still rendered and resolved, which is why the
+        link check and the DOM suites never saw it.</p>
+      <p><strong>Fix:</strong> the stray end tag was removed; the page's <code>div</code> nesting is now balanced
+        (checked with Python's <code>html.parser</code> before and after).</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/flagged.html" target="_blank" rel="noopener noreferrer">flagged.html on main ↗</a> ·
         <a class="src-link" href="reports/verify-0acc711d.md">verification report §D</a></p>
     </div>
 

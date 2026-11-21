@@ -60,6 +60,7 @@ page [Market Ticker](https://docs.kalshi.com/websockets/market-ticker), both fet
 | Flagged **E3** / `VERIFICATION.md` | header "Checked 2026-11-20 … `docs/sources.html`", closing pointer to `docs/flagged.html` F1–F7 | re-dated, repointed to the root `flagged.html` register; CORS row now cites the committed runner capture instead of "unverified"; the stale `docs/` F4 reference removed | `reports/verify-facts-v3.md` (CORS table), this report |
 | Flagged **SB4** | "cannot reach the API to ask again" | live answer recorded (C6–C9): two distinct records, no alias observed at 23:09Z; the `scripts/collect.py` comment asserting the alias is logged as a request to the collector owner | C6–C9 |
 | `questions.html` Q10 | "don't know … whether the ticker channel can deliver every intermediate price change" | answered from the official source: it does not; `trade` / `orderbook_delta` are the per-change channels | B1 |
+| `flagged.html` markup | a stray `</div>` after F10 closed the "Unverified" section early, so F13–F16 rendered outside their card and the section's real closing tag was dropped by the browser (present in the base commit) | removed; `div` nesting balanced (Flagged **K3**) | `html.parser` tag-balance pass before/after |
 | `index.html` | an unused `rows` array (a byte-for-byte duplicate of the `sorted` board render) was rebuilt on every 60-second refresh and never read | removed; no rendered output depends on it (Flagged **K2**) | `git diff` of `index.html`; page-runtime check 17/17 |
 
 ## E. Not verified in this session (left as is)
