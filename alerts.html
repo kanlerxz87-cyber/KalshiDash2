@@ -101,8 +101,15 @@
   <div class="feeds">
     <section class="card" aria-labelledby="h-all">
       <h2 id="h-all">All alerts</h2>
-      <p class="sub">Every move of ≥ $0.10 between two polls. Newest at the bottom.</p>
+      <p class="sub">Every move of ≥ $0.10 between two polls. Newest at the bottom, in a
+        fixed-height log that scrolls; it stays where you scrolled if you are reading older rows.</p>
       <div class="chat" id="feed-all" role="log" aria-live="polite" aria-label="All alerts"></div>
+      <p class="small muted" style="margin:8px 0 0">
+        Each message lists the official API response and the event's settlement sources.
+        <strong>Track to resolution</strong> adds that market to the
+        <a href="resolved.html">Resolved</a> page, which polls it until the exchange reports
+        <em>yes</em> or <em>no</em>; <strong>event detail</strong> opens every market in the event with its rules.
+      </p>
     </section>
     <section class="card" aria-labelledby="h-watch">
       <h2 id="h-watch">High-ROI watch</h2>

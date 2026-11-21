@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   detectMoves, watchCheck, planTrades, updateTrade, summarize,
-  pickUniverse, chunk, quoteOf, volumePriceProxy, THRESHOLD, WATCH_RULES
+  pickUniverse, chunk, quoteOf, volumePriceProxy, THRESHOLD, WATCH_RULES,
+  marketRefFromAlert
 } from "../assets/js/alerts-core.js";
 
 const mk = (over = {}) => ({
@@ -200,4 +201,35 @@ test("High-ROI rule constants are the documented parameters", () => {
   assert.equal(WATCH_RULES.maxSpread, 0.05);
   assert.equal(WATCH_RULES.minPrice, 0.10);
   assert.equal(WATCH_RULES.maxPrice, 0.90);
+});
+
+/* ---- track-to-resolution reference (session 02091230) --------------------- */
+
+test("marketRefFromAlert maps the alert's own documented fields and never invents one", () => {
+  const a = {
+    ticker: "KXAAAGASW-26NOV23-3.6400",
+    title: "US gas prices this week",
+    eventTicker: "KXAAAGASW-26NOV23",
+    to: 0.04,
+    status: "active",
+    result: null,
+    quote: { yesBid: 0.02, yesAsk: 0.04, spread: 0.02 }
+  };
+  const ref = marketRefFromAlert(a);
+  assert.equal(ref.ticker, a.ticker);
+  assert.equal(ref.event_ticker, a.eventTicker);
+  assert.equal(ref.last_price_dollars, 0.04);
+  assert.equal(ref.yes_bid_dollars, 0.02);
+  assert.equal(ref.yes_ask_dollars, 0.04);
+  // Not on an alert: stays null, so the UI shows n/a rather than $0.00 / a date.
+  assert.equal(ref.close_time, null);
+  assert.equal(ref.result, "");
+});
+
+test("marketRefFromAlert keeps a missing quote side null and rejects a tickerless alert", () => {
+  const ref = marketRefFromAlert({ ticker: "T", to: 0.5 });
+  assert.equal(ref.yes_bid_dollars, null);
+  assert.equal(ref.yes_ask_dollars, null);
+  assert.equal(marketRefFromAlert(null), null);
+  assert.equal(marketRefFromAlert({ to: 0.5 }), null);
 });
