@@ -2561,4 +2561,39 @@ traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official**
 `volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
 control with the request count stated, never on every poll. If any page of trades is unreachable the figure
 renders as `n/a` and is flagged, never as `$0.00`.
->>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)
+## Session `02091230` — line-by-line API-contract re-verification + alert-feed usability (2026-11-21)
+
+Branch: `arena/02091230-kalshidash2`, branched from `main` @ `cc9112b`.
+State at claim time (verified, not assumed): `gh pr list --state open` → **no open PRs**; `origin/main`
+= `cc9112b`; working tree clean; local suite green (78/78 Node unit tests, 42/42 Python tool tests,
+35-page link check, 17/17 page-runtime). No other session has an open claim, so the scopes below are exclusive.
+
+### Task claims (exclusive file scope)
+
+| ID | Task | Status | Owner | Exclusive files | Verification planned | Irregularities |
+|---|---|---|---|---|---|---|
+| U1 | Independent line-by-line re-verification of the API contracts this site depends on, against the official docs (not against the repo's own text) | **in progress** | `02091230` | `COORDINATION.md` (this section) | Orderbook shape, Create Order V2, Get Market `previous_price_dollars`, Get Markets/Get Events `limit`, Get Balance, Get Positions, WS `ticker` payload, official fee schedule PDF + fee rounding | **U-I1**: `assets/js/market.js:23` says the documented page limit for `GET /markets` **and** `GET /events` is 200. Get Markets documents **default 100, maximum 1000**; only Events documents 200. |
+| U2 | Fix U-I1 and remove two pieces of dead/unsafe code found in the same pass | unclaimed → **in progress** | `02091230` | `assets/js/market.js`, `index.html` | Local Node + page-runtime suite after the edit | **U-I2**: `rankEvents()` emits a `seriesUrl` that is an *event* URL and whose ternary has identical branches; nothing reads it. **U-I3**: `analyseFills()` computes `notional = count × 1` ("$1 per contract at settlement") although the documented `notional_value_dollars` need not be $1 for scalar markets; nothing renders it. |
+| U3 | Alert feed: let a trader track an alerted market to resolution and open the event detail page, without leaving the feed | **in progress** | `02091230` | `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs` | Alerts DOM test + page runtime + a new unit test for the helper that builds the watch entry | Uses only documented fields already on the alert (`ticker`, `to`, quotes, OI). No new inference. |
+| U4 | Publish two newly verified facts (fee-table parity; WS whole-dollar notional exists) in the registers, with sources | **in progress** | `02091230` | `assets/js/claims.js`, `suggestions.html` | Claim register renders; suggestions page link check | `dollar_volume` / `dollar_open_interest` are documented **only** on the WS ticker payload, not on REST market objects; the suggestion says so explicitly. |
+| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | unclaimed | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
+
+**Claim committed and pushed before any edit to the files above.**
+
+### Sources fetched for U1 (2026-11-21, all official)
+
+| # | Source | What it confirms |
+|---|---|---|
+| U-S1 | <https://docs.kalshi.com/api-reference/market/get-market-orderbook.md> | `200` body is `{"orderbook_fp": {"yes_dollars": [[price, count]], "no_dollars": [...]}}`; `depth` 0–100, default 0. Matches `deriveQuote()` and `?depth=20`. |
+| U-S2 | <https://docs.kalshi.com/api-reference/orders/create-order-v2.md> | Route `POST /portfolio/events/orders`; body `ticker, side(bid|ask), count "10.00", price "0.5600", time_in_force, self_trade_prevention_type, client_order_id`; `201` returns `order_id`. Matches `createOrder()`. |
+| U-S3 | <https://docs.kalshi.com/api-reference/market/get-market.md> | `previous_price_dollars` = "Price for the last traded YES contract on this market **a day ago** in dollars"; status enum is `initialized…finalized`; `notional_value_dollars` = single-contract settlement value. Confirms the alerts page wording and Flag A11. |
+| U-S4 | <https://docs.kalshi.com/api-reference/market/get-markets.md> | `limit`: "Defaults to 100. **Maximum value is 1000.**"; query `status` enum `unopened/open/paused/closed/settled`; `tickers` comma-separated. Confirms U-I1. |
+| U-S5 | <https://docs.kalshi.com/api-reference/portfolio/get-balance.md> | `balance` is **cents**, `balance_dollars` is a fixed-point dollar string; `portfolio_value` is cents with no `_dollars` twin. Matches `portfolio.html`. |
+| U-S6 | <https://docs.kalshi.com/api-reference/portfolio/get-positions.md> | `MarketPosition` carries `market_exposure_dollars`, `realized_pnl_dollars`, `fees_paid_dollars`. Matches the positions table. |
+| U-S7 | <https://docs.kalshi.com/websockets/market-ticker.md> | Ticker payload: `market_ticker`, `price_dollars`, quotes, `volume_fp`, `open_interest_fp`, `dollar_volume`, `dollar_open_interest`, `ts_ms`. Confirms `live-core.js` mapping. |
+| U-S8 | <https://kalshi.com/docs/kalshi-fee-schedule.pdf> ("effective July 7, 2026") | `fee = roundup(M × 0.07 × C × P × (1−P))`, maker `0.0175`, "no settlement fee", the 21-row general fee table, and **all ten** zero-multiplier series. Matches `FEE_SCHEDULE` + `ZERO_TAKER_FEE_SERIES` exactly. |
+| U-S9 | <https://docs.kalshi.com/getting_started/fee_rounding.md> | Trade fee `ceil_6dp`, balance alignment grid `$0.0001` direct / `$0.01` non-direct, rebate mechanics. Matches `fillFeeDollars()`; the PDF table is reproduced with the non-direct grid. |
+
+Not verified here (sandbox cannot open TLS to Kalshi hosts from the shell; browser/CI paths already cover them):
+live demo responses, CORS, and Pages rendering. Those remain the responsibility of the hosted workflows whose
+run IDs are recorded elsewhere on this board.
