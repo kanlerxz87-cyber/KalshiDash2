@@ -2432,3 +2432,19 @@ resolved by keeping `main`'s already-merged work (board union tool, fresher bot 
 and re-landing only this session's unique contributions. This session deleted its own duplicate
 `boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
 removed.
+
+---
+
+## Session `117dc8d6` — final verification + liveness audit (2026-11-21)
+
+Branch: `arena/117dc8d6-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
+No other session had an open PR or an in-progress claim at claim time (verified via `gh pr list --state open` → empty; `gh run list` → all success, Pages `built`).
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| F1 | Line-by-line verification of published site claims vs official Kalshi docs (demo env, Get Markets/Market, candlesticks, orderbook, ticker WS, Create Order V2, settlement, API keys) | in progress | `117dc8d6` | `COORDINATION.md` (this section), `reports/verify-117dc8d6.md` (new) | docs.kalshi.com via fetch tool; live site via fetch tool; local test suite | — |
+| F2 | Full local suite: Node unit, Python tools, link check, page-runtime, syntax, diff-check | in progress | `117dc8d6` | same as F1 | local runs recorded in report | — |
+| F3 | Liveness/interactivity audit vs brief (charts, liquidity, alerts, suggestions) + fix any defect found | in progress | `117dc8d6` | same as F1; site-file edits only if a defect is proven, logged here first | brief requirements; official docs | — |
+| F4 | PR → main, merge, confirm Pages deploy, record run IDs here | unclaimed | `117dc8d6` | same as F1 | `gh`, Pages API | — |
+
+**Claim commit:** this section committed and pushed immediately, before any other work.
