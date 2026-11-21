@@ -1360,10 +1360,10 @@ session `53975890` (PR #42, merged as `95beacf`); all its tasks are closed, so n
 
 | # | Task | Status | Owner | File scope (exclusive) |
 |---|------|--------|-------|--------------------------|
-| W1 | **WebSocket ticker feed for the live alerts page** — subscribe to the officially documented `ticker` channel and detect ≥ $0.10 swings as the exchange publishes them, instead of only on a 15 s REST poll | in progress | `1607f1f9` | `assets/js/ws-feed.js` (new), `assets/js/alerts.js`, `assets/js/alerts-core.js`, `assets/js/config.js`, `assets/js/kalshi.js`, `alerts.html`, `tests/ws-feed.test.mjs` (new) |
-| W2 | **Resolve the published duplicate site generation** (flagged Y10): the stale `docs/` tree is still served at `/docs/` and carries defects F6–F8 | in progress | `1607f1f9` | `docs/**` (removal), `.github/workflows/pages.yml` |
-| W3 | **Resolve the dead-file flag Y9** — `assets/js/jumps.js` is tracked but imported by no published page | in progress | `1607f1f9` | `assets/js/jumps.js` (adopt or remove), `assets/js/category.js`, `assets/js/ui.js` |
-| W4 | **Propagate W1–W3 to the shared decision pages** | unclaimed | `1607f1f9` | `verification.html`, `flagged.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
+| W1 | **WebSocket ticker feed for the live alerts page** — subscribe to the officially documented `ticker` channel and detect ≥ $0.10 swings as the exchange publishes them, instead of only on a 15 s REST poll | in progress | `1607f1f9` | `assets/js/live-core.js` (new), `assets/js/live-feed.js` (new), `assets/js/alerts.js`, `alerts.html`, `scripts/kalshi_ws.py` (new), `scripts/relay.py` (new), `tests/live-core.test.mjs` (new), `tools/verify/live-ws-check.py` (new), `tools/verify/live-ws-swing-check.mjs` (new), `.github/workflows/live-ws-check.yml` (new) |
+| W2 | **Resolve the published duplicate site generation** (flagged Y10): the stale `docs/` tree is still served at `/docs/` and carries defects F6–F8 | **released — done by `9d7b4124`** (Z3: `docs/index.html` replaced with a redirect to the root site; Y10 marked `mitigated`) | — | — |
+| W3 | **Resolve the dead-file flag Y9** — `assets/js/jumps.js` is tracked but imported by no published page | **released — done by `9d7b4124`** (Z2: the file was deleted; Y9 marked `fixed`) | — | — |
+| W4 | **Propagate W1 to the shared decision pages** | unclaimed | `1607f1f9` | `verification.html`, `flagged.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
 
 **Non-overlap note.** W1/W2/W3 touch files no other open claim on this board names. The only
 file in two of my own scopes is `assets/js/config.js`, which W1 owns; W3 does not edit it.
