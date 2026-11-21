@@ -1422,3 +1422,66 @@ locally). One-line fix: the name is now quoted. All 12 workflow files parse clea
 `verify-alerts.yml` was not in any active claim (last owner `75932362`, closed; the breaking edit
 was an unlogged extension of `1607f1f9`'s W1). Logged here per the coordination rules. The same
 commit's `site-check.yml` additions parse fine and were not touched.
+
+---
+
+## Session `df4e0876` — collector semantics and sample-bound verification
+
+Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originally based on `main` at `8ea5c85`.
+
+**Takeover note (60-minute stale-claim rule):** the collector-specific portion of task 12 (`210dfcb8`) remains unclosed: a later takeover record (`2345e0dd`) says its taxonomy gap was folded into C4, but the collector itself was not changed. GitHub file history shows its latest code edit at `3ad78cf3`, 2026-11-20T11:09:06Z. The currently open PRs #47, #51, and #52 were checked by file list: none touches `scripts/collect.py`, `data/snapshot.json`, or `tools/test_collect.py` (PR #52 touches the shared board only). This session takes over the collector-only audit; other sessions' work is preserved.
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| T22 | Audit the scheduled collector's ranking/volume semantics and sample limits; remove unsupported dollar-volume claims, make sampled trade metrics explicit, enforce `--max-events-per-series`, and add offline regression tests. Snapshot edits are limited to derived metadata/field labels; no captured market values will be refreshed or invented. | **done — PR #58 merged; deployment verified** | `df4e0876` | `scripts/collect.py`, `tools/test_collect.py` (existing Python unittest workflow), `data/snapshot.json` (metadata/derived-key labels only), `COORDINATION.md` (this section) | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) describes series volume; [Get Market](https://docs.kalshi.com/api-reference/market/get-market) defines `notional_value_dollars` as the value of a single contract at settlement and `volume_fp` as contracts; [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) documents trade price, count, timestamp, and cursor fields. | The latest snapshot's `dollar_volume` note asserted every market's notional was exactly $1 and equated contract volume with gross dollars; collector also declared but did not apply `--max-events-per-series`. The live site does not read this snapshot. |
+
+**Claim was committed and pushed before editing T22 files.** This is the final integration/audit session for T22; no other claim holds these collector files.
+
+**Rebase conflict log (2026-11-21):** `git pull --rebase origin main` advanced the branch from `08e593e` to `576c9fa` (PRs #48–#50). The append-only conflict in `COORDINATION.md` is resolved by preserving all incoming session records and appending T22; no other session's content was discarded.
+
+### T22 implementation and verification update — 2026-11-21
+
+- `scripts/collect.py` now enforces `--max-events-per-series`: `/events` requests use a page size no larger than the official 200-row maximum, fetch only the cursor pages needed for the requested cap, slice locally as a final guard, avoid requests for a zero cap, and reject negative CLI input. Series/event ranking is described as contract-volume ordering, not dollar turnover.
+- Trade aggregates are explicitly sampled: `yes_price_dollars × count_fp` over valid returned rows from at most three 1,000-row pages. Missing/invalid rows are skipped; output keys identify the sample and YES-price-weighted product. Metadata says this is not gross cash exchanged, complete history, or a complete 24-hour total.
+- `data/snapshot.json` now labels the legacy 3-page trade sample and the pre-fix non-enforced event-cap behavior; four derived keys were renamed. A deep comparison against the previous snapshot verified that `generated_at`, API calls, source URLs, and every captured series/event/market/orderbook/candlestick value are unchanged. No new live data was fetched.
+- Regression/integration checks on the rebased tree: Python tools **28/28** (10 collector tests, including actual cursor pagination), Node unit tests **33/33**, alerts DOM **16/16**, summary DOM passed (19 requirement areas; 68/78 verified, 7 partial, 3 unverified), `npm audit` **0 vulnerabilities**, site links **34 pages / 0 broken**, runtime **17/17 pages**, signing self-test **6/6**, Python compile and `git diff --check` passed.
+- Sources checked for this change: [Get Events](https://docs.kalshi.com/api-reference/events/get-events) (200-row page maximum), [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`volume_fp` contract count; `notional_value_dollars` single-contract settlement value), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), and [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) (trade rows/cursor pagination).
+
+**Overlap/handoff (2026-11-21):** after T22's initial claim, open PR [#53](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/53) was found to touch `scripts/collect.py` and `data/snapshot.json` as well as the root-site proxy labels and A11/A12 Flagged disclosures. PR #55 does not touch T22's files. I posted a coordination note on [PR #53](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/53#issuecomment-7058772119); no changes were made on its branch. The overlap is recorded rather than discarded.
+
+### T22 overlap resolution after PR #53 — 2026-11-21
+
+- PR [#53](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/53) merged at `2026-11-21T06:41:17Z` as `fcea3ad981403004c27177a8e7a1c9e6f34af3f3`; its static checks passed. Its A11/A12 UI and Flagged disclosures, plus the `_sampled_yes_price_times_contracts` label, are retained.
+- Rebasing T22 onto that main state produced conflicts in `COORDINATION.md`, `scripts/collect.py`, and `data/snapshot.json`. Resolution kept both board records; kept PR #53's proxy/A11/A12 comments and field name; merged T22's bounded `/events` pagination and offline cursor tests; and kept the T22 Decimal-based trade-row validation and explicit sample metadata.
+- The snapshot conflict was resolved by starting from `origin/main:data/snapshot.json` after PR #53, then reapplying only legacy derivation/scope notes and explicit labels for three additional derived keys. A deep equality check after normalizing those labels confirmed all captured API values, source URLs, call counts and timestamps match the post-#53 main snapshot. No data was refreshed.
+- Checks on the post-#53 tree: Node tests **43/43**; Python tools **28/28** after aligning an assertion with the official `contract-count fields` wording; alerts DOM **16/16**; summary DOM passed (19 requirement areas; 67/78 verified, 8 partial, 3 unverified); npm audit **0 vulnerabilities**; site links **34/0 broken**; page-runtime **17/17**; signing self-test **6/6**; Python compile and `git diff --check` passed.
+
+**Latest-main watch (updated 2026-11-21):** PR [#55](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/55) merged at `2026-11-21T06:44:45Z` as `63921af0e8b207b34365d44cb0da6eeccef6e400` (no T22 file overlap). The initial `verify-live-site` on `63921af` failed while Pages was transitioning, and investigation found the landing-page content needle had drifted from the current H1. The subsequent Pages deployment for `origin/main` `43fe4bb1a3db57671fe3a2557bd6796f765399ed` succeeded (run [44877020223](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877020223)); after fixing the stale assertion, `verify-live-site` run [44877313600](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877313600) successfully probed the published site. The independent live-render workflow remains an unresolved separate check, as recorded in T23's verification below.
+
+### T23 claim — align the live-site probe with the published heading
+
+| ID | Task | Status | Owner | Exclusive file scope | Verification | Irregularity |
+|---|---|---|---|---|---|---|
+| T23 | Replace the stale root-page content needle in the live Pages verifier with the current published H1, then run the verifier after the latest Pages deployment | **done — included in PR #58; deployed verifier passed** | `df4e0876` | `.github/workflows/verify-live.yml` (exclusive), `COORDINATION.md` (this claim/result only) | Root `index.html` and workflow assertion inspected; final check via GitHub-hosted `verify-live-site` | The workflow previously expected a heading removed when PR #53 relabelled the activity metric. This was verifier drift, not a site-content issue. |
+
+**T23 claim is recorded before editing `.github/workflows/verify-live.yml`.** No other active claim includes this workflow file.
+
+### T23 verification and final pre-PR checks — 2026-11-21
+
+- Updated the root-page assertion to the current `<h1>` text, `Live market activity, tracked to resolution`; did not change site content. `verify-live-site` run [44877313600](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877313600) passed on this branch, probing the deployed Pages site after build [44877020223](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877020223). Pages API reports `built`, source `main:/`. The branch's static site check [44877311660](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877311660) also passed.
+- Full local suite on the post-PR-55 tree: Node **66/66**; tools Python **28/28** (including 10 collector cases); `tests/` Python **18 passed, 3 skipped** because `cryptography` is not installed; alerts DOM **16/16**; summary DOM passed (20 requirement areas; 77/88 verified, 8 partial, 3 unverified); npm audit **0 vulnerabilities**; links **34 pages / 0 broken**; page-runtime **17/17**; signing self-test **6/6**; Python compile and `git diff --check` passed. Snapshot deep-equality check against `origin/main` passed after normalizing the three relabelled fields.
+- **Separate live-render limitation:** `live-site-render` run [44877160804](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877160804) did not complete successfully. Its final step failed, while GitHub's run metadata shows the run as cancelled; the report artifact exists but could not be downloaded from this sandbox, so the specific failed assertion is unconfirmed. Session `3d2e8243` has a separate I2 claim, exclusive to `tests/dom/live-site.mjs`, to allow the app's explicit no-match gas state without masking API failures. T22/T23 did not edit that file. The published pages and current deployment were independently confirmed by the successful `verify-live-site` run above; recheck I2 after that session's change. This is a separate, bounded live-data check, not a collector regression.
+
+### T22/T23 merge and deployment record — 2026-11-21
+
+- PR [#58](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/58) merged to `main` at `2026-11-21T06:53:50Z` as merge commit [`1621131496e1a475e33813584de30f4adb82108b`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/1621131496e1a475e33813584de30f4adb82108b). Its PR check `Static site link check` passed (run [44877629860](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877629860)).
+- On the merged SHA, `pages build and deployment` [44877695888](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877695888) **succeeded**, `Static site link check` [44877697166](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877697166) **succeeded**, and `verify-live-site` [44877697152](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877697152) **succeeded**. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>; the verifier probed the deployed pages and assertions.
+- The `verify-alerts` workflow run [44877696126](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877696126) is marked failure by GitHub, but the Jobs API returns zero jobs and no logs are retrievable. It is not a reported PR check; the PR's static check and the local alert/DOM suites passed. This unclassified workflow-run result is recorded, not attributed to T22.
+- The independent `live-site-render` workflow remains the separate, bounded I2 issue above; its report is unavailable from this sandbox. It does not invalidate the successful live-page probe or Pages deployment and was not edited in T22/T23.
+
+### Conflict log — second merge of `origin/main` (`dbcfc67`, PRs #58/#59, `df4e0876`) (2026-11-21)
+
+| Collision | Resolution |
+|-----------|------------|
+| `COORDINATION.md` | `tools/resolve_board_conflict.py`: 1 block unioned, 0 sections dropped. Both sessions' records kept. |
+| `reports/verify-facts-v3.md` | Two bot captures (my branch `06:55:15Z` vs main `06:48:24Z`); kept the **fresher** `06:55:15Z` capture, matching the board's standing "take the fresher capture" precedent. The dropped capture remains in main's history. |

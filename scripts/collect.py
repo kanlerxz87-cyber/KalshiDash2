@@ -8,13 +8,15 @@ Source of truth (official):
 
 The script uses only the Python standard library so it runs anywhere (CI, laptop).
 
-Every value written to the snapshot is copied verbatim from an official API
-response. Derived fields are computed here and are explicitly labelled as
-derived, with the formula recorded in the output. Nothing is inferred.
+Raw market, event, and series fields written to the snapshot are copied from
+official API responses. Derived fields are computed separately and explicitly
+labelled with their formula and collection limits in the output; capped samples
+are not represented as complete exchange totals.
 
 Usage:
     python3 scripts/collect.py [--out data/snapshot.json] [--top-series 40]
                                 [--top-book 20] [--sleep 0.25]
+                                [--max-events-per-series 10]
 """
 
 from __future__ import annotations
@@ -28,9 +30,24 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 
 BASE = "https://external-api.demo.kalshi.co/trade-api/v2"
 DOCS = "https://docs.kalshi.com"
+EVENTS_PAGE_MAX = 200  # Official GET /events maximum: 1 <= limit <= 200.
+TRADE_SAMPLE_PAGE_LIMIT = 1000
+TRADE_SAMPLE_MAX_PAGES = 3
+
+
+def non_negative_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be non-negative")
+    return parsed
+
 
 # ---------------------------------------------------------------------------
 # Topic taxonomy.
@@ -179,6 +196,89 @@ def pick(d: dict, fields) -> dict:
     return {k: d[k] for k in fields if k in d}
 
 
+def collect_events_for_series(client: Client, series_ticker: str,
+                              max_events: int) -> tuple[list, list[str]]:
+    """Fetch at most ``max_events`` open events for one series.
+
+    GET /events supports a maximum page size of 200. For larger caps, request
+    enough cursor pages to reach the cap; always slice locally too, so an API
+    response that exceeds the requested limit cannot leak extra rows. A zero
+    cap avoids the request entirely. Selection is the API-returned page order,
+    not a dollar-volume ranking.
+    """
+    cap = int(max_events)
+    if cap < 0:
+        raise ValueError("max_events must be non-negative")
+    if cap == 0:
+        return [], []
+
+    limit = min(cap, EVENTS_PAGE_MAX)
+    max_pages = (cap + limit - 1) // limit
+    rows, urls = client.paginate(
+        "/events", "events",
+        {
+            "series_ticker": series_ticker,
+            "status": "open",
+            "with_nested_markets": True,
+            "limit": limit,
+        },
+        max_pages=max_pages,
+    )
+    return rows[:cap], urls
+
+
+def _decimal_value(value) -> Decimal | None:
+    if value is None or value == "":
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return parsed if parsed.is_finite() else None
+
+
+def aggregate_yes_price_weighted_trade_sample(trades: list[dict]) -> dict[str, dict]:
+    """Aggregate only the explicit YES-price-weighted value in returned rows.
+
+    This is *not* gross dollar volume or total cash exchanged. It is
+    SUM(yes_price_dollars * count_fp) over the sampled records returned by
+    GET /markets/trades. Missing or invalid prices/counts are skipped rather
+    than silently treated as zero.
+    """
+    totals: dict[str, dict] = {}
+    for trade in trades or []:
+        if not isinstance(trade, dict):
+            continue
+        ticker = trade.get("ticker")
+        price = _decimal_value(trade.get("yes_price_dollars"))
+        count = _decimal_value(trade.get("count_fp"))
+        if not ticker or price is None or count is None or count <= 0:
+            continue
+
+        row = totals.setdefault(str(ticker), {
+            "yes_price_weighted_value_dollars": Decimal("0"),
+            "contracts_fp": Decimal("0"),
+            "trades": 0,
+            "last_trade_time": None,
+        })
+        row["yes_price_weighted_value_dollars"] += price * count
+        row["contracts_fp"] += count
+        row["trades"] += 1
+        created = trade.get("created_time")
+        if created and (row["last_trade_time"] is None or str(created) > row["last_trade_time"]):
+            row["last_trade_time"] = str(created)
+
+    return {
+        ticker: {
+            "yes_price_weighted_value_dollars": float(row["yes_price_weighted_value_dollars"]),
+            "contracts_fp": float(row["contracts_fp"]),
+            "trades": row["trades"],
+            "last_trade_time": row["last_trade_time"],
+        }
+        for ticker, row in totals.items()
+    }
+
+
 def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[str]]:
     """Fetch the series that belong to a topic using official server-side filters."""
     flt = spec["series_filter"]
@@ -215,7 +315,7 @@ def main() -> int:
     ap.add_argument("--top-series", type=int, default=40)
     ap.add_argument("--top-book", type=int, default=20)
     ap.add_argument("--sleep", type=float, default=0.25)
-    ap.add_argument("--max-events-per-series", type=int, default=10)
+    ap.add_argument("--max-events-per-series", type=non_negative_int, default=10)
     args = ap.parse_args()
 
     client = Client(sleep=args.sleep)
@@ -251,10 +351,8 @@ def main() -> int:
 
     for key, raw in series_by_topic.items():
         for s in raw[: args.top_series]:
-            evs, urls = client.paginate(
-                "/events", "events",
-                {"series_ticker": s["ticker"], "status": "open", "with_nested_markets": True},
-                max_pages=3,
+            evs, urls = collect_events_for_series(
+                client, s["ticker"], args.max_events_per_series
             )
             event_urls += urls
             for ev in evs:
@@ -274,30 +372,17 @@ def main() -> int:
                     mm["_event_title"] = ev.get("title", "")
                     mm["_source"] = f"{BASE}/markets/{m['ticker']}"
 
-    # --------------------------------------------------- sampled trade product
-    # This is only the explicit arithmetic product SUM(yes_price_dollars *
-    # count_fp) over the newest trades returned by this capped request. There
-    # is no time bound; the fetch is limited to 3 pages × 1000 rows. The result
-    # is NOT described as actual all-side cash turnover or complete volume.
-    trades, trade_urls = client.paginate("/markets/trades", "trades", {"limit": 1000}, max_pages=3)
-    trade_products: dict[str, dict] = {}
-    for t in trades:
-        tk = t.get("ticker")
-        if not tk:
-            continue
-        try:
-            px = float(t.get("yes_price_dollars") or 0)
-            qty = float(t.get("count_fp") or 0)
-        except (TypeError, ValueError):
-            continue
-        n = trade_products.setdefault(tk, {"yes_price_times_contracts": 0.0, "contracts_fp": 0.0, "trades": 0,
-                                     "last_trade_time": None})
-        n["yes_price_times_contracts"] += px * qty
-        n["contracts_fp"] += qty
-        n["trades"] += 1
-        lt = t.get("created_time")
-        if lt and (n["last_trade_time"] is None or lt > n["last_trade_time"]):
-            n["last_trade_time"] = lt
+    # ---------------------------------------------- sampled trade diagnostics
+    # Explicit arithmetic only: SUM(yes_price_dollars * count_fp) over valid
+    # rows returned by this capped request. There is no min_ts time bound; the
+    # fetch is limited to three pages x 1000 rows. This is not actual all-side
+    # cash turnover or complete volume (see flagged.html#A12).
+    trades, trade_urls = client.paginate(
+        "/markets/trades", "trades",
+        {"limit": TRADE_SAMPLE_PAGE_LIMIT},
+        max_pages=TRADE_SAMPLE_MAX_PAGES,
+    )
+    trade_sample = aggregate_yes_price_weighted_trade_sample(trades)
 
     # ------------------------------------------------------ order books
     books: dict[str, dict] = {}
@@ -367,11 +452,13 @@ def main() -> int:
         mk_rows = []
         for t in mk_ids:
             m = dict(markets[t])
-            n = trade_products.get(t)
-            m["_sampled_yes_price_times_contracts"] = round(n["yes_price_times_contracts"], 2) if n else None
-            m["_traded_contracts_fp"] = round(n["contracts_fp"], 2) if n else None
-            m["_trade_count"] = n["trades"] if n else None
-            m["_last_trade_time"] = n["last_trade_time"] if n else None
+            sample = trade_sample.get(t)
+            m["_sampled_yes_price_times_contracts"] = (
+                round(sample["yes_price_weighted_value_dollars"], 2) if sample else None
+            )
+            m["_sampled_trade_contracts_fp"] = round(sample["contracts_fp"], 2) if sample else None
+            m["_sampled_trade_count"] = sample["trades"] if sample else None
+            m["_sampled_last_trade_time"] = sample["last_trade_time"] if sample else None
             m.pop("_topics", None)
             mk_rows.append(m)
         mk_rows.sort(key=lambda r: (float(r.get("volume_24h_fp") or 0), float(r.get("volume_fp") or 0)), reverse=True)
@@ -386,6 +473,12 @@ def main() -> int:
             "markets": mk_rows[:200],
         }
 
+    event_page_limit = min(args.max_events_per_series, EVENTS_PAGE_MAX)
+    max_event_pages_per_series = (
+        (args.max_events_per_series + event_page_limit - 1) // event_page_limit
+        if event_page_limit else 0
+    )
+
     snapshot = {
         "_meta": {
             "generated_by": "scripts/collect.py",
@@ -398,18 +491,43 @@ def main() -> int:
             "errors": client.errors[:20],
             "derivation_notes": {
                 "contract_volume": (
-                    "volume_fp / volume_24h_fp / open_interest_fp are fixed-point contract "
-                    "counts. These fields are not converted to traded-dollar volume."
+                    "volume_fp, volume_24h_fp, and open_interest_fp are fixed-point contract "
+                    "counts, not traded-dollar volume. notional_value_dollars is the value "
+                    "of a single contract at settlement, not cumulative turnover."
                 ),
                 "sampled_yes_price_times_contracts": (
-                    "Computed arithmetic: SUM(yes_price_dollars * count_fp) over up to "
-                    "3 pages x limit 1000 from GET /markets/trades. No min_ts time bound is "
-                    "passed; pagination is capped. This is not asserted as actual all-side "
-                    "cash turnover or complete market activity. Only returned trade tickers "
-                    "receive a value."
+                    "Computed arithmetic: SUM(yes_price_dollars * count_fp) over valid rows "
+                    "returned by GET /markets/trades (up to 3 pages x limit 1000). No min_ts "
+                    "time bound is passed; pagination is capped. Missing/invalid prices or "
+                    "counts are skipped. This sample product is not actual all-side cash "
+                    "turnover, gross cash exchanged, full-history activity, or a complete "
+                    "24-hour total; only tickers with valid returned rows receive a value."
                 ),
-                "ranking": "events/markets sorted by volume_24h_fp desc, then volume_fp desc.",
+                "sampled_trade_contracts_fp": "SUM(count_fp) for valid rows in the market's returned trade sample; not complete volume.",
+                "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
+                "sampled_last_trade_time": "Latest created_time among valid trade rows returned for the market; not necessarily the latest market trade.",
+                "ranking": (
+                    "events/markets sorted by volume_24h_fp desc, then volume_fp desc "
+                    "(contract volume, not dollar volume)."
+                ),
                 "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching.",
+            },
+            "collection_scope": {
+                "coverage": "sampled; no full-exchange completeness claim",
+                "max_series_per_topic": args.top_series,
+                "series_selection_order": "descending volume_fp (contract volume)",
+                "max_events_per_series": args.max_events_per_series,
+                "event_cap_enforced": True,
+                "event_selection": "API-returned order up to the per-series cap",
+                "event_page_limit": event_page_limit,
+                "max_event_pages_per_series": max_event_pages_per_series,
+                "max_events_per_topic_in_output": 100,
+                "event_output_selection_order": "descending volume_24h_fp, then volume_fp (contract volume)",
+                "max_markets_per_topic_in_output": 200,
+                "market_output_selection_order": "descending volume_24h_fp, then volume_fp (contract volume)",
+                "trade_sample_page_limit": TRADE_SAMPLE_PAGE_LIMIT,
+                "trade_sample_max_pages": TRADE_SAMPLE_MAX_PAGES,
+                "trade_sample_rows_returned": len(trades),
             },
             "source_urls": {
                 "series": sorted({u for v in series_urls.values() for u in v}),
