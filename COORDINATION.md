@@ -2615,3 +2615,23 @@ closes that gap.
 **Deliberately not changed:** the `$0.10` threshold and its inclusive float-safe comparison, the day-ago label for
 `previous_price_dollars` (re-confirmed by U-S3), the volume × price proxy ranking (switching it to a dollar field would need the
 WS field that S17 describes), and the `docs/` generational redirect (owned by the earlier integration records).
+
+### Conflict log — integrating `main` @ `31e251b` (PR #92) — session `02091230`
+
+`main` advanced by 9 commits while this session worked (PRs #89, #90, #92 from sessions `117dc8d6` and
+`f468e69b`). The branch was rebased onto `31e251b`; nothing from either side was dropped.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `COORDINATION.md` | add/add: `main` appended sessions `117dc8d6` and `f468e69b`; this branch appended its claim at the same end-of-file point | Union — both sessions' sections kept in full, then this session's section after them. Markers removed by deleting only the three conflict lines; verified no session heading was lost (`grep` for both ids). |
+| `suggestions.html` | `main` changed the S8 entry and callout to "built" (PR #88 closed); this session added S17 and changed the KPI labels | Both kept: S8 remains `built` with its merged text, S17 follows S16, and the KPI now shows "Already on the site" alongside Recommended/Optional/Later. Re-checked by page runtime and link check. |
+| everything else | no overlap (`main`'s other changes were `SUGGESTIONS.md` and two new `reports/` files) | untouched. |
+
+Open PRs at integration time: #91 (series-level category) and #93 (archived candle tier). Neither claims a file
+this session edits except that #93 may touch `assets/js/market.js` in the candlestick section; this session's
+`market.js` edits are confined to the `getAll` header comment, the unused `seriesUrl` line in `rankEvents`, and the
+unused `notional` line in `analyseFills`, so a rebase by that owner should be conflict-free or trivially so.
+
+**Session state after rebase:** Node 81/81 · Python tools 42/42 · Python tests 20 (3 skipped) · alerts DOM 21/21 ·
+summary DOM pass (81/92 verified claims, 8 partial, 3 unverified; 41 open / 33 mitigated / 74 flags) · page runtime
+17/17 · link check 35 pages / 0 broken · signing self-test 6/6 · `git diff --check` clean.
