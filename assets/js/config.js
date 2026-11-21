@@ -102,7 +102,12 @@ export const TOPICS = [
     categoryPatterns: [/^Elections$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi category `Elections` (740 of 1,000 live events scanned).",
+    /* No scan counts are published here. A count written into this note is a
+     * point-in-time observation, and the previous counts on this panel ("740 of
+     * 1,000 live events", "only 2 live events" for Crypto) were wrong within a
+     * day: the 2026-11-21 snapshot holds 86 crypto events. The page prints the
+     * scan it just performed instead. */
+    note: "Matched on Kalshi category `Elections`. The count on this page is the scan it just ran, not a stored total.",
     verifiedCategory: "Elections",
     sources: ["events"]
   },
@@ -126,7 +131,7 @@ export const TOPICS = [
     categoryPatterns: [/^Crypto$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi category `Crypto` (only 2 live events in the demo scan).",
+    note: "Matched on Kalshi category `Crypto`. The count on this page is the scan it just ran, not a stored total.",
     verifiedCategory: "Crypto",
     sources: ["events"]
   },

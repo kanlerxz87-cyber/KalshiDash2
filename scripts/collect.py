@@ -66,32 +66,32 @@ TOPICS = {
         "label": "Gas Prices",
         # Official Kalshi tag for gasoline / oil-and-gas markets.
         "series_filter": {"tags": ["Gas", "Oil & Gas", "Oil and energy"]},
-        "note": "Selected by the official Kalshi tag(s) Gas / Oil & Gas / Oil and energy.",
+        "note": "Selected with the server-side `tags` parameter (Gas / Oil & Gas / Oil and energy). The Get Series List spec leaves the tags parameter's matching semantics undescribed, so this is a filter these URLs applied, not a documented taxonomy.",
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "elections": {
         "label": "Elections",
         # Official Kalshi category for election markets.
         "series_filter": {"category": "Elections"},
-        "note": "Selected by the official Kalshi category 'Elections'.",
+        "note": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Elections.",
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "culture": {
         "label": "Culture",
         "series_filter": {"category": "Culture"},
-        "note": "Selected by the official Kalshi category 'Culture'.",
+        "note": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Culture.",
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "crypto": {
         "label": "Crypto",
         "series_filter": {"category": "Crypto"},
-        "note": "Selected by the official Kalshi category 'Crypto'.",
+        "note": "Selected with the documented `category` parameter (exact, case-sensitive, matches the series' categories discovery list) = Crypto.",
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "golf": {
         "label": "Golf",
         "series_filter": {"tags": ["Golf"]},
-        "note": "Selected by the official Kalshi tag 'Golf'.",
+        "note": "Selected with the server-side `tags` parameter (Golf). The Get Series List spec leaves the tags parameter's matching semantics undescribed, so this is a filter these URLs applied, not a documented taxonomy.",
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
 }

@@ -796,6 +796,43 @@
   </div>
 
   <div class="card">
+    <h2>1d · Defects fixed by session <code>c6a50f54</code> (2026-11-21)</h2>
+    <p class="sub">Found by reading the official OpenAPI markdown for Get Series List and Get Market against
+      the code that publishes topic labels and alert labels (both fetched 2026-11-21).</p>
+
+    <div class="irregularity" id="W6">
+      <h3>W6 — Topic notes presented a <code>tags</code> filter as official Kalshi vocabulary, and carried stale scan counts <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> two separate wording defects on a panel that renders on every
+        category page (<code>#topic-note</code> in <code>assets/js/category.js</code>).</p>
+      <p>(a) <em>Unsupported vocabulary claim.</em> The snapshot rules and the collector said Gas and Golf
+        were "selected by the official Kalshi tag(s)" and that topic rules used "Official Kalshi
+        <code>category</code> / <code>tags</code> values, never free-text matching". The Get Series List spec
+        describes <code>category</code> fully — exact, case-sensitive, matched against the series'
+        <code>categories</code> discovery list — but gives the <code>tags</code> parameter <strong>no</strong>
+        described matching semantics at all. Calling a tag filter "official vocabulary" was an inference,
+        not a documented fact.</p>
+      <p>(b) <em>Stale counts.</em> The Elections note said "740 of 1,000 live events scanned" and the Crypto
+        note said "only 2 live events in the demo scan". Both are point-in-time observations baked into
+        published text: the 2026-11-21 snapshot holds <strong>86</strong> crypto events and 23 election
+        events, so the Crypto line understated the topic by a factor of 43 on a page a trader uses to decide
+        whether a topic is worth watching.</p>
+      <p><strong>Fix shipped:</strong> category topics now cite the documented parameter behaviour;
+        tag-based topics state that the spec leaves tag matching undescribed, so the filter is what the URL
+        applied rather than a documented taxonomy; and no topic note carries a stored count any more — the
+        page prints the scan it just ran. Four regression tests hold this
+        (<code>tools/test_collect.py</code>: <code>TopicRuleWordingTests</code>,
+        <code>NoStaleScanCountsTests</code>), including one that fails if the committed snapshot's rules
+        drift from the collector's.</p>
+      <p><strong>Still unverified:</strong> whether <code>tags</code> matching is exact, prefix-based,
+        case-sensitive, or multi-value OR/AND. The spec does not say and no controlled request has been run
+        to find out, so nothing is asserted about it.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        (OpenAPI markdown: <code>category</code> described, <code>tags</code> undescribed)</p>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>1c · Defects fixed by session <code>75490e0f</code> (2026-11-21)</h2>
     <p class="sub">Found by re-reading every published page and JS module against the official API reference
       (fetched 2026-11-21). Each item names the source that proves it.</p>
