@@ -1594,3 +1594,9 @@ Session `0d6f4f1f` is complete: R1–R2 **done**.
 
 Limitations: single point in time (2026-11-21 UTC); a sample of series families, not a full count of the browser's bounded 2,400-event scan; reads were made through the page-fetch tool because sandbox `curl` cannot reach Kalshi hosts. Manual browser checks of the URLs in the report reproduce the same results.
 
+
+### Conflict / handoff log — session `29749918` (2026-11-21, UTC)
+
+- **Rebase conflict on `COORDINATION.md`:** `origin/main` advanced to `882e074` (PR #63, session `0d6f4f1f`, R1 snapshot-note fix). My claim commit conflicted (add/add on the append-only board). Resolved with `tools/resolve_board_conflict.py`: 1 block unioned, 0 duplicate sections dropped, 0 markers left, all 19 `main` session sections present. Nothing from `main` discarded.
+- **Overlap check with R1:** R1 changes only derivation-note strings in `scripts/collect.py` and `data/snapshot.json`. My GC-I2/GC-I3 concern the gas tag filter (`TOPICS["gas"]`), a different line. No substantive overlap.
+- **Own-branch history rewrite:** a chained `git pull --rebase; git push` ran while the rebase was still paused and pushed my pre-rebase GC1 commit `8c7e8f2` to `arena/29749918-kalshidash2`. The rebased branch was then rejected as non-fast-forward. Replaced **only my own** superseded commits with `git push --force-with-lease=arena/29749918-kalshidash2:8c7e8f2` (lease pinned to that exact SHA). No other session's commits are on this branch.
