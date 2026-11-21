@@ -163,6 +163,15 @@
         size, so a genuinely empty result is still shown as empty rather than invented.</p>
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence §G ↗</a></p>
+      <p><strong>Independently re-read (session <code>0acc711d</code>, 2026-11-21T23:0xZ, same live route):</strong> the
+        event's nested markets (<code>GET /events/KXAAAGASW-26NOV23?with_nested_markets=true</code>) are in
+        <code>status: "active"</code> with <code>close_time 2026-11-23T04:59:00Z</code>, and session <code>29749918</code>
+        recorded five open gas events the same day (<code>KXAAAGASW-26NOV23</code>, <code>KXAAAGASD-26NOV22</code>,
+        <code>KXAAAGASM-26NOV30</code>, <code>KXAAAGASM-26DEC31</code>, <code>KXAAAGASWNJ-26NOV23</code>). Re-runnable links:
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events?status=open&amp;limit=200&amp;series_ticker=KXAAAGASW" target="_blank" rel="noopener noreferrer">live GET /events ↗</a> ·
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/events/KXAAAGASW-26NOV23?with_nested_markets=true" target="_blank" rel="noopener noreferrer">live GET /events/KXAAAGASW-26NOV23 ↗</a> ·
+        <a class="src-link" href="reports/gas-coverage-29749918.md">gas coverage report</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §C1–C2</a>.</p>
     </div>
 
     <div class="irregularity" id="C1">
@@ -257,7 +266,6 @@
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></p>
     </div>
-  </div>
 
     <div class="irregularity" id="F13">
       <h3>F13 — The shortlist chat is a tradeability screen, not a validated edge <span class="tag warn">open</span></h3>
@@ -1281,7 +1289,7 @@
       <a href="reports/verify-facts-e2718295.md">reports/verify-facts-e2718295.md</a>.</p>
 
     <div class="irregularity" id="E1">
-      <h3>E1 — Q9 says "the API gives contracts, not dollars", but the ticker stream also carries dollar fields <span class="tag warn">open</span></h3>
+      <h3>E1 — Q9 says "the API gives contracts, not dollars", but the ticker stream also carries dollar fields <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> the open-questions table answers "what does <em>highest dollar amount</em>
         mean?" with "API gives contracts (<code>*_fp</code>), not dollars; notional = one contract's settlement value".
         That is true of the REST ranking fields this dashboard uses, but read literally it is incomplete:
@@ -1296,8 +1304,15 @@
         ticker also carries integer <code>dollar_volume</code> / <code>dollar_open_interest</code>." The wording
         lives in <code>QUESTIONS.md</code> and <code>questions.html</code>; it was logged rather than edited
         because that page is inside another session's open pull request.</p>
+      <p><strong>Fixed (session <code>0acc711d</code>, 2026-11-21):</strong> that pull request has since closed with no
+        owner, so the wording was corrected in <code>QUESTIONS.md</code> Q9 and <code>questions.html</code> Q1 using the
+        official field definitions read from the Market Ticker AsyncAPI source — <code>dollar_volume</code> is
+        "Signed whole-dollar cumulative traded notional" and <code>dollar_open_interest</code> is "Signed whole-dollar
+        open-interest notional" — together with the path limitation (WebSocket only; needs a key and the relay, W1).
+        The consequence for the brief's "highest dollar amount" requirement is recorded separately as <a href="#K1">K1</a>.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker.md" target="_blank" rel="noopener noreferrer">Market Ticker — AsyncAPI source with field descriptions ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
     </div>
 
@@ -1343,7 +1358,8 @@
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a> ·
-        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report</a></p>
+        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report (e2718295)</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report (0acc711d)</a></p>
     </div>
   </div>
 
@@ -1422,11 +1438,99 @@
         <code>https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS</code> ·
         <code>https://external-api.demo.kalshi.co/trade-api/v2/series/GAS</code>
         — captured in <code>reports/live-verify-c33971c1.md</code>.</p>
+      <p><strong>Independently re-read (session <code>0acc711d</code>, 2026-11-21T23:09Z):</strong> same two distinct
+        records (<code>KXGAS</code>: <code>last_updated_ts 2026-11-21T21:52:45Z</code>, <code>contract_url</code> on the
+        staging bucket; <code>GAS</code>: <code>last_updated_ts 2026-11-02T23:01:12Z</code>, <code>contract_url</code> on
+        <code>assets.kalshi.com</code>). In addition, <code>GET /events?series_ticker=KXGAS</code> returns no events of any
+        status and <code>GET /events?series_ticker=GAS</code> returns 2023 weekly events only, so neither record has an open
+        market; the Gas page's open markets come from the <code>KXAAAGAS*</code> AAA series. The comment in
+        <code>scripts/collect.py</code> that still states the alias as an observation is logged for the collector's owner
+        in <code>COORDINATION.md</code> rather than edited.
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS" target="_blank" rel="noopener noreferrer">live GET /series/KXGAS ↗</a> ·
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/GAS" target="_blank" rel="noopener noreferrer">live GET /series/GAS ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §C6–C9</a></p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
         · evidence: <code>data/snapshot.json</code> (<code>generated_at 2026-11-21T20:46:46Z</code>),
-        <code>reports/review-5a9b44b9.md</code> §3 R9</p>
+        <code>reports/review-5a9b44b9.md</code> §3 R9 ·
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS" target="_blank" rel="noopener noreferrer">live GET /series/KXGAS ↗</a> ·
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/GAS" target="_blank" rel="noopener noreferrer">live GET /series/GAS ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §C6–C9</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>9 · Final integration re-verification (session <code>0acc711d</code>, added 2026-11-21)</h2>
+    <p class="sub" style="margin-bottom:8px">Fresh line-by-line pass over the published root site against the official pages
+      and the live demo API (<a href="reports/verify-0acc711d.md">reports/verify-0acc711d.md</a>). E1 above was closed in this pass; F4, F10, E3 and SB4
+      reached the same conclusions independently in session <code>c33971c1</code> (PR #91, merged while this branch was
+      open) and carry this session's live re-reads as addenda. Three findings of this session's own:</p>
+
+    <div class="irregularity" id="K1">
+      <h3>K1 — The exchange's own pre-aggregated traded-dollar figure exists, but only on the authenticated WebSocket path <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the brief asks for the events with the "highest dollar amount". The boards rank by a
+        labelled proxy (<a href="#A11">A11</a>: Σ <code>volume_fp</code> × <code>last_price_dollars</code>) because the REST
+        market object carries only contract counts and <code>notional_value_dollars</code>; since PR #98 each category page
+        can also <em>measure</em> traded dollars on demand by summing the official per-trade records from
+        <code>GET /markets/trades</code> (A11's mitigation). The official Market Ticker channel definition, read on 2026-11-21,
+        documents a third thing: two required payload fields, <code>dollar_volume</code> — "Signed whole-dollar cumulative
+        traded notional" (integer) — and <code>dollar_open_interest</code> — "Signed whole-dollar open-interest notional"
+        (integer). That is the exchange's <em>own</em> aggregate per market, not a figure this site has to compute. It is
+        unavailable to the public page: the ticker stream needs a demo API key at the handshake and, from a browser, the
+        relay (<a href="#W1">W1</a>, <a href="#W4">W4</a>); the relay's frames are mapped to price/bid/ask readings for the
+        swing feed (<code>assets/js/live-core.js</code>) and the two dollar fields are not read.</p>
+      <p><strong>Impact:</strong> no displayed number is wrong: the ranking column is the proxy and says so, and the
+        Get Trades panel states its window and sample. What the site could not say until now — and the Q9 / Q1 wording
+        came close to saying the opposite (<a href="#E1">E1</a>) — is that an exchange-reported dollar figure exists at all.
+        The sample payload on the official page shows <code>dollar_volume: 16948</code> next to
+        <code>volume_fp: "33896.00"</code> and <code>price_dollars: "0.4800"</code>; how the whole-dollar figure is
+        accumulated is <em>not</em> defined on the page and is not asserted here, so it is also not used to check the
+        Get Trades sum.</p>
+      <p><strong>What would close it:</strong> an owner decision. With a demo key in the relay, the ticker's
+        <code>dollar_volume</code> could be shown next to the Get Trades sum for the same market as a cross-check, or
+        adopted as the ranking input; either choice makes the "dollar" figure depend on an authenticated, opt-in feed and
+        on the key-holding constraint in W4. Nothing is inferred here in the meantime.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker.md" target="_blank" rel="noopener noreferrer">AsyncAPI source with field descriptions ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market (REST object: no traded-dollar field) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades (per-trade records the site sums) ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §B4</a></p>
+    </div>
+
+    <div class="irregularity" id="K2">
+      <h3>K2 — The Overview rebuilt a second, unused copy of the board on every refresh <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>index.html</code> built a <code>rows</code> array — one rendered table row per
+        ranked event — on every 60-second refresh and never read it; the board is rendered from the separate
+        <code>sorted</code> map directly below. The two templates had already drifted: the dead copy lacked the per-row
+        "API response ↗" source link, so wiring it in later would have silently dropped the official-link column the
+        verification rules require.</p>
+      <p><strong>Impact:</strong> wasted work in the browser proportional to the number of events in scope (hundreds per scan);
+        no displayed value, formula, or label depended on it.</p>
+      <p><strong>Fix:</strong> found independently by this session and by session <code>02091230</code>, whose removal
+        reached <code>main</code> first (PR #94, commit <code>40e81d6</code>, 2026-11-21T23:09Z) and is the version kept
+        here; it had no register card, so this one records it. The rendered board, its formulas and its source column are
+        unchanged — verified by the page-runtime check (18/18) and the DOM suites on the merged tree.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/pull/94" target="_blank" rel="noopener noreferrer">PR #94 ↗</a> ·
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/index.html" target="_blank" rel="noopener noreferrer">index.html on main ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §D</a></p>
+    </div>
+
+    <div class="irregularity" id="K3">
+      <h3>K3 — Four cards of the "Unverified" section rendered outside their section container <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> a stray <code>&lt;/div&gt;</code> after F10 closed section 2's card early, so
+        F13–F16 were laid out directly in the page body (no card background or padding) and the section's real closing
+        tag became an unmatched end tag that browsers silently drop. A tag-balance pass over the page found it; the same
+        imbalance is present in the base commit, so it predates this session.</p>
+      <p><strong>Impact:</strong> presentation only — every card, link and anchor still rendered and resolved, which is why the
+        link check and the DOM suites never saw it.</p>
+      <p><strong>Fix:</strong> the stray end tag was removed; the page's <code>div</code> nesting is now balanced
+        (checked with Python's <code>html.parser</code> before and after).</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/flagged.html" target="_blank" rel="noopener noreferrer">flagged.html on main ↗</a> ·
+        <a class="src-link" href="reports/verify-0acc711d.md">verification report §D</a></p>
     </div>
 
     <h2>9 · Deployment record (session <code>c33971c1</code>, added 2026-11-21)</h2>

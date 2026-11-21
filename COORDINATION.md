@@ -2548,6 +2548,42 @@ removed.
 
 ---
 
+## Session `0acc711d` — fresh line-by-line verification + stale-register closure + final integration (2026-11-21)
+
+Started: 2026-11-21T21:0xZ. Branch: `arena/0acc711d-kalshidash2` (Arena-fixed name; branched from `main` @ `cc9112b`, PR #88).
+**Appended only** — every section above is preserved unchanged.
+
+**State found on arrival (verified, not assumed):** no open PRs; `main` green (`Static site link check`, `verify-live-site`,
+`live-site-render`, `verify-alerts` all `success` on `f990d20`/`cc9112b`); Pages API `status: built`, source `main:/`, latest build
+on `cc9112b` with `error: null`. Local baseline on `cc9112b`: Node **93/93**, Python tools **42/42**, Python `tests/` **20 OK
+(3 skipped)**, static links **35 pages / 0 broken**. Every prior claim on this board has a final record; no active owner holds any file.
+
+**Why this scope:** prior sessions left explicit requests "for the integration session" that are still open on the published register:
+GC-I1 (F4 says the demo has no open gas markets — session `29749918` observed open AAA gas events on 2026-11-21), D2 (F10 says
+WebSocket streaming "is not wired in" — PR #55 wired the opt-in `ticker` relay), session `5a9b44b9`'s R2/R5/R6/R9 ("needs review —
+publication on `flagged.html` belongs to the integration session", never published), and E1/E3 (Q9 wording; stale `VERIFICATION.md`
+header) which were "left for their file owners" — owners who have since closed.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| K1 | Fresh, independent line-by-line verification of the published root site's factual claims against official docs **and** the live demo API (both reachable through the page-fetch tool; sandbox `curl` cannot reach Kalshi hosts — same limit every session records). Dated report with one official link per row; anything unconfirmable recorded as unverified, never filled in. | in progress | `0acc711d` | `reports/verify-0acc711d.md` (new), this section | docs.kalshi.com pages + `external-api.demo.kalshi.co/trade-api/v2/*` responses fetched 2026-11-21 | Read-only on site code; any defect is logged here first |
+| K2 | Close the stale register items with evidence: F4 → superseded (live open gas events today), F10 → mitigated (WS relay since PR #55, residual W1), E1 → fixed (Q9 wording, after verifying the ticker payload's `dollar_volume`/`dollar_open_interest` fields on the official page), E3 → fixed (`VERIFICATION.md` header/pointer). Publish `5a9b44b9`'s R2/R5/R6/R9 as new cards under an unused id series after re-verifying each. Check GC-I6 (`updated_time` never labelled a quote time). | in progress | `0acc711d` | `flagged.html` (F4, F10, E1, E3 cards + new cards only), `questions.html` + `QUESTIONS.md` (Q9 only), `VERIFICATION.md` (header/pointer only) | Live `GET /events?status=open&series_ticker=KXAAAGASW` (fetched 2026-11-21: `KXAAAGASW-26NOV23` open, settlement source AAA); [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker); repo files `assets/js/live-feed.js`, `scripts/relay.py` | Flag counts on `summary.html` are DOM-derived, so no hard-coded number changes |
+| K3 | Final integration: full local suite, PR → `main`, merge without waiting, confirm Pages deploy + hosted live-site probes on the merged SHA, record PR link + result here. | in progress | `0acc711d` | `COORDINATION.md` (this section) | `gh`, Pages API, `verify-live-site` / `live-site-render` runs | Flagged items do not block the merge; a broken site does |
+
+**Claim committed and pushed before any file in scope is edited.** Shared outputs (`index.html`, navigation, table data) are not edited
+by this session unless a defect is found and logged here first.
+
+**Scope amendment (2026-11-21T23:3xZ, logged before editing):** K1 found one defect in a shared output — `index.html` line 272
+builds a `rows` array (one HTML string per ranked event) on every 60-second refresh that nothing reads; the board is rendered from
+the separate `sorted` map a few lines below, and the two templates have already drifted (the dead one lacks the "API response ↗"
+source column). K3 scope now includes `index.html` for that dead-code removal only (no rendered output, formula, or label changes).
+Also found while re-verifying: `5a9b44b9`'s R2/R5/R6/R9 **are already published** as SB1–SB4 (section 8 of `flagged.html`) —
+K2's "publish as new cards" item is therefore a status update to SB4 (live `GET /series/KXGAS` vs `GET /series/GAS` answer), not new
+cards; the new section 9 carries only this session's own findings (`K1…`). GC-I6: `updated_time` is not displayed on any page
+(`grep` over `*.html`/`assets/js/*.js` finds no use), so nothing labels it a quote time — satisfied.
+
+---
+
 ## Session `0ecc28c2` — independent line-by-line re-verification + final integration (branch `arena/0ecc28c2-kalshidash2`, 2026-11-21)
 
 **Claimed at 2026-11-21T23:10Z.** Branch base: `cc9112b` (merge of PR #88, `main`). No other session
@@ -2905,6 +2941,32 @@ documentation sitemap (27 paths, all published, no broken official-source link).
 attach `evidence/` captures (`GET /historical/markets?limit=1`, then one archived candlestick response).
 Until then the claim stays `partially verified` and every affected page prints the API's own refusal
 message when the archived call fails.
+
+**Post-merge verification (session `d074f64f`, 2026-11-21 ~23:3xZ).** PR **#99** merged at
+`2026-11-21T23:24:48Z` as merge commit **`519de08`**. GitHub Pages reported **`status: built`** for
+`519de08` (build created 23:24:49Z, finished 23:25:25Z). Verified on the **live** site with a
+cache-busted fetch (the plain URL still served the previous build):
+
+- `categories/crypto.html` → both book tables now carry the **Implied YES ask** column with the
+  reciprocal-rule note; the copy names *1 − y* and the size a YES buyer can take. (Other category
+  pages share the same markup; `tests/dom/category-dom.mjs` asserts six cells per row.)
+- `flagged.html` → the "What is *not* flagged" list now states that the schema documents `scalar` and
+  that the value "is now displayed literally rather than coerced (**D074-1**)".
+
+**Change request for the owner of `assets/js/category.js` (not edited here):** since session
+`c33971c1`'s series-level taxonomy (PR #91), `discoverTopic()` records `_categoryBasis`
+(`series` / `event` / `none`) on every matched event, and the alerts page prints the tally — but the
+category pages still say only "Matched on Kalshi category `Crypto`". One line in the topic note could
+name the basis and the fallback count, matching what the alerts page already discloses.
+
+**Rebase/merge log.** Three merges of a fast-moving `main` today (PRs #91, #92, #93, #94, #95, #96,
+#101 landed mid-session). Conflicts were only in `COORDINATION.md`, `README.md`,
+`.github/workflows/site-check.yml` and the workflow-generated reports
+(`reports/alerts-live-check.md`, `reports/verify-facts-v3.md`). Every resolution kept both sides:
+the board via `tools/resolve_board_conflict.py`; CI keeps the `historical-tier` suite **and** the two
+new suites; generated reports take the newest runner output. Nothing from another session was dropped.
+
+---
 
 ### Conflict log #4 — integrating `main` @ `b892d80` (PR #98) — session `02091230`
 
