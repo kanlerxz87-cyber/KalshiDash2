@@ -1041,3 +1041,14 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 **Task status:** done, subject to PR checks and deployment confirmation below.
 
 **PR and CI:** [PR #46](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/46) opened against `main`. On commit `b7414d5`, GitHub Actions [static site check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875615170) and [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875604181) both succeeded. The latter automatically committed its read-only live API report `reports/alerts-live-check.md` as `71f6013`; the report observes HTTP 200 for its sampled demo requests and explicitly does not establish browser or authenticated trading correctness. Its `[skip ci]` commit caused the PR head to have no checks, so this board update triggers a fresh static check. No other session's work was discarded.
+
+**Final record — session `7930e2cd` (2026-11-21):**
+
+| Item | Result |
+|---|---|
+| PR | [#48 — Session 7930e2cd: independent math verification + live-site/snapshot confirmation (W1-W3)](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/48), branch `arena/7930e2cd-kalshidash2` → `main` |
+| Merge | `gh pr merge 48 --merge` succeeded 2026-11-21T06:30:23Z; merge commit [`7953ba2`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7953ba2831a8156416135ad7eff09ac0e895b874). Pre-merge `check` run **pass**; `Static site link check` on the merge to `main` **success** |
+| Conflict log (required by the standing rule) | Two collisions, both resolved without discarding anyone's work: (1) `COORDINATION.md` append collision with session `f1425e39`'s PR #46 section — kept **both** sections (commit `33fb99b`); (2) `reports/alerts-live-check.md` — the `verify-alerts` workflow auto-commits a fresh live-check report to both `main` and this branch on every push, so the two auto-generated reports collided twice. Both reports show identical passing results (HTTP 200, 200 events / 2,175 markets, 25/25 batch); kept the newer branch report first, then main's on the final merge. No hand-written content was lost |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` for the merge chain: run `44875860027` cancelled (superseded by newer pushes), run `44875918473` (PR #49 merge `1a7277a`) **success**, run `44875974440` (PR #50 merge `576c9fa`) **success** |
+| Live-site verification | `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (triggered by this session on `main` before the merge; every published page HTTP 200 with the `KalshiDash2` marker) |
+| Irregularities carried forward | Request R-7930-1 (win-rate denominator vs. wording) remains for the integration session; all F/X/R/A flags remain published on `flagged.html` — none blocked this merge |
