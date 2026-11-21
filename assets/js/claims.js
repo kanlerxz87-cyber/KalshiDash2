@@ -132,6 +132,11 @@ export const CLAIMS = [
     source: `${D}/api-reference/market/get-market`,
     ev: "The two input fields and notional_value_dollars definition were checked in the official Get Market schema; the ranking formula is a project convention. See Flag A11.",
     status: "partially verified", flag: "A11" },
+  { cat: "data", claim: "Official traded dollar volume is computable per market and window",
+    detail: "GET /markets/trades returns completed trades with count_fp (contracts) and yes_price_dollars / no_price_dollars, filterable by ticker, min_ts and max_ts (Unix seconds), page limit 1-1000 with a cursor; the dollars of a trade are count_fp x the price of the side the taker bought",
+    source: `${D}/api-reference/market/get-trades`,
+    ev: "Documented: read in the official Get Trades reference and OpenAPI schema (fetched 2026-11-21). The arithmetic is covered offline by tests/dollar-volume.test.mjs; no live response was captured for this claim, and the build sandbox cannot open TLS to kalshi.co, so the live call runs in the visitor's browser.",
+    status: "verified" },
 
   // ---- auth ----
   { cat: "auth", claim: "Required auth headers",
@@ -238,10 +243,11 @@ export const CLAIMS = [
     detail: "No category in the captured demo vocabulary is named Gas or Gasoline; gas-price series sit under Economics/Commodities (KXGAS carries no tag and is fetched directly by series ticker) and are matched on the KXAAAGAS*/AAAGAS*/KXGAS series families and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded (the old /GAS/i pattern matched KXNBALASVEGAS and KXNATGASW)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Evidence: data/probe/api_surface.json category vocabulary (no Gas/Gasoline value) and reports/verify-facts-v3.md §G; 15/15 classification cases pass incl. Vegas/natgas/WTI/diesel → null. An earlier 'zero gas events' evidence line was contradicted by the live KXAAAGASW-26NOV23 event and is no longer asserted", status: "verified", flag: "F4" },
-  { cat: "topic", claim: "Complete series catalogue",
-    detail: "The full list of series (16,643 returned on one page)",
+  { cat: "topic", claim: "Series list response size (not a catalogue total)",
+    detail: "Two committed captures of one GET /series response record 16,643 rows (evidence/evidence-cors-taxonomy.md, 2026-11-20T11:08Z) and 16,653 rows (data/probe/api_surface.json, later probe run). The endpoint documents no `limit` or `cursor` parameter, so each figure is a point-in-time row count for one response, not a documented catalogue total; the register previously presented 16,643 as 'the complete series catalogue'.",
     source: `${D}/api-reference/market/get-series-list`,
-    ev: "Live: single page returned 16,643 series", status: "partially verified", flag: "F5" },
+    ev: "Both committed captures cited above; the difference between them is why neither is asserted as the catalogue size",
+    status: "partially verified", flag: "F5" },
 
   // ---- repo ----
   { cat: "repo", claim: "Repository baseline",

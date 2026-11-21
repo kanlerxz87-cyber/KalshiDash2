@@ -2497,3 +2497,32 @@ conflict by keeping both changes and re-running every suite before pushing.
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
 |---|---|---|---|---|---|---|
 | F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |
+
+---
+
+## Session `135bc17e` — official traded-dollar volume (A11) + missing Sources page (branch `arena/135bc17e-kalshidash2`, 2026-11-21)
+
+**Claimed 2026-11-21 ~23:20Z.** Branch base: `cc9112b` (merge of PR #88). Active sessions checked before
+writing this claim: `0ecc28c2` (claim commit `7eff1844`, verification + final integration; its own note
+says it does **not** edit `index.html`, `assets/js/**`, `data/snapshot.json`, `scripts/collect.py`) and
+`117dc8d6` (PR #89 open: `suggestions.html`, `SUGGESTIONS.md`, `reports/`, this board). This session's
+scope is disjoint from both.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| C1 | Publish the **Sources** page the README and executive summary already promise on the root site (`sources.html` does not exist today — promise/deliverable mismatch) | in progress | `135bc17e` | `sources.html` (new), `assets/js/ui.js` (nav entry only) | docs.kalshi.com index (`llms.txt`) fetched this session; every URL copied from the official index | Reported as C1 below |
+| C2 | Official **traded-dollar volume** from documented `GET /markets/trades` (`count_fp` × `yes_price_dollars`), replacing the volume×price *proxy* where the reader asks for dollars (closes the substance of Flag A11) | in progress | `135bc17e` | `assets/js/dollar-volume.js` (new), `tests/dollar-volume.test.mjs` (new), `assets/js/category.js`, `categories/*.html` (one button each) | https://docs.kalshi.com/api-reference/market/get-trades (OpenAPI: `limit` ≤ 1000, `ticker` filter, `min_ts`/`max_ts` in **seconds**) | See C2 note |
+| C3 | Local suite run + PR → `main` + merge + Pages confirmation | in progress | `135bc17e` | this section | local `node --test`, `python3 -m unittest`, `tools/check_site_links.py`, `page-runtime-check.mjs`; `gh` | Final integration ordering is not claimed here — PR is merged only after its own checks pass |
+
+**C1 note.** `EXECUTIVE_SUMMARY.md` lists "Strategies, Suggestions, Questions, Verification, **Sources**,
+and Flagged for Review" as site pages, and `VERIFICATION.md` points readers at "the site's Sources page,
+`docs/sources.html`" — the legacy generation. The published root site has no Sources page and `ui.js`
+`PAGES` has no entry for one. This session publishes it on the root site and corrects the pointer.
+
+**C2 note.** `GET /markets/trades` is documented with `ticker`, `min_ts`, `max_ts`, `limit` (1–1000,
+default 100) and `cursor`; each trade carries `count_fp` and `yes_price_dollars`, so the dollars actually
+traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official** figure, unlike the site's
+`volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
+control with the request count stated, never on every poll. If any page of trades is unreachable the figure
+renders as `n/a` and is flagged, never as `$0.00`.
+>>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)

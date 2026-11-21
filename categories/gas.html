@@ -48,6 +48,47 @@
         <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market fields ↗</a>.
       </div>
     </div>
+
+    <h3 style="margin-top:18px">Dollars actually traded — official <code>GET /markets/trades</code></h3>
+    <p class="sub" style="margin-top:0">
+      The column above is a <em>proxy</em>: cumulative contracts × the current last YES price. This panel computes the
+      real figure from the trades the exchange reports, Σ(<code>count_fp</code> × the price of the side the taker
+      bought), so it is dollars that changed hands in the window — not an estimate. It costs one request per
+      market, so it runs only when you press the button, and it measures the highest-volume markets rather than
+      every market. The count of markets measured, and those skipped, is printed with the result.
+    </p>
+    <div class="toolbar">
+      <label class="inline">Window
+        <select id="dollar-window" aria-label="Traded-dollar window">
+          <option value="3600">1 hour</option>
+          <option value="21600">6 hours</option>
+          <option value="86400" selected>24 hours</option>
+          <option value="604800">7 days</option>
+        </select>
+      </label>
+      <label class="inline">Markets
+        <input type="number" id="dollar-markets" min="1" max="40" step="1" value="12" style="width:70px">
+      </label>
+      <button id="dollar-run">Measure traded dollars</button>
+      <span class="spacer"></span>
+      <span id="dollar-status" class="pill idle">not run</span>
+    </div>
+    <div class="grid cols-3" id="dollar-kpis" style="margin:10px 0 14px"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Event</th><th class="num">Markets measured</th><th class="num">Trades</th>
+          <th class="num">Contracts</th><th class="num">Traded dollars</th><th>Official source</th>
+        </tr></thead>
+        <tbody id="dollar-rows"><tr><td colspan="6"><div class="empty">Press “Measure traded dollars” to read the exchange's own trade records for this topic.</div></td></tr></tbody>
+      </table>
+      <div class="table-note" id="dollar-note">
+        Σ(<code>count_fp</code> × <code>yes_price_dollars</code> for a YES taker, <code>no_price_dollars</code> for a NO taker), from
+        <a href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>.
+        <code>min_ts</code>/<code>max_ts</code> are Unix seconds, as the reference requires. If any page of trades cannot be
+        read, the event shows <span class="unv">n/a</span> — a partial sum is never presented as a total.
+      </div>
+    </div>
   </div>
 
   <div class="card" id="chart-card">

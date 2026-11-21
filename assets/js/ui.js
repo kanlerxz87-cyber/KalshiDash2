@@ -102,6 +102,7 @@ export const PAGES = [
   { href: "suggestions.html", label: "Suggestions" },
   { href: "questions.html", label: "Questions" },
   { href: "verification.html", label: "Verification" },
+  { href: "sources.html", label: "Sources" },
   { href: "flagged.html", label: "Flagged" }
 ];
 
