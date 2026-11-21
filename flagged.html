@@ -383,6 +383,14 @@
       <h3>A9 — Two status vocabularies, and the sources register is missing <code>paused</code> <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter lists <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code> and <code>settled</code>. The board's source entry S6 lists the filter values without <code>paused</code>. The page treats <code>active</code> and <code>open</code> as live.</p>
       <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest.</p>
+      <p><strong>Re-verified 2026-11-21 (session <code>8d0568c3</code>):</strong> the Get Markets <code>status</code>
+        filter was read again from the official page. Its documented options are exactly
+        <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code>, <code>settled</code> —
+        so <code>paused</code> is genuinely part of the documented filter vocabulary, and the page's decision to
+        treat only <code>active</code>/<code>open</code> as tradeable is unchanged and still beyond what this
+        register records. Note that the same page's example market object shows <code>"status": "initialized"</code>,
+        which is not one of those five values, so the two vocabularies really are distinct and the live
+        <code>active</code>/<code>finalized</code> values observed earlier are not a scraping error.</p>
       <p><strong>Decision needed:</strong> confirm the mapping and correct S6 in <code>docs/sources.html</code> if you want it corrected.</p>
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
     </div>
@@ -851,6 +859,97 @@
         table; only Kalshi can confirm which wording is intended. Review link:
         <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">fee rounding ↗</a>.</p>
+    </div>
+
+    <div class="irregularity" id="V1">
+      <h3>V1 — Two committed tests asserted wording the collector no longer emitted <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> on <code>main</code> at <code>bbdc3a0</code>, <code>node --test
+        tests/activity-proxy.test.mjs</code> failed 1 of 3 and <code>python -m unittest discover -s tools</code>
+        failed 1 of 28. Both expected phrases (<code>not asserted as actual all-side cash turnover</code>,
+        <code>contract-count fields</code>) that <code>scripts/collect.py</code> — the generator of the text —
+        does not emit. The snapshot's actual wording is equivalent and stricter
+        (<code>not actual all-side cash turnover</code>, <code>fixed-point contract counts</code>), so no
+        published claim was wrong; the tests were stale copies of prose.</p>
+      <p><strong>Why it went unnoticed:</strong> <code>tests/activity-proxy.test.mjs</code> was executed by no
+        workflow (<code>grep -rn activity-proxy .github/</code> returned nothing), and the scheduled
+        <code>collect.yml</code> job rewrites <code>data/snapshot.json</code> every six hours.</p>
+      <p><strong>Correction:</strong> the disclosure text now has exactly one source,
+        <code>DERIVATION_NOTES</code> in <code>scripts/collect.py</code>, with the sample size interpolated from
+        <code>TRADE_SAMPLE_MAX_PAGES</code>/<code>TRADE_SAMPLE_PAGE_LIMIT</code> so the note cannot claim a
+        different sample than the collector takes. Both tests now read the generator
+        (Python by import, Node via the new <code>--print-notes</code> mode, which needs no network) and fail
+        if the committed snapshot drifts from it. The proxy test is now a required CI step. Verified by
+        injecting a one-word drift into the generator: both suites failed, and both passed again after reverting.</p>
+      <p class="small"><strong>Evidence:</strong> <code>scripts/collect.py</code> · <code>tools/test_collect.py</code> ·
+        <code>tests/activity-proxy.test.mjs</code> · <code>.github/workflows/site-check.yml</code> ·
+        official field definitions in
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="V2">
+      <h3>V2 — The live-render check had been red for the wrong reason (a verifier bug, plus rate limiting) <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the <code>live-site-render</code> workflow failed on every run from
+        2026-11-21T06:41Z onward (four consecutive runs). Its script asserted the overview note with
+        <code>/Scanned \d+ events/</code>, but the page renders that count through <code>int()</code>, which is
+        <code>Number.prototype.toLocaleString</code>. Once the exchange scan exceeded 999 events the note read
+        <code>Scanned 2,468 events</code> and the pattern could never match again. Reproduced locally: the old
+        pattern returns <code>false</code> on that exact string.</p>
+      <p><strong>Second cause:</strong> the Gas assertion also ran while the demo exchange was rate limiting
+        (HTTP 429). The page then shows its error pill, the board is empty, and the check reported a content
+        regression that was really a third-party refusal.</p>
+      <p><strong>Correction:</strong> count parsing is comma-tolerant and unit-tested offline
+        (<code>tests/dom/live-site-assertions.test.mjs</code>). Refusals (HTTP 429/5xx or transport) are retried
+        three times and then reported as <strong>inconclusive — exit 2</strong>, which the workflow surfaces as a
+        warning annotation and explicitly does <em>not</em> treat as a pass. A4xx that is not 429 and an
+        unexplained empty board still exit 1. Verified by stubbing the network: a 429 storm produced
+        3 passed / 0 failed / 4 inconclusive and exit 2; a 2,468-event fixture produced 9 passed / 0 failed and
+        exit 0 (comma count parsed); an unexplained empty board still failed.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        · files: <code>tests/dom/live-site.mjs</code>, <code>tests/dom/live-site-assertions.mjs</code>,
+        <code>.github/workflows/live-site-render.yml</code></p>
+    </div>
+
+    <div class="irregularity" id="V3">
+      <h3>V3 — LIVE was declared before the exchange confirmed the ticker subscription <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>scripts/relay.py</code> set its state to <code>connected</code>
+        immediately after the WebSocket handshake, before the exchange acknowledged the <code>ticker</code>
+        subscription, and its state frames were delivered to the in-process callback but not published to SSE
+        subscribers. The page therefore marked the feed LIVE on any relay message and could compare a quote from
+        before a disconnect with one from after it — which can fabricate a ≥$0.10 "swing".</p>
+      <p><strong>Correction:</strong> the relay now publishes state frames, stays in <code>connecting</code>
+        until a <code>subscribed</code> acknowledgement matching its subscription id and the <code>ticker</code>
+        channel arrives, and ends the session on an exchange error (code 9 → <code>unauthorized</code>). The page
+        treats anything other than a connected upstream as unavailable and clears its per-market baselines on
+        disconnect, so the first tick after recovery is a new baseline, not a jump. Covered by
+        <code>tests/live-feed-state.test.mjs</code> and <code>tests/test_relay_state.py</code>; both now run in CI.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market ticker channel ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="D1">
+      <h3>D1 — The repository's git history is a single squashed commit, so earlier board citations cannot be re-verified <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> on 2026-11-21 <code>git log --all --oneline</code> in this repository
+        returns exactly one commit, <code>bbdc3a0</code> ("chore(data): refresh Kalshi demo snapshot"), whose
+        diff adds all 123 files as new. Every merge commit, branch point and file-level commit SHA cited by
+        earlier sessions in <code>COORDINATION.md</code> is absent from the local history, and no branch —
+        including open PR #60's — shares a merge base with <code>main</code>.</p>
+      <p><strong>Effect:</strong> the pull requests themselves still exist and are readable through the GitHub
+        API, so their descriptions survive; but a claim of the form "verified in commit <code>abc1234</code>"
+        cannot be checked against this repository any more, and no earlier branch can be merged or rebased
+        normally — content has to be ported by hand. This session ported PR #60's still-valid changes that way.</p>
+      <p><strong>Status:</strong> nothing on the live site depends on git history, so this does not affect any
+        published figure. It is recorded so that a reviewer is not surprised when an older citation does not
+        resolve. Only the repository owner can restore the history (from a local clone or a GitHub support
+        request); this session cannot reconstruct it.</p>
+      <p class="small"><strong>How to check:</strong> <code>git log --all --oneline | wc -l</code> (returns
+        <code>1</code>) and <code>gh pr view 60 --json mergeable,mergeStateStatus</code> (returns
+        <code>CONFLICTING</code>). Compare with
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/pulls?q=is%3Apr" target="_blank" rel="noopener noreferrer">the PR list ↗</a>,
+        which shows the earlier merge PRs still on record.</p>
     </div>
   </div>
 

@@ -1536,3 +1536,54 @@ Timezone note: all times UTC.
 | T28 | Final integration for this session: re-run every suite, verify the live deployment after merge, record PR/merge/Pages result here. | in progress | `8d0568c3` | `COORDINATION.md` (this section) | — | — |
 
 **Claim committed and pushed before any edit to the claimed files.**
+
+### T24–T29 results — session `8d0568c3` (2026-11-21)
+
+| ID | Task | Status | Commit(s) | Verification performed | Outcome |
+|---|---|---|---|---|---|
+| T24 | Tests assert the generator's wording; proxy test runs in CI | **done** | `1dff3ac` | `node --test tests/activity-proxy.test.mjs` 3/3; `python -m unittest discover -s tools` 30/30. Drift guard proven by injecting a one-word change into `scripts/collect.py`: both suites failed, both passed after revert. | V1, V3 fixed. Single source is now `collect.DERIVATION_NOTES`; sample size interpolated from the page constants, so the note cannot claim a different sample than the collector takes. |
+| T25 | Repair `live-site-render` | **done** (pending the next hosted run) | `779af09` | Root cause proven locally: the old `/Scanned \d+ events/` returns `false` for `Scanned 2,468 events` (the page renders counts via `int()` → `toLocaleString`). Three simulated runs: 429 storm → 3 passed / 0 failed / 4 inconclusive, **exit 2**; 1,234-event fixture → 9 passed / 0 failed, **exit 0** (comma count parsed); unexplained empty board → **exit 1**. Offline helper tests 10/10. | V2 fixed. The workflow now fails only on exit 1 and raises a warning annotation on exit 2; an exchange 429 is no longer reported as a site regression, and is not reported as a pass either. |
+| T26 | Custom Pages 404 | **done** | `779af09` | Ported verbatim from stale PR #60; self-contained, no local asset references, single absolute link to the site root. Link check now covers 35 pages. | Added. |
+| T27 | Link checker defaults to the published root | **done** | `1dff3ac` | Bare `python3 tools/check_site_links.py` now checks 35 published pages (was 17 legacy `docs/` pages). Vendored-tree skip proven with a fixture: a broken link in `node_modules/` is ignored, a broken link in a real page still fails. 2 new unit tests. | V4 fixed. |
+| T29 | Port stale PR #60's live-feed/relay correctness fix | **done** | `779af09` | `tests/live-feed-state.test.mjs` 2/2; `python -m unittest discover -s tests` 20 (3 skipped, `cryptography` absent); alerts DOM 16/16; page runtime 17/17 after the port. | V3 fixed: LIVE requires a confirmed `ticker` subscription; baselines reset on disconnect, so a stale quote cannot fabricate a ≥$0.10 swing. |
+| T28 | Final integration | **done** | see record below | Full suite on the merged tree; Pages deploy + live verification recorded below. | — |
+
+### Line-by-line verification performed this session (official sources only)
+
+| Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|
+| `GET /events` page size | https://docs.kalshi.com/api-reference/events/get-events — "Defaults to 200. Maximum value is 200. Required range: `1 <= x <= 200`" | **Confirmed.** Matches `EVENTS_PAGE_MAX = 200` in `scripts/collect.py`. |
+| Demo REST base URLs | https://docs.kalshi.com/getting_started/api_environments — demo recommended `https://external-api.demo.kalshi.co/trade-api/v2`, also `https://demo-api.kalshi.co/trade-api/v2` | **Confirmed.** Both URLs in the user's brief are documented. |
+| Demo WebSocket URL | same page — demo recommended `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`, also `wss://demo-api.kalshi.co/trade-api/ws/v2` | **Confirmed**, matches the brief and `assets/js/config.js`. |
+| Market status filter vocabulary | https://docs.kalshi.com/api-reference/market/get-markets — `unopened`, `open`, `paused`, `closed`, `settled` | **Confirmed.** A9 updated with this verification; the example market object on the same page shows `"status": "initialized"`, which is outside the enum, confirming the two-vocabulary problem A9 describes. |
+| `previous_price_dollars`, `yes_bid_size_fp`, `yes_ask_size_fp` exist on a market | https://docs.kalshi.com/api-reference/market/get-market response schema | **Confirmed.** `no_bid_size_fp` does **not** appear in the official schema, which is why the category page sums only the two documented size fields. |
+| Order write route | https://docs.kalshi.com/getting_started/api_environments signing example uses `/trade-api/v2/portfolio/orders`; repo also records a prior **live probe** (`POST /portfolio/orders` → 410 `deprecated_v1_order_endpoint`; `POST /portfolio/events/orders` → 401, route exists) | **No change made.** The docs example is a signing-path illustration, not a statement about the write route; the live probe is the stronger evidence and the repo already follows it. Recorded rather than "corrected" so no unverified change is introduced. |
+
+**Not re-verified this session (carried forward unchanged, still flagged):** Z2 (fee-schedule footnote), F15/A5
+(spread, slippage, queue position, live-paper fees unmodelled), A9 (mapping decision), A11 (proxy ranking),
+and all other items already on the Flagged page. Nothing was deleted from the register; four items were added
+(V1, V2, V3 mitigated; D1 open).
+
+### Local suite on this branch (`779af09` + register updates)
+
+Node: activity-proxy 3/3 · alerts-core 19/19 · jumps 6/6 · live-core 23/23 · live-feed-state 2/2 ·
+simulator-core 10/10 · taxonomy 10/10 · live-site-assertions 10/10 (**83 total, 0 failures**).
+Python: tools 30/30 · tests 20 (3 skipped: `cryptography` not installed here; CI installs it).
+DOM: alerts 16/16 · summary 20 requirement areas, 78/89 claims, 33 open / 26 mitigated / 59 flags, 28 sourced rows.
+Site: links 35 pages / 0 broken · page runtime 17/17 · signing self-test 6/6 · `npm audit` 0 vulnerabilities ·
+all 12 workflow files parse with `js-yaml`.
+
+### PR #60 disposition (stale claim, 60-minute rule)
+
+Session `9543cf0d`'s PR #60 last committed at 2026-11-21T07:10:48Z and has no merge base with `main` (D1), so it
+cannot be merged as-is. Disposition of its content:
+
+| PR #60 content | Disposition |
+|---|---|
+| `assets/js/live-feed.js`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py` | **Ported** (`779af09`), reviewed line by line and tested (T29). |
+| `404.html` | **Ported** (`779af09`, T26). |
+| `tests/dom/live-site.mjs` intent (scan-count + 429 diagnosis) | **Superseded** by T25, which fixes both causes and adds offline tests plus an explicit inconclusive exit code. |
+| `questions.html`, `flagged.html` A9/W4 text, `VERIFICATION.md`, `docs/sources.html`, `docs/verification.html`, `reports/alerts-live-check.md` | **Not ported.** These are another session's documentation edits that would need a fresh line-by-line verification of each claim; A9 was instead updated with this session's own verified reading of the official enum. PR #60 stays open and unmerged so that session's full record remains reviewable. |
+| New flag id `W4` (relay credential architecture) | **Not published** here; relaying still requires a private key readable by the relay process, which is a real limitation the existing flags already describe. Noted as unported rather than silently dropped. |
+
+**No other session's work was deleted or overwritten by this session.**
