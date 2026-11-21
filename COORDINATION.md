@@ -1535,3 +1535,49 @@ Any change I want in a file owned by another session is logged here as a request
 | `data/snapshot.json` was rewritten by the scheduled `collect` run (`bbdc3a0`, 19:29Z) with labels that drop the guard phrases the repo's own tests require | `node --test tests/activity-proxy.test.mjs` → 1 failure (`"not asserted as actual all-side cash turnover"` missing); `python3 -m unittest discover -s tools` → 1 failure (`"contract-count fields"` missing) | Two red checks on `main`; **not** a factual error in captured API values — a label/assertion drift. Owners `0d6f4f1f` / `f2176447` / `5a9b44b9` |
 | PR #60 (`arena/9543cf0d`) is `CONFLICTING`/`DIRTY` and carries no checks; its own body says it "remains unmerged until that check and parallel work are resolved" | `gh pr view 60 --json mergeable,mergeStateStatus` → `CONFLICTING`, `statusCheckRollup: []` | Integration cannot merge it as-is; resolve by rebasing its content or superseding it |
 | The collector workflow `.github/workflows/collect.yml` schedules `scripts/collect.py` every 6 hours and commits to `main`, so any label guard must live in `collect.py`, not only in the snapshot | `.github/workflows/collect.yml` cron `23 */6 * * *` | Reinforces that the durable fix belongs in the generator |
+
+---
+
+## Session `0d6f4f1f` — snapshot-label drift fix + final integration verification (2026-11-21)
+
+Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
+
+**Takeover note (60-minute stale-claim rule):** all prior `in progress` claims on this board are from 2026-11-20/21 with last commits hours ago and no in-flight edits on this branch. This session takes over the two files below as final-integration scope and records the handoff here. No other session's work is discarded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Fix snapshot-label drift: `scripts/collect.py` derivation notes no longer contain the exact disclaimer phrases both test suites require (`contract-count fields`, `not asserted as actual all-side cash turnover`); `data/snapshot.json` notes carry the same drift. Restore the phrases in the collector source and in the snapshot note strings (no data re-collection, no values changed). | done | `0d6f4f1f` | `scripts/collect.py` (derivation-note strings only), `data/snapshot.json` (`_meta.derivation_notes` strings only), `COORDINATION.md` (this section) | `tests/activity-proxy.test.mjs`, `tools/test_collect.py` (both assert the exact phrases) | Bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated the snapshot from a collector whose note strings had drifted from the tests. Fix restores test-required wording; market data values untouched. |
+| R2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | in progress | — | `COORDINATION.md` (this section) | `node --test`, python tools tests, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
+
+### R1/R2 record — session `0d6f4f1f` (2026-11-21)
+
+**R1 done.** Root cause: bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated `data/snapshot.json` from a `scripts/collect.py` whose `derivation_notes` strings had drifted from the exact disclaimer phrases asserted by `tests/activity-proxy.test.mjs` and `tools/test_collect.py`. Fix (no data re-collection, no market values changed):
+- `scripts/collect.py`: `contract_volume` note now reads "…are contract-count fields (fixed-point contract counts), not traded-dollar volume…"; `sampled_yes_price_times_contracts` note now reads "…is not asserted as actual all-side cash turnover, gross cash exchanged…".
+- `data/snapshot.json`: the same two `_meta.derivation_notes` strings updated surgically (2 lines; formatting preserved).
+
+**Fresh line-by-line verification performed 2026-11-21 (official docs fetched and read this session):**
+
+| # | Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| R-V1 | Demo REST `external-api.demo.kalshi.co/trade-api/v2` recommended; `demo-api.kalshi.co` also supported; WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` + `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo environment](https://docs.kalshi.com/getting_started/demo_env) | Correct — matches `assets/js/config.js` and `EXECUTIVE_SUMMARY.md` |
+| R-V2 | Market fields: `yes_bid/ask_dollars`, `yes_bid/ask_size_fp`, `no_bid/ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `result`, `open_interest_fp`, `notional_value_dollars`, `previous_price_dollars`, `settlement_value_dollars`, `price_ranges`, `mve_selected_legs[]`; no `no_bid_size_fp`/`no_ask_size_fp` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema) | Correct — matches site field usage |
+| R-V3 | Candlesticks `period_interval` ∈ {1, 60, 1440}, `start_ts`/`end_ts` required, `price.close_dollars`, `price.previous_dollars` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Correct — matches `fetchCandles` and chart jump detection |
+| R-V4 | Settlement: YES holders $1, NO holders $1 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | Correct — matches simulator/alert P&L |
+
+No new irregularities found this session. Pre-existing flags on `flagged.html` carried forward unchanged; none block the merge per instructions.
+
+**Full local suite on the R1 tree:** `node --test` **73/73** · `python -m unittest discover -s tools` **28/28** · `python -m unittest discover -s tests` **18 OK (3 skipped, `cryptography` not installed)** · alerts DOM **16/16** · summary DOM pass (20 requirement areas; 78/89 verified, 8 partial, 3 unverified; 32 open / 23 mitigated / 55 flags; 28 sourced rows) · static links **34 pages / 0 broken** · page-runtime **17/17**. Pages API before PR: `status: built`, source `main:/`. Open PR #60 (`arena/9543cf0d`) touches only `COORDINATION.md` in common with this session (append-only, union-resolvable); no file-scope overlap on `scripts/collect.py` or `data/snapshot.json`.
+
+### R2 completion record — session `0d6f4f1f` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#63 — integration: session 0d6f4f1f — snapshot-label drift fix (R1) + fresh doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), branch `arena/0d6f4f1f-kalshidash2` → `main` |
+| Merge | `gh pr merge 63 --merge` succeeded 2026-11-21T20:21:55Z; merge commit [`882e074`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/882e07446ab8c790990dd0033f90b313557aec23). PR head check `Static site link check` **pass** (run 44945843975). |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` run 44945889048 **success**; `Static site link check` run 44945890003 on `main` **success**. Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Irregularities | None new. All pre-existing flags on `flagged.html` carried forward; none blocked the merge per instructions. |
+| Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
+
+Session `0d6f4f1f` is complete: R1–R2 **done**.
