@@ -849,6 +849,74 @@
   </div>
 
   <div class="card">
+    <h2>6 · Independent re-verification (session <code>32b15793</code>, added 2026-11-21)</h2>
+    <p class="sub">A fresh line-by-line check of the published site against
+      <code>docs.kalshi.com</code>, the official fee schedule PDF and live demo-API responses. Full write-up:
+      <a href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/verify-independent-32b15793.md" target="_blank" rel="noopener noreferrer">reports/verify-independent-32b15793.md ↗</a>.
+      Outcome: 41 claims verified, 1 partially verified, <strong>0 contradicted</strong>. The items below are the
+      scope and wording findings; none is a wrong number and none blocks the deploy.</p>
+
+    <div class="irregularity" id="AB1">
+      <h3>AB1 — Gasoline series <code>KXGAS</code> was missed by both the site and the collector <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>GET /series/KXGAS</code> returns
+        <code>"title": "Gas weekly"</code> with <code>"tags": null</code> and a settlement source of
+        <em>U.S. Energy Information Agency — weekly U.S. retail gasoline prices</em>
+        (<code>eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm</code>). Because it carries no tags and its title
+        contains no "gas price" phrase, neither the site's <code>KXAAAGAS*</code> series rule nor the
+        collector's <code>tags: [Gas, Oil &amp; Gas, Oil and energy]</code> filter could match it. That is a
+        coverage gap for the gas-prices topic, not a wrong value.</p>
+      <p><strong>Fixed here (read-only review done first):</strong> <code>assets/js/config.js</code> now matches the
+        two documented retail-gasoline families — <code>KXAAAGAS*</code> (AAA) and <code>KXGAS</code> (EIA weekly
+        retail gasoline) — and the title patterns were tightened (they previously caught
+        <em>"Las Vegas gas price"</em> by accident of the exclusion rule rather than by design). The bare
+        <code>/gas/i</code> catch-all remains banned. <code>tests/taxonomy.test.mjs</code> gained a regression case
+        that asserts <code>KXGAS</code> → gas while <code>KXNATGAS</code>, <code>KXVEGASGP</code> and
+        <code>"Something oil related"</code> still classify to nothing (11/11 taxonomy tests pass).</p>
+      <p><strong>Residual:</strong> <code>KXGAS</code> had <strong>no open events</strong> when checked
+        (<code>GET /events?series_ticker=KXGAS</code> → <code>[]</code>), so no live row appears today; the fix
+        matters when a KXGAS event opens. The collector's tag-only filter is unchanged — that is request
+        <strong>GC-I3</strong> on the board, owned by the collector's session.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS" target="_blank" rel="noopener noreferrer">live GET /series/KXGAS ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series schema ↗</a>
+        <a class="src-link" href="https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm" target="_blank" rel="noopener noreferrer">EIA weekly retail gasoline ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AB2">
+      <h3>AB2 — Liquidity tile said "contracts for sale" but showed resting <em>bids</em> <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the order book returns <strong>bids only</strong> — "It returns yes bids and
+        no bids only (no asks are returned)" — and a NO bid at <em>y</em> implies a YES ask at <em>1 − y</em>.
+        The category pages summed the YES <strong>bid</strong> sizes and labelled the result
+        <em>"Contracts for sale"</em>, which a trader reads as the ask side. The number was right; the label was not.</p>
+      <p><strong>Fixed here:</strong> the tile is now <em>"YES bid depth (contracts)"</em> with the note
+        "resting bids to buy YES", and the side heading reads "YES bids — resting demand for YES (sell into
+        these)". No calculation or value changed.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-orderbook" target="_blank" rel="noopener noreferrer">Get Market Orderbook ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AB3">
+      <h3>AB3 — The published taxonomy reads a field Kalshi marks deprecated <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the Get Events schema annotates the event object's
+        <code>category</code> as <code>deprecated: true</code> — <em>"Event category (deprecated, use series-level
+        category instead)"</em>. The site classifies elections / culture / crypto from
+        <code>ev.category</code> on <code>GET /events</code>. It is correct today (every live event sampled still
+        carries the field, and all five topics were re-confirmed live on 2026-11-21), but the basis is the
+        deprecated one.</p>
+      <p><strong>Why it stays open:</strong> moving to the series-level category requires a
+        <code>GET /series/{series_ticker}</code> lookup per distinct series, which adds API calls to a page that
+        already throttles itself against the public rate budget. That is a design change for the owner of
+        <code>assets/js/market.js</code> / <code>assets/js/alerts.js</code>, not a silent edit here.</p>
+      <p><strong>What would close it:</strong> read <code>category</code> from the series (already in the
+        repository's source list as <code>SOURCES.getSeries</code>), keep <code>ev.category</code> as the
+        fallback, and say which is authoritative in the taxonomy note.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events schema ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series (series-level category) ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>5 · Fee-schedule verification (session <code>bc079e84</code>, added 2026-11-21)</h2>
     <p class="sub">Found while closing the fee gap (F15/A5) against the official documents.</p>
 
@@ -869,6 +937,72 @@
         table; only Kalshi can confirm which wording is intended. Review link:
         <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">fee rounding ↗</a>.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>6 · Documentation wording and scheduled-refresh drift (session <code>e2718295</code>, added 2026-11-21)</h2>
+    <p class="sub">Found while re-verifying the repository's interface claims against the official
+      documentation, one page at a time. The report with every quote and link is
+      <a href="reports/verify-facts-e2718295.md">reports/verify-facts-e2718295.md</a>.</p>
+
+    <div class="irregularity" id="E1">
+      <h3>E1 — Q9 says "the API gives contracts, not dollars", but the ticker stream also carries dollar fields <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the open-questions table answers "what does <em>highest dollar amount</em>
+        mean?" with "API gives contracts (<code>*_fp</code>), not dollars; notional = one contract's settlement value".
+        That is true of the REST ranking fields this dashboard uses, but read literally it is incomplete:
+        the documented WebSocket <code>ticker</code> payload carries integer <code>dollar_volume</code> and
+        <code>dollar_open_interest</code> alongside <code>volume_fp</code> and <code>open_interest_fp</code>.
+        The REST market object also returns <code>notional_value_dollars</code>.</p>
+      <p><strong>Impact:</strong> wording only. The ranking the site uses (<code>volume_fp</code> ×
+        <code>last_price_dollars</code>) is still labelled a proxy everywhere (A11), and no displayed number depends
+        on this sentence.</p>
+      <p><strong>What would close it:</strong> reword Q9 to "REST market objects report contract counts
+        (<code>*_fp</code>) plus <code>notional_value_dollars</code> (one contract at settlement); the WebSocket
+        ticker also carries integer <code>dollar_volume</code> / <code>dollar_open_interest</code>." The wording
+        lives in <code>QUESTIONS.md</code> and <code>questions.html</code>; it was logged rather than edited
+        because that page is inside another session's open pull request.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="E2">
+      <h3>E2 — A scheduled snapshot refresh broke two test suites on <code>main</code> and nobody noticed <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the <code>Collect demo snapshot</code> workflow regenerates
+        <code>data/snapshot.json</code> every six hours from <code>scripts/collect.py</code> and commits it with
+        <code>[skip ci]</code>. At <code>bbdc3a0</code> the regenerated disclosure text no longer matched the
+        phrases two suites assert, so <code>main</code> carried a failing Python test (1 of 28) and a failing Node
+        test (1 of 71) — and because the commit skips CI, nothing caught it.</p>
+      <p><strong>Status:</strong> the wording was restored in PR #63 (session <code>0d6f4f1f</code>), and this
+        session removed the possibility of a silent repeat: the text now lives in one
+        <code>DERIVATION_NOTES</code> constant in <code>scripts/collect.py</code>, an exact
+        generator↔snapshot equality test plus an official-semantics test run in
+        <code>tools/test_collect.py</code>, and the collect workflow runs both metadata suites
+        <em>before</em> the bot commit. No captured price, volume, order-book level, candlestick, timestamp or
+        source URL was changed by the fix.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market (contract-count fields) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades (sample pagination) ↗</a> ·
+        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report</a></p>
+    </div>
+
+    <div class="irregularity" id="E3">
+      <h3>E3 — <code>VERIFICATION.md</code> still carries a 2026-11-20 header and points at the superseded <code>docs/</code> flag set <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the root summary's header says "Checked 2026-11-20" and its closing line
+        sends readers to "<code>docs/flagged.html</code> (F1–F7 plus doc discrepancies D1–D3)". The published
+        site is now the root generation, whose register is this page (flags through <code>Z2</code>), so the
+        pointer and the date read as current when they are not.</p>
+      <p><strong>Impact:</strong> navigational only. Every row of that summary re-checked in this session's audit
+        (demo endpoints, contract-count semantics, <code>notional_value_dollars</code>, orderbook shape,
+        candlestick intervals and limits, fee rounding, Create Order V2 body) is still accurate against the
+        official pages.</p>
+      <p><strong>What would close it:</strong> re-date the header and repoint the closing line at this page. Not
+        edited here because <code>VERIFICATION.md</code> is inside another session's open pull request.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a> ·
+        <a class="src-link" href="reports/verify-facts-e2718295.md">verification report</a></p>
     </div>
   </div>
 
