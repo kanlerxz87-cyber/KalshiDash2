@@ -130,14 +130,31 @@ class TickerSource:
 
     def _set_state(self, state, detail=None):
         self.state = state
-        self.on_state({"type": "state", "state": state, "detail": detail,
-                       "at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+        record = {"type": "state", "state": state, "detail": detail,
+                  "at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        self.publish(record)
+        self.on_state(record)
+
+    def _handle_record(self, rec, subscription_id):
+        """Process an exchange frame; return False when the socket must reconnect."""
+        if rec.get("type") == "subscribed":
+            raw = rec.get("raw") or {}
+            if raw.get("id") == subscription_id and (raw.get("msg") or {}).get("channel") == "ticker":
+                self._set_state("connected")
+        elif rec.get("type") == "error":
+            from kalshi_ws import normalize_error
+            code, text = normalize_error(rec.get("raw") or {})
+            self._set_state("unauthorized" if code == 9 else "error", f"code {code}: {text}")
+            return False
+        elif rec.get("type") == "ticker" and self.state == "connected":
+            self.publish(rec)
+        return True
 
     # -- the socket -------------------------------------------------------- #
 
     def run(self):
         import websockets
-        from kalshi_ws import ws_auth_headers, subscribe_command, handle_message, normalize_error
+        from kalshi_ws import ws_auth_headers, subscribe_command, handle_message
 
         backoff = 1.0
         while not self.stop.is_set():
@@ -149,25 +166,16 @@ class TickerSource:
                         self.url, additional_headers=headers, ssl=ssl_ctx,
                         ping_interval=20, ping_timeout=20, max_size=2 ** 20,
                     ) as ws:
-                        self._set_state("connected")
-                        cmd = subscribe_command(self.cmd_id, ["ticker"],
+                        self._set_state("connecting", "waiting for ticker subscription confirmation")
+                        subscription_id = self.cmd_id
+                        cmd = subscribe_command(subscription_id, ["ticker"],
                                                 self.market_tickers or None)
                         self.cmd_id += 1
                         await ws.send(json.dumps(cmd))
                         async for raw in ws:
                             rec = handle_message(raw)
-                            if rec is None:
-                                continue
-                            if rec.get("type") == "error":
-                                code, text = normalize_error(rec["raw"])
-                                self._set_state("error", f"code {code}: {text}")
-                                if code == 9:
-                                    self._set_state("unauthorized",
-                                                    "the key is not entitled to the ticker channel")
-                                    return
-                                continue
-                            if rec.get("type") == "ticker":
-                                self.publish(rec)
+                            if rec is not None and not self._handle_record(rec, subscription_id):
+                                return
                 asyncio.run(_session())
                 self._set_state("closed", "socket closed; reconnecting")
             except Exception as e:  # noqa: BLE001 - report and reconnect

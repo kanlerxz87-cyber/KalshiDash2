@@ -140,6 +140,26 @@ class SnapshotMetadataTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         cls.snapshot = json.loads((root / "data" / "snapshot.json").read_text(encoding="utf-8"))
 
+    def test_collector_emits_the_published_field_labels(self):
+        """The scheduled job writes these strings; they must match the committed labels.
+
+        A snapshot refresh previously shortened both notes on `main`, which broke
+        this class and `tests/activity-proxy.test.mjs`. Asserting the generator
+        itself, not only the committed file, is what stops that recurring.
+        """
+        emitted = collect.derivation_notes()
+        committed = self.snapshot["_meta"]["derivation_notes"]
+
+        self.assertEqual(emitted, committed)
+        self.assertIn("contract-count fields", emitted["contract_volume"])
+        self.assertIn(
+            "not asserted as actual all-side cash turnover",
+            emitted["sampled_yes_price_times_contracts"],
+        )
+        self.assertIn("No min_ts time bound is passed", emitted["sampled_yes_price_times_contracts"])
+        self.assertNotIn("dollar_volume", emitted)
+        self.assertNotIn("traded_notional_dollars", emitted)
+
     def test_snapshot_labels_contract_counts_and_sampled_trade_value(self):
         meta = self.snapshot["_meta"]
         notes = meta["derivation_notes"]
