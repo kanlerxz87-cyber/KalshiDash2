@@ -26,7 +26,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const DEFAULT_PAGES = [
   "index.html", "alerts.html", "simulator.html", "summary.html", "event.html",
   "resolved.html", "portfolio.html", "strategies.html", "suggestions.html",
-  "questions.html", "verification.html", "flagged.html",
+  "questions.html", "verification.html", "sources.html", "flagged.html",
   "categories/gas.html", "categories/elections.html", "categories/culture.html",
   "categories/crypto.html", "categories/golf.html"
 ];

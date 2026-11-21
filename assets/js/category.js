@@ -12,6 +12,7 @@ import {
   detectJumps, jumpMarkers
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
+import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE } from "./dollar-volume.js";
 
 const topicKey = document.body.dataset.topic;
 const topic = TOPICS.find(t => t.key === topicKey);
@@ -183,6 +184,85 @@ $("#board-mode").addEventListener("click", (e) => {
   $("#board-mode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   renderBoard();
 });
+
+/* ------------------------------------------------- official traded dollars */
+
+/* On-demand measurement of the dollars that actually changed hands, from
+ * GET /markets/trades. Deliberately not part of the poll: it costs one request
+ * per market, so the reader chooses the window and the market budget, and the
+ * page states both the count measured and the count skipped. */
+async function measureTradedDollars() {
+  if (!state.events.length) {
+    pill($("#dollar-status"), "warn", "load the board first");
+    return;
+  }
+  const seconds = Number($("#dollar-window")?.value) || 86400;
+  const maxMarkets = Math.min(40, Math.max(1, Number($("#dollar-markets")?.value) || 12));
+  pill($("#dollar-status"), "warn", "reading trades…");
+  $("#dollar-run").disabled = true;
+  try {
+    const res = await rankByTradedDollars(path => api.get(path), state.events, {
+      seconds,
+      maxMarkets,
+      limit: TRADE_LIMITS.maxLimit,
+      onProgress: p => pill($("#dollar-status"), "warn", `reading trades… ${p.measured + p.failed}/${p.total} markets, ${p.requests} request(s)`)
+    });
+    renderTradedDollars(res);
+    pill($("#dollar-status"), res.failed ? "warn" : "live",
+      `${res.measured} measured · ${res.failed} unreadable · ${res.requests} request(s)`);
+  } catch (e) {
+    pill($("#dollar-status"), "err", e.message);
+    $("#dollar-rows").innerHTML = emptyRow(6, "The trades endpoint could not be read: " + e.message);
+    $("#dollar-kpis").innerHTML = "";
+  } finally {
+    $("#dollar-run").disabled = false;
+  }
+}
+
+function renderTradedDollars(res) {
+  const total = res.rows.reduce((a, r) => a + (r.dollars || 0), 0);
+  const trades = res.rows.reduce((a, r) => a + (r.trades || 0), 0);
+  const contracts = res.rows.reduce((a, r) => a + (r.contracts || 0), 0);
+  const hrs = Math.round(res.window.seconds / 3600);
+  $("#dollar-kpis").innerHTML = [
+    { k: "Traded dollars", v: money(total, { dp: 2 }), m: `Σ across the ${res.measured} market(s) read, last ${hrs}h` },
+    { k: "Trades read", v: int(trades), m: "completed transactions in the window" },
+    { k: "Contracts read", v: int(contracts), m: "Σ count_fp" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+  if (!res.rows.length) {
+    $("#dollar-rows").innerHTML = emptyRow(6, "No open markets were available to measure in this scan.");
+    return;
+  }
+  $("#dollar-rows").innerHTML = res.rows.map(r => {
+    const ev = r.event;
+    const src = `${DEMO.rest}/markets/trades?ticker=${encodeURIComponent((ev.markets?.[0] || {}).ticker || "")}&min_ts=${res.window.min_ts}&max_ts=${res.window.max_ts}`;
+    const dollars = r.complete
+      ? money(r.dollars)
+      : `<span class="unv" title="At least one market's trade pages could not be read">n/a</span>`;
+    return `<tr>
+      <td><a href="../event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
+        <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
+      <td class="num">${int(r.markets)}</td>
+      <td class="num">${int(r.trades)}</td>
+      <td class="num">${int(r.contracts)}</td>
+      <td class="num">${dollars}</td>
+      <td><a href="${esc(src)}" target="_blank" rel="noopener noreferrer">trades response ↗</a></td>
+    </tr>`;
+  }).join("");
+
+  const skipped = res.skippedMarkets
+    ? ` ${int(res.skippedMarkets)} of ${int(res.totalMarkets)} open markets in this topic were outside the ${res.measured + res.failed}-market budget and are not measured.`
+    : "";
+  const failed = res.failed ? ` ${int(res.failed)} market(s) could not be read and are excluded from their event's total.` : "";
+  $("#dollar-note").innerHTML = `
+    Σ(<code>count_fp</code> × <code>yes_price_dollars</code> for a YES taker, <code>no_price_dollars</code> for a NO taker), from
+    <a href="${esc(TRADES_SOURCE)}" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>,
+    window ${esc(res.window.min_ts)}–${esc(res.window.max_ts)} (Unix seconds).${esc(skipped)}${esc(failed)}
+    If any page of trades cannot be read the event shows <span class="unv">n/a</span>; a partial sum is never presented as a total.`;
+}
+
+$("#dollar-run")?.addEventListener("click", measureTradedDollars);
 
 /* ------------------------------------------------------------------ chart */
 async function selectMarket(market) {

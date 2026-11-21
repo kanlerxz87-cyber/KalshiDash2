@@ -36,6 +36,15 @@ jobs:
         run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
         run: node --test tests/simulator-core.test.mjs
+      # Official traded-dollar volume (GET /markets/trades): the arithmetic, the
+      # documented query bounds, and the rule that an incomplete read is never
+      # presented as a total.
+      - name: Traded-dollar volume unit tests
+        run: node --test tests/dollar-volume.test.mjs
+      # The Sources page and its register must not drift apart, and no live
+      # market value may be transcribed into either.
+      - name: Sources register tests
+        run: node --test tests/sources-page.test.mjs
       - name: Chart jump-detection unit tests
         run: node --test tests/jumps.test.mjs
       - name: Activity proxy + snapshot label tests

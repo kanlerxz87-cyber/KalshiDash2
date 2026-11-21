@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sources — KalshiDash2</title>
+<meta name="description" content="Every official Kalshi source this dashboard depends on, what each one is used for, and how it was checked — including the rows that could not be confirmed.">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main id="main">
+  <div class="page-head">
+    <h1>Sources</h1>
+    <p>
+      Every factual claim on this site rests on one of the sources below. Each row names the official page,
+      what the site uses it for, and how it was checked. A row is <span class="tag yes">matched</span> when its URL
+      appears in Kalshi's own documentation index (<a href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">llms.txt ↗</a>),
+      <span class="tag yes">read</span> when the page itself was read line by line during this build, and
+      <span class="tag no">unverified</span> when neither could be done — those rows are also listed on
+      <a href="flagged.html">Flagged for review</a>.
+    </p>
+  </div>
+
+  <div class="callout info">
+    <h3>What is deliberately absent</h3>
+    <p style="margin:0">
+      No price, volume, balance or resolution value is transcribed into this repository. Every live figure is a
+      response from the demo API fetched by your browser at the moment you look at it, which is why any row here
+      can name an endpoint but never quote a number. When the API does not return a value the site shows
+      <span class="unv">n/a</span> and flags it; it never fills the gap.
+    </p>
+  </div>
+
+  <div class="grid cols-4" id="stats" style="margin-bottom:16px"></div>
+
+  <div class="card">
+    <h2>How this register was checked</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mark</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag yes">read</span></td>
+            <td>The page was fetched and read during this build, and the claim it supports was taken from its text.</td></tr>
+          <tr><td><span class="tag yes">matched</span></td>
+            <td>The URL was matched against the official documentation index; the page was not re-read line by line here.</td></tr>
+          <tr><td><span class="tag no">unverified</span></td>
+            <td>Could not be confirmed from the build sandbox. Left unconfirmed on purpose and listed on the Flagged page.</td></tr>
+          <tr><td><span class="tag warn">third party</span></td>
+            <td>Not a Kalshi source. Shown for context only, and never used as evidence for a Kalshi fact.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Register</h2>
+    <div class="toolbar">
+      <label class="inline">Group
+        <select id="group">
+          <option value="all">All groups</option>
+        </select>
+      </label>
+      <label class="inline"><input type="checkbox" id="only-unv"> Only unverified</label>
+      <label class="inline"><input type="checkbox" id="only-third"> Only third-party</label>
+      <span class="spacer"></span>
+      <span id="count" class="pill idle"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:22%">Source</th><th style="width:30%">Used for</th>
+          <th>Checks</th><th>Note</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">
+      Every source URL in this register is a direct link to the page the claim was taken from. The register's
+      raw data lives in <code class="mono">assets/js/sources.js</code>, and the test
+      <code class="mono">tests/sources-page.test.mjs</code> fails if this page and that file disagree, so the
+      table cannot be edited without the record changing with it.
+    </p>
+  </div>
+</main>
+
+<script type="module">
+import { mountChrome, esc, int, $ } from "./assets/js/ui.js";
+import { SOURCES, SOURCE_GROUPS, sourceStats, unverifiedEntries } from "./assets/js/sources.js";
+
+mountChrome({ page: "sources.html", title: "Sources" });
+
+const s = sourceStats();
+$("#stats").innerHTML = [
+  { k: "Sources listed", v: int(s.total), m: `${s.official} Kalshi · ${s.thirdParty} third-party` },
+  { k: "Read in full", v: int(s.fetched), m: "page fetched and read during this build" },
+  { k: "Matched to the index", v: int(s.verified), m: "present in docs.kalshi.com/llms.txt" },
+  { k: "Unverified", v: int(s.unverified), m: "left unconfirmed, listed on Flagged" }
+].map(t => `<div class="stat"><div class="k">${esc(t.k)}</div><div class="v">${t.v}</div><div class="m">${esc(t.m)}</div></div>`).join("");
+
+const groupEl = $("#group");
+for (const g of SOURCE_GROUPS) {
+  const o = document.createElement("option");
+  o.value = g.key;
+  o.textContent = g.label;
+  groupEl.appendChild(o);
+}
+
+function marks(e) {
+  const out = [];
+  out.push(e.verified === "fetched" ? `<span class="tag yes">read</span>`
+    : e.verified === "unverified" ? `<span class="tag no">unverified</span>`
+    : `<span class="tag yes">matched</span>`);
+  if (!e.official) out.push(`<span class="tag warn">third party</span>`);
+  if (e.url.endsWith(".yaml") || e.url.endsWith(".pdf")) out.push(`<span class="tag">file</span>`);
+  return out.join(" ");
+}
+
+function render() {
+  const g = groupEl.value;
+  const onlyUnv = $("#only-unv").checked;
+  const onlyThird = $("#only-third").checked;
+  let rows = SOURCES.slice();
+  if (g !== "all") rows = rows.filter(r => r.group === g);
+  if (onlyUnv) rows = rows.filter(r => r.verified === "unverified");
+  if (onlyThird) rows = rows.filter(r => !r.official);
+
+  /* Group headings keep the table readable while still being one table. */
+  let html = "";
+  let current = null;
+  for (const e of rows) {
+    if (e.group !== current) {
+      current = e.group;
+      const label = SOURCE_GROUPS.find(x => x.key === current)?.label || current;
+      html += `<tr><td colspan="4" class="small muted" style="background:#f7f9fb"><strong>${esc(label)}</strong></td></tr>`;
+    }
+    html += `<tr>
+      <td><a href="${esc(e.url)}" target="_blank" rel="noopener noreferrer"><strong>${esc(e.title)}</strong></a>
+        <div class="mono small muted" style="word-break:break-all">${esc(e.url.replace("https://", ""))}</div></td>
+      <td class="small">${esc(e.used)}</td>
+      <td class="nowrap">${marks(e)}</td>
+      <td class="small">${e.note ? esc(e.note) : `<span class="unv">—</span>`}</td>
+    </tr>`;
+  }
+  if (!rows.length) {
+    html = `<tr><td colspan="4"><div class="empty">No source matches these filters.</div></td></tr>`;
+  }
+  $("#rows").innerHTML = html;
+  const unv = unverifiedEntries(rows).length;
+  $("#count").textContent = `${rows.length} of ${SOURCES.length} sources${unv ? ` · ${unv} unverified` : ""}`;
+  $("#count").className = "pill idle";
+}
+
+groupEl.addEventListener("change", render);
+$("#only-unv").addEventListener("change", render);
+$("#only-third").addEventListener("change", render);
+render();
+</script>
+</body>
+</html>
