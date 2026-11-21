@@ -2469,6 +2469,24 @@ in `COORDINATION.md` (add/add on the tail of the board).
 5. **Flag Z3** — the Pages build-record anomaly observed during the merge burst, with the three run IDs so the
    claim can be re-checked.
 
+### Session `c33971c1` — addendum: PR #96, live deploy confirmed, cap consistency
+
+| Item | Result |
+|---|---|
+| Second PR | [#96](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/96) (final record + flags Z3/Z4 + the frequency-ordered lookup change) merged **2026-11-21T23:33:07Z**, merge commit [`3741629`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/3741629baef76aec082da47ba2a8758f63a374b1) |
+| Final Page deploy | Pages API `status: built`; the successful build is for `f3fa523`, which **has `3741629` as an ancestor** (checked with `git merge-base --is-ancestor`) |
+| Live content re-verified after that deploy | Fetched from `https://kanlerxz87-cyber.github.io/KalshiDash2/`: `flagged.html` serves **Z3**, **Z4**, the AB3 fix text, the SB4 correction and the F4 re-check; `assets/js/market.js` serves `seriesCategoriesFor` / `classifyEventWithBasis` / the frequency sort. Not inferred from the merge — read off the published site. |
+| Third fix (this addendum) | `discoverTopic` still passed `cap: 60` while the alerts page and engine passed `30`, so a category page would have spent twice the documented budget the Flagged page describes. Unified to **30**. |
+| Why the CI flapped | Rapid merges from several sessions put five workflows on one push and several Pages builds on the same minute. `live-engine-check` failed once and **passed on re-dispatch with identical code** (runs 44961672766 → 44961815807); Pages recorded superseded builds as `Page build failed` while their Actions runs were cancelled. Both are published as **Z3/Z4** with run IDs, not dismissed. |
+
+### Merged-tree evidence for the whole session
+
+Run on a `git worktree` of `origin/main` after the merges, so it describes what is actually published rather
+than this branch: **13 Node test files, 155 tests, all passing** (activity-proxy 3, alerts-core 21,
+chart-axis 10, dollar-volume 25, historical-tier 14, jumps 6, live-core 23, live-feed-state 2,
+official-wording 5, result-semantics 11, simulator-core 10, sources-page 8, taxonomy 17) · Python `tools/`
+**42** OK · static link check **36 pages / 0 broken** · page runtime **18/18 clean**.
+
 ### Flag register state after this session
 
 72 items + **Z3** = 73 published. Open items are published, labelled and linked; nothing was deleted. Items this

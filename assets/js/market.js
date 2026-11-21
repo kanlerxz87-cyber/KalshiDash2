@@ -320,7 +320,7 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
    * cached for the life of the page and capped per scan; anything not resolved
    * keeps the documented fallback and is counted, never assumed. */
   const seriesTickers = events.filter(e => !e._combo).map(e => e.series_ticker);
-  const seriesCoverage = await fetchSeriesCategories(seriesTickers, { cap: 60 });
+  const seriesCoverage = await fetchSeriesCategories(seriesTickers, { cap: 30 });
 
   const matched = events.filter(e => {
     if (e._combo) return e._mve?.topic === topicKey;
