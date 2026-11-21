@@ -2635,3 +2635,20 @@ unused `notional` line in `analyseFills`, so a rebase by that owner should be co
 **Session state after rebase:** Node 81/81 · Python tools 42/42 · Python tests 20 (3 skipped) · alerts DOM 21/21 ·
 summary DOM pass (81/92 verified claims, 8 partial, 3 unverified; 41 open / 33 mitigated / 74 flags) · page runtime
 17/17 · link check 35 pages / 0 broken · signing self-test 6/6 · `git diff --check` clean.
+
+### Conflict log #2 — integrating `main` @ `afc2c0b` (PR #91) — session `02091230`
+
+PR [#91](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/91) (session `c33971c1`, series-level category
+classification) merged into `main` after PR #94 was opened and touched four of this session's files. The branch
+was rebased onto `afc2c0b`; every change from #91 is retained and re-tested.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `assets/js/alerts.js` | one import line: #91 added `classifyEventWithBasis` + `fetchSeriesCategories`; this session added `Watchlist` | Single union import line; body changes from both sides applied without loss (`git diff origin/main -- assets/js/alerts.js` shows only this session's additions). |
+| `assets/js/market.js` | #91 added series-category helpers near classification; this session changed the `getAll` header comment and removed two unused fields | Auto-merged; `git diff origin/main -- assets/js/market.js` contains **only** this session's three intended hunks. |
+| `assets/js/claims.js`, `flagged.html`, `suggestions.html` | both sides appended/labelled entries | Auto-merged; register counts re-derived by the summary DOM test (now 86 Node tests on the combined tree). |
+| `COORDINATION.md` | add/add again | Union: #91's and this session's sections both present. |
+| `reports/alerts-live-check.md` | the CI bot's capture for this branch (23:11:56Z) vs `main`'s capture (23:10:59Z) | Kept the **fresher** capture (23:11:56Z), per the board's standing precedent; both files contained the same observations, only timings and the commit SHA differed. The bot's commit was cherry-picked, not dropped. |
+
+**Post-rebase suite on the combined tree:** Node **86/86** · Python tools **42/42** · Python tests **20** (3 skipped) ·
+alerts DOM **21/21** · summary DOM pass · page runtime **17/17** · link check **35 pages / 0 broken** · signing **6/6**.
