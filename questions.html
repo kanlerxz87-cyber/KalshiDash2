@@ -198,10 +198,10 @@ const Q = [
   {
     id: "Q10", cat: "data", confidence: "partly answered",
     q: "Can price updates stream instead of polling?",
-    know: "Kalshi documents an authenticated demo WebSocket handshake using signed KALSHI-ACCESS headers, even for public ticker data. The ticker channel combines changes and flushes them about once a second.",
-    dontknow: "An authenticated demo handshake was not tested in this session. On GitHub Pages the relay is not running, and intermediate changes between ticker flushes can be missed.",
-    answer: "The alerts page includes an optional same-origin relay for ticker streaming; without it the page uses REST polling (15 seconds by default). Browsers cannot set the required custom WebSocket handshake headers. The chart has its own polling interval.",
-    action: "See the Alerts page and README for relay setup and the Flagged page W1–W4 for streaming limitations.",
+    know: "Kalshi documents an authenticated demo WebSocket at wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2. The Market Ticker page states that an API key is required at the handshake and that the channel needs no extra channel-level authentication beyond that authenticated connection, so even public price data needs signed KALSHI-ACCESS-* handshake headers.",
+    dontknow: "Whether an authenticated handshake can be made from a browser on this deployment, and whether the ticker channel can deliver every intermediate price change between updates. The standard WebSocket constructor cannot set custom headers. No authenticated demo handshake was executed in this session.",
+    answer: "The alerts page includes an optional same-origin relay for ticker streaming; without it the page uses REST polling (15 seconds by default) and labels the source of every point. The relay signs in the server process, which conflicts with the browser-only signing rule (Flagged W4). Every pane states which path is in use.",
+    action: "See the Alerts page for the streaming switch and the Flagged page W1-W4 for the limitation. A compliant streaming deployment would need a hosted signer the visitor does not control, which is an owner decision.",
     sources: [`${D}/getting_started/quick_start_websockets`, `${D}/websockets/market-ticker`, `${D}/getting_started/rate_limits`]
   },
   {

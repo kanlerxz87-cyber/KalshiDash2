@@ -140,26 +140,6 @@ class SnapshotMetadataTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         cls.snapshot = json.loads((root / "data" / "snapshot.json").read_text(encoding="utf-8"))
 
-    def test_collector_emits_the_published_field_labels(self):
-        """The scheduled job writes these strings; they must match the committed labels.
-
-        A snapshot refresh previously shortened both notes on `main`, which broke
-        this class and `tests/activity-proxy.test.mjs`. Asserting the generator
-        itself, not only the committed file, is what stops that recurring.
-        """
-        emitted = collect.derivation_notes()
-        committed = self.snapshot["_meta"]["derivation_notes"]
-
-        self.assertEqual(emitted, committed)
-        self.assertIn("contract-count fields", emitted["contract_volume"])
-        self.assertIn(
-            "not asserted as actual all-side cash turnover",
-            emitted["sampled_yes_price_times_contracts"],
-        )
-        self.assertIn("No min_ts time bound is passed", emitted["sampled_yes_price_times_contracts"])
-        self.assertNotIn("dollar_volume", emitted)
-        self.assertNotIn("traded_notional_dollars", emitted)
-
     def test_snapshot_labels_contract_counts_and_sampled_trade_value(self):
         meta = self.snapshot["_meta"]
         notes = meta["derivation_notes"]
@@ -168,6 +148,35 @@ class SnapshotMetadataTests(unittest.TestCase):
         self.assertNotIn("dollar_volume", notes)
         self.assertNotIn("traded_notional_dollars", notes)
         self.assertIn("sampled", meta["collection_scope"]["coverage"])
+
+    def test_snapshot_notes_match_the_generator_exactly(self):
+        """Guards the scheduled refresh: collect.py must emit the snapshot's notes.
+
+        The `Collect demo snapshot` workflow rewrites data/snapshot.json every six
+        hours and commits with [skip ci]. Before this test, a wording change in the
+        generator could therefore land on `main` with the two metadata suites red
+        (observed at bbdc3a0). Exact equality makes that drift fail in the workflow
+        itself, before the bot commit is pushed.
+        """
+        self.assertEqual(
+            self.snapshot["_meta"]["derivation_notes"],
+            dict(collect.DERIVATION_NOTES),
+            "collect.py DERIVATION_NOTES must match data/snapshot.json derivation_notes",
+        )
+
+    def test_generator_notes_state_the_official_field_semantics(self):
+        """The disclosure wording must stay factually exact per the official schema."""
+        notes = collect.DERIVATION_NOTES
+        # GET /markets: volume_fp / volume_24h_fp are contract counts; notional_value_dollars
+        # is the value of a single contract at settlement.
+        self.assertIn("contract-count fields", notes["contract_volume"])
+        self.assertIn("not traded-dollar volume", notes["contract_volume"])
+        self.assertIn("single contract at settlement", notes["contract_volume"])
+        self.assertNotIn("notional_value_dollars is cumulative", notes["contract_volume"])
+        # GET /markets/trades: no time bound is requested and the page count is capped.
+        self.assertIn("No min_ts time bound", notes["sampled_yes_price_times_contracts"])
+        self.assertIn("pagination is capped", notes["sampled_yes_price_times_contracts"])
+        self.assertIn("not asserted as actual all-side cash turnover", notes["sampled_yes_price_times_contracts"])
 
     def test_market_rows_keep_official_source_and_unambiguous_sampled_field_names(self):
         for topic in self.snapshot["topics"].values():
@@ -227,6 +236,71 @@ class NoStaleScanCountsTests(unittest.TestCase):
     The topic notes render on every category page. Two of them carried
     point-in-time counts ("740 of 1,000 live events", Crypto "only 2") that were
     wrong within a day — the 2026-11-21 snapshot holds 86 crypto events.
+    """
+
+    def test_topic_notes_carry_no_digit_counts(self):
+        import re
+        for key in ("gas", "elections", "culture", "crypto", "golf"):
+            with self.subTest(topic=key):
+                self.assertIsNone(
+                    re.search(r"\d", collect.TOPICS[key]["note"]),
+                    "a stored count in a topic note goes stale; use the live scan count",
+                )
+
+    def test_published_config_notes_carry_no_digit_counts(self):
+        import re
+        root = Path(__file__).resolve().parents[1]
+        config = (root / "assets" / "js" / "config.js").read_text(encoding="utf-8")
+        block = config[config.index("export const TOPICS"):config.index("export const WINDOWS")]
+        for match in re.finditer(r'key: "(\w+)"[\s\S]*?note:\s*\n?\s*"([^"]+)"', block):
+            if match.group(1) not in ("gas", "elections", "culture", "crypto", "golf"):
+                continue
+            with self.subTest(topic=match.group(1)):
+                self.assertIsNone(re.search(r"\d", match.group(2)))
+
+
+class TopicRuleWordingTests(unittest.TestCase):
+    """Topic selection must be described as the filter actually applied.
+
+    The Get Series List spec describes `category` in full (exact, case-sensitive,
+    matched against the series' `categories` discovery list) but leaves `tags`
+    with no described semantics at all:
+    https://docs.kalshi.com/api-reference/market/get-series-list
+    """
+
+    CATEGORY_TOPICS = ("elections", "culture", "crypto")
+    TAG_TOPICS = ("gas", "golf")
+
+    def test_category_topics_describe_the_documented_parameter(self):
+        for key in self.CATEGORY_TOPICS:
+            with self.subTest(topic=key):
+                note = collect.TOPICS[key]["note"]
+                self.assertIn("category", note)
+                self.assertIn("exact, case-sensitive", note)
+                self.assertNotRegex(note, r"\bofficial Kalshi (tag|category)\b")
+
+    def test_tag_topics_do_not_claim_a_documented_taxonomy(self):
+        for key in self.TAG_TOPICS:
+            with self.subTest(topic=key):
+                note = collect.TOPICS[key]["note"]
+                self.assertIn("tags", note)
+                self.assertIn("undescribed", note)
+                self.assertNotIn("official Kalshi tag", note)
+
+    def test_committed_snapshot_rules_match_the_collector(self):
+        root = Path(__file__).resolve().parents[1]
+        snapshot = json.loads((root / "data" / "snapshot.json").read_text(encoding="utf-8"))
+        for key, topic in snapshot["topics"].items():
+            with self.subTest(topic=key):
+                self.assertEqual(topic["rule"], collect.TOPICS[key]["note"])
+
+
+class NoStaleScanCountsTests(unittest.TestCase):
+    """Scan counts must come from the scan being viewed, never a stored number.
+
+    The topic notes render on every category page. Two of them carried
+    point-in-time counts ("740 of 1,000 live events", Crypto "only 2") that were
+    wrong within a day - the 2026-11-21 snapshot holds 86 crypto events.
     """
 
     def test_topic_notes_carry_no_digit_counts(self):

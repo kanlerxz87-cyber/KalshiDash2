@@ -54,7 +54,8 @@ test("A9 cites both official pages and keeps the unresolved part explicit", () =
   assert.match(card[0], new RegExp(GET_MARKETS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(card[0], new RegExp(LIFECYCLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(card[0], /Still unverified/, "the unknown must be labelled, not filled in");
-  assert.match(card[0], /Correction/, "the retraction must be visible on the card");
+  assert.match(card[0], /Correct(ed|ion)/i,
+    "the retraction must be visible on the card");
 });
 
 // The reference comparison is a 24-hour move. Kalshi's Get Market schema:

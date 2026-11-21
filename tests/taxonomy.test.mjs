@@ -39,6 +39,30 @@ test("gas matches the KXAAAGAS* series and never crude/natgas/diesel/Vegas", () 
   }
 });
 
+/* KXGAS is a real retail-gasoline series whose official settlement source is the
+ * EIA weekly US retail gasoline price, but it carries NO tags and its title
+ * ("Gas weekly") matches no earlier pattern, so both the site and the collector
+ * missed it. Verified live 2026-11-21:
+ *   https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS
+ *   -> title "Gas weekly", category Economics, tags null,
+ *      settlement_sources[0].url = https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm
+ * (EIA "Weekly U.S. Regular All Formulations Retail Gasoline Prices").
+ * Source for the series schema: https://docs.kalshi.com/api-reference/market/get-series
+ */
+test("gas also matches the KXGAS retail-gasoline series (no tags, EIA settlement source)", () => {
+  assert.equal(classifyEvent(ev({
+    series_ticker: "KXGAS", category: "Economics", title: "Gas weekly"
+  })), "gas");
+  /* The bare /gas/i catch-all must stay banned: these must still be rejected. */
+  for (const bad of [
+    { series_ticker: "KXNATGAS", title: "Natural gas price this week" },
+    { series_ticker: "KXVEGASGP", title: "Las Vegas gas price" },
+    { series_ticker: "KXGASOLINEISH", title: "Something oil related" }
+  ]) {
+    assert.equal(classifyEvent(ev(bad)), null, JSON.stringify(bad));
+  }
+});
+
 test("golf is Sports narrowed to golf terms, not all sports", () => {
   assert.equal(classifyEvent(ev({ category: "Sports", series_ticker: "KXPGA", title: "PGA Championship" })), "golf");
   assert.equal(classifyEvent(ev({ category: "Sports", series_ticker: "KXNFLGAME", title: "Chiefs vs Bills" })), null);

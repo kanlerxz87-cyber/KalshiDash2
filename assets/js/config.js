@@ -70,17 +70,23 @@ export const TOPICS = [
     label: "Gas Prices",
     blurb: "Retail and wholesale gasoline price markets.",
     categoryPatterns: [],
-    /* Only the documented AAA retail-gas series family (KXAAAGAS* — see the
-     * official fee schedule). The old catch-all /GAS/i was unsound: it matched
-     * "…VEGAS" and "…NATGAS" series (G1 on the Flagged page). */
-    seriesPatterns: [/^KXA{3}GAS/i],
-    titlePatterns: [/gas price/i, /gasoline/i, /gas average/i, /AAA gas/i],
+    /* Only the documented retail-gasoline series families:
+     *   KXAAAGAS*  — the AAA retail-gas family (see the official fee schedule)
+     *   KXGAS      — "Gas weekly", settlement source EIA weekly US retail
+     *                gasoline (verified live 2026-11-21:
+     *                GET /series/KXGAS -> title "Gas weekly",
+     *                settlement_sources EIA PET_PRI_GND_DCUS_NUS_W.htm).
+     * The bare /GAS/i catch-all stays banned: it matched "…VEGAS" and
+     * "…NATGAS" series (G1 on the Flagged page). */
+    seriesPatterns: [/^KXA{3}GAS/i, /^KXGAS$/i],
+    titlePatterns: [/gas(oline)? (price|average)/i, /\bAAA gas/i, /^gas (weekly|price)$/i],
     /* Never classify crude, natural-gas, diesel or Vegas-related rows as
      * pump-price gas, even when a title contains "gas price". */
     excludePatterns: [/natural\s*gas/i, /\bNATGAS\b/i, /\bWTI\b/i, /\bBRENT\b/i, /crude/i, /diesel/i, /\bVEGAS\b/i, /\bbarrels?\b/i, /\boil\b/i],
     note:
-      "No Kalshi `category` value covers gasoline. Matched on the KXAAAGAS* series family " +
-      "and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded.",
+      "No Kalshi `category` value covers gasoline. Matched on the KXAAAGAS* (AAA retail) and " +
+      "KXGAS (EIA weekly retail gasoline) series families plus gas-price titles, with " +
+      "crude / natural-gas / diesel / Vegas rows excluded.",
     verifiedCategory: null,
     /* No coverage caveat is hard-coded any more. An earlier version claimed the
      * demo environment returned "0 open gas-price events"; that was true of one
