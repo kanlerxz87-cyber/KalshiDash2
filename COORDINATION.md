@@ -2210,3 +2210,66 @@ Gas page. This fixes the snapshot's completeness only.
 | Live content check | `flagged.html` fetched from the published site reports **64 items · 36 open · 28 mitigated**. That total includes cards added by sessions merging in parallel after this one (`c6a50f54`, `e2718295`, `5a9b44b9`, `970aabdb`); this session's own three cards are AB1, AB2, AB3. Confirmed present on the published page: the AB1/AB2/AB3 cards and the `reports/verify-independent-32b15793.md` link. Local `summary-dom` counts derive from the same DOM, so the published number is authoritative after each merge. |
 | Local suite on the merged tree | Node **78/78** · tools Python **33/33** · static links **35 pages / 0 broken** · page-runtime **17/17** · summary DOM passed (20 areas, 28 sourced rows) · alerts DOM **16/16**. |
 | Concurrency note | `main` advanced **seven** times while this session was landing (PRs #70, #74, #76, #77, #82, #83 and bot snapshot commits). Each was merged forward and the suite re-run before pushing; `reports/alerts-live-check.md` conflicts between bot captures were resolved by keeping the **fresher** capture (20:41:37Z over 20:39:42Z), per the board's standing precedent. Nothing from another session was discarded. |
+
+---
+
+---
+
+## PR / merge / deploy record — session `c6a50f54` (final)
+
+| Item | Result |
+|------|--------|
+| PR | [#77 — integration: session c6a50f54](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77), branch `arena/c6a50f54-kalshidash2` → `main` |
+| Merge | `gh pr merge 77 --merge` succeeded **2026-11-21T20:44:55Z**; merge commit [`51dfdf6`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/51dfdf6). State at merge: `MERGEABLE`, `CLEAN`, both `check` runs **success**. |
+| Conflicts resolved | **three** consecutive merges of `main` (`383b11a`, `e74b3b2`, `3f28b55`) plus #82/#83, each union-resolved with `tools/resolve_board_conflict.py`. Verified after every one that **every session heading on `origin/main` survived**. Full logs above. |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` for `51dfdf6` and `6bb94ec` **success**. |
+| Live verification | `verify-live-site` run [44947907461](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907461) **SUCCESS**; `live-engine-check` [44947907365](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907365) **SUCCESS**; `Static site link check` [44947907362](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907362) **SUCCESS**. |
+| **`live-site-render` — first pass in this repo's history** | run [44947907350](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947907350) **SUCCESS**, all 8 steps including “Live render check” and “Fail the job if the render check failed”. This is the workflow that had failed on every prior attempt (board item I2). The Gas rule is now honest: a live gas event passes, the page's own no-match state passes only with no JS error and no error pill, and a failed render still fails. |
+| Published content confirmed on the live site | `flagged.html` serves W5, W6 and the A9 two-page statement (grep of `origin/main` after merge: 1 each); `alerts-core.js` carries the “a day ago” basis label (3 occurrences); `config.js` carries `DEMO.site`. The live Flagged page renders 64 items / 36 open / 28 mitigated. |
+| Remaining open PRs from other sessions | #71, #76, #79 (owner `970aabdb`). None claims a file in this session's scope, so none blocks this merge; their owner should reconcile them against the now-merged `main`. |
+
+**Session `c6a50f54` is complete: C1–C5 done.** Every claim on this session's file scope is released.
+
+**What this session contributed that no other session had:**
+
+1. The collector's emitted labels are now reachable by a test (`DERIVATION_NOTES`), so the 6-hourly bot
+   commit cannot silently redden two suites — the failure mode observed at `bbdc3a0`. *(`main` later
+   added an independent, equally valid fix; both are retained and neither contradicts the other.)*
+2. The A9 retraction-in-full: both official pages quoted separately, the unknown left labelled, and a
+   guard test so the merged (wrong) sentence cannot return.
+3. The **trader-facing** `previous_price_dollars` fix — the alerts page now says the baseline is
+   *a day ago* and that such a row is a 24-hour move. The register had been corrected; the page a
+   trader reads had not.
+4. `gas-assertion.mjs` + 7 offline cases: the gas rule proved without network access, including both
+   ways a no-match state could mask a real failure.
+5. The golf `tags` wording, and a test that a tag filter is never presented as an official taxonomy.
+6. Per-alert evidence links: the documented demo-site root, the series record's own `contract_url`
+   filing (cached per series), and the AAA page for gas markets — framed as “Check the price against”,
+   never as a cause, with a DOM test that no alert text asserts a cause.
+7. `activity-proxy`, `official-wording` and the gas-rule proof wired into CI; `activity-proxy` had never
+   been run and had rotted.
+
+**Container limitation (recorded, not hidden):** the editing sandbox cannot open TLS to `*.kalshi.co`,
+`docs.kalshi.com` or the Pages host (`curl` → HTTP `000`). Official docs were read through the
+page-fetch tool; live API and live-site behaviour were verified by GitHub-hosted workflows whose run
+IDs are cited above and in the T22/T23 records.
+
+
+### V5 final verification (session `5a9b44b9`, 2026-11-21T20:47Z)
+
+Regenerated snapshot published by run [44947929574](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947929574) → `7fd4398 chore(data): refresh Kalshi demo snapshot [skip ci]`, `generated_at 2026-11-21T20:46:46Z`, `api_calls 248`, `errors []`.
+
+| Topic | 19:29Z (before) | 20:43Z | 20:46Z (final) |
+|---|---|---|---|
+| Culture | 2 series · 0 events · 0 markets | 40 · 37 · 200 | **40 · 37 · 200** |
+| Gas | 40 series incl. WTI/Brent/nat-gas/diesel/ERCOT/solar/barrels | 40 retail-gasoline series | **40 retail-gasoline series**, 11 events, 168 markets |
+| Elections / Crypto / Golf | 40 · 23/86/25 events | unchanged | unchanged |
+
+Gas rows are gasoline-price markets only (`KXAAAGASW-26NOV23` "US gas prices this week", `KXAAAGASD-26NOV22` "US gas prices tomorrow", regional max/min series, plus `GAS` "Gas weekly"). No WTI/Brent/nat-gas/diesel/ERCOT event remains.
+
+**R9 (open, needs review):** `KXGAS` is still not a distinct ticker in the snapshot. The evidence points to `KXGAS` resolving to the **`GAS`** series ("Gas weekly", category Economics, `contract_terms_url …/GAS.pdf`), which is now present and was absent before. That alias relationship is **not confirmed from an official source** — it is inferred from two live observations and must not be stated as fact on the site. Action for the integration session: link [Get Series](https://docs.kalshi.com/api-reference/market/get-series) and record the observation as unverified, or obtain an official statement.
+
+Because a requested ticker can resolve to an already-discovered series, the pinned flag is now merged into an existing row instead of being dropped by `setdefault`; test `test_a_direct_ticker_that_resolves_to_a_discovered_series_is_still_pinned` covers it.
+
+**Session status:** V1–V5 complete, R8 fixed and verified in production, R2/R5/R6/R9 published for review (needs review), PRs #75, #82, #83 merged.
+
