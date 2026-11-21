@@ -1322,6 +1322,75 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 | Z4 | Full local suite + live GitHub-runner checks (`verify-alerts`, `live-engine-check`, `verify-live-site`), then PR → `main`, merge, Pages confirmation | in progress | `9d7b4124` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test; `gh run` results | Flagged items do not block merge |
 
 **Claimed 2026-11-21 by `9d7b4124`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+<<<<<<< HEAD
 >>>>>>> d3d0b68 (coord: session 9d7b4124 claims Z1-Z4 (re-verification, Y9/Y10 closure))
+<<<<<<< HEAD
 >>>>>>> 06719df (coord: session 9d7b4124 claims Z1-Z4 (re-verification, Y9/Y10 closure))
+<<<<<<< HEAD
 >>>>>>> 30041bf (coord: session 9d7b4124 claims Z1-Z4 (re-verification, Y9/Y10 closure))
+=======
+=======
+=======
+
+### Z1–Z4 outcome — session `9d7b4124` (2026-11-21)
+
+| # | Final status | Evidence |
+|---|--------------|----------|
+| Z1 | **done** | `reports/verify-facts-v4.md`: all 28 `config.js` `SOURCES` URLs confirmed present in the official [llms.txt](https://docs.kalshi.com/llms.txt) index (fetched 2026-11-21); demo REST/WS URLs match [demo_env](https://docs.kalshi.com/getting_started/demo_env); schema spot-checks pass on [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Batch Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2). The 7 non-index `docs.kalshi.com` URLs in the repo are historical records, test fixtures, or raw-capture truncations (X4 class) — none is linked from a published page. No `config.js` change needed. |
+| Z2 | **done** | `assets/js/jumps.js` deleted; `flagged.html` Y9 marked `fixed` with the re-run grep evidence (only the flag's own text referenced the file). `node tools/verify/page-runtime-check.mjs` 17/17 after deletion. |
+| Z3 | **done** | `docs/index.html` replaced with a redirect to the root site; `flagged.html` Y10 marked `mitigated`; `README.md` docs/ note updated. `python3 tools/check_site_links.py .` — 34 pages, 0 broken. `docs/` subpages kept (nothing deleted). |
+| Z4 | **done** | Local: node unit tests 33/33, page-runtime 17/17, link check 34/0, python unittest 18/18, signing self-test 6/6, alerts DOM 16/16, summary DOM pass (flag counts derived: 27 open / 17 mitigated / 44 total), `git diff --check` clean. Live (GitHub runners): `verify-alerts` runs [44875576242](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875576242) and [44875672639](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875672639) **success** (live demo API check included); `live-engine-check` runs [44875578085](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875578085) and [44875675184](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875675184) **success**, fresh report committed as `d898752` (2026-11-21T06:28:15Z: 1,200 events scanned, 2,760 markets in the five topics, 3 swings ≥ $0.10 vs `previous_price_dollars`). Note: the first pair of runs' report commits were skipped because this session's push landed first (non-fast-forward, `push skipped` by design); the re-runs above are the committed evidence. The `live-engine-check` failure on `main` 10h earlier (PR #43) did not reproduce — transient. |
+
+**Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
+
+**Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+
+---
+
+---
+
+## Session `1607f1f9` — WebSocket live feed + duplicate-generation cleanup + dead-file resolution
+
+**Branch:** `arena/1607f1f9-kalshidash2` (Arena-assigned; this session does not create or switch branches).
+**Base:** `origin/main` at `8ea5c85` ("chore(data): refresh Kalshi demo snapshot").
+**Board read before starting** (per the standing rule). The last integration record on the board is
+session `53975890` (PR #42, merged as `95beacf`); all its tasks are closed, so nothing it owned is touched here.
+
+### Claim (written and committed before any other edit)
+
+| # | Task | Status | Owner | File scope (exclusive) |
+|---|------|--------|-------|--------------------------|
+| W1 | **WebSocket ticker feed for the live alerts page** — subscribe to the officially documented `ticker` channel and detect ≥ $0.10 swings as the exchange publishes them, instead of only on a 15 s REST poll | in progress | `1607f1f9` | `assets/js/ws-feed.js` (new), `assets/js/alerts.js`, `assets/js/alerts-core.js`, `assets/js/config.js`, `assets/js/kalshi.js`, `alerts.html`, `tests/ws-feed.test.mjs` (new) |
+| W2 | **Resolve the published duplicate site generation** (flagged Y10): the stale `docs/` tree is still served at `/docs/` and carries defects F6–F8 | in progress | `1607f1f9` | `docs/**` (removal), `.github/workflows/pages.yml` |
+| W3 | **Resolve the dead-file flag Y9** — `assets/js/jumps.js` is tracked but imported by no published page | in progress | `1607f1f9` | `assets/js/jumps.js` (adopt or remove), `assets/js/category.js`, `assets/js/ui.js` |
+| W4 | **Propagate W1–W3 to the shared decision pages** | unclaimed | `1607f1f9` | `verification.html`, `flagged.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
+
+**Non-overlap note.** W1/W2/W3 touch files no other open claim on this board names. The only
+file in two of my own scopes is `assets/js/config.js`, which W1 owns; W3 does not edit it.
+W4 is shared-output work and is executed last, by me, in this session.
+
+### W1 — official sources read 2026-11-21 (all from docs.kalshi.com, the official reference)
+
+| Source | What it establishes |
+|--------|---------------------|
+| [Quick Start: WebSockets](https://docs.kalshi.com/getting_started/quick_start_websockets) | Demo WS URL `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`; the handshake **requires authentication** — the three `KALSHI-ACCESS-*` headers, signed over `timestamp + "GET" + "/trade-api/ws/v2"`; public market-data channels are `ticker`, `trade`, `market_lifecycle_v2`, `multivariate_market_lifecycle`; reconnect with exponential backoff; error codes 9 (auth), 13, 14, 25, 26 |
+| [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker) | The `ticker` message schema. Payload fields are `market_ticker`, **`price_dollars`**, `yes_bid_dollars`, `yes_ask_dollars`, `volume_fp`, `open_interest_fp`, `yes_bid_size_fp`, `yes_ask_size_fp`, `last_trade_size_fp`, `dollar_volume`, `dollar_open_interest`, `ts`, `ts_ms`, `time`. Changes are **combined and flushed about once per second**, one message per changed market. A market filter (`market_ticker` / `market_tickers` / `market_id` / `market_ids`) is supported. A subscription created without a market filter cannot be changed in place (error 13) |
+| [Rate Limits and Tiers](https://docs.kalshi.com/getting_started/rate_limits) | Token-bucket budgets; unauthenticated public requests are limited separately and a 429 must be backed off; WebSocket connection limits are tier-scoped |
+| [API Environments and Endpoints](https://docs.kalshi.com/getting_started/api_environments) | The demo WebSocket host list (the shared `wss://demo-api.kalshi.co/…` host remains supported) |
+
+**Consequence for the brief.** The brief asks for "a live alerting system … as a simplified
+scrolling chat so someone can view in real time". The site currently satisfies that with a
+15-second REST poll, because the Kalshi **WebSocket** was never wired up even though the URL
+is already in `assets/js/config.js`. The exchange's own ticker channel flushes roughly once per
+second, so a ≥ $0.10 swing can be surfaced within about a second of the trade instead of within
+a poll interval. W1 closes that gap using only the documented message schema.
+
+**Important limitation, stated up front and on the page:** a WebSocket handshake requires a
+signed API key. The site has no credentials committed, so the WS feed is **opt-in**: the user
+enters their own demo key ID + private key in the browser tab (the same browser-only flow
+`portfolio.html` already uses), the key never leaves the tab, and the page **falls back to the
+REST poll** whenever no key is loaded or the socket cannot connect. The feed never pretends to
+be live when it is not: the status pill states which source produced the current alerts.
+>>>>>>> b19dcf2 (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
+>>>>>>> 9c0a6aa (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
+>>>>>>> cf2a572 (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
