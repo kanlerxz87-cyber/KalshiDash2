@@ -71,7 +71,27 @@ jobs:
           git add data/snapshot.json
           if git diff --staged --quiet; then
             echo "no change"
-          else
-            git commit -m "chore(data): refresh Kalshi demo snapshot [skip ci]"
-            git push || echo "push skipped (branch protected or diverged)"
+            exit 0
           fi
+          git commit -m "chore(data): refresh Kalshi demo snapshot [skip ci]"
+          # `main` moves while this job runs, so a bare `git push` can be rejected.
+          # The previous step logged "push skipped" and still exited 0, which left
+          # the snapshot stale with no signal (observed 2026-11-21: two successful
+          # runs, no new chore(data) commit). Rebase onto current main and retry;
+          # fail the job if the refreshed snapshot cannot be published.
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo "rebase onto origin/main failed on attempt ${attempt}"
+              sleep 5
+              continue
+            fi
+            if git push origin HEAD:main; then
+              echo "pushed refreshed snapshot on attempt ${attempt}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::could not push the refreshed snapshot to main after 4 attempts"
+          exit 1
