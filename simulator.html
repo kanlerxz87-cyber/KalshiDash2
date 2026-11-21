@@ -184,18 +184,25 @@
       <table>
         <thead><tr><th>Quantity</th><th>Official source</th><th>Field</th></tr></thead>
         <tbody>
-          <tr><td>Universe of finalized markets</td>
+          <tr><td>Universe of finalized markets (live tier)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">GET /markets ↗</a></td>
             <td class="mono small">status=settled</td></tr>
+          <tr><td>Universe of finalized markets (archived tier)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-markets" target="_blank" rel="noopener noreferrer">GET /historical/markets ↗</a>
+              · <a class="src-link" href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">partition docs ↗</a></td>
+            <td class="mono small">settled before market_settled_ts; result, settlement_value_dollars</td></tr>
           <tr><td>Yes/no outcome and settlement value</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a></td>
             <td class="mono small">result, settlement_value_dollars</td></tr>
           <tr><td>Series ticker and category</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a></td>
             <td class="mono small">series_ticker, category</td></tr>
-          <tr><td>Price history</td>
+          <tr><td>Price history (live tier)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">GET candlesticks ↗</a></td>
             <td class="mono small">price.close_dollars, price.previous_dollars, volume_fp</td></tr>
+          <tr><td>Price history (archived tier, used only when the live tier returns no candles for a settled market)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks" target="_blank" rel="noopener noreferrer">GET historical candlesticks ↗</a></td>
+            <td class="mono small">price.close, price.previous, volume</td></tr>
           <tr><td>NO-leg complementary price relationship</td>
             <td><a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">orderbook pricing ↗</a></td>
             <td class="mono small">NO ask = $1.00 − YES bid; see reciprocal relationship</td></tr>
