@@ -16,11 +16,11 @@
  */
 import { mountChrome, esc, $, pill, int, src, emptyRow } from "./ui.js";
 import { TOPICS, DEMO } from "./config.js";
-import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategories } from "./market.js";
+import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategories, Watchlist } from "./market.js";
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
   watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
-  screenMarket
+  screenMarket, marketRefFromAlert
 } from "./alerts-core.js";
 import { LiveFeed, FEED_STATE, probeRelay } from "./live-feed.js";
 
@@ -67,7 +67,10 @@ const S = {
   feedStarted: false,       // the relay probe has already run
   feedState: FEED_STATE.POLL,
   feedDetail: "polling the REST API",
-  feedFrames: 0
+  feedFrames: 0,
+  /* Markets already on the resolution watch list. Seeded from localStorage so
+   * a re-render shows "tracked" instead of offering the button again. */
+  tracked: new Set(Watchlist.all().map(w => w.ticker))
 };
 
 const TOPIC_LABEL = Object.fromEntries(TOPICS.map(t => [t.key, t.label]));
@@ -537,6 +540,15 @@ function msgHTML(a, watchFeed) {
         · bid / ask ${px(q.yesBid)} / ${px(q.yesAsk)}${spread}${vol}
       </div>
       ${ruleLine}
+      <div class="actions">
+        ${S.tracked.has(a.ticker)
+          ? `<span class="tag yes">tracked to resolution</span>`
+          : `<button class="secondary tiny" data-track="${esc(a.ticker)}">Track to resolution</button>`}
+        ${a.eventTicker
+          ? `<a class="src-link" href="event.html?ticker=${encodeURIComponent(a.eventTicker)}">event detail ↗</a>`
+          : ""}
+        <span class="small muted">limits, depth and the resolution page</span>
+      </div>
       <div class="links">
         ${src(`${DEMO.rest}/markets/${a.ticker}`, "GET /markets/" + a.ticker)}
         · <a href="${esc(eventPageUrl())}" target="_blank" rel="noopener noreferrer">Kalshi demo site ↗</a>
@@ -711,6 +723,27 @@ function renderAll() {
   renderSim();
   renderTrades();
 }
+
+/* ------------------------------------------------------- resolution watch */
+
+/* Put an alerted market on the watch list that resolved.html polls until the
+ * exchange reports yes or no. The entry is built from the alert's own values
+ * (see marketRefFromAlert); no price or date is invented. */
+function trackAlert(ticker) {
+  if (!ticker || S.tracked.has(ticker)) return;
+  const a = [...S.alerts].reverse().find(x => x.ticker === ticker);
+  const ref = a ? marketRefFromAlert(a) : null;
+  if (!ref) return;
+  Watchlist.add(ref, a.topic, a.title);
+  S.tracked.add(ticker);
+  renderFeeds();
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-track]");
+  if (!b) return;
+  trackAlert(b.getAttribute("data-track"));
+});
 
 /* ---------------------------------------------------------------- controls */
 

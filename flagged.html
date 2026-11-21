@@ -1398,6 +1398,49 @@
         <code>reports/review-5a9b44b9.md</code> §3 R9</p>
     </div>
 
+    <div class="irregularity" id="SC1">
+      <h3>SC1 — Both "scrolling chats" rendered unstyled and did not scroll <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/alerts.js</code> renders each message as
+        <code>&lt;article class="msg up|down"&gt;</code> with child <code>.meta</code>, <code>.ttl</code>,
+        <code>.body</code>, <code>.rule</code> and <code>.links</code>, and the empty state as
+        <code>.feed-empty</code>. <code>assets/css/app.css</code> defined rules only for the older
+        <code>.chat-msg</code> names, and the scroll container class <code>.chat-body</code> (height 480px,
+        <code>overflow-y:auto</code>) was never applied to <code>#feed-all</code> / <code>#feed-watch</code>.
+        Net effect: messages had no border, spacing or link layout, and the feed grew with the page instead of
+        scrolling — the opposite of the brief's "simplified scrolling chat". The wrapper that is supposed to
+        place the two chats side by side (<code>.feeds</code>) also had no stylesheet rule, so they stacked at
+        full width on a desktop screen.</p>
+      <p><strong>Fix (this session):</strong> <code>.chat</code> is now the fixed-height scroll area and
+        <code>.msg</code> / <code>.meta</code> / <code>.ttl</code> / <code>.body</code> / <code>.rule</code> /
+        <code>.links</code> / <code>.actions</code> / <code>.feed-empty</code> are styled, and
+        <code>.feeds</code> becomes a two-column grid at ≥1000px. A regression guard in
+        <code>tests/official-wording.test.mjs</code> fails if a class the renderer emits loses its rule or if
+        <code>.chat</code> stops declaring a height and <code>overflow-y:auto</code>. The alerts DOM test
+        (21/21) also checks that a message offers <em>Track to resolution</em> and an event-detail link.</p>
+      <p class="small"><strong>Review links:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/js/alerts.js" target="_blank" rel="noopener noreferrer">renderer ↗</a>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/assets/css/app.css" target="_blank" rel="noopener noreferrer">stylesheet ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="SC2">
+      <h3>SC2 — A code comment stated the wrong documented page limit for <code>GET /markets</code> <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/market.js</code> said "the documented page limit for
+        GET /markets and GET /events is 200". Only Events documents 200. Get Markets documents
+        <strong>default 100, maximum 1000</strong>. The code itself was safe (it follows the cursor and the
+        default 200 is legal on both endpoints), so this was a documentation defect rather than a data one.
+        Two adjacent pieces of dead code were removed in the same pass: an unused <code>seriesUrl</code> field
+        whose ternary had identical branches, and an unused <code>count × 1</code> "notional" in
+        <code>analyseFills()</code> that assumed every contract settles at $1 although the official
+        <code>notional_value_dollars</code> need not be $1 for scalar markets.</p>
+      <p><strong>Fix (this session):</strong> the comment now states each endpoint's documented limit, and both
+        dead fields are gone. The register claim "Page-size limits are per endpoint" records the two
+        definitions with their sources.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market (notional_value_dollars) ↗</a></p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">

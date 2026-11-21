@@ -2597,3 +2597,21 @@ State at claim time (verified, not assumed): `gh pr list --state open` → **no 
 Not verified here (sandbox cannot open TLS to Kalshi hosts from the shell; browser/CI paths already cover them):
 live demo responses, CORS, and Pages rendering. Those remain the responsibility of the hosted workflows whose
 run IDs are recorded elsewhere on this board.
+
+### U1–U4 results — session `02091230` (2026-11-21)
+
+| ID | Status | Files | Verification performed | Outcome |
+|---|---|---|---|---|
+| U1 | **done** | this section | The nine sources U-S1…U-S9 were fetched and compared line by line with the code that consumes them (`kalshi.js deriveQuote/createOrder`, `market.js getAll/fetchCandles/analyseFills`, `portfolio.html`, `live-core.js`, `simulator.js` fee model). | All shapes match **except** U-I1. The simulator's ten zero-multiplier series match the fee-schedule PDF exactly; the 21-row fee table and the 42 worked values are already asserted in `tests/simulator-core.test.mjs`. |
+| U2 | **done** | `assets/js/market.js`, `index.html` | `node --check`; page-runtime 17/17; Node suite after each edit. | U-I1 fixed (comment now states 1000 for Markets, 200 for Events; default 200 legal on both). `seriesUrl` removed (unused; identical branches). `analyseFills().notional` removed (unused; assumed $1/contract). The dead duplicate `rows` array on `index.html` that was immediately recomputed as `sorted` was removed too. |
+| U3 | **done** | `assets/js/alerts-core.js`, `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/official-wording.test.mjs`, `tests/dom/alerts-dom.mjs` | `node --test tests/alerts-core.test.mjs` 21/21; `node --test tests/official-wording.test.mjs` 5/5; alerts DOM **21/21** (two new checks click the button and inspect localStorage); page runtime 17/17; link check 35/35. | Two feeds now scroll in a 480px log (380px mobile) and sit side by side at ≥1000px. Each message offers **Track to resolution** (writes the alert's documented fields to the same watch list `resolved.html` polls until yes/no) and **event detail**. `marketRefFromAlert()` is pure and unit-tested; a missing field stays null. |
+| U4 | **done** | `assets/js/claims.js`, `suggestions.html`, `flagged.html` | Register/flagged render (page runtime); summary DOM 20 areas, 81/92 verified claims, 74 flags; link check clean. | Three new verified claims (per-endpoint page limits, ten zero-multiplier series, `orderbook_fp` shape). Suggestion **S17** proposes ranking by the WS-only `dollar_volume`/`dollar_open_interest`, stating that REST does not carry them and that the sign semantics need one captured session. Flags **SC1** (unstyled/non-scrolling chats — mitigated) and **SC2** (wrong page-limit comment + dead fields — mitigated) published. |
+
+**New irregularity found and fixed (SC1)** is the substantive one: the brief's central UI — two scrolling chats — was rendering
+unstyled because the renderer emits `.msg` while the stylesheet only knew `.chat-msg`, and the scroll-area class was never
+applied. This was invisible to every prior suite because no test compared rendered classes with the stylesheet. The new guard
+closes that gap.
+
+**Deliberately not changed:** the `$0.10` threshold and its inclusive float-safe comparison, the day-ago label for
+`previous_price_dollars` (re-confirmed by U-S3), the volume × price proxy ranking (switching it to a dollar field would need the
+WS field that S17 describes), and the `docs/` generational redirect (owned by the earlier integration records).
