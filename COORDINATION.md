@@ -1551,3 +1551,20 @@ No new irregularities found this session. Pre-existing flags on `flagged.html` c
 | Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
 
 Session `0d6f4f1f` is complete: R1–R2 **done**.
+
+---
+
+---
+
+---
+
+## Session `29749918` — gas-price classification audit against the live demo API (branch `arena/29749918-kalshidash2`, 2026-11-21)
+
+**Board read before starting.** Open claims on `main` at `bbdc3a0`: `f2176447` (F1–F4: `tests/dom/live-site.mjs`, PR #60 takeover, final integration) — **not touched here**. PR #60 (`arena/9543cf0d`) is open and conflicting; not touched here.
+
+**Claim (written and committed before any other edit):**
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|----------------------------------|------------------------|
+| GC1 | Re-check flag **F4** ("no open gas-price markets on the demo") against the live demo REST API, and audit the two gas-classification rules that disagree: `scripts/collect.py` (official tags `Gas`, `Oil & Gas`, `Oil and energy`) vs `assets/js/config.js` `CATEGORIES.gas` (series regex `^KXA{3}GAS`). Record every gas-related series/event/market found, its official `tags`/`category`/`settlement_sources`, and whether each rule includes or excludes it. | in progress | `29749918` | `reports/gas-coverage-29749918.md` (new), `COORDINATION.md` (this section) | `fetch_page` on `external-api.demo.kalshi.co/trade-api/v2/*` (sandbox `curl` cannot reach kalshi hosts; `fetch_page` can), and [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | Read-only on site code. Any defect found is logged here as a request to the owner of `config.js` / `collect.py` / `flagged.html`, not edited. |
+
