@@ -3084,3 +3084,50 @@ Pages API momentarily reported `errored`; the surviving builds finished and the 
 `status: built` (last successful build 44962008944). The deployed `simulator.html` was fetched from
 the live host and does serve both this session's universe/candlestick text and the per-tier source
 rows, so the deployment is current rather than stale.
+
+---
+
+## PR / merge / deploy record — session `0acc711d` (final, 2026-11-21T23:3xZ)
+
+| Item | Result |
+|---|---|
+| Pull request | [#102](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/102) `arena/0acc711d-kalshidash2` → `main` — **merged** 2026-11-21T23:30:54Z, merge commit `96e685c` (`gh pr merge 102 --merge`, no approval wait, as instructed) |
+| Pages | API `builds/latest` on `96e685c`: `status: built`, `error: null` (23:31:25Z); `Deploy GitHub Pages` run on `96e685c` **success**; later builds (`4d936ae`…) are other sessions' merges on top and carry the same files |
+| Hosted probes on the merged SHA | `verify-live-site` (dispatch on `96e685c`) **success**; `live-site-render` (dispatch on `96e685c`) **success**; `live-engine-check` (dispatch on `f3fa523`, which contains #102) **success** — the push-triggered `live-engine-check` failures at 23:19/23:24/23:33Z are on other sessions' merge commits and are the Z4 pattern (five workflows on one push), not a site break |
+| Combined-tree suite (this branch = `main` @ `f3fa523`) | Node **170/170** · Python tools **42 OK** · Python tests **20 OK (3 skipped)** · static links **36 pages / 0 broken** · page-runtime **18/18** · auth-sign **6/6** · DOM: alerts **21/21**, category **18/18**, summary pass (flag counts DOM-derived: 38 open / 46 mitigated / 83) · tag-balance pass over all 36 HTML files: clean |
+
+**K1 — done.** `reports/verify-0acc711d.md`: §A demo endpoints (official page), §B WebSocket ticker channel (AsyncAPI source; the
+one-second flush sentence, field list, `dollar_volume` = "Signed whole-dollar cumulative traded notional"), §C nine live demo
+responses with re-runnable URLs (open gas event + nested markets, orderbook, candlesticks vs `fetchCandles`, `KXGAS` vs `GAS`,
+their event lists), §D drift table (who closed what), §E not verified (authenticated calls; non-2xx bodies through the fetch tool;
+how `dollar_volume` is accumulated; why the snapshot lacks a `KXGAS` row — recorded as inference only).
+
+**K2 — done, with a correction to the plan.** While this branch was open, eight sessions merged PRs #89–#107. Session `c33971c1`
+(PR #91) closed F4, F10, E3 and SB4 with the same conclusions; the merge kept their card text and appended this session's live
+re-reads (F4: nested `status: "active"` + five open gas events + re-runnable links; SB4: `KXGAS` has no events of any status, `GAS`
+has 2023 events only, `last_updated_ts` and `contract_url` hosts). `VERIFICATION.md` was taken from `main` (their rewrite closes E3;
+every row re-read against this report, none contradicts it) and this session's own edit of it was dropped. This session's remaining
+closures: **E1 → fixed** (`QUESTIONS.md` Q9 and `questions.html` Q1 reworded with the official field definitions and the
+WebSocket-only limitation; Q10's "don't know" about intermediate ticks answered from the Market Ticker page → W3), and the stale
+`docs/questions.html` pointer in `QUESTIONS.md` line 3 repointed to the root page (same file, one line). `5a9b44b9`'s R2/R5/R6/R9
+were already published as SB1–SB4 — no new cards needed. GC-I6 satisfied (`updated_time` is displayed nowhere). New cards, section 9:
+**K1** (open — the ticker's exchange-aggregated `dollar_volume` exists only on the authenticated WS path; owner decision whether to
+surface it beside the Get Trades sum from PR #98), **K2** (fixed — dead `rows` board copy in `index.html`; PR #94 removed it first,
+this session found it independently, card added because it had none), **K3** (fixed — stray `</div>` after F10 pushed F13–F16 out
+of their card; present on `main` since the first root generation).
+
+**K3 — done.** Merge log: (1) `main` moved 15 PRs while the branch was open; merged `origin/main` three times rather than rebasing
+(the branch carries merge commits). Conflicts: `COORDINATION.md` (union via `tools/resolve_board_conflict.py`, nothing dropped),
+`flagged.html` (6 hunks — theirs kept, addenda appended), `VERIFICATION.md` and `index.html` (taken from `main`), bot captures
+`reports/verify-facts-v3.md` ×2 (fresher capture kept). (2) The `verify-alerts`/`verify-facts` bots pushed `[skip ci]` commits to this
+branch twice; each was merged in, never force-pushed over. (3) PR #105 landed seconds before #102; GitHub merged #102 on top, and the
+only difference between the tested branch tip and `96e685c` was #105's 26 board lines.
+
+**Requests to file owners (not edited by this session):**
+- `scripts/collect.py` lines 429–437 (collector owner): the comment stating that "`KXGAS` returns `GAS`" is not reproducible —
+  live `GET /series/KXGAS` returns `ticker: "KXGAS"`. Reword it as a dated past observation or drop it; the pin logic itself is
+  unaffected (SB4, report §C6–C9).
+- `assets/js/live-core.js` (relay/feed owner): if K1 is accepted, `fromTickerFrame` would need to carry `dollar_volume` /
+  `dollar_open_interest` through; today it maps price/bid/ask only (correct for the swing feed).
+
+**Session status: K1–K3 done. PR #102 merged, Pages built on the merged SHA, hosted probes green.**
