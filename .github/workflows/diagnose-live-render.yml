@@ -1,0 +1,35 @@
+name: Diagnose live render
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-live-render.yml'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install DOM dependencies
+        working-directory: tests/dom
+        run: npm ci
+      - name: Run live render and annotate output
+        working-directory: tests/dom
+        shell: bash
+        run: |
+          set +e
+          node live-site.mjs > "$RUNNER_TEMP/render.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/render.log"
+          if [ "$status" -ne 0 ]; then
+            output=$(tail -c 6000 "$RUNNER_TEMP/render.log")
+            output=${output//'%'/'%25'}
+            output=${output//$'\n'/'%0A'}
+            output=${output//$'\r'/'%0D'}
+            echo "::error title=Live render failure::$output"
+          fi
+          exit "$status"
