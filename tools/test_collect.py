@@ -143,8 +143,8 @@ class SnapshotMetadataTests(unittest.TestCase):
     def test_snapshot_labels_contract_counts_and_sampled_trade_value(self):
         meta = self.snapshot["_meta"]
         notes = meta["derivation_notes"]
-        self.assertIn("contract counts", notes["contract_volume"])
-        self.assertIn("not actual all-side cash", notes["sampled_yes_price_times_contracts"])
+        self.assertIn("contract-count fields", notes["contract_volume"])
+        self.assertIn("not asserted as actual all-side cash turnover", notes["sampled_yes_price_times_contracts"])
         self.assertNotIn("dollar_volume", notes)
         self.assertNotIn("traded_notional_dollars", notes)
         self.assertIn("sampled", meta["collection_scope"]["coverage"])
