@@ -1,7 +1,8 @@
 # Independent current-site audit — session `f468e69b`
 
 **Checked:** 2026-11-21 UTC  
-**Repository base reviewed:** `cc9112b974f9957c4ddcacbe606b79e142b7cb4f` (`main`, PR #88 merge)  
+**Initial review base:** `cc9112b974f9957c4ddcacbe606b79e142b7cb4f` (PR #88 merge); the branch was then rebased onto `70744d5a802e238f6e0d8742a9abebfc1158dd5a` (PR #89 merge) and deployment/render checks were repeated against that latest `main` SHA.
+
 **Live Pages URL:** <https://kanlerxz87-cyber.github.io/KalshiDash2/>  
 **Scope:** current published root site, primary API claims, test suites, Pages configuration and latest deployment checks. This is a fresh cross-check of the current release, not a claim that every historical evidence file was re-captured in this turn; prior line-by-line reports remain linked from `COORDINATION.md` and the Verification page.
 
@@ -48,10 +49,10 @@ The first attempt to run DOM checks before installing the test dependencies coul
 ### Live GitHub checks and publication
 
 - Pages API reports **`status: built`**, **legacy** source **`main:/`**, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>.
-- Current `main` deployment: [Pages build #44949159755](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44949159755) **success** at SHA `cc9112b`.
-- Current `main` static link check: [run #44949160082](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44949160082) **success** at SHA `cc9112b`.
-- Current deployment page probe: [verify-live-site #44960267940](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960267940) **success** at SHA `cc9112b`.
-- Current deployment live render: [live-site-render #44960270174](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960270174) **success** at SHA `cc9112b`; its workflow ran the published page code against the demo API on a GitHub runner.
+- Latest `main` deployment: [Pages build #44960300363](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300363) **success** at SHA `70744d5`.
+- Latest `main` static link check: [run #44960300785](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300785) **success** at SHA `70744d5`.
+- Latest deployment page probe: [verify-live-site #44960300855](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300855) **success** at SHA `70744d5`.
+- Latest deployment live render: [live-site-render #44960406107](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960406107) **success** at SHA `70744d5`; its workflow ran the published page code against the demo API on a GitHub runner.
 - The live-render run reports a **GitHub Actions Node.js 20 deprecation annotation** for `actions/*@v4`; the check itself passed. This is runner/tooling maintenance, not a failed site check.
 
 ## Irregularities / items retained for review
