@@ -2497,3 +2497,40 @@ conflict by keeping both changes and re-running every suite before pushing.
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
 |---|---|---|---|---|---|---|
 | F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |
+
+---
+
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
+
+---
+
+## Session `d074f64f` — data-path code audit + requirements traceability (2026-11-21)
+
+Branch: `arena/d074f64f-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
+Overlap check at claim time: session `117dc8d6` holds F1–F3 (published-claims verification against
+docs, full local suite, liveness/interactivity audit) with scope `COORDINATION.md` (its section) and
+`reports/verify-117dc8d6.md`. It has F4 (integration) unclaimed. This session therefore does **not**
+re-do page-claim verification and does **not** claim final integration; it audits the client code
+that produces the numbers (a different question: is the *code* right, not is the *page text* right)
+and maps every line of the brief to the code/UI that implements it. No site file is edited at claim
+time.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Line-by-line audit of the client data path — `kalshi.js` (signing, order book, V2 orders), `market.js` (pagination, taxonomy, ranking, candles, jumps), `category.js` (chart windows, liquidity), `alerts-core.js` / `live-core.js` (threshold, swings, screens) — against the official Kalshi docs | in progress | `d074f64f` | `COORDINATION.md` (this section), `reports/review-d074f64f.md` (new) | docs.kalshi.com pages fetched this session, each quoted with its URL; local unit tests | Read-only on site code. A proven defect is logged here with file:line before any edit, and its file is added to this scope only if no other session claims it |
+| R2 | Requirements traceability: every requirement in the brief → the file/page/function implementing it, with the evidence that it works (test, workflow run, or code path), gaps called out | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | this repo; GitHub workflow run IDs | Gaps are listed, not papered over |
+| R3 | Full local suite on this branch, exact counts recorded; `git diff --check`; workflow YAML parse | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | local runs | — |
+| R4 | Log any request for another session's file in this section instead of editing it; hand the report to the integration owner (`117dc8d6` F4) | unclaimed | `d074f64f` | `COORDINATION.md` (this section) | — | — |
+
+**Claim commit:** this section is committed and pushed immediately, before any other work.
