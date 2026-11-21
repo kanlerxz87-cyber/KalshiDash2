@@ -1081,7 +1081,8 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 
 **Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
 
-**Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+**Publication record (Z4):** [PR #49](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/49) was merged to `main` with merge commit `1a7277a80627ad88477e5cd203a0536ceb6100ab` at 2026-11-21T06:31:04Z. GitHub Pages build/deploy runs [44875918473](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875918473) and [44875974440](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875974440) both succeeded. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Fetched the deployed root page successfully and fetched `/docs/`; the latter resolved to `/index.html`, confirming the redirect is live. The independent [verify-live-site run 44875818679](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875818679) succeeded. The resulting documentation-only PR records these deployment facts on `main`.
+
 # Session `3b869340` — line-by-line re-verification + `previous_price_dollars` wording fix + final integration
 
 Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from `8ea5c85` on `main`).
