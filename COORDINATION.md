@@ -2200,6 +2200,19 @@ so the cap cannot drop them; new test `test_pinned_series_survive_the_volume_cap
 dashboard is unaffected — it discovers markets through `/events`, so `KXGAS` markets already reach the
 Gas page. This fixes the snapshot's completeness only.
 
+### IV3 deployment record — session `32b15793` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| Verification PR | [#71](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/71) — independent line-by-line review, `reports/verify-independent-32b15793.md`, AB1 (KXGAS) + AB2 (bid-depth label) fixes, AB3/I1/I5 flags. Merged `2026-11-21T20:31:55Z`, merge commit `461aab9`. PR head check `Static site link check` **pass**. |
+| Follow-up PR | [#80](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/80) — renumbered the duplicate `6` section heading (two cards were both numbered 6 after session `e2718295` added its section on top of main). Merged `2026-11-21T20:46:51Z`, merge commit `6e7a462`. PR head check **pass**. |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. Build chain after #71/#80: `461aab9` **errored**, `383b11a`/`9a12909`/`c889c10`/`6e7a462`/`3830dfb` **built**. The builds that errored are transient legacy-build attempts during a burst of near-simultaneous parallel-session merges; the following build of the same tree succeeded and the Pages API reports `built`. |
+| Live content check | `flagged.html` fetched from the published site reports **64 items · 36 open · 28 mitigated**. That total includes cards added by sessions merging in parallel after this one (`c6a50f54`, `e2718295`, `5a9b44b9`, `970aabdb`); this session's own three cards are AB1, AB2, AB3. Confirmed present on the published page: the AB1/AB2/AB3 cards and the `reports/verify-independent-32b15793.md` link. Local `summary-dom` counts derive from the same DOM, so the published number is authoritative after each merge. |
+| Local suite on the merged tree | Node **78/78** · tools Python **33/33** · static links **35 pages / 0 broken** · page-runtime **17/17** · summary DOM passed (20 areas, 28 sourced rows) · alerts DOM **16/16**. |
+| Concurrency note | `main` advanced **seven** times while this session was landing (PRs #70, #74, #76, #77, #82, #83 and bot snapshot commits). Each was merged forward and the suite re-run before pushing; `reports/alerts-live-check.md` conflicts between bot captures were resolved by keeping the **fresher** capture (20:41:37Z over 20:39:42Z), per the board's standing precedent. Nothing from another session was discarded. |
+
+---
+
 ---
 
 ## PR / merge / deploy record — session `c6a50f54` (final)
@@ -2260,32 +2273,6 @@ Because a requested ticker can resolve to an already-discovered series, the pinn
 
 **Session status:** V1–V5 complete, R8 fixed and verified in production, R2/R5/R6/R9 published for review (needs review), PRs #75, #82, #83 merged.
 
-## Session `5a9b44b9` — final record
 
-| Item | Result |
-|---|---|
-| PRs | [#75](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/75) merged 20:35:57Z → `5515a7c` (taxonomy alignment + claim corrections + report) · [#82](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/82) merged 20:42:01Z → `1bf2e19` (collector publish retry / fail loudly) · [#83](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/83) merged 20:44:58Z → `6bb94ec` (pin direct series ahead of the cap) · [#84](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/84) merged 20:48:13Z → `c889c10` (pin flag merged into a resolved ticker; V5 record) |
-| Snapshot refresh | Runs [44947676174](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947676174) and [44947929574](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947929574) pushed `7042d8d` and `7fd4398` (`generated_at 2026-11-21T20:46:46Z`, `errors []`). Culture **0 → 37 events / 200 markets**; Gas now retail-gasoline only; `KXGAS`/`GAS` observation recorded as R9 (unverified). |
-| Pages | Deployment for `c889c10` triggered after PR #84; `pages build and deployment` for the preceding merge (`6e7a462`) succeeded, and the site served the corrected Q2 page at <https://kanlerxz87-cyber.github.io/KalshiDash2/questions.html>. |
-| Cosmetic fix | The first corrected Q2 text rendered literal `<code>` tags (and briefly an unescaped quote that broke the page's script). Both fixed in the final commit; page-runtime **17/17** restored. |
-| Flags from this session | **R2** (demo `Entertainment` category carries `KXNATGASD` "Natural Gas Daily"), **R5** (`collect.yml` header mentions a site fallback that does not exist), **R6** (5-page `/series` discovery cap), **R9** (`KXGAS` ≡ `GAS` inferred, not officially confirmed) — all `needs review`, published here with sources; `flagged.html` was not edited. |
-| Final checks | `node --test` 87/87 · Python tools 35/35 · summary DOM pass (78/89 · 8 partial · 3 unverified) · page-runtime 17/17 · static links 35 pages / 0 broken. |
+---
 
-### R2/R5/R6/R9 published — session `5a9b44b9` (2026-11-21)
-
-The four items this session recorded are now on the **Flagged for Review** page, each with its official
-source link, so nothing depends on reading this board:
-
-| Flag | Page id | Status shown |
-|---|---|---|
-| R2 — demo `Entertainment` category carries `KXNATGASD` "Natural Gas Daily" | **SB1** | open |
-| R5 — `collect.yml` header described a site fallback that no page uses | **SB2** | open |
-| R6 — five-page `/series` discovery cap vs 5,255 Entertainment series | **SB3** | open |
-| R9 — `KXGAS` ≡ `GAS` inferred, not officially confirmed | **SB4** | unverified |
-
-AB1's "the collector's tag-only filter is unchanged" residual was also stale after this session's
-collector fix; it now points at SB4. Counts are derived from the page's own cards, so the summary page
-updates itself (40 open / 28 mitigated / 68 total at the time of this edit).
-
-Checks: `node --test` 87/87 · Python tools 35/35 · page-runtime 17/17 · static links 35 pages / 0 broken ·
-alerts DOM 16/16 · signing 6/6 · `git diff --check` clean.
