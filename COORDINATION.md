@@ -1507,3 +1507,31 @@ BC4 below).
 `COORDINATION.md` commit on top of the fully-checked `b0e976b` tree), merged with
 `gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
 Session `bc079e84` is complete: BC1–BC4 **done**.
+
+---
+
+## Session `32b15793` — independent line-by-line verification + integration (2026-11-21)
+
+Started: 2026-11-21T20:2xZ. Work branch: `arena/32b15793-kalshidash2` (Arena-fixed name), based on
+`main` at `bbdc3a0`. **Arena fixes this branch name**; the board's `session-<id>/<task>` convention is
+not applied because the session may not rename or create branches.
+
+**Claim recorded before editing any file in scope.**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources | Notes |
+|---|---|---|---|---|---|---|
+| IV1 | Independent line-by-line verification of the published site's official-source claims against docs.kalshi.com; produce a dated verification report with links | **in progress** | `32b15793` | `reports/verify-independent-32b15793.md` (new), this section | docs.kalshi.com pages fetched this session | Read-only on site code; defects logged as requests, never silently rewritten |
+| IV2 | Repo-state audit: confirm the post-`bbdc3a0` snapshot-label drift, open PR #60 conflicting state, and CI health; record findings | **in progress** | `32b15793` | this section only | local `node --test`, `tools/`, GH API | I will **not** edit `data/snapshot.json`, `scripts/collect.py`, `tools/test_collect.py`, or `tests/activity-proxy.test.mjs` — sessions `0d6f4f1f`, `f2176447`, `5a9b44b9` are actively fixing that drift |
+| IV3 | Final integration: confirm all checks pass, merge PR #60 (or supersede it with a clean integration PR), confirm Pages deploy, record PR + result | **in progress** | `32b15793` | `COORDINATION.md`, PR/merge state | `gh`, Pages API | Only after the concurrent sessions' fixes land; do not merge a broken site |
+
+**Non-overlap statement.** I read no other session's claim as active over the files I edit
+(`reports/verify-independent-32b15793.md` is new; `COORDINATION.md` additions are this section).
+Any change I want in a file owned by another session is logged here as a request instead.
+
+**Drift found at session start (recorded, not fixed here).**
+
+| Observation | Evidence | Consequence |
+|---|---|---|
+| `data/snapshot.json` was rewritten by the scheduled `collect` run (`bbdc3a0`, 19:29Z) with labels that drop the guard phrases the repo's own tests require | `node --test tests/activity-proxy.test.mjs` → 1 failure (`"not asserted as actual all-side cash turnover"` missing); `python3 -m unittest discover -s tools` → 1 failure (`"contract-count fields"` missing) | Two red checks on `main`; **not** a factual error in captured API values — a label/assertion drift. Owners `0d6f4f1f` / `f2176447` / `5a9b44b9` |
+| PR #60 (`arena/9543cf0d`) is `CONFLICTING`/`DIRTY` and carries no checks; its own body says it "remains unmerged until that check and parallel work are resolved" | `gh pr view 60 --json mergeable,mergeStateStatus` → `CONFLICTING`, `statusCheckRollup: []` | Integration cannot merge it as-is; resolve by rebasing its content or superseding it |
+| The collector workflow `.github/workflows/collect.yml` schedules `scripts/collect.py` every 6 hours and commits to `main`, so any label guard must live in `collect.py`, not only in the snapshot | `.github/workflows/collect.yml` cron `23 */6 * * *` | Reinforces that the durable fix belongs in the generator |
