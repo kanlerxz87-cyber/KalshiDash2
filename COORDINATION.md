@@ -1013,6 +1013,21 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 
 **Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
 
+---
+
+
+---
+
+
+---
+
+
+---
+
+
+---
+
+
 ### Results — session `7930e2cd` (2026-11-21)
 
 | # | Task | Result |
@@ -1181,3 +1196,113 @@ Branch: `arena/3d2e8243-kalshidash2`, based on `main` at `8ea5c85`.
 **Rebase conflict record:** rebasing onto `origin/main` at `1a7277a` exposed an add/add conflict in this board (concurrent session `7930e2cd`) and a data conflict because `main` had a fresh demo snapshot generated at `2026-11-21T06:28:13Z`. The full upstream coordination history was retained; for `data/snapshot.json`, the newer main snapshot values/timestamps were kept and only metadata/key labels were changed. No newer live market values were discarded. A subsequent `git pull --rebase origin main` brought in merge `576c9fa` (PR #50, the independent test-dependency advisory fix) without conflict. Before PR #53 could merge, main advanced through PRs #47 and #52; rebasing on `ed83911` produced a coordination conflict and an `EXECUTIVE_SUMMARY.md` conflict. The latest coordination history and session `3b869340`'s official re-verification note were retained, with this session's activity-proxy notes reapplied. The session branch's remote still pointed at its earlier claim-only commit `81815a1`; after confirming it contained no other work, it was replaced using an explicit `--force-with-lease` with this rebased branch, preserving the claim and newer main history. Main then advanced through PR #54 to `d0190e1`; the final rebase preserved its full board and files. Main subsequently advanced through PR #56 to `207384e`; the next rebase preserved the additional verification/coordination records. The GitHub `verify-alerts` runner wrote a fresh report on this PR branch; where the PR #54 report conflicted with the preceding main report, the later read-only probe (started 06:34:54 UTC) was kept. It reports the same API behavior; timing values are single-run observations. The next runner report was retained after rebasing on PR #56. Main then advanced through PR #51 and the live-engine report commit `cc63bb5`; the conflict in `assets/js/market.js` was resolved by retaining the latest main-side missing-field behavior (no default-zero value) and renaming/documenting that function as the volume-price proxy. The Executive Summary retained session `75490e0f`'s verification entry plus this session's A11 disclosure. Main's newer live API report was kept over our older bot-generated report commit.
 
 **Review items:** A11 remains open because exact trade-dollar ranking is not implemented; A12 is mitigated by truthful labels. The site's source register, flagged page, and executive summary carry the limitation and official links. The final rebased tree also retains PR #51's Y9/Y12–Y15 corrections and latest main's live-engine report; no concurrent edits were dropped.
+
+---
+
+
+---
+
+---
+
+## Session `1607f1f9` — WebSocket live feed + duplicate-generation cleanup + dead-file resolution
+
+**Branch:** `arena/1607f1f9-kalshidash2` (Arena-assigned; this session does not create or switch branches).
+**Base:** `origin/main` at `8ea5c85` ("chore(data): refresh Kalshi demo snapshot").
+**Board read before starting** (per the standing rule). The last integration record on the board is
+session `53975890` (PR #42, merged as `95beacf`); all its tasks are closed, so nothing it owned is touched here.
+
+### Claim (written and committed before any other edit)
+
+| # | Task | Status | Owner | File scope (exclusive) |
+|---|------|--------|-------|--------------------------|
+| W1 | **WebSocket ticker feed for the live alerts page** — subscribe to the officially documented `ticker` channel and detect ≥ $0.10 swings as the exchange publishes them, instead of only on a 15 s REST poll | **done** | `1607f1f9` | `assets/js/live-core.js` (new), `assets/js/live-feed.js` (new), `assets/js/alerts.js`, `alerts.html`, `scripts/kalshi_ws.py` (new), `scripts/relay.py` (new), `tests/live-core.test.mjs` (new), `tools/verify/live-ws-check.py` (new), `tools/verify/live-ws-swing-check.mjs` (new), `.github/workflows/live-ws-check.yml` (new) |
+| W2 | **Resolve the published duplicate site generation** (flagged Y10): the stale `docs/` tree is still served at `/docs/` and carries defects F6–F8 | **released — done by `9d7b4124`** (Z3: `docs/index.html` replaced with a redirect to the root site; Y10 marked `mitigated`) | — | — |
+| W3 | **Resolve the dead-file flag Y9** — `assets/js/jumps.js` is tracked but imported by no published page | **released — done by `9d7b4124`** (Z2: the file was deleted; Y9 marked `fixed`) | — | — |
+| W4 | **Propagate W1 to the shared decision pages** | **done** | `1607f1f9` | `verification.html`, `flagged.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
+
+**Non-overlap note.** W1/W2/W3 touch files no other open claim on this board names. The only
+file in two of my own scopes is `assets/js/config.js`, which W1 owns; W3 does not edit it.
+W4 is shared-output work and is executed last, by me, in this session.
+
+### W1 — official sources read 2026-11-21 (all from docs.kalshi.com, the official reference)
+
+| Source | What it establishes |
+|--------|---------------------|
+| [Quick Start: WebSockets](https://docs.kalshi.com/getting_started/quick_start_websockets) | Demo WS URL `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`; the handshake **requires authentication** — the three `KALSHI-ACCESS-*` headers, signed over `timestamp + "GET" + "/trade-api/ws/v2"`; public market-data channels are `ticker`, `trade`, `market_lifecycle_v2`, `multivariate_market_lifecycle`; reconnect with exponential backoff; error codes 9 (auth), 13, 14, 25, 26 |
+| [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker) | The `ticker` message schema. Payload fields are `market_ticker`, **`price_dollars`**, `yes_bid_dollars`, `yes_ask_dollars`, `volume_fp`, `open_interest_fp`, `yes_bid_size_fp`, `yes_ask_size_fp`, `last_trade_size_fp`, `dollar_volume`, `dollar_open_interest`, `ts`, `ts_ms`, `time`. Changes are **combined and flushed about once per second**, one message per changed market. A market filter (`market_ticker` / `market_tickers` / `market_id` / `market_ids`) is supported. A subscription created without a market filter cannot be changed in place (error 13) |
+| [Rate Limits and Tiers](https://docs.kalshi.com/getting_started/rate_limits) | Token-bucket budgets; unauthenticated public requests are limited separately and a 429 must be backed off; WebSocket connection limits are tier-scoped |
+| [API Environments and Endpoints](https://docs.kalshi.com/getting_started/api_environments) | The demo WebSocket host list (the shared `wss://demo-api.kalshi.co/…` host remains supported) |
+
+**Consequence for the brief.** The brief asks for "a live alerting system … as a simplified
+scrolling chat so someone can view in real time". The site currently satisfies that with a
+15-second REST poll, because the Kalshi **WebSocket** was never wired up even though the URL
+is already in `assets/js/config.js`. The exchange's own ticker channel flushes roughly once per
+second, so a ≥ $0.10 swing can be surfaced within about a second of the trade instead of within
+a poll interval. W1 closes that gap using only the documented message schema.
+
+**Important limitation, stated up front and on the page:** a WebSocket handshake requires a
+signed API key. The site has no credentials committed, so the WS feed is **opt-in**: the user
+enters their own demo key ID + private key in the browser tab (the same browser-only flow
+`portfolio.html` already uses), the key never leaves the tab, and the page **falls back to the
+REST poll** whenever no key is loaded or the socket cannot connect. The feed never pretends to
+be live when it is not: the status pill states which source produced the current alerts.
+
+---
+
+signed API key **and** the three `KALSHI-ACCESS-*` headers. A browser's `WebSocket` constructor
+takes only a URL and an optional subprotocol list — it has no headers parameter — so **a page
+cannot open a Kalshi socket directly at all**. The working architecture is therefore
+server-side: `scripts/kalshi_ws.py` opens the socket with a signed handshake and
+`scripts/relay.py` republishes the frames to the page as same-origin Server-Sent Events on
+`/live/stream`. The relay needs a demo API key, which this repository does not contain, so on
+the published GitHub Pages site the page runs the **REST poll** and its status pill says so.
+The feed never pretends to be live when it is not: the status pill names the source that
+produced the current alerts.
+
+### W4 — shared decision pages updated (all claims now closed)
+
+| File | What changed |
+|------|--------------|
+| `assets/js/claims.js` | 9 new `ws` claims, each with the official source that establishes it, and the flag id where a limitation applies |
+| `verification.html` | a `ws` filter for the new claim category |
+| `flagged.html` | **W1** (the feed is opt-in and needs a local relay), **W2** (the ticker payload has no `previous_price_dollars`), **W3** (the ticker coalesces changes into a ~1 s flush) — 3 new cards, 52 flags total |
+| `summary.html` | a requirement row for real-time updates, with the official WebSocket links and the opt-in caveat |
+| `EXECUTIVE_SUMMARY.md` | a paragraph for the live feed, the three limits, and a re-verification note naming the sources read line by line |
+| `README.md` | how to run the relay, the two-source behaviour of the feed, and the new test commands |
+
+### Verification performed by this session
+
+| Check | Result |
+|-------|--------|
+| `tests/live-core.test.mjs` | **23/23 pass** — field mapping (`price_dollars` → `0.48`), inclusive $0.10 threshold, $0.05 rejected, two readings folded into one swing, spread computed |
+| `tests/test_kalshi_ws.py` | **18/18 pass** — subscribe command shape, ticker payload read verbatim (fixed-point strings not reformatted), documented error codes, demo-only guard, signature verification against the pre-sign text |
+| `tests/alerts-core.test.mjs` | 18/18 pass |
+| `tests/taxonomy.test.mjs` | 10/10 pass |
+| `tests/simulator-core.test.mjs` | 5/5 pass |
+| `evidence/auth-sign-test.mjs` | 6/6 pass |
+| `tools/verify/page-runtime-check.mjs` | 17/17 pages ran clean; 34-page local link check, 0 broken links |
+| `tests/dom/alerts-dom.mjs` | 16/16 pass |
+| `tests/dom/summary-dom.mjs` | pass — 78/88 claims verified, 7 partial, 3 unverified; 30 open / 22 mitigated / 52 flags |
+| `python3 -m unittest discover -s tools` | 18/18 pass |
+| `python3 -m unittest discover -s tests` | 18/18 pass (2 skip without `cryptography`, installed in CI) |
+| `tools/verify/live-ws-swing-check.mjs` | 7/7 pass against a real-shaped ticker frame |
+| Relay smoke test on `127.0.0.1:8099` | static serving 200; `/live/status` honestly reported no credentials; `/live/stream` returned the expected no-source error |
+
+**Live-verification limitation.** The editing sandbox cannot open TLS to `*.kalshi.co` (direct
+`curl` returned HTTP `000`), so the WebSocket handshake itself is verified by
+`.github/workflows/live-ws-check.yml` on a GitHub runner, not locally. That workflow can only be
+dispatched once it exists on the default branch — `gh workflow run live-ws-check.yml` returned
+HTTP 404 before this PR merged.
+
+**Conflict log (standing rule).** `main` advanced repeatedly while this session worked — several
+sessions merged the Y-series fixes and session `3b869340` merged PR #47. Each rebase hit
+`COORDINATION.md` append-only conflicts. Every one was resolved by keeping both sides: the
+resolver at `tools/resolve_board_conflict.py` unions each conflict block and drops repeated
+sections (keeping the longest copy). Verified after the final rebase: **0 conflict markers, 17
+session sections, and every section present on `origin/main` is still present here** — no other
+session's record was discarded. `flagged.html` id collisions were checked for the same reason:
+the Z-series was already taken on `main` by session `3b869340`, so this session's new cards use
+the unused W-series.
+
+---
+

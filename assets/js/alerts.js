@@ -19,8 +19,10 @@ import { TOPICS, DEMO } from "./config.js";
 import { api, getAll, classifyEvent } from "./market.js";
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
-  watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num
+  watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
+  screenMarket
 } from "./alerts-core.js";
+import { LiveFeed, FEED_STATE, probeRelay } from "./live-feed.js";
 
 const SIM_KEY = "kalshiDash.sim.v1";
 const SIM_CAP = 500;
@@ -55,7 +57,12 @@ const S = {
   lastError: null,
   topic: "all",
   watching: 0,
-  refSeen: new Set()        // (ticker, from, to) already posted as a reference swing
+  refSeen: new Set(),       // (ticker, from, to) already posted as a reference swing
+  feed: null,               // LiveFeed instance (Kalshi WebSocket ticker relay)
+  feedStarted: false,       // the relay probe has already run
+  feedState: FEED_STATE.POLL,
+  feedDetail: "polling the REST API",
+  feedFrames: 0
 };
 
 const TOPIC_LABEL = Object.fromEntries(TOPICS.map(t => [t.key, t.label]));
@@ -172,6 +179,16 @@ async function pollOnce() {
     }
   }
 
+  /* While the WebSocket ticker feed is live it is the authoritative source for
+     the markets it covers: it sees the exchange's own per-second flush, so the
+     polled comparison would only re-report the same move a second later with a
+     slightly different baseline. Markets the feed is watching are therefore
+     excluded from the polled move detection; every other market still uses
+     the REST path. The poll keeps running either way, because it is what
+     refreshes the quotes the paper strategies are marked against and what
+     reports the exchange's `previous_price_dollars` reference. */
+  const liveTickers = S.feedState === FEED_STATE.LIVE && S.feed ? new Set(S.feed.last.keys()) : null;
+
   const { alerts, next } = detectMoves(S.prev, [...fresh.values()], { threshold: THRESHOLD, at });
   S.prev = next;
 
@@ -182,13 +199,15 @@ async function pollOnce() {
      Each alert records which comparison produced it. */
   const reference = detectReferenceSwings([...fresh.values()], { threshold: THRESHOLD, at })
     .filter(s => {
+      if (liveTickers && liveTickers.has(s.ticker)) return false;
       const key = `${s.ticker}|${s.from}|${s.to}`;
       if (S.refSeen.has(key)) return false;
       S.refSeen.add(key);
       if (S.refSeen.size > 5000) S.refSeen = new Set([...S.refSeen].slice(-2000));
       return true;
     });
-  const allAlerts = mergeAlerts(alerts, reference);
+  const polled = liveTickers ? alerts.filter(a => !liveTickers.has(a.ticker)) : alerts;
+  const allAlerts = mergeAlerts(polled, reference);
 
   S.polls += 1;
   S.lastPollAt = at;
@@ -207,6 +226,137 @@ async function pollOnce() {
   S.alerts.push(...allAlerts);
   if (S.alerts.length > FEED_CAP) S.alerts = S.alerts.slice(-FEED_CAP);
   for (const a of allAlerts) ensureEventLinks(a.eventTicker);
+}
+
+/* ------------------------------------------------------------------ live feed */
+
+/* A swing published on the Kalshi WebSocket `ticker` channel.
+ *
+ * The ticker frame names the last trade `price_dollars`; the REST market
+ * object names it `last_price_dollars`. Both are mapped to the same internal
+ * shape before this point (assets/js/live-core.js), so the alert produced here
+ * is indistinguishable from a polled one except for its `basis`.
+ *
+ * The alert is built with exactly the fields the rest of the page already
+ * uses, so the feeds, the table, the watch rules and the paper strategies all
+ * work on it unchanged.
+ */
+function alertFromSwing(swing, quote) {
+  const meta = S.meta.get(swing.ticker);
+  const m = {
+    ticker: swing.ticker,
+    title: meta?.title || "",
+    _event_ticker: meta?.eventTicker || "",
+    _topic: meta?.topic || null,
+    yes_bid_dollars: quote.yesBid === null ? undefined : quote.yesBid,
+    yes_ask_dollars: quote.yesAsk === null ? undefined : quote.yesAsk,
+    no_bid_dollars: undefined,
+    no_ask_dollars: undefined,
+    volume_24h_fp: quote.volume === null ? undefined : quote.volume,
+    open_interest_fp: quote.openInterest === null ? undefined : quote.openInterest
+  };
+  return {
+    id: `${swing.ticker}@ws${swing.toAt}`,
+    at: swing.toAt,
+    prevAt: swing.fromAt,
+    ticker: swing.ticker,
+    title: m.title,
+    eventTicker: m._event_ticker,
+    topic: m._topic,
+    from: swing.from,
+    to: swing.to,
+    delta: swing.delta,
+    direction: swing.direction,
+    /* The comparison that produced this row. "between two polls" is the
+     * REST path; this one is the exchange's own ticker stream. */
+    basis: "WebSocket ticker",
+    quote: quoteOfTicker(m),
+    status: null,
+    result: null,
+    openInterest: quote.openInterest,
+    volume24h: quote.volume,
+    screen: screenMarketOfTicker(m)
+  };
+}
+
+/* The quote fields the page renders, built from a ticker reading.
+ * A missing side stays undefined, which the renderers show as "n/a". */
+function quoteOfTicker(m) {
+  const bid = num(m.yes_bid_dollars);
+  const ask = num(m.yes_ask_dollars);
+  return {
+    yesBid: bid,
+    yesAsk: ask,
+    noBid: null,
+    noAsk: null,
+    spread: bid !== null && ask !== null ? Math.round((ask - bid) * 1e4) / 1e4 : null
+  };
+}
+
+/* The tradeability score, computed from the same fields the REST path uses.
+ * `screenMarket` reads the market object's documented field names, so the
+ * ticker reading is mapped onto them first (see `alertFromSwing`). */
+function screenMarketOfTicker(m) {
+  return screenMarket(m);
+}
+
+/* Start the WebSocket ticker feed if the relay is running.
+ *
+ * The relay is optional. When it is not reachable the page keeps using the
+ * REST poll and says so. It never pretends to be live when it is not: the
+ * status pill names the source that produced the current alerts.
+ *
+ * The Kalshi socket itself cannot be opened by a page — its handshake needs
+ * the three KALSHI-ACCESS-* headers and a browser's WebSocket constructor
+ * cannot set custom headers — so scripts/relay.py opens it and republishes
+ * the frames as Server-Sent Events on /live/stream.
+ */
+async function startLiveFeed() {
+  const probe = await probeRelay();
+  if (!probe || !probe.available) {
+    S.feedState = FEED_STATE.POLL;
+    S.feedDetail = probe
+      ? "the relay is running but has no WebSocket source"
+      : "no relay on this origin — using the REST poll";
+    return;
+  }
+  S.feed = new LiveFeed({
+    threshold: THRESHOLD,
+    onSwing: handleLiveSwing,
+    onState: (state, detail) => {
+      S.feedState = state;
+      S.feedDetail = detail || "";
+      renderStatus();
+    }
+  });
+  S.feed.start();
+}
+
+function stopLiveFeed() {
+  if (S.feed) { S.feed.stop(); S.feed = null; }
+  S.feedState = FEED_STATE.POLL;
+}
+
+/* A swing that arrived on the WebSocket. It goes through exactly the same
+ * pipeline as a polled swing: the High-ROI rules, the paper strategies, the
+ * table and both feeds. */
+function handleLiveSwing(swing, quote) {
+  S.feedFrames += 1;
+  const alert = alertFromSwing(swing, quote);
+  S.watch.set(alert.id, watchCheck(alert));
+
+  const plan = planTrades([alert], S.trades, { watch: S.watch, at: alert.at });
+  for (const [k, v] of Object.entries(plan.skipped)) S.skipped[k] = (S.skipped[k] || 0) + v;
+  const updated = S.trades.map(t => updateTrade(t, null, alert.at));
+  const created = plan.created.map(t => updateTrade(t, null, alert.at));
+  S.trades = capTrades([...updated, ...created]);
+  saveTrades();
+
+  S.alerts.push(alert);
+  if (S.alerts.length > FEED_CAP) S.alerts = S.alerts.slice(-FEED_CAP);
+  if (alert.eventTicker) ensureEventLinks(alert.eventTicker);
+
+  renderAll();
 }
 
 /* Settlement sources for the event behind an alert, read once per event. */
@@ -234,6 +384,12 @@ async function tick() {
     if (!S.universe.length || nowMs() - S.universeAt > UNIVERSE_TTL_MS) {
       pill($("#poll-status"), "warn", "scanning open events…");
       await loadUniverse();
+    }
+    /* Start the WebSocket ticker feed once the universe is known, so the
+     * relay subscribes to the same markets the page watches. */
+    if (!S.feed && !S.feedStarted) {
+      S.feedStarted = true;
+      await startLiveFeed();
     }
     await pollOnce();
     S.lastError = null;
@@ -343,6 +499,17 @@ function renderStatus() {
   }
   if (S.backoffS) { pill(el, "warn", `rate limited — backing off to ${S.backoffS}s`); return; }
   if (!S.polls) { pill(el, "warn", "starting…"); return; }
+  /* The pill names the source that produced the alerts, so a reader always
+   * knows whether they are seeing the exchange's own ticker stream or the
+   * page's REST poll. */
+  if (S.feedState === FEED_STATE.LIVE) {
+    pill(el, "live", `live · WebSocket ticker · ${int(S.feedFrames)} frames · poll #${S.polls} at ${hms(S.lastPollAt)} UTC`);
+    return;
+  }
+  if (S.feedState === FEED_STATE.CONNECTING) {
+    pill(el, "warn", "connecting to the WebSocket ticker relay…");
+    return;
+  }
   pill(el, "live", `live · poll #${S.polls} at ${hms(S.lastPollAt)} UTC · every ${S.intervalS}s`);
 }
 
@@ -463,8 +630,12 @@ $("#pause").addEventListener("click", () => {
   const btn = $("#pause");
   btn.textContent = S.paused ? "Resume" : "Pause";
   btn.setAttribute("aria-pressed", String(S.paused));
-  if (S.paused) { clearTimeout(S.timer); renderStatus(); }
-  else { tick(); }
+  if (S.paused) {
+    clearTimeout(S.timer);
+    /* Pausing stops both sources: the REST poll and the WebSocket feed. */
+    stopLiveFeed();
+    renderStatus();
+  } else { tick(); }
 });
 
 $("#topic").addEventListener("change", e => {
