@@ -2691,3 +2691,44 @@ documentation sitemap (27 paths, all published, no broken official-source link).
 attach `evidence/` captures (`GET /historical/markets?limit=1`, then one archived candlestick response).
 Until then the claim stays `partially verified` and every affected page prints the API's own refusal
 message when the archived call fails.
+
+### Conflict log #4 — integrating `main` @ `b892d80` (PR #98) — session `02091230`
+
+PR [#98](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/98) (web-sourced dollar-volume ranking,
+`assets/js/dollar-volume.js`, new `sources.html`) and the bot report commit `6a4f99b` landed while PR #94 sat
+`CLEAN` but unmerged. Rebased onto `b892d80`.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `COORDINATION.md` | add/add — `#98` appended its own session section at end of file while this branch appended conflict logs #1–#3 | Deleted **only** the three marker lines; both sides kept verbatim (this session's logs #1–#3 + the `#98` section). No board content discarded. |
+| `reports/alerts-live-check.md` | bot rewrites it on every branch push | Auto-merged by keeping the capture with the newer `Started (UTC)`; the older bot commit was dropped by the rebase, its observations being identical. |
+| everything else (`assets/js/market.js`, `assets/js/claims.js`, `flagged.html`, `suggestions.html`, `alerts.html`, `assets/css/app.css`) | no textual overlap with `#98` | untouched; `git diff origin/main -- assets/js/market.js` still shows exactly this session's three hunks. |
+
+### Conflict log #5 — integrating `main` @ `ee09f43` (PR #95) — session `02091230`
+
+PR [#95](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/95) (verification session `0ecc28c2`) merged
+minutes later and touched `assets/js/claims.js`, `flagged.html`, `COORDINATION.md`. Rebased onto `ee09f43`:
+**no conflicts** — git auto-merged `claims.js` and `flagged.html` because #95 and this session added different
+claim ids and different flags. Verified afterwards that this session's content survived:
+`grep -c 'id="SC1"\|id="SC2"' flagged.html` → 2, `grep -c 'Page-size limits are per endpoint' assets/js/claims.js`
+→ 1, `grep -c 'S17' suggestions.html` → 1, `grep -c '\.msg {' assets/css/app.css` → 1.
+
+### U5 — final integration, merge and Pages deploy — session `02091230`
+
+| Step | Result |
+|---|---|
+| Integration PR | [#94](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/94) — "re-verify API contracts, fix unstyled/non-scrolling alert chats, track-to-resolution from the feed" |
+| Merge | merged **without approval** on 2026-11-21T23:19:17Z, `--merge`, state `MERGED`, `mergeable MERGEABLE` / `mergeStateStatus CLEAN` at merge time, **0 commits behind** `main` |
+| Merge commit | `6a437a54119bda00f10a79870bf7c02edd3b3e2e` |
+| Suite on the merged tree | Node **133/133** · Python tools **42 OK** · Python tests **20 OK** (3 skipped) · page runtime **18/18** · static link check **36 pages / 0 broken** · alerts DOM **21/21** · summary DOM pass · signing **6/6** |
+| Pages | source `main:/`, `build_type: legacy`, `https_enforced: true`, status **built** |
+
+**Irregularity recorded (not a site defect).** The first two Pages builds after the merge reported
+`Page build failed.` — build `6a437a54` (merge commit, 23:19:19Z) and `3b422d21` (a later merge, 23:19:58Z).
+Both failed in ~3 s while a third push arrived within 30 s, the same signature as the earlier transient failures
+at `31e251b6` / `0de03ce4` (each followed by a successful build of a descendant commit). The next build,
+`a24db0ae` (23:22:03Z, a descendant of the merge), is **`built`**, and the live page fetched from
+`https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html` shows this session's work ("**Track to resolution**
+adds that market to the Resolved page…", "**event detail** opens every market in the event", "fixed-height log
+that scrolls"). No content was changed to work around it; the failure is a Pages build-queue race under rapid
+successive pushes, not a broken tree — every local check and the deployed page agree.
