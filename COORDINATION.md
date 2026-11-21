@@ -1551,3 +1551,9 @@ Base: `origin/main` at `8ea5c85` (== this branch at claim time). Board and open 
 | Task | Status | Owner | Exclusive file scope | Coordination |
 |---|---|---|---|---|
 | Update A9 to record the corrected S6 list without closing the mapping question; disclose relay credential architecture and state-fallback verification limitations in Flagged for Review | in progress | `9543cf0d` | `flagged.html` (A9, W1, and one new unique flag), `COORDINATION.md` (this section) | Prior `bc079e84` BC3/Y9 work is recorded complete above and PR #57 merged; no remaining open PR touches `flagged.html`. Prior request is recorded on PR #57. Official source: [WebSocket quick start](https://docs.kalshi.com/getting_started/quick_start_websockets). |
+
+### Additional diagnostic claim R7 — live-render failure (session `9543cf0d`)
+
+| Task | Status | Owner | Exclusive file scope | Coordination |
+|---|---|---|---|---|
+| Diagnose the existing main-branch `live-site-render` failure without changing its test or another session's files | in progress | `9543cf0d` | `.github/workflows/diagnose-live-render.yml` (new temporary diagnostic only), `COORDINATION.md` (this section) | Run [44878586946](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44878586946) failed its final assertion; run logs/artifacts redirect to a host inaccessible in this sandbox. Diagnostic will run the same script and surface its output via GitHub check annotations. I2's `tests/dom/live-site.mjs` remains owned by `3d2e8243`; do not edit it. |
