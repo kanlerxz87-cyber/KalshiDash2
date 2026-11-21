@@ -2647,12 +2647,15 @@ the `tests/dom/package.json` script entry, plus the `site-check` step that runs 
 | — | Brief alignment: date-qualified X-axis ticks on >12 h chart windows | **done** | `assets/js/ui.js` (`timeTickLabel`), `tests/chart-axis.test.mjs` (new) | Brief: X = time, selectable seconds → days. 10 unit cases with explicit locale/time zone + a 7-day DOM branch. |
 | — | Simplification: removed the dead duplicated board-row template in `index.html` | **done** | `index.html` | `grep -n "\brows\b" index.html` before the change showed the array was never read; after removal page-runtime is still 17/17 and the board renders identically. |
 | R2 | Requirements traceability for every line of the brief | **done** | `reports/review-d074f64f.md` §6 | Each row names the implementing file and the test/workflow that exercises it |
-| R3 | Full local suite | **done** | — | Node **99/99** · Python tools **42/42** · Python tests **20 OK** (3 skipped, `cryptography` absent) · DOM alerts **19/19**, summary **5/5**, category **18/18** · links **35 pages / 0 broken** · page runtime **17/17** · signing **6/6** · `git diff --check` clean |
+| R3 | Full local suite | **done** | — | Node **151/151** at merge time (the tree grows under parallel sessions) · Python tools **42/42** · Python tests **20 OK** (3 skipped, `cryptography` absent) · DOM alerts **19/19**, summary **5/5** (76 flags: 36 open / 40 mitigated), category **18/18** · links **36 pages / 0 broken** · page runtime **18/18** · signing **6/6** · `git diff --check` clean |
 | R4 | Hand-off to the integration owner | **done** | this section | The two open observations in `reports/review-d074f64f.md` §9 (O3: `Watchlist` never marks a scalar final; O4: `event.html` shows "open" for a blank result on a closed market) are logged, not edited, because they would need a payout rule / a wider claim. Flagged items do not block merge. |
 
 **Not verified by this session (recorded, not hidden):** no live Kalshi call or live page render was
 possible from this sandbox (`curl` to `*.kalshi.co` → `000`). All schema claims are from official pages
 fetched on 2026-11-21; live behaviour remains covered by the GitHub-hosted workflows.
 
-**Conflict log:** none. Session `117dc8d6` was working on `suggestions.html` / `SUGGESTIONS.md` / its own
-report during this work; no file overlapped. Board sections were appended, never rewritten.
+**Conflict log:** board sections were appended, never rewritten. Three rebases onto a moving `main`
+(PRs #91/#92/#93 then #94/#95/#96 merged mid-session) conflicted only in `COORDINATION.md`,
+`.github/workflows/site-check.yml` and `README.md`; each was resolved by **keeping both sides** —
+`tools/resolve_board_conflict.py` for the board, the `historical-tier` suite **plus** the two new suites
+in CI, and a single de-duplicated test list in the README. No other session's work was dropped.

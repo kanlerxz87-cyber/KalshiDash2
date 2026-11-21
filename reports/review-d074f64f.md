@@ -184,8 +184,8 @@ and time zone) and by the 7-day branch of the DOM test.
 | Liquidity: contracts available at a price | order-book depth + new implied YES ask column | `category-dom.mjs` book checks |
 | Links to sources that may explain a jump | `renderJumps()` → event `settlement_sources`, contract filing, gas AAA page | `category-dom.mjs`; `alerts-dom.mjs` "checks, not causes" |
 | Suggestions to make the site more live | `suggestions.html` S1–S16; `SUGGESTIONS.md` | `page-runtime-check.mjs`; S8 corrected by session `117dc8d6` |
-| Clean landing page + subpages by category, table format | root `index.html` + 5 category pages + the 11 other root pages and the event detail page | link check: 35 pages, 0 broken |
-| Every row has an official source link; blanks flagged | `src()` on rows, `verification.html`, `flagged.html` | `summary-dom.mjs` source audit; `flagged.html` 73 items |
+| Clean landing page + subpages by category, table format | root `index.html` + 5 category pages + the 11 other root pages and the event detail page | link check: 36 pages, 0 broken |
+| Every row has an official source link; blanks flagged | `src()` on rows, `verification.html`, `flagged.html` | `summary-dom.mjs` source audit; `flagged.html` 76 items |
 | No manual input; all data fetched live | all values from `fetch()` to the demo host; no transcribed values | `grep` shows no hard-coded prices/tickers in the tables; `category-dom.mjs` asserts only the demo host was called |
 
 ### Snapshot in the repository (not live)
@@ -209,12 +209,12 @@ is used by the static reports and the downtime fallback only.
 
 | Suite | Result |
 |---|---|
-| `node --test tests/*.test.mjs` | **99/99 pass** (78 on `main` + 11 result-semantics + 10 chart-axis) |
+| `node --test tests/*.test.mjs` | **151/151 pass** at merge time — the tree keeps growing under parallel sessions; this session contributes `result-semantics` (11) and `chart-axis` (10), both green |
 | `python3 -m unittest discover -s tools` | **42/42 OK** |
 | `python3 -m unittest discover -s tests` | **20 run, OK** (3 skipped: `cryptography` absent in this sandbox) |
-| `tests/dom`: `npm test` | alerts **19/19**, summary **5/5** (73 flags: 36 open / 37 mitigated), category **18/18** |
-| `python3 tools/check_site_links.py .` | **35 pages, 0 broken** |
-| `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean**, 35 pages link-checked |
+| `tests/dom`: `npm test` | **42/42** — alerts 19, summary 5 (76 flags: 36 open / 40 mitigated), category 18 |
+| `python3 tools/check_site_links.py .` | **36 pages, 0 broken** |
+| `node tools/verify/page-runtime-check.mjs` | **18/18 pages clean**, 36 pages link-checked |
 | `node evidence/auth-sign-test.mjs` | **6/6** |
 | `git diff --check` | clean |
 
