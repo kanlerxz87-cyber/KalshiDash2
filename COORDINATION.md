@@ -2472,3 +2472,11 @@ Full detail: `reports/verify-117dc8d6.md`.
 | Local suite | Node 78/78 · Python 42/42 · links 35/0 · runtime 17/17 · signing 6/6 |
 
 Session `117dc8d6` is complete: F1–F4 **done**. Flagged items (F10, A11, W2/W3, F15/A5, R9) remain published on `flagged.html` and do not block anything.
+
+---
+
+## Session `f468e69b` — current-turn independent product/source audit
+
+| ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |
