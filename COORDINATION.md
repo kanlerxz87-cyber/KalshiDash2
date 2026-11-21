@@ -1595,3 +1595,17 @@ error board still fails, so a persistent API failure is never masked.
 No new irregularities were introduced; F1/F2 added no flags. All pre-existing flags on
 `flagged.html` are unchanged and, per the brief, do not block the merge.
 
+
+---
+
+### R2 completion record — session `0d6f4f1f` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#63 — integration: session 0d6f4f1f — snapshot-label drift fix (R1) + fresh doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), branch `arena/0d6f4f1f-kalshidash2` → `main` |
+| Merge | `gh pr merge 63 --merge` succeeded 2026-11-21T20:21:55Z; merge commit [`882e074`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/882e07446ab8c790990dd0033f90b313557aec23). PR head check `Static site link check` **pass** (run 44945843975). |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` run 44945889048 **success**; `Static site link check` run 44945890003 on `main` **success**. Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Irregularities | None new. All pre-existing flags on `flagged.html` carried forward; none blocked the merge per instructions. |
+| Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
+
+Session `0d6f4f1f` is complete: R1–R2 **done**.
