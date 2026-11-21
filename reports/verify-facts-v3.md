@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-21T06:43:28Z |
+| Captured (UTC) | 2026-11-21T06:55:15Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `96bed17ee90bdc32dc49165e35f1b2e508d1697a` |
+| Commit | `5dbf5d7a68d5e8f5c6fb870cb50bca9cfac37161` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -19,7 +19,7 @@
 | `GET /markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /events/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW/candlesticks?start_ts=1795157009&end_ts=1795243409&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW/candlesticks?start_ts=1795157718&end_ts=1795244118&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
 **Resolved ids used above:** market `KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW` → event `KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V` → series `KXMVECROSSCATEGORY`
 
