@@ -49,7 +49,8 @@ fetched in the browser and never transcribed into the repo.
   per row. Four paper strategies run automatically on the alerts; no orders are placed.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
   simulated trade is scored against the market's own `settlement_value_dollars`, with YES and NO
-  entry prices handled as complements and the assumptions (no fees, no spread, no slippage) stated
+  entry prices handled as complements and the assumptions (official-schedule fees modelled; no spread,
+  no slippage) stated
   above the results. Includes a reproducible seeded random-control baseline, rollups by topic and
   YES/NO direction, CSV export of the simulated ledger, and a live paper-trading book driven by the
   same alert engine as the Live alerts page. The random baseline is a comparison, not a prediction
