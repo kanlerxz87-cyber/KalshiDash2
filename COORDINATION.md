@@ -2432,3 +2432,29 @@ resolved by keeping `main`'s already-merged work (board union tool, fresher bot 
 and re-landing only this session's unique contributions. This session deleted its own duplicate
 `boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
 removed.
+
+---
+
+## Session `c33971c1` (branch `arena/c33971c1-kalshidash2`) — started 2026-11-21
+
+**Environment note that changes what this session can prove:** the editing sandbox's shell still cannot open TLS
+to `*.kalshi.co` (`curl` → `000`), **but the agent's page-fetch proxy can reach both `docs.kalshi.com` and
+`external-api.demo.kalshi.co`.** Every live observation below is therefore a real HTTP response fetched this
+session, with its URL recorded in `reports/live-verify-c33971c1.md`. This closes the "sandbox cannot reach the
+API" limitation that earlier sessions worked under (they relied on GitHub-runner workflows).
+
+### Claimed tasks (file scope is exclusive to this session)
+
+| ID | Task | Status | Files in scope | Sources |
+|----|------|--------|----------------|---------|
+| C339-A | Taxonomy must read the **series-level** category, because the official Get Events schema marks the event `category` field `deprecated: true` ("use series-level category instead"). Add a cached `GET /series/{ticker}` resolver, keep the event field as a labelled fallback, and disclose which basis classified each event. | in progress | `assets/js/market.js`, `assets/js/claims.js`, `tests/taxonomy.test.mjs` | [Get Events schema](https://docs.kalshi.com/api-reference/events/get-events), [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) |
+| C339-B | Refresh `VERIFICATION.md`: it still carries a 2026-11-20 header, points at the superseded `docs/` register, and lists rows that are now known (browser CORS verified; exact series categories known; event-category deprecation). Closes flag E3. | in progress | `VERIFICATION.md` | rows cited inline |
+| C339-C | Correct flagged items whose premises the live API contradicts or now resolves: F4 (open gas market exists), F10 (WebSocket is wired), SB4 (KXGAS and GAS are **distinct** series records), E3. | in progress | `flagged.html` | live URLs in `reports/live-verify-c33971c1.md` |
+| C339-D | Dated live-verification record (responses + URLs, no transcribed price data). | in progress | `reports/live-verify-c33971c1.md` | — |
+| C339-E | Integration: run every suite, link check, page-runtime check; PR → merge → confirm Pages. | in progress | `COORDINATION.md`, `.github/**` (read-only unless a check is broken) | — |
+
+**No other session has a live claim:** the repository has no open pull requests, and every other
+`arena/*` branch on the remote is an already-merged or abandoned branch whose session headings are preserved
+below. If another session starts while this one runs, the scope above is closed to it; log a request here
+instead of editing these files.
+
