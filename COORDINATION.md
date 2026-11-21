@@ -1507,3 +1507,32 @@ BC4 below).
 `COORDINATION.md` commit on top of the fully-checked `b0e976b` tree), merged with
 `gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
 Session `bc079e84` is complete: BC1–BC4 **done**.
+
+---
+
+## Session `c6a50f54` — repo review, stale-PR integration, and live-site verification (branch `arena/c6a50f54-kalshidash2`)
+
+Started: 2026-11-21T20:20Z. Base: `main` @ `bbdc3a0`. **Claim committed and pushed before any file in the scope below was edited.**
+
+### Repo review findings recorded before editing (read-only pass)
+
+| # | Finding | Evidence |
+|---|---------|----------|
+| R1 | **The CI "green main" is partly an artefact.** The scheduled collector commits `data/snapshot.json` with `[skip ci]`, so pushes to `main` are not tested. The last non-skip push to `main` was `3a41b33`/`0da4a54`; the only checks that ran on `bbdc3a0` are `pages build and deployment` and `Collect demo snapshot`. `Static site link check` has not run on the current tree. | `gh run list --branch main` (12 runs inspected); `.github/workflows/collect.yml` commit step message |
+| R2 | **The collector snapshot regressed its own labels.** `tools/test_collect.py::SnapshotMetadataTests` fails on `main` (`1 failure / 28 tests`). The test requires the literal `contract-count fields`; the last two bot refreshes rewrote the note to `fixed-point contract counts`, so the automated 6-hourly job silently undoes the T22 wording. | `python3 -m unittest discover -s tools -p 'test_*.py'` → `FAIL: test_snapshot_labels_contract_counts_and_sampled_trade_value` (line 146) |
+| R3 | **Published status-vocabulary correction is wrong.** `assets/js/claims.js` (claim "Market status filter values") and `flagged.html` A9 state that the Get Markets `status` filter advertises `paused`. The official Get Markets reference lists exactly `unopened`, `open`, `closed`, `settled`; the **mapping** of `paused` → `inactive` is documented on the Market Lifecycle page, not as a Get Markets filter value. Two official pages disagree, and the repo quoted the wrong one. | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) (operation description) vs [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle) (filter table) — both fetched 2026-11-21 |
+| R4 | **`live-site-render` has never passed in this repo's published-observation window.** `tests/dom/live-site.mjs` demands `/KXAAAGAS/` on the Gas page, which must fail whenever the demo exchange publishes no matching open gas market. The bounded fix (allow the page's own no-match state, still fail on API errors) is claimed by session `3d2e8243` and was never written. | run `44878586946` failure; `tests/dom/live-site.mjs:98`; board §I2 |
+| R5 | **PR #60 is stale and conflicting.** Branch `arena/9543cf0d-kalshidash2`, 18 commits, last commit `1d3b9b1` at 07:10Z (13 h idle, past the 60-minute rule), `mergeStateStatus: DIRTY`. Its code work (relay state gating, `404.html`, Q10/A9 refresh, `tests/live-feed-state.test.mjs`, Get Markets `paused` edit) is real and was never merged. | `gh pr view 60`; `git diff --stat origin/main origin/arena/9543cf0d-kalshidash2` |
+| R6 | **CLI cannot reach the exchange or the published site.** `curl` to `docs.kalshi.com` (TLS), `external-api.demo.kalshi.co` and the Pages host all return HTTP `000` from this sandbox. Verification of docs is done with the page-fetch tool; verification of live API/site behaviour must happen in a GitHub-hosted runner. | direct `curl -o /dev/null -w '%{http_code}'` on three hosts |
+
+### Claims (exclusive file scope for this session)
+
+| ID | Task | Status | Owner | Exclusive file scope |
+|----|------|--------|-------|----------------------|
+| C1 | Take over stale PR #60 under the 60-minute rule; re-land its verified work on top of current `main` **minus** the incorrect `paused`-as-a-filter-value edit (R3) | in progress | `c6a50f54` | `404.html`, `assets/js/live-feed.js`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py`, `.github/workflows/site-check.yml`, `questions.html`, `flagged.html` (W4 + A9 text only) |
+| C2 | Fix the collector-label regression so the scheduled job preserves the T22 wording, and add a guard test that the collector's emitted notes satisfy the published-label assertions | in progress | `c6a50f54` | `scripts/collect.py`, `tools/test_collect.py` |
+| C3 | Correct the published status-vocabulary claim on both pages, citing both official pages, and re-derive the affected claim/flag counts | in progress | `c6a50f54` | `assets/js/claims.js`, `flagged.html` (A9 only), `tests/dom/summary-dom.mjs` (expected counts only) |
+| C4 | Close the bounded live-render item (R4): accept the page's explicit no-match state without masking API/JS failures; add an offline fixture test so the assertion is provable without the exchange | in progress | `c6a50f54` | `tests/dom/live-site.mjs`, `.github/workflows/live-site-render.yml`, `tests/dom/live-site-no-match.test.mjs` |
+| C5 | Final integration for this branch: run every suite, open PR → `main`, merge, confirm Pages deploy and live-site probe; record results here | in progress | `c6a50f54` | `COORDINATION.md` (this section), `README.md` (status line only) |
+
+No other active claim exists on the files above (PR #60's owner has been idle since 07:10Z; sessions `3d2e8243`, `df4e0876`, `bc079e84` recorded completion). Shared outputs (`index.html`, navigation, table data) are **not** edited by this session.
