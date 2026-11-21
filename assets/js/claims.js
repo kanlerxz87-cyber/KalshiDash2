@@ -132,6 +132,11 @@ export const CLAIMS = [
     source: `${D}/api-reference/market/get-market`,
     ev: "The two input fields and notional_value_dollars definition were checked in the official Get Market schema; the ranking formula is a project convention. See Flag A11.",
     status: "partially verified", flag: "A11" },
+  { cat: "data", claim: "Official traded dollar volume is computable per market and window",
+    detail: "GET /markets/trades returns completed trades with count_fp (contracts) and yes_price_dollars / no_price_dollars, filterable by ticker, min_ts and max_ts (Unix seconds), page limit 1-1000 with a cursor; the dollars of a trade are count_fp x the price of the side the taker bought",
+    source: `${D}/api-reference/market/get-trades`,
+    ev: "Documented: read in the official Get Trades reference and OpenAPI schema (fetched 2026-11-21). The arithmetic is covered offline by tests/dollar-volume.test.mjs; no live response was captured for this claim, and the build sandbox cannot open TLS to kalshi.co, so the live call runs in the visitor's browser.",
+    status: "verified" },
 
   // ---- auth ----
   { cat: "auth", claim: "Required auth headers",
@@ -153,10 +158,17 @@ export const CLAIMS = [
     detail: "Ed25519 keys sign the message directly",
     source: `${D}/getting_started/api_keys`,
     ev: "Documented; self-test passes in Node 22 WebCrypto", status: "verified" },
-  { cat: "auth", claim: "Private key PEM is PKCS#8",
-    detail: "PEM header does not identify the algorithm",
+  /* The API-keys page documents PKCS#8 for the Kalshi-GENERATED Ed25519 key and
+   * PKCS#1 for the Kalshi-generated RSA key, then states that the PEM header
+   * "does not identify the key type" because PKCS#8 RSA keys also begin with
+   * `-----BEGIN PRIVATE KEY-----`. A blanket "the PEM is PKCS#8" was wrong for
+   * the RSA key Kalshi emits; corrected 2026-11-21 by session 0ecc28c2
+   * (reports/session-review-0ecc28c2.md F1). The signing self-test already
+   * detected the type from the parsed key, so only the published claim was loose. */
+  { cat: "auth", claim: "The PEM header does not identify the key type",
+    detail: "Kalshi generates a PKCS#8 private key for Ed25519 (-----BEGIN PRIVATE KEY-----) and a PKCS#1 key for RSA (-----BEGIN RSA PRIVATE KEY-----); because a PKCS#8 RSA key also begins with 'BEGIN PRIVATE KEY', the type must be read from the parsed key, not the header",
     source: `${D}/getting_started/api_keys`,
-    ev: "Documented; self-test shows spki import of a private key fails", status: "verified" },
+    ev: "Documented in the Key types table and the paragraph after it; self-test shows an spki import of a private key fails, so type is detected from the parsed key", status: "verified" },
   { cat: "auth", claim: "Timestamp tolerance is 30 seconds",
     detail: "Outside the window returns 401 header_timestamp_expired",
     source: `${D}/getting_started/api_keys`, ev: "Documented", status: "verified" },
@@ -218,30 +230,37 @@ export const CLAIMS = [
     ev: "Documented qualitatively only", status: "partially verified", flag: "F3" },
 
   // ---- topic mapping ----
+  /* The Glossary explains what a category IS and uses gas as its worked
+   * example; it does not enumerate Elections, Crypto or Sports. The pages that
+   * do carry this evidence are Get Series List (the `category` field, and the
+   * page the captured vocabulary was read from) and Get Tags for Series
+   * Categories (the official category -> tag map). Corrected 2026-11-21 by
+   * session 0ecc28c2; see reports/session-review-0ecc28c2.md F2. */
   { cat: "topic", claim: "Elections is a category",
     detail: "Kalshi category value 'Elections'",
-    source: `${D}/getting_started/terms`,
-    ev: "Live capture 2026-11-20: 740 of 1,000 scanned events (reports/verify-facts-v3.md §G); undated counts are never presented as current", status: "verified" },
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live capture 2026-11-20: 740 of 1,000 scanned events (reports/verify-facts-v3.md §G); undated counts are never presented as current. Category vocabulary captured in data/probe/api_surface.json ('Elections': 5420 series)", status: "verified" },
   { cat: "topic", claim: "Crypto is a category",
     detail: "Kalshi category value 'Crypto'",
-    source: `${D}/getting_started/terms`,
-    ev: "Live: 2 of 1,000 scanned events", status: "verified" },
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live: 2 of 1,000 scanned events; data/probe/api_surface.json ('Crypto': 642 series)", status: "verified" },
   { cat: "topic", claim: "Culture maps to Culture + Entertainment + Social",
     detail: "A category named 'Culture' exists in the live demo vocabulary (4 series) in addition to Entertainment and Social; the matcher covers all three (fixed 2026-11-20 by session 2345e0dd — the earlier claim 'No category is named Culture' was contradicted by the probe capture)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Live vocabulary capture data/probe/api_surface.json: 'Culture': 4 series; per 1,000 events: Entertainment 28, Social 1", status: "verified" },
   { cat: "topic", claim: "Golf lives inside Sports",
-    detail: "No golf category; matched on golf series/titles",
-    source: `${D}/getting_started/terms`,
-    ev: "Live: 3 golf events in the Sports sample", status: "verified" },
+    detail: "No golf category; matched on golf series/titles inside the broad Sports category",
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live: 3 golf events in the Sports sample; the category vocabulary captured in data/probe/api_surface.json lists 'Sports' (8486 series) and no Golf value. The Glossary is not cited here because it names neither Sports nor golf", status: "verified" },
   { cat: "topic", claim: "No gas-price category",
     detail: "No category in the captured demo vocabulary is named Gas or Gasoline; gas-price series sit under Economics/Commodities (KXGAS carries no tag and is fetched directly by series ticker) and are matched on the KXAAAGAS*/AAAGAS*/KXGAS series families and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded (the old /GAS/i pattern matched KXNBALASVEGAS and KXNATGASW)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Evidence: data/probe/api_surface.json category vocabulary (no Gas/Gasoline value) and reports/verify-facts-v3.md §G; 15/15 classification cases pass incl. Vegas/natgas/WTI/diesel → null. An earlier 'zero gas events' evidence line was contradicted by the live KXAAAGASW-26NOV23 event and is no longer asserted", status: "verified", flag: "F4" },
-  { cat: "topic", claim: "Complete series catalogue",
-    detail: "The full list of series (16,643 returned on one page)",
+  { cat: "topic", claim: "Series list response size (not a catalogue total)",
+    detail: "Two committed captures of one GET /series response record 16,643 rows (evidence/evidence-cors-taxonomy.md, 2026-11-20T11:08Z) and 16,653 rows (data/probe/api_surface.json, later probe run). The endpoint documents no `limit` or `cursor` parameter, so each figure is a point-in-time row count for one response, not a documented catalogue total; the register previously presented 16,643 as 'the complete series catalogue'.",
     source: `${D}/api-reference/market/get-series-list`,
-    ev: "Live: single page returned 16,643 series", status: "partially verified", flag: "F5" },
+    ev: "Both committed captures cited above; the difference between them is why neither is asserted as the catalogue size",
+    status: "partially verified", flag: "F5" },
 
   // ---- repo ----
   { cat: "repo", claim: "Repository baseline",

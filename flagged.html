@@ -79,7 +79,8 @@
     <div class="irregularity" id="F8">
       <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
-        keywords against <code>GET /series</code>. That list returns 16,643 series in one page, so a
+        keywords against <code>GET /series</code>. One response from that list returned over sixteen
+        thousand series (16,653 rows in <code>data/probe/api_surface.json</code>), so a
         keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
         "golf" matched <code>KXTRUMPGOLFD</code> (a Politics market), while no <code>category</code> value
         covers gasoline at all.</p>
@@ -164,12 +165,56 @@
         <a class="src-link" href="evidence/evidence-cors-taxonomy.md" target="_blank" rel="noopener noreferrer">captured evidence §G ↗</a></p>
     </div>
 
+    <div class="irregularity" id="C1">
+      <h3>C1 — The site promised a Sources page it did not publish, and published a series count it could not reconcile <span class="tag yes">corrected</span></h3>
+      <p><strong>What was found:</strong> two related documentation defects, both found while building the source register.</p>
+      <ol>
+        <li><code>EXECUTIVE_SUMMARY.md</code> listed "Sources" among the published pages, and
+          <code>VERIFICATION.md</code> sent readers to "the site's Sources page, <code>docs/sources.html</code>" — the
+          <em>legacy</em> generation. The published root site had no Sources page and the shared navigation had no
+          entry for one, so the promise had no deliverable.</li>
+        <li>This page (F5/F8) and the Verification register published <strong>16,643</strong> as "the complete series
+          catalogue", while the committed probe capture <code>data/probe/api_surface.json</code> records
+          <strong>16,653</strong> rows in the same call. Both numbers are real captures: 16,643 is recorded in
+          <code>evidence/evidence-cors-taxonomy.md</code> at 2026-11-20T11:08Z, and the probe file was captured
+          later. Neither is a documented total, because <code>GET /series</code> documents no <code>limit</code> or
+          <code>cursor</code>.</li>
+      </ol>
+      <p><strong>What was corrected:</strong> the root site now publishes
+        <a href="sources.html">Sources</a> — every official page the site depends on, what it is used for, and how it
+        was checked (read in full, matched against the official documentation index, or unverified). The register's
+        data lives in <code>assets/js/sources.js</code> and <code>tests/sources-page.test.mjs</code> fails if the page
+        and the register disagree, if a source is not an absolute https link, or if a live market value is
+        transcribed into either. The Verification register now states both series figures with their capture times
+        and calls each one a <em>point-in-time row count for one response, not a catalogue total</em>. The probe
+        workflow's output field was renamed from <code>series_count</code> to
+        <code>series_rows_in_single_response</code> so a single response cannot be read as a catalogue size again.</p>
+      <p><strong>Residual:</strong> the live series count is not asserted on the site at all. Any reader who needs the
+        current figure can call the endpoint; a number printed here would be stale the moment the catalogue grew.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">Documentation index ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a></p>
+    </div>
+
     <div class="irregularity" id="F5">
       <h3>F5 — Series pagination behaviour was not fully exercised <span class="tag warn">open</span></h3>
-      <p><strong>What is unverified:</strong> whether <code>GET /series</code> can page past its first
-        16,643-row response.</p>
-      <p><strong>Why:</strong> the first response contained the full catalogue and no cursor, so there was
-        nothing to page through. Whether that holds for every tier is unconfirmed.</p>
+      <p><strong>What is unverified:</strong> whether <code>GET /series</code> returns the whole catalogue in
+        one response, and whether it can page past it. The reference documents no <code>limit</code> or
+        <code>cursor</code> parameter for this endpoint.</p>
+      <p><strong>Why:</strong> the captured response contained no cursor, so there was nothing to page through.
+        Whether that holds for every tier is unconfirmed.</p>
+      <p><strong>Figures reconciled 2026-11-21 (session <code>135bc17e</code>).</strong> This page and the
+        Verification register published <em>16,643</em> as "the complete series catalogue". Two committed
+        captures of the same call disagree, and both are legitimate — the catalogue moves:
+        <code>evidence/evidence-cors-taxonomy.md</code> (and <code>reports/verify-facts-raw.md</code>) record
+        <strong>16,643</strong> rows at 2026-11-20T11:08Z, while <code>data/probe/api_surface.json</code>
+        records <strong>16,653</strong> rows at its later capture time. Presenting either number as "the
+        catalogue" was the defect: the reference documents no <code>limit</code> or <code>cursor</code> for
+        <code>GET /series</code>, so the row count is a point-in-time observation of one response, not a
+        documented total. Both figures are now shown with their capture, and the probe field is renamed from
+        <code>series_count</code> to <code>series_rows_in_single_response</code> so a single response can no
+        longer be read as a catalogue size.</p>
       <p><strong>Status here:</strong> the site no longer depends on the series list for topic discovery,
         so this cannot silently break the dashboard.</p>
       <p class="small"><strong>Source:</strong>
@@ -436,10 +481,22 @@
     </div>
 
     <div class="irregularity" id="A11">
-      <h3>A11 — Dollar-activity ranking is a proxy, not actual dollars traded <span class="tag warn">open</span></h3>
+      <h3>A11 — Dollar-activity ranking is a proxy; an official traded-dollar measurement now exists alongside it <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the dashboard ranks by Σ(<code>volume_fp</code> × <code>last_price_dollars</code>). Kalshi defines <code>volume_fp</code> as contract volume and <code>last_price_dollars</code> as the last traded YES-contract price. Multiplying cumulative contracts by the current last price is a project-defined proxy; it is <strong>not</strong> the sum of the dollar consideration of completed trades.</p>
       <p><strong>Related field:</strong> <code>notional_value_dollars</code> is documented as the total value of a single contract at settlement. It is not an aggregate traded-dollar field. The Get Trades API returns individual trades, but this dashboard does not yet aggregate them into a clearly defined, windowed dollar-volume metric.</p>
       <p><strong>Status here:</strong> the overview, category pages and alert-universe text now label the current ranking as a volume × price proxy. It remains a limitation against the exact "highest dollar amount" requirement; do not interpret it as cash traded.</p>
+      <p><strong>Mitigation (2026-11-21, session <code>135bc17e</code>):</strong> every category page now carries a
+        <em>Dollars actually traded</em> panel that computes the real figure from this endpoint:
+        Σ(<code>count_fp</code> × the price of the side the taker bought), where a YES taker's price is
+        <code>yes_price_dollars</code> and a NO taker's is <code>no_price_dollars</code>. That uses each trade's own
+        recorded side rather than assuming one, which is the correction A12 describes. The panel runs on demand,
+        states the window it measured from the trades' own <code>created_time</code> values, and prints how many
+        markets it read and how many it skipped.</p>
+      <p><strong>Residual limits (not hidden):</strong> the measurement is a <em>sample</em> of the highest-volume open
+        markets in the topic (the reader sets the budget, default 12), not a census of every market; each market costs
+        at least one request and pages are capped, so a market whose pages run past the cap is reported as
+        <span class="unv">n/a</span> rather than as a partial total. The <em>ranking column</em> on the boards is
+        still the proxy — the two figures are shown side by side and labelled, never merged.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a></p>
@@ -1031,6 +1088,50 @@
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events schema ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series (series-level category) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AC1">
+      <h3>AC1 — The exchange-status strip does not repeat a documented caveat about 5xx bodies <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the <em>Get Exchange Status</em> reference warns that when the
+        default index's status cannot be read the response is <code>500</code>, <code>503</code> or
+        <code>504</code>, and that <em>"its body can be an <code>ExchangeStatus</code> with
+        <code>exchange_active</code> and <code>trading_active</code> set to <code>false</code>, or an error
+        object, and in neither case does it mean the exchange is paused."</em> The landing page reads those
+        two flags to render its "trading is active" strip.</p>
+      <p><strong>Why it is flagged rather than changed here:</strong> the reader lives in
+        <code>assets/js/ui.js</code>, which is outside this session's file scope. If a 5xx body were parsed
+        as a normal status object, the strip could read "paused" during a gateway timeout — an
+        outage reported as a trading halt.</p>
+      <p><strong>What would close it:</strong> read the flags only from an HTTP <code>200</code> response,
+        and render "status unavailable" for any other code, exactly as the reference instructs.</p>
+      <p><strong>Not asserted:</strong> that the page currently mis-reports. This session did not observe a
+        5xx from the demo host, and the sandbox cannot reach it (see the container note in
+        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a>). The gap is
+        that the defence is not evidenced either way.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AC2">
+      <h3>AC2 — Three topic rows cited a glossary page that does not contain the claim <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the claim register's rows <em>"Elections is a category"</em>,
+        <em>"Crypto is a category"</em> and <em>"Golf lives inside Sports"</em> linked the
+        <em>Kalshi Glossary</em>. That page explains what a category is and uses the monthly US gas price
+        series as its worked example; it does not enumerate <code>Elections</code>, <code>Crypto</code> or
+        <code>Sports</code>, and says nothing about golf. The claims themselves were right — the <em>links</em>
+        did not support them.</p>
+      <p><strong>Fixed:</strong> the three rows now cite <em>Get Series List</em> (the page that defines the
+        <code>category</code> field and is the page the captured vocabulary was read from) and name
+        <em>Get Tags for Series Categories</em> as the official category-to-tag map. The observed values are
+        unchanged and come from the committed capture <code>data/probe/api_surface.json</code>:
+        Elections 5,420 · Crypto 642 · Sports 8,486 series.</p>
+      <p><strong>Why this class of defect is easy to miss:</strong> the link checker proves a link resolves,
+        not that the linked page says what the row claims. Suggested guard in
+        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a> §4 S3.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories" target="_blank" rel="noopener noreferrer">Get Tags for Series Categories ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/terms" target="_blank" rel="noopener noreferrer">Glossary (what the page actually says) ↗</a></p>
     </div>
   </div>
 

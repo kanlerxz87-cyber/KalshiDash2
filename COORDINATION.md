@@ -2531,6 +2531,71 @@ conflict by keeping both changes and re-running every suite before pushing.
 
 ## Session `f468e69b` — current-turn independent product/source audit
 
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
+
+---
+
+## Session `0ecc28c2` — independent line-by-line re-verification + final integration (branch `arena/0ecc28c2-kalshidash2`, 2026-11-21)
+
+**Claimed at 2026-11-21T23:10Z.** Branch base: `cc9112b` (merge of PR #88, `main`). No other session
+holds a claim on the files below; every prior `in progress` claim on this board is older than the
+60-minute stale-claim window (last commits 20:55Z or earlier), so this session takes the scope over
+and records the handoff here. Nothing from any other session is discarded.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| Z1 | Line-by-line re-verification of the published site's official-source claims; record every check with the official URL it was checked against | **in progress** | `0ecc28c2` | `reports/session-review-0ecc28c2.md` (new), this section | docs.kalshi.com (fetched this session, see report) | — |
+| Z2 | Run every local suite on the branch base and record exact counts | **in progress** | `0ecc28c2` | this section, `reports/session-review-0ecc28c2.md` | local `node --test`, `python3 -m unittest`, `tools/check_site_links.py` | — |
+| Z3 | Final integration for this branch: PR → `main`, merge, confirm Pages deploy, record PR link + merge result | **in progress** | `0ecc28c2` | this section | `gh pr create` / `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+**File scope note:** this session deliberately does **not** edit `index.html`, `assets/js/**`,
+`data/snapshot.json`, `scripts/collect.py`, or any page owned by a currently-running session
+(`117dc8d6` has a final-verification job running on its own branch as this claim lands). Findings that
+require a change in those files are logged as requests on this board and as items in the report,
+never silently rewritten.
+
+---
+
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
 |---|---|---|---|---|---|---|
 | F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |
+
+---
+
+## Session `135bc17e` — official traded-dollar volume (A11) + missing Sources page (branch `arena/135bc17e-kalshidash2`, 2026-11-21)
+
+**Claimed 2026-11-21 ~23:20Z.** Branch base: `cc9112b` (merge of PR #88). Active sessions checked before
+writing this claim: `0ecc28c2` (claim commit `7eff1844`, verification + final integration; its own note
+says it does **not** edit `index.html`, `assets/js/**`, `data/snapshot.json`, `scripts/collect.py`) and
+`117dc8d6` (PR #89 open: `suggestions.html`, `SUGGESTIONS.md`, `reports/`, this board). This session's
+scope is disjoint from both.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| C1 | Publish the **Sources** page the README and executive summary already promise on the root site (`sources.html` does not exist today — promise/deliverable mismatch) | in progress | `135bc17e` | `sources.html` (new), `assets/js/ui.js` (nav entry only) | docs.kalshi.com index (`llms.txt`) fetched this session; every URL copied from the official index | Reported as C1 below |
+| C2 | Official **traded-dollar volume** from documented `GET /markets/trades` (`count_fp` × `yes_price_dollars`), replacing the volume×price *proxy* where the reader asks for dollars (closes the substance of Flag A11) | in progress | `135bc17e` | `assets/js/dollar-volume.js` (new), `tests/dollar-volume.test.mjs` (new), `assets/js/category.js`, `categories/*.html` (one button each) | https://docs.kalshi.com/api-reference/market/get-trades (OpenAPI: `limit` ≤ 1000, `ticker` filter, `min_ts`/`max_ts` in **seconds**) | See C2 note |
+| C3 | Local suite run + PR → `main` + merge + Pages confirmation | in progress | `135bc17e` | this section | local `node --test`, `python3 -m unittest`, `tools/check_site_links.py`, `page-runtime-check.mjs`; `gh` | Final integration ordering is not claimed here — PR is merged only after its own checks pass |
+
+**C1 note.** `EXECUTIVE_SUMMARY.md` lists "Strategies, Suggestions, Questions, Verification, **Sources**,
+and Flagged for Review" as site pages, and `VERIFICATION.md` points readers at "the site's Sources page,
+`docs/sources.html`" — the legacy generation. The published root site has no Sources page and `ui.js`
+`PAGES` has no entry for one. This session publishes it on the root site and corrects the pointer.
+
+**C2 note.** `GET /markets/trades` is documented with `ticker`, `min_ts`, `max_ts`, `limit` (1–1000,
+default 100) and `cursor`; each trade carries `count_fp` and `yes_price_dollars`, so the dollars actually
+traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official** figure, unlike the site's
+`volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
+control with the request count stated, never on every poll. If any page of trades is unreachable the figure
+renders as `n/a` and is flagged, never as `$0.00`.
+>>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)
