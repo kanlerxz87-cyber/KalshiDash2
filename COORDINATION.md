@@ -2533,3 +2533,78 @@ never silently rewritten.
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |
 |---|---|---|---|---|---|---|
 | F1 | Independently review the current root Pages deliverable against the user's requirements; check key demo API, chart/orderbook, WebSocket and trading claims against official Kalshi docs; run local checks and verify Pages/check status. Publish a scoped audit report without changing other sessions' files. | **done** | `f468e69b` | `reports/audit-f468e69b.md` (new), this section of `COORDINATION.md` | [Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [ticker](https://docs.kalshi.com/websockets/market-ticker), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2); Node 78/78; DOM 19/19; summary DOM; runtime 17/17; Python 42/42 + 20 (3 skipped); 35-page link check; npm audit 0; current Pages API built; current-SHA live-site and live-render workflows passed. | No private API key/account was supplied, so private account access/trades were not exercised. Local live API access failed under the sandbox network restriction; runner live render passed. GitHub Actions run emitted Node 20 deprecation annotation; check passed. Existing A11/ROI/relay limitations remain published. |
+
+---
+
+### Session `0ecc28c2` — FINAL RECORD: PR merged, Pages incident found and recovered (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#95 — verification: independent line-by-line re-verification + two citation fixes](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/95), branch `arena/0ecc28c2-kalshidash2` → `main` |
+| Merge | `gh pr merge 95 --merge` succeeded **2026-11-21T23:17:49Z**; merge commit [`ee09f43`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/ee09f4395e1b2fbb9b220d6bf9e6dcd0e7a7173b) |
+| Report | [`reports/session-review-0ecc28c2.md`](reports/session-review-0ecc28c2.md) — 41 claims checked with the official URL for each |
+| Checks on `ee09f43` | `Static site link check` **success** · `live-site-render` **success** · `verify-live-site` **success** · `verify-alerts` **success** |
+| Suite on the merged tree | Node **97/97** · tools Python **42/42** · `tests/` Python OK (3 skipped, `cryptography` absent locally) · links **35 pages / 0 broken** · page-runtime **17/17** · alerts DOM **19/19** · summary DOM passed (94 claims… see below) |
+
+#### What this session changed on `main`
+
+1. **F2 — three claim rows cited a page that does not contain the claim.** *Elections is a
+   category*, *Crypto is a category* and *Golf lives inside Sports* linked the **Kalshi
+   Glossary**, which explains what a category is (worked example: gas) but does not
+   enumerate `Elections`, `Crypto` or `Sports` and says nothing about golf. Re-sourced to
+   [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) and
+   [Get Tags for Series Categories](https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories).
+   Values unchanged; they come from the committed capture `data/probe/api_surface.json`
+   (Elections 5,420 · Crypto 642 · Sports 8,486 series).
+2. **F1 — "Private key PEM is PKCS#8" was wrong for the RSA key Kalshi generates.**
+   [API Keys](https://docs.kalshi.com/getting_started/api_keys) documents PKCS#8 for the
+   generated **Ed25519** key and **PKCS#1** for the generated RSA key, then states the
+   header "does not identify the key type". Re-titled to the page's own statement. The
+   signing code already detected the type from the parsed key; only the published claim
+   was loose. Confirmed live on the deployed `verification.html` after this merge.
+3. **Published `AC1` and `AC2`** on the Flagged page (below).
+
+#### Flags this session published
+
+| ID | Status | What it says |
+|---|---|---|
+| `AC1` | open | The landing page's exchange-status strip does not repeat the documented caveat that a `500/503/504` body can carry `trading_active: false` **and that this does not mean the exchange is paused** ([Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status)). The reader is in `assets/js/ui.js`, outside this session's scope, so it is flagged rather than edited. |
+| `AC2` | fixed | The citation defect (F2) above, recorded with its sources and the observation that the link checker proves a link resolves, not that the linked page says what the row claims. |
+
+#### Concurrency
+
+`main` advanced **eight** times while this branch was open (PRs #89–#93, #99, #100, #103
+plus bot report commits). Each advance was merged forward and the suite re-run before
+pushing. Conflicts and how they were resolved:
+
+| Conflict | Resolution |
+|---|---|
+| `COORDINATION.md` (add/add, twice) | `tools/resolve_board_conflict.py` — 1 block each time, **0 session sections dropped, 0 orphaned markers**, all 33 sections intact on both sides. Verified by counting `^## Session` before and after. |
+| `reports/alerts-live-check.md` (bot capture) | Kept the **fresher** capture (`23:13:37Z`), per the board's standing precedent. Only the timestamp table differed. |
+| `assets/js/claims.js`, `flagged.html` | Auto-merged. Re-verified after merging that this session's F1/F2 fixes and `AC1`/`AC2` cards all survive alongside the other sessions' work. |
+| `AB3` (deprecated `category` field) | Session `190f6069`/`f468e69b` closed it independently in the same window by reading the series record first. Their implementation was **reviewed and exercised here**, not taken on trust: seeding a series record yields `basis: "series"` and the series category decides the topic; an unknown series falls back to the deprecated event field with `basis: "event"`. That matches Get Events (`category` deprecated) and Get Series List (`category` + `categories[]`). |
+
+#### Pages incident — three consecutive failed builds, recovered
+
+**Recorded because it was a real outage risk, not a cosmetic warning.**
+
+| Observation | Detail |
+|---|---|
+| Symptom | After the merge burst (#94, #99, #100, #103), the Pages API reported `status: errored`. Build history showed **three consecutive** `Page build failed` entries (`68cd5e0`, `e847448`, `519de08`), with each `pages-build-deployment` **workflow run** reporting success — the legacy builder, not the workflow, was failing. |
+| Impact | The published site kept serving the last good build, so no page was broken. It was simply stale: content from the later merges was not being published. |
+| What was ruled out | Not a link error (`tools/check_site_links.py .` → 35 pages, 0 broken), not a size error (no file near the limit), not a syntax error in any workflow (all parse). The site tree itself is valid. |
+| Recovery | `gh workflow run pages.yml --ref main` — the manual `workflow_dispatch` deployer this repository keeps precisely for this. Run [44961769167](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961769167) **success** (23 s); the Pages API then returned **`status: built`**. |
+| Verification after recovery | `flagged.html` and `verification.html` fetched from the published origin. The **PKCS#8 fix is live** (row now titled "The PEM header does not identify the key type"). The Flagged page renders and reports its own counts. `live-site-render` run [44961672740](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961672740) on `main` is **success**. |
+| Standing recommendation for the next session | When `pages` reports `errored` more than **once in a row** after a merge burst, do not assume it is the transient pattern recorded in session `32b15793`'s IV3 note. Check `GET /repos/{owner}/{repo}/pages/builds` — if two or more consecutive builds failed while their workflow runs succeeded, run `gh workflow run pages.yml --ref main` and re-check the API for `built`. |
+
+#### Open items this session did not fix
+
+- **`AC1`** — exchange-status 5xx handling, owner `assets/js/ui.js`.
+- **`F3`/`AB3` follow-up** — the series-category lookup is capped (60 per scan in
+  `discoverTopic`, 40 default in `fetchSeriesCategories`). Events past the cap fall back to
+  the deprecated event field. The page discloses the tally, which is the right behaviour,
+  but a reviewer should confirm the cap is high enough for the five topics.
+- **Container limitation (recorded, not hidden):** this sandbox cannot open TLS to
+  `*.kalshi.co`, `docs.kalshi.com` or the Pages host (`curl` → HTTP `000`,
+  `SSL_ERROR_SYSCALL`). Official documentation and the published site were read through a
+  page-fetch tool; live API behaviour is covered by the GitHub-hosted workflows cited above.
