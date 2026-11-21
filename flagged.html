@@ -383,7 +383,7 @@
       <h3>A9 — Two status vocabularies, and one earlier claim about <code>paused</code> was wrong <span class="tag warn">open</span></h3>
       <p><strong>Correction (2026-11-21, session <code>c6a50f54</code>):</strong> this card and the claims register previously stated that the Get Markets <code>status</code> filter advertises <code>unopened, open, paused, closed, settled</code>. That is not what the Get Markets reference says. Its operation description lists exactly <code>unopened</code>, <code>open</code>, <code>closed</code> and <code>settled</code>. The five-value table that includes <code>paused</code> — and maps <code>paused</code> to the object status <code>inactive</code> — appears on the Market Lifecycle page. The two official pages therefore disagree, and the earlier text quoted the wrong page for the wrong claim. The claim is now stated per page, not merged.</p>
       <p><strong>What each page says:</strong> the object statuses returned by <code>GET /markets</code> and <code>GET /markets/{ticker}</code> are <code>initialized, active, inactive, closed, determined, disputed, amended, finalized</code> (Market Lifecycle). The filter values and their mappings are <code>unopened</code> → <code>initialized</code>, <code>open</code> → <code>active</code>, <code>paused</code> → <code>inactive</code>, <code>closed</code> → any market past <code>close_time</code> not yet <code>finalized</code>, <code>settled</code> → <code>finalized</code> (Market Lifecycle), while the Get Markets reference itself lists only four filter values.</p>
-      <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest, so an <code>inactive</code> (paused) market is not watched and produces no alert while it is paused.</p>
+      <p><strong>Observed:</strong> the most recent open-events scan (2026-11-21, <code>reports/alerts-live-check.md</code> §1) returned 2,161 markets with status <code>active</code> and 14 with <code>finalized</code>; the 2026-11-20 scan on the same query returned 2,157 and 14. The page treats <code>active</code> and <code>open</code> as live and skips the rest, so an <code>inactive</code> (paused) market is not watched and produces no alert while it is paused.</p>
       <p><strong>Still unverified:</strong> which of the two pages is authoritative for the filter, and whether <code>status=paused</code> is accepted. No <code>status=paused</code> request has been made against the demo exchange from a verifiable runner, so it is not asserted here. This is recorded, not resolved.</p>
       <p class="small"><strong>Sources (both fetched 2026-11-21):</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> (four filter values) · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market Lifecycle ↗</a> (five filter values + object statuses)</p>
     </div>
@@ -763,6 +763,28 @@
         subscriber, and the site does not present the WebSocket feed as a complete tick history.</p>
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="W5">
+      <h3>W5 — The live render probe demanded a gas market that the demo exchange need not have <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>tests/dom/live-site.mjs</code> asserted the literal ticker
+        <code>KXAAAGAS</code> on the Gas page. When the demo exchange had no matching <em>open</em> gas market,
+        the page correctly rendered “No … events in this scan” and the probe failed anyway — so the
+        <code>live-site-render</code> workflow could not pass, and its failure said nothing about the page.
+        The bounded fix was claimed by session <code>3d2e8243</code> and never written.</p>
+      <p><strong>Fix shipped (session <code>c6a50f54</code>):</strong> the rule now lives in one module,
+        <code>tests/dom/gas-assertion.mjs</code>. A live gas market passes; the page's own no-match callout
+        also passes, but only when no JavaScript error was raised <em>and</em> the board status pill is not in
+        its error state. An empty board, a failed fetch, or any page error still fails. Seven offline cases
+        (<code>tests/dom/live-site-no-match.test.mjs</code>) prove the rule without network access, so it can be
+        reviewed even when the exchange is unreachable from the editing sandbox.</p>
+      <p><strong>Verification boundary:</strong> the offline cases pass locally. The live
+        <code>live-site-render</code> run has not been re-run against the exchange from this session; it is
+        dispatched by the workflow on the next push to <code>main</code> and its result is recorded in
+        <code>COORDINATION.md</code>.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
     </div>
   </div>
 
