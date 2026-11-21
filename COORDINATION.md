@@ -2314,6 +2314,19 @@ that is *not* a refusal now falls through to `main`'s rule and fails.
 
 ---
 
+### IV3 deployment record — session `32b15793` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| Verification PR | [#71](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/71) — independent line-by-line review, `reports/verify-independent-32b15793.md`, AB1 (KXGAS) + AB2 (bid-depth label) fixes, AB3/I1/I5 flags. Merged `2026-11-21T20:31:55Z`, merge commit `461aab9`. PR head check `Static site link check` **pass**. |
+| Follow-up PR | [#80](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/80) — renumbered the duplicate `6` section heading (two cards were both numbered 6 after session `e2718295` added its section on top of main). Merged `2026-11-21T20:46:51Z`, merge commit `6e7a462`. PR head check **pass**. |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. Build chain after #71/#80: `461aab9` **errored**, `383b11a`/`9a12909`/`c889c10`/`6e7a462`/`3830dfb` **built**. The builds that errored are transient legacy-build attempts during a burst of near-simultaneous parallel-session merges; the following build of the same tree succeeded and the Pages API reports `built`. |
+| Live content check | `flagged.html` fetched from the published site reports **64 items · 36 open · 28 mitigated**. That total includes cards added by sessions merging in parallel after this one (`c6a50f54`, `e2718295`, `5a9b44b9`, `970aabdb`); this session's own three cards are AB1, AB2, AB3. Confirmed present on the published page: the AB1/AB2/AB3 cards and the `reports/verify-independent-32b15793.md` link. Local `summary-dom` counts derive from the same DOM, so the published number is authoritative after each merge. |
+| Local suite on the merged tree | Node **78/78** · tools Python **33/33** · static links **35 pages / 0 broken** · page-runtime **17/17** · summary DOM passed (20 areas, 28 sourced rows) · alerts DOM **16/16**. |
+| Concurrency note | `main` advanced **seven** times while this session was landing (PRs #70, #74, #76, #77, #82, #83 and bot snapshot commits). Each was merged forward and the suite re-run before pushing; `reports/alerts-live-check.md` conflicts between bot captures were resolved by keeping the **fresher** capture (20:41:37Z over 20:39:42Z), per the board's standing precedent. Nothing from another session was discarded. |
+
+---
+
 ---
 
 ## PR / merge / deploy record — session `c6a50f54` (final)
