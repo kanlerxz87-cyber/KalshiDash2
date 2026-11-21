@@ -109,19 +109,24 @@ async function load() {
       const vol = num(m.volume_fp);
       if (px === null || vol === null) noPrice++; else volumePriceProxy += px * vol;
     }
-    const resolved = markets.filter(m => ["yes", "no"].includes((m.result || "").toLowerCase())).length;
+    const resolved = markets.filter(m => (m.result || "").length > 0).length;
     $("#ev-stats").innerHTML = [
       { k: "Markets", v: int(markets.length), m: "in this event" },
       { k: "Volume × price proxy", v: money(volumePriceProxy), m: noPrice ? `${noPrice} market(s) without a price` : "Σ contracts × last YES price (proxy)" },
       { k: "Open interest", v: int(oi), m: "contracts" },
-      { k: "Resolved", v: `${int(resolved)} / ${int(markets.length)}`, m: "exchange reported yes/no" }
+      { k: "Resolved", v: `${int(resolved)} / ${int(markets.length)}`, m: "exchange reported a result (yes / no / scalar)" }
     ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 
     $("#ev-markets").innerHTML = markets.length ? markets.map(m => {
       const px = num(m.last_price_dollars), vol = num(m.volume_fp);
       const mt = px === null || vol === null ? null : px * vol;
       const r = (m.result || "").toLowerCase();
-      const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="muted small">open</span>`;
+      /* The exchange's literal result; `scalar` is a documented outcome and is
+       * shown as itself rather than being labelled open or NO. */
+      const tag = r === "yes" ? `<span class="tag yes">yes</span>`
+        : r === "no" ? `<span class="tag no">no</span>`
+        : r ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(r)}</span>`
+        : `<span class="muted small">open</span>`;
       return `<tr>
         <td><strong>${esc(m.yes_sub_title || m.title || m.ticker)}</strong><div class="mono muted small">${esc(m.ticker)}</div></td>
         <td><span class="pill idle">${esc(m.status || "")}</span></td>
@@ -139,7 +144,10 @@ async function load() {
 
     $("#ev-resolution").innerHTML = markets.length ? markets.map(m => {
       const r = (m.result || "").toLowerCase();
-      const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="unv">not resolved</span>`;
+      const tag = r === "yes" ? `<span class="tag yes">yes</span>`
+        : r === "no" ? `<span class="tag no">no</span>`
+        : r ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(r)}</span>`
+        : `<span class="unv">not resolved</span>`;
       return `<tr>
         <td class="mono small">${esc(m.ticker)}</td>
         <td>${tag}</td>

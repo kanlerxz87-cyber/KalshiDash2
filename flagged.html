@@ -890,6 +890,37 @@
   </div>
 
   <div class="card">
+    <h2>1e · Defect fixed by session <code>d074f64f</code> (2026-11-21)</h2>
+    <p class="sub">Found by reading the Get Market response schema line by line while auditing the code that
+      turns market rows into an event-level result on the overview and category boards.</p>
+
+    <div class="irregularity" id="D074-1">
+      <h3>D074-1 — A documented <code>scalar</code> settlement was displayed as <strong>NO</strong> <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>result</code> is an enum, not a boolean. The schema lists
+        <code>yes</code>, <code>no</code>, <code>scalar</code> and the empty string, and
+        <code>market_type</code> lists <code>binary</code> and <code>scalar</code>. The helper
+        <code>dominantResult()</code> in <code>assets/js/market.js</code> ended with
+        <code>return yes ? "yes" : "no"</code>, so an event whose only settled market carried
+        <code>scalar</code> was rendered <span class="tag no">no</span> on the overview board and on every
+        category board. A binary NO and a scalar settlement are different facts, and the site's rule is that a
+        value is never inferred.</p>
+      <p><strong>Reproduction:</strong> a deterministic unit test
+        (<code>tests/result-semantics.test.mjs</code>) feeds an event with one <code>scalar</code> market to
+        <code>rankEvents()</code>. Against the old helper three cases fail (single scalar, binary + scalar, and
+        the case-insensitive variant); against the fixed helper all eleven cases pass.</p>
+      <p><strong>Fix shipped:</strong> the event-level result is now the literal value when every settled market
+        agrees (<code>yes</code> / <code>no</code> / <code>scalar</code>), <code>mixed</code> when they disagree,
+        and empty when nothing is settled. The same literal label is rendered on <code>index.html</code>,
+        <code>categories/*.html</code>, <code>event.html</code> and <code>resolved.html</code>.</p>
+      <p><strong>Deliberately unchanged:</strong> paper trades and the strategy tester still resolve only on a
+        literal <code>yes</code> or <code>no</code>. A scalar payout is not $1/$0, so treating it as a win or a
+        loss would be a second inference; a test asserts the trade stays open instead.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market — response schema <code>market.result</code>, <code>market.market_type</code> ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>1c · Defects fixed by session <code>75490e0f</code> (2026-11-21)</h2>
     <p class="sub">Found by re-reading every published page and JS module against the official API reference
       (fetched 2026-11-21). Each item names the source that proves it.</p>
@@ -1303,8 +1334,10 @@
       <li>The demo REST and WebSocket URLs in the brief match the official documentation.</li>
       <li>Public market data really is readable without credentials, including order books and candles.</li>
       <li>CORS genuinely permits this site's GitHub Pages origin — verified against nine endpoints.</li>
-      <li>Settled markets really do report <code>result</code> as <code>yes</code> or <code>no</code>; a
-        200-market sample contained 82 yes and 118 no, none blank.</li>
+      <li>Settled binary markets really do report <code>result</code> as <code>yes</code> or <code>no</code>;
+        a 200-market sample contained 82 yes and 118 no, none blank. The schema also documents
+        <code>scalar</code> for scalar markets; that value is now displayed literally rather than coerced
+        (D074-1).</li>
       <li>Each market publishes its own price grid, so snapping order prices to it is correct rather than
         assuming a one-cent tick.</li>
     </ul>

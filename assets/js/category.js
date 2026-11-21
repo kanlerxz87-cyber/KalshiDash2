@@ -134,9 +134,13 @@ function renderBoard() {
   $("#board-body").innerHTML = rows.map(({ ev, r }) => {
     const top = [...(ev.markets || [])].sort((a, b) => (num(b.volume_fp) || 0) - (num(a.volume_fp) || 0))[0];
     const result = r.result;
+    /* `result` is the exchange's literal value (yes / no / scalar / blank).
+     * A non-binary settlement is shown as itself — never coerced to "no" and
+     * never hidden behind the "open" label. */
     const tag = result === "yes" ? `<span class="tag yes">yes</span>`
       : result === "no" ? `<span class="tag no">no</span>`
       : result === "mixed" ? `<span class="tag warn">mixed</span>`
+      : result ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(result)}</span>`
       : `<span class="muted small">open</span>`;
     /* A multivariate ("combo") event is labelled as one and its topic is shown
      * with the legs it was derived from — the classification basis is not left
@@ -447,16 +451,25 @@ async function loadBook(ticker) {
     const book = await getOrderbook(ticker, 20);
     const q = deriveQuote(book);
     const orderbookUrl = `${DEMO.rest}/markets/${encodeURIComponent(ticker)}/orderbook?depth=20`;
-    const row = (l, kind) => `<tr><td class="num">${money4(l.p)}</td>
+    /* A NO bid at y is a YES ask at 1 − y (official reciprocal rule), and that
+     * ask is the price at which a buyer can actually take YES liquidity — which
+     * is what the panel heading promises. The implied column is shown next to
+     * the literal NO bid price, never instead of it, and is blank on YES-bid
+     * rows because a YES bid is the other side of the book. */
+    const row = (l, kind) => {
+      const impliedYesAsk = kind === "no" ? Number((1 - l.p).toFixed(4)) : null;
+      return `<tr><td class="num">${money4(l.p)}</td>
       <td class="num">${int(l.c)}</td>
       <td class="num">${money(l.p * l.c)}</td>
+      <td class="num">${impliedYesAsk === null ? `<span class="muted small">—</span>` : money4(impliedYesAsk)}</td>
       <td><span class="tag ${kind === "yes" ? "yes" : "no"}">${kind === "yes" ? "YES bid" : "NO bid"}</span></td>
       <td><a href="${esc(orderbookUrl)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td></tr>`;
+    };
 
     const yesRows = [...q.yes].sort((a, b) => b.p - a.p);
     const noRows = [...q.no].sort((a, b) => b.p - a.p);
-    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(5, "No resting YES bids.");
-    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(5, "No resting NO bids.");
+    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(6, "No resting YES bids.");
+    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(6, "No resting NO bids.");
 
     const yesDepth = yesRows.reduce((a, l) => a + l.c, 0);
     const yesNotional = yesRows.reduce((a, l) => a + l.p * l.c, 0);
@@ -469,8 +482,10 @@ async function loadBook(ticker) {
       </div>`;
     pill($("#book-status"), "live", `live · ${yesRows.length + noRows.length} levels`);
     $("#book-src").innerHTML = `Order book returns <strong>bids only</strong>; a NO bid at <em>y</em> implies a
-      YES ask at <em>1 − y</em>. The contract counts above are resting bids to <strong>buy</strong> YES, not offers
-      to sell — a seller of YES trades against those bids. ${src(SOURCES.orderbook, "order-book docs")}`;
+      YES ask at <em>1 − y</em> — the <strong>Implied YES ask</strong> column is that price, so a buyer can read
+      how many contracts are offered at the price they would pay. The contract counts are resting size:
+      YES-bid rows are demand to <strong>buy</strong> YES (sell into them); NO-bid rows are the size a YES buyer
+      can take at the implied ask. ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
     pill($("#book-status"), "err", e.message);
     $("#yes-book").innerHTML = emptyRow(5, "Order book unavailable.");

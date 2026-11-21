@@ -408,13 +408,29 @@ export function rankEvents(events, mode = "money") {
   return rows;
 }
 
+/* Collapse a market list's settlement results without inventing one.
+ *
+ * `result` is a documented enum — yes | no | scalar | "" (empty = not settled):
+ *   https://docs.kalshi.com/api-reference/market/get-market  (market.result)
+ * `market_type` is likewise binary | scalar.
+ *
+ * Only literal values are reported:
+ *   - no result at all            -> null (unresolved)
+ *   - exactly one distinct value  -> that value ("yes" / "no" / "scalar")
+ *   - more than one distinct value -> "mixed"
+ *
+ * An earlier version returned "no" whenever no market carried a literal "yes",
+ * which silently turned a documented `scalar` settlement into a NO on the
+ * overview and category boards. That was an inferred value on a site whose
+ * rule is that values are never inferred, so it is fixed here.
+ */
 function dominantResult(markets) {
-  const results = markets.map(m => (m.result || "").toLowerCase()).filter(Boolean);
+  const results = markets
+    .map(m => String(m.result || "").toLowerCase())
+    .filter(Boolean);
   if (!results.length) return null;
-  const yes = results.filter(r => r === "yes").length;
-  const no = results.filter(r => r === "no").length;
-  if (yes && no) return "mixed";
-  return yes ? "yes" : "no";
+  const kinds = [...new Set(results)];
+  return kinds.length === 1 ? kinds[0] : "mixed";
 }
 
 function earliest(times) {

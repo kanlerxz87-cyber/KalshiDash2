@@ -2571,3 +2571,23 @@ asks for (minutes / hours / days). Time-of-day-only tick labels repeat across da
 7-day windows, which makes a 7-day chart unreadable. Files added: `assets/js/ui.js` (tick-label format
 only; nothing else in the canvas renderer changes), `tests/dom/category-dom.mjs` (new fixture test) and
 the `tests/dom/package.json` script entry, plus the `site-check` step that runs the new test.
+
+### Session `d074f64f` — completion record (2026-11-21)
+
+| ID | Task | Status | Files touched | Sources / verification |
+|---|---|---|---|---|
+| R1 | Line-by-line audit of the client data path (29 checks) | **done** | `reports/review-d074f64f.md` (new) | 13 official pages re-read this session: Get Market, Get Markets, Get Events, Get Market Candlesticks, Get Market Orderbook, Orderbook Responses, API Keys, Create Order V2, Get Fills, Market Ticker, the **fee-schedule PDF** (fetched and quoted), Fee Rounding, Rate Limits. Fee model reconciled by hand against four rows of the PDF's own table (100 @ $0.45 → $1.74, etc.). |
+| — | **Defect D074-1 fixed:** documented `result: "scalar"` was rendered as **NO** on the overview and category boards | **done** | `assets/js/market.js`, `assets/js/category.js`, `index.html`, `event.html`, `resolved.html`, `flagged.html` (card D074-1), `tests/result-semantics.test.mjs` (new) | Get Market schema: `result` enum `yes/no/scalar/""`; `market_type` enum `binary/scalar`. Regression test fails **3/11** against the old helper, passes **11/11** against the fix. Published on `flagged.html` as D074-1 (mitigated). |
+| — | Brief alignment: implied YES ask column in the order book | **done** | `assets/js/category.js`, five `categories/*.html`, `tests/dom/category-dom.mjs` (new) | Orderbook Responses: "A NO BID at price Y is equivalent to a YES ASK at price ($1.00 − Y)". DOM test asserts NO 0.47 → ask $0.5300 and literal prices unchanged. |
+| — | Brief alignment: date-qualified X-axis ticks on >12 h chart windows | **done** | `assets/js/ui.js` (`timeTickLabel`), `tests/chart-axis.test.mjs` (new) | Brief: X = time, selectable seconds → days. 10 unit cases with explicit locale/time zone + a 7-day DOM branch. |
+| — | Simplification: removed the dead duplicated board-row template in `index.html` | **done** | `index.html` | `grep -n "\brows\b" index.html` before the change showed the array was never read; after removal page-runtime is still 17/17 and the board renders identically. |
+| R2 | Requirements traceability for every line of the brief | **done** | `reports/review-d074f64f.md` §6 | Each row names the implementing file and the test/workflow that exercises it |
+| R3 | Full local suite | **done** | — | Node **99/99** · Python tools **42/42** · Python tests **20 OK** (3 skipped, `cryptography` absent) · DOM alerts **19/19**, summary **5/5**, category **18/18** · links **35 pages / 0 broken** · page runtime **17/17** · signing **6/6** · `git diff --check` clean |
+| R4 | Hand-off to the integration owner | **done** | this section | The two open observations in `reports/review-d074f64f.md` §9 (O3: `Watchlist` never marks a scalar final; O4: `event.html` shows "open" for a blank result on a closed market) are logged, not edited, because they would need a payout rule / a wider claim. Flagged items do not block merge. |
+
+**Not verified by this session (recorded, not hidden):** no live Kalshi call or live page render was
+possible from this sandbox (`curl` to `*.kalshi.co` → `000`). All schema claims are from official pages
+fetched on 2026-11-21; live behaviour remains covered by the GitHub-hosted workflows.
+
+**Conflict log:** none. Session `117dc8d6` was working on `suggestions.html` / `SUGGESTIONS.md` / its own
+report during this work; no file overlapped. Board sections were appended, never rewritten.
