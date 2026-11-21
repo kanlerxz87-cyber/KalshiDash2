@@ -2240,3 +2240,22 @@ Gas page. This fixes the snapshot's completeness only.
 `docs.kalshi.com` or the Pages host (`curl` → HTTP `000`). Official docs were read through the
 page-fetch tool; live API and live-site behaviour were verified by GitHub-hosted workflows whose run
 IDs are cited above and in the T22/T23 records.
+
+
+### V5 final verification (session `5a9b44b9`, 2026-11-21T20:47Z)
+
+Regenerated snapshot published by run [44947929574](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947929574) → `7fd4398 chore(data): refresh Kalshi demo snapshot [skip ci]`, `generated_at 2026-11-21T20:46:46Z`, `api_calls 248`, `errors []`.
+
+| Topic | 19:29Z (before) | 20:43Z | 20:46Z (final) |
+|---|---|---|---|
+| Culture | 2 series · 0 events · 0 markets | 40 · 37 · 200 | **40 · 37 · 200** |
+| Gas | 40 series incl. WTI/Brent/nat-gas/diesel/ERCOT/solar/barrels | 40 retail-gasoline series | **40 retail-gasoline series**, 11 events, 168 markets |
+| Elections / Crypto / Golf | 40 · 23/86/25 events | unchanged | unchanged |
+
+Gas rows are gasoline-price markets only (`KXAAAGASW-26NOV23` "US gas prices this week", `KXAAAGASD-26NOV22` "US gas prices tomorrow", regional max/min series, plus `GAS` "Gas weekly"). No WTI/Brent/nat-gas/diesel/ERCOT event remains.
+
+**R9 (open, needs review):** `KXGAS` is still not a distinct ticker in the snapshot. The evidence points to `KXGAS` resolving to the **`GAS`** series ("Gas weekly", category Economics, `contract_terms_url …/GAS.pdf`), which is now present and was absent before. That alias relationship is **not confirmed from an official source** — it is inferred from two live observations and must not be stated as fact on the site. Action for the integration session: link [Get Series](https://docs.kalshi.com/api-reference/market/get-series) and record the observation as unverified, or obtain an official statement.
+
+Because a requested ticker can resolve to an already-discovered series, the pinned flag is now merged into an existing row instead of being dropped by `setdefault`; test `test_a_direct_ticker_that_resolves_to_a_discovered_series_is_still_pinned` covers it.
+
+**Session status:** V1–V5 complete, R8 fixed and verified in production, R2/R5/R6/R9 published for review (needs review), PRs #75, #82, #83 merged.

@@ -427,11 +427,15 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
         urls.append(url)
         row = (data or {}).get("series") or {}
         if row.get("ticker"):
-            row = dict(row)
             # Pinned: kept ahead of the volume-ordered cap, otherwise a
             # low-volume series fetched on purpose can be truncated away again.
-            row["_pinned"] = True
-            got.setdefault(row["ticker"], row)
+            # A requested ticker can resolve to a series that discovery already
+            # returned (observed: GET /series/KXGAS returns the "Gas weekly"
+            # series whose ticker is GAS), so pin the existing row instead of
+            # dropping the flag with setdefault().
+            merged = dict(got.get(row["ticker"]) or row)
+            merged["_pinned"] = True
+            got[row["ticker"]] = merged
 
     # Documented series-family / title rule, applied after discovery. This never
     # adds rows: it can only narrow the officially selected candidates.
