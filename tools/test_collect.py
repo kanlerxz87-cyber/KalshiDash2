@@ -257,6 +257,18 @@ class TopicTaxonomyTests(unittest.TestCase):
             ["AAAGASM", "AAAGASMAX", "KXAAAGASW", "KXGAS"],
         )
 
+    def test_pinned_series_survive_the_volume_cap(self):
+        rows = [
+            {"ticker": "LOWVOL", "volume_fp": "1.00", "_pinned": True},
+            {"ticker": "HIGHVOL", "volume_fp": "999999.00"},
+            {"ticker": "MIDVOL", "volume_fp": "500.00"},
+        ]
+
+        ordered = collect.order_series(rows)
+
+        self.assertEqual([r["ticker"] for r in ordered], ["LOWVOL", "HIGHVOL", "MIDVOL"])
+        self.assertEqual([r["ticker"] for r in ordered[:2]], ["LOWVOL", "HIGHVOL"])
+
     def test_every_topic_uses_only_documented_query_parameters(self):
         documented = {"category", "categories", "tags"}
         local_keys = {"series_patterns", "title_patterns", "exclude_patterns"}
