@@ -256,6 +256,20 @@ class TopicTaxonomyTests(unittest.TestCase):
             sorted(row["ticker"] for row in kept),
             ["AAAGASM", "AAAGASMAX", "KXAAAGASW", "KXGAS"],
         )
+        self.assertTrue(all(row.get("_pinned") for row in kept if row["ticker"] == "KXGAS"))
+
+    def test_a_direct_ticker_that_resolves_to_a_discovered_series_is_still_pinned(self):
+        # Live behaviour observed 2026-11-21: GET /series/KXGAS returns the
+        # "Gas weekly" series whose ticker is GAS, which discovery had already
+        # returned. The pinned flag must survive, or the cap can drop it.
+        rows = [{"ticker": "GAS", "title": "Gas weekly", "volume_fp": "1931.00"}]
+        client = self.Client(rows, direct={"KXGAS": {"ticker": "GAS", "title": "Gas weekly"}})
+
+        kept, _ = collect.collect_series(client, "gas", collect.TOPICS["gas"])
+
+        gas = [row for row in kept if row["ticker"] == "GAS"]
+        self.assertEqual(len(gas), 1)
+        self.assertTrue(gas[0].get("_pinned"))
 
     def test_pinned_series_survive_the_volume_cap(self):
         rows = [
