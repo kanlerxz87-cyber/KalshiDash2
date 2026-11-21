@@ -206,7 +206,12 @@ function renderRecent() {
   $("#recent").innerHTML = rows.length ? rows.slice(0, 150).map(row => {
     const { m, topic } = row;
     const r = (m.result || "").toLowerCase();
-    const tag = r === "yes" ? `<span class="tag yes">yes</span>` : r === "no" ? `<span class="tag no">no</span>` : `<span class="unv">${esc(m.result || "blank")}</span>`;
+    /* Literal exchange result. `scalar` is documented in the Get Market schema
+     * and is reported as itself; a blank result stays visibly blank. */
+    const tag = r === "yes" ? `<span class="tag yes">yes</span>`
+      : r === "no" ? `<span class="tag no">no</span>`
+      : r ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(r)}</span>`
+      : `<span class="unv">${esc(m.result || "blank")}</span>`;
     const comboNote = row.combo
       ? `<span class="tag warn">combo</span> <span class="small muted">legs: ${row.combo.bases.map(b => `${esc(b.topic)} (${esc(b.event_ticker)})`).join(" · ")}</span>`
       : "";

@@ -67,7 +67,7 @@ card text with this session's live re-reads appended, and `VERIFICATION.md` / `i
 | Flagged **SB4** | "cannot reach the API to ask again" — `unverified` | mitigated: two distinct series records; alias inference withdrawn | session `c33971c1`, PR #91 | addendum: `KXGAS` has no events of any status, `GAS` has 2023 events only, `last_updated_ts` values, `contract_url` hosts (C6–C9); the `scripts/collect.py` comment is logged for the collector owner |
 | Flagged **A11** | proxy ranking, `open` | mitigated: on-demand official traded-dollar measurement from `GET /markets/trades` on every category page | session `135bc17e`, PR #98 | K1 records the third, exchange-aggregated figure (`dollar_volume`) that lives only on the WebSocket path |
 | `index.html` dead `rows` array | rebuilt on every refresh, never read, already drifted from the live template | removed | session `02091230`, PR #94 (commit `40e81d6`) — identical removal made here independently | Flagged **K2** records it (it had no card) |
-| `flagged.html` markup | a stray `</div>` after F10 closed the "Unverified" section early, so F13–F16 rendered outside their card; still present on `main` @ `a24db0a` | removed; `div` nesting balanced on all 36 pages | **this session** | Flagged **K3**; `html.parser` tag-balance pass before/after |
+| `flagged.html` markup | a stray `</div>` after F10 closed the "Unverified" section early, so F13–F16 rendered outside their card; still present on `main` @ `bb9c0a9` | removed; `div` nesting balanced on all 36 pages | **this session** | Flagged **K3**; `html.parser` tag-balance pass before/after |
 | Flagged **K1** (new, open) | — | the Market Ticker payload's `dollar_volume` / `dollar_open_interest` are the exchange's own whole-dollar aggregates; WebSocket-only; not read by the relay mapper; owner decision whether to surface or cross-check | **this session** | B4 |
 
 ## E. Not verified in this session (left as is)
@@ -82,11 +82,11 @@ card text with this session's live re-reads appended, and `VERIFICATION.md` / `i
   `last_updated_ts` (21:52:45Z, after the snapshot) is *consistent with* the record having changed in between, but that is
   an inference and is recorded only as such.
 
-## F. Checks run on the merged tree (this branch + `main` @ `a24db0a`)
+## F. Checks run on the merged tree (this branch + `main` @ `bb9c0a9`, after PRs #89–#104)
 
-`node --test tests/*.test.mjs tests/dom/*.test.mjs` **148/148** · `python3 -m unittest discover -s tools` **OK** ·
+`node --test tests/*.test.mjs tests/dom/*.test.mjs` **169/169** · `python3 -m unittest discover -s tools` **OK** ·
 `python3 -m unittest discover -s tests` **OK (3 skipped)** · `tools/check_site_links.py .` **36 pages / 0 broken** ·
-`tools/verify/page-runtime-check.mjs` **18/18** · `evidence/auth-sign-test.mjs` **6/6** · `tests/dom` **21/21**, summary DOM
-(claim counts 86/98 verified · 9 partial · 3 unverified; flag counts 36 open · 44 mitigated · 80, all DOM-derived) ·
+`tools/verify/page-runtime-check.mjs` **18/18** · `evidence/auth-sign-test.mjs` **6/6** · `tests/dom` **21/21** alerts + **18/18** category, summary DOM
+(claim counts 86/98 verified · 9 partial · 3 unverified; flag counts 36 open · 45 mitigated · 81, all DOM-derived) ·
 HTML tag-balance pass (`div/main/ul/p/h2/h3`) over all 36 pages: clean. The PR record with the Pages result is in
 `COORDINATION.md` (session `0acc711d`, final record).
