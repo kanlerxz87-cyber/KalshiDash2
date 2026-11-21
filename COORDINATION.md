@@ -1000,3 +1000,15 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | Prior-run note | The `verify-live-site` push run immediately after PR #32 **failed** (`44800460526`); the run after PR #34 **succeeded** (`44801171862`). Current state on `main` is green (dispatch `44803202339`). Left as history, not reopened. |
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
+
+## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| W1 | Independent line-by-line verification of alert-threshold + simulator P&L math against official docs (Get Market schema, Market settlement, fee schedule) | in progress | `7930e2cd` | `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new) | `fetch_page` on docs.kalshi.com + fee schedule; read `assets/js/alerts-core.js`, `assets/js/simulator.js`, `assets/js/config.js` (read-only) | Read-only on site code; any defect found is logged here as a request, not edited (files owned by other sessions / shared outputs) |
+| W2 | Live-site + snapshot freshness: trigger `verify-live-site` and `collect` workflows on `main`, record run IDs and results | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `gh workflow run`, `gh run view`, Pages API | Workflows commit to `main` directly; no local file edits |
+| W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
+
+**Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
