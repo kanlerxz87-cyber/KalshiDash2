@@ -1231,6 +1231,29 @@ enters their own demo key ID + private key in the browser tab (the same browser-
 `portfolio.html` already uses), the key never leaves the tab, and the page **falls back to the
 REST poll** whenever no key is loaded or the socket cannot connect. The feed never pretends to
 be live when it is not: the status pill states which source produced the current alerts.
+<<<<<<< HEAD
 >>>>>>> cca3270 (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
+<<<<<<< HEAD
 >>>>>>> 2eba25c (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
+<<<<<<< HEAD
 >>>>>>> fff3470 (coord: session 1607f1f9 claims W1-W4 (WebSocket live feed, duplicate-generation cleanup, dead-file resolution))
+=======
+=======
+=======
+
+---
+
+## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| W1 | Independent line-by-line verification of alert-threshold + simulator P&L math against official docs (Get Market schema, Market settlement, fee schedule) | in progress | `7930e2cd` | `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new) | `fetch_page` on docs.kalshi.com + fee schedule; read `assets/js/alerts-core.js`, `assets/js/simulator.js`, `assets/js/config.js` (read-only) | Read-only on site code; any defect found is logged here as a request, not edited (files owned by other sessions / shared outputs) |
+| W2 | Live-site + snapshot freshness: trigger `verify-live-site` and `collect` workflows on `main`, record run IDs and results | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `gh workflow run`, `gh run view`, Pages API | Workflows commit to `main` directly; no local file edits |
+| W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
+
+**Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+>>>>>>> 94795ec (coord: session 7930e2cd claims W1-W3 (math + live-site verification))
+>>>>>>> 6a4a21c (coord: session 7930e2cd claims W1-W3 (math + live-site verification))
+>>>>>>> 510ad36 (coord: session 7930e2cd claims W1-W3 (math + live-site verification))
