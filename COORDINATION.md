@@ -1008,3 +1008,9 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | Task | Status | Owner | Exclusive file scope | Notes |
 | --- | --- | --- | --- | --- |
 | Review and remediate the test-only esbuild advisory A10, if feasible; run regression and integration checks, update the published flag with evidence | in progress | `f1425e39` | `tests/dom/package.json`, `tests/dom/package-lock.json`, `flagged.html`, `COORDINATION.md` (this section) | Prior session flagged the advisory; this session will not touch other sessions' scopes. Arena's fixed branch name takes precedence over the requested session branch convention. |
+
+**Review and verification:** GitHub's official [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99) identifies `<=0.24.2` as affected and `0.25.0` as the first patched version. Updated the pinned test-only package and lockfile to 0.25.0; A10 on the published Flagged page now records the mitigation and its boundary. `npm ci`, `npm audit` (0 vulnerabilities at time of check), both DOM suites (16 alert checks and summary checks), all 33 Node unit tests, 18 Python tests, 6 signing self-tests, 17 page-runtime checks, and the 34-page local-link check passed on 2026-11-21. `git diff --check` passed. npm reported a deprecated transitive `whatwg-encoding` package, not an audit vulnerability.
+
+**Limitations:** This was not a fresh line-by-line re-verification of every existing claim or live trading workflow. Existing flags including F1 (authenticated demo order unverified), F15/A5 (simulation costs omitted), F16 (bounded scan), A1 (screen, not validated ROI model), A2 (browser-only alerts) and F14 (jump causes unverified) remain open. The local link checker checks internal links, not external availability. Official market API connectivity and an authenticated account were not available locally.
+
+**Task status:** done, subject to PR checks and deployment confirmation below.
