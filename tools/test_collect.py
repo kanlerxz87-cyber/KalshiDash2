@@ -201,13 +201,21 @@ class TopicTaxonomyTests(unittest.TestCase):
     """
 
     class Client:
-        def __init__(self, rows):
+        def __init__(self, rows, direct=None):
             self.rows = rows
+            self.direct = dict(direct or {})
             self.calls = []
+            self.gets = []
 
         def paginate(self, path, key, params, max_pages=25):
             self.calls.append(dict(params))
             return list(self.rows), ["https://fixture.invalid/series"]
+
+        def get(self, path, params=None):
+            self.gets.append((path, dict(params or {})))
+            ticker = path.rsplit("/", 1)[-1]
+            return (f"https://fixture.invalid{path}",
+                    {"series": self.direct[ticker]} if ticker in self.direct else {})
 
     def test_culture_queries_the_three_categories_the_dashboard_maps(self):
         client = self.Client([{"ticker": "KXFILM", "title": "Oscars", "category": "Culture"}])
@@ -236,12 +244,17 @@ class TopicTaxonomyTests(unittest.TestCase):
         ]
         client = self.Client(rows)
 
+        client.direct["KXGAS"] = {"ticker": "KXGAS", "title": "Gas weekly"}
+
         kept, _ = collect.collect_series(client, "gas", collect.TOPICS["gas"])
 
         self.assertEqual([c["category"] for c in client.calls], ["Economics", "Commodities"])
+        # GET /series/{ticker} is the documented way to fetch a series that the
+        # discovery filters do not reliably return (KXGAS carries no tag).
+        self.assertEqual(client.gets, [("/series/KXGAS", {"include_volume": True})])
         self.assertEqual(
             sorted(row["ticker"] for row in kept),
-            ["AAAGASM", "AAAGASMAX", "KXAAAGASW"],
+            ["AAAGASM", "AAAGASMAX", "KXAAAGASW", "KXGAS"],
         )
 
     def test_every_topic_uses_only_documented_query_parameters(self):

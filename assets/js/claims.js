@@ -235,7 +235,7 @@ export const CLAIMS = [
     source: `${D}/getting_started/terms`,
     ev: "Live: 3 golf events in the Sports sample", status: "verified" },
   { cat: "topic", claim: "No gas-price category",
-    detail: "No category in the captured demo vocabulary is named Gas or Gasoline; gas-price series sit under Economics/Commodities and are matched on the KXAAAGAS*/AAAGAS* series family and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded (the old /GAS/i pattern matched KXNBALASVEGAS and KXNATGASW)",
+    detail: "No category in the captured demo vocabulary is named Gas or Gasoline; gas-price series sit under Economics/Commodities (KXGAS carries no tag and is fetched directly by series ticker) and are matched on the KXAAAGAS*/AAAGAS*/KXGAS series families and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded (the old /GAS/i pattern matched KXNBALASVEGAS and KXNATGASW)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Evidence: data/probe/api_surface.json category vocabulary (no Gas/Gasoline value) and reports/verify-facts-v3.md §G; 15/15 classification cases pass incl. Vegas/natgas/WTI/diesel → null. An earlier 'zero gas events' evidence line was contradicted by the live KXAAAGASW-26NOV23 event and is no longer asserted", status: "verified", flag: "F4" },
   { cat: "topic", claim: "Complete series catalogue",

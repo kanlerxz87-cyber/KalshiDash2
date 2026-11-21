@@ -126,19 +126,28 @@ TOPICS = {
         "series_filter": {"categories": ["Economics", "Commodities"]},
         # Local narrowing only (never sent to the API): identical to the
         # dashboard rule in assets/js/config.js.
+        # GET /series/{ticker} (documented) is used for the one retail-gasoline
+        # series that carries no tag and is not guaranteed to appear under a
+        # discovery category: KXGAS, "Gas weekly", settlement source EIA weekly
+        # US retail gasoline (verified 2026-11-21 by session 32b15793 and now
+        # also matched by the dashboard's config.js).
+        "direct_series": ["KXGAS"],
         "local_rule": {
-            "series_patterns": [r"^(?:KX)?A{3}GAS"],
-            "title_patterns": [r"gas price", r"gasoline", r"gas average", r"AAA gas"],
+            "series_patterns": [r"^(?:KX)?A{3}GAS", r"^KXGAS$"],
+            "title_patterns": [
+                r"gas(oline)? (price|average)", r"\bAAA gas", r"^gas (weekly|price)$",
+            ],
             "exclude_patterns": [
                 r"natural\s*gas", r"\bNATGAS\b", r"\bWTI\b", r"\bBRENT\b",
                 r"crude", r"diesel", r"\bVEGAS\b", r"\bbarrels?\b", r"\boil\b",
             ],
         },
         "note": (
-            "Selected from the official categories Economics / Commodities, then "
-            "restricted to the AAA gasoline series family (KXAAAGAS*, AAAGAS*) and "
-            "gas-price titles, with crude / natural-gas / diesel / Vegas rows "
-            "excluded - the same rule the dashboard applies."
+            "Selected from the official categories Economics / Commodities plus the "
+            "directly fetched KXGAS series, then restricted to the retail-gasoline "
+            "series families (KXAAAGAS*, AAAGAS*, KXGAS) and gas-price titles, with "
+            "crude / natural-gas / diesel / Vegas rows excluded - the same rule the "
+            "dashboard applies."
         ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
@@ -393,6 +402,16 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
                 k: v for k, v in got.items()
                 if want & {str(t).lower() for t in (v.get("tags") or [])}
             }
+
+    # Direct series lookups (GET /series/{series_ticker}, documented). Used only
+    # for series that the official discovery filters cannot reliably return.
+    for ticker in spec.get("direct_series") or []:
+        url, data = client.get(f"/series/{urllib.parse.quote(ticker)}",
+                               {"include_volume": True})
+        urls.append(url)
+        row = (data or {}).get("series") or {}
+        if row.get("ticker"):
+            got.setdefault(row["ticker"], row)
 
     # Documented series-family / title rule, applied after discovery. This never
     # adds rows: it can only narrow the officially selected candidates.

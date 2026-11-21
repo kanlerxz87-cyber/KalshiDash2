@@ -17,6 +17,7 @@ inferred. Where a value could not be confirmed, it is recorded as **unverified**
 | S1 | [llms.txt — documentation index](https://docs.kalshi.com/llms.txt) | Canonical list of official pages. Every `SOURCES` URL in `assets/js/config.js` was matched against it. |
 | S2 | [Test In The Demo Environment](https://docs.kalshi.com/getting_started/demo_env) | Demo REST/WS roots and alternates; mock funds; credentials not shared with production. |
 | S3 | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) | `/series` query parameters (`category`, `tags`, `include_product_metadata`, `include_volume`, `min_updated_ts`), exact/case-sensitive matching, `category` matches any entry in `categories`, and the `Series` schema (`category` = primary category, `categories` = discovery list). |
+| S3b | [Get Series](https://docs.kalshi.com/api-reference/market/get-series) | `GET /series/{series_ticker}?include_volume=true` returns `{series: …}`; used to fetch `KXGAS`, which discovery filters cannot reliably return. |
 | S4 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | YES holders receive $1 per contract on a yes outcome; NO holders $1 on a no outcome; only net positions settle. |
 | S5 | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | `period_interval` ∈ {1, 60, 1440}; `start_ts`/`end_ts` required (as indexed in S1). |
 | S6 | [Market Ticker WebSocket](https://docs.kalshi.com/websockets/market-ticker) and [WebSocket Connection](https://docs.kalshi.com/websockets/websocket-connection) | Channel names and handshake authentication (as indexed in S1). |
@@ -86,9 +87,12 @@ Consequences in the committed snapshot (`data/snapshot.json`, generated 2026-11-
 Repair (in this branch):
 
 - `scripts/collect.py` now discovers candidates with **official category filters only** — Gas:
-  `Economics` + `Commodities`; Culture: `Culture` + `Social` + `Entertainment` — and then applies the
-  same explicit local rule as the dashboard. The API has no ticker-prefix filter (S3), so the
-  series-family rule is applied locally and **can only narrow** the official candidate list.
+  `Economics` + `Commodities`; Culture: `Culture` + `Social` + `Entertainment` — plus a documented
+  direct lookup (`GET /series/KXGAS`, S3b) for the EIA weekly retail-gasoline series that carries no
+  tag. It then applies the same explicit local rule as the dashboard. The API has no ticker-prefix
+  filter (S3), so the series-family rule is applied locally and **can only narrow** the official
+  candidate list. `KXGAS` does not occur anywhere in the committed snapshot (`grep -c` → 0), which
+  independently confirms session `32b15793`'s AB1 finding that tag discovery could never return it.
 - Replaying the new Gas rule over the committed 40-series list keeps exactly the 17 gasoline series
   (`KXAAAGASW`, `KXAAAGASM`, `KXAAAGASD`, `KXAAAGASMTX`, `KXAAAGASMINCA`, `KXAAAGASMINTX`,
   `KXAAAGASWNJ`, `KXAAAGASDGA`, `KXAAAGASMAXCA`, `KXAAAGASMAXTX`, `KXAAAGASDOH`, `KXAAAGASDMI`,

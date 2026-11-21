@@ -1932,3 +1932,27 @@ Kalshi network access, which this sandbox does not have (recorded by every prior
 category carrying the natural-gas series `KXNATGASD`), R5 (`collect.yml` header mentions a
 "site offline fallback" that no page reads) and R6 (five-page `/series` discovery cap) on
 `flagged.html`; dispatch `collect` after merge and confirm Gas/Culture counts (V4).
+
+### Rebase record #2 — integrating session `32b15793` (AB1: `KXGAS`) — session `5a9b44b9`
+
+`main` moved twice more during this session (PR #71 `32b15793`, PR #72 `e2718295`, plus `[skip ci]`
+report commits). The branch was rebased onto `9a12909`; nothing was reverted.
+
+- **Adopted, not duplicated:** `32b15793`'s taxonomy fix. `assets/js/config.js` now matches
+  `KXAAAGAS*`, `AAAGAS*` (via title) and `KXGAS`, with tightened title patterns — that is `main`'s
+  version and this session's earlier gas `seriesPatterns`/`titlePatterns` text was **not** restored.
+- **Extended to the collector:** because `32b15793` found `KXGAS` only via
+  [Get Series](https://docs.kalshi.com/api-reference/market/get-series) (`GET /series/KXGAS`), and
+  `grep -c KXGAS data/snapshot.json` returns **0**, the tag-based collector could never have captured
+  it. `scripts/collect.py` now performs that documented direct lookup (`direct_series: ["KXGAS"]`) in
+  addition to the category discovery, then applies the same gasoline rule. New test:
+  `test_gas_uses_official_categories_then_the_gasoline_rule` asserts the `/series/KXGAS` call and that
+  the row is kept.
+- `assets/js/claims.js` gas entry now names all three families (`KXAAAGAS*`, `AAAGAS*`, `KXGAS`) and
+  records that `KXGAS` is fetched by ticker because it carries no tag.
+- `reports/review-5a9b44b9.md` updated: source S3b (Get Series), KXGAS evidence, gas rule text.
+
+Checks after rebase #2: `node --test` 73/73 · Python tools 33/33 · static links 35 pages / 0 broken ·
+page-runtime 17/17 · summary DOM pass · alerts DOM 16/16. Flagged items now **R2, R5, R6** (status
+`needs review` — publication on `flagged.html` belongs to the integration session, which currently
+owns that file via its own PRs).
