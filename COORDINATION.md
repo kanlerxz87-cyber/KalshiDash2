@@ -2393,48 +2393,6 @@ Because a requested ticker can resolve to an already-discovered series, the pinn
 
 ---
 
-## Session `8d0568c3` — FINAL RECORD: merged to `main`, Pages deployed (2026-11-21)
-
-| Item | Result |
-|---|---|
-| PR | [#79 — integration: session 8d0568c3](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/79), branch `arena/8d0568c3-kalshidash2` → `main` |
-| Merge | `gh pr merge 79 --merge` succeeded 2026-11-21T20:55:13Z; merge commit [`f990d20`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/f990d20) |
-| Checks on `f990d20` | `Static site link check` **success** · `verify-alerts` **success** · `live-site-render` **success with no inconclusive annotation → genuine pass** · `verify-live-site` **success** (run [44948795080](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44948795080), probes every published page) |
-| Pages deploy | GitHub Pages API: `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. `pages build and deployment` **success** (a concurrent duplicate run was cancelled by the concurrency group; the surviving run and the Pages API both report built). |
-| Live content spot-check | The deployed `flagged.html` serves content newer than the branch base (W6/Y12 sections), so the deployment is current, and main carries this session's `V1`–`V3`/`D1` items inside the register. |
-| Final local suite on the merged tree | Node **93/93** · Python tools **42/42** · Python `tests/` 20 (3 skipped, `cryptography` absent here; CI installs it) · links **35 pages / 0 broken** · page runtime **17/17** · workflows parse · stubbed-network checks: 429 → exit 2, 2,468-event fixture → exit 0, unexplained empty board → exit 1 |
-
-### What this session actually contributed to `main`
-
-1. **`tests/dom/live-site-assertions.mjs` + 8 offline tests** — comma-tolerant scan count and the
-   refusal classifier, so the live probe's parsing can be reviewed without network access.
-2. **Exit-code contract for `live-site-render`** — a refusal that survives the retries exits **2**
-   (warning annotation, *never* green); error pills that are not refusals and unexplained empty boards
-   exit **1**. `main`'s own gas rule (`gas-assertion.mjs`) and comma fix are kept underneath it.
-3. **`scripts/collect.py --print-notes`** — the Node test reads the generator's canonical disclosure
-   text instead of restating it; a snapshot/generator equality guard now fails on drift.
-4. **`tools/check_site_links.py`** — defaults to the published root (35 pages) instead of the legacy
-   `docs/` tree, skips vendored trees; 2 new tests.
-5. **Flagged items `V1`, `V2`, `V3` (mitigated) and `D1` (open)**, plus the A9 correction quoting all
-   three official readings of the market-status vocabulary.
-
-### Open items a reviewer should look at first
-
-- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
-  citations cannot be re-verified. Nothing on the live site depends on it.
-- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
-- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
-
-### Coordination compliance
-
-Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
-resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
-and re-landing only this session's unique contributions. This session deleted its own duplicate
-`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
-removed.
-
----
-
 ## Session `c33971c1` (branch `arena/c33971c1-kalshidash2`) — started 2026-11-21
 
 **Environment note that changes what this session can prove:** the editing sandbox's shell still cannot open TLS
@@ -2458,3 +2416,61 @@ API" limitation that earlier sessions worked under (they relied on GitHub-runner
 below. If another session starts while this one runs, the scope above is closed to it; log a request here
 instead of editing these files.
 
+
+---
+
+### Session `c33971c1` — conflict log and integration record
+
+**Collision:** while this session worked, session `117dc8d6` merged PRs #89 and #90 into `main`
+(`70744d5`, `b197886`). Merging `origin/main` into this branch produced exactly one conflict,
+in `COORDINATION.md` (add/add on the tail of the board).
+
+| Step | Result |
+|---|---|
+| Resolution tool | `python3 tools/resolve_board_conflict.py COORDINATION.md` → "resolved 1 conflict block(s), dropped 1 duplicate section(s), removed 0 orphaned marker(s)" |
+| What was kept | **Both** session sections verbatim: `117dc8d6`'s claim, completion and F4 record, and this session's claim and records. Nothing of theirs was edited, reworded or removed. |
+| Overlap in files | None in code. Their commits touched `COORDINATION.md`, `SUGGESTIONS.md`, `suggestions.html`, `reports/verify-117dc8d6.md`; this session touched `assets/js/market.js`, `assets/js/alerts.js`, `assets/js/alert-engine.js`, `assets/js/claims.js`, `tests/taxonomy.test.mjs`, `VERIFICATION.md`, `flagged.html`, `reports/live-verify-c33971c1.md`. |
+| Semantic check after the merge | Re-ran the whole suite on the merged tree (below). Their `suggestions.html` S8 status change and this session's flag edits coexist; `summary.html` derives flag counts from the DOM (no hard-coded numbers), which `tests/dom/summary-dom.mjs` re-asserts. |
+| One item touched by both, deliberately | `117dc8d6` left flag **F10** open with the note "partially superseded by relay (W1)". This session had independently established the same conclusion from the code and the official WebSocket page, and changed F10 to **mitigated** with the relay route described (`scripts/relay.py` → SSE `/live/stream` → `assets/js/live-feed.js`), explicitly keeping W1/W4 as the open limitations. That is additive to their finding, not a contradiction of it. |
+
+**Merged-tree verification:** Node 83/83 (8 files) · DOM 19/19 · Python `tools/` 42/42 · Python `tests/` 20
+(3 skipped — `cryptography` absent in this container) · signing self-test 6/6 · static link check **35 pages,
+0 broken** · page runtime **17/17 clean**.
+
+## Session `117dc8d6` — final verification + liveness audit (2026-11-21)
+
+Branch: `arena/117dc8d6-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
+No other session had an open PR or an in-progress claim at claim time (verified via `gh pr list --state open` → empty; `gh run list` → all success, Pages `built`).
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| F1 | Line-by-line verification of published site claims vs official Kalshi docs (demo env, Get Markets/Market, candlesticks, orderbook, ticker WS, Create Order V2, settlement, API keys) | in progress | `117dc8d6` | `COORDINATION.md` (this section), `reports/verify-117dc8d6.md` (new) | docs.kalshi.com via fetch tool; live site via fetch tool; local test suite | — |
+| F2 | Full local suite: Node unit, Python tools, link check, page-runtime, syntax, diff-check | in progress | `117dc8d6` | same as F1 | local runs recorded in report | — |
+| F3 | Liveness/interactivity audit vs brief (charts, liquidity, alerts, suggestions) + fix any defect found | in progress | `117dc8d6` | same as F1; site-file edits only if a defect is proven, logged here first | brief requirements; official docs | — |
+| F4 | PR → main, merge, confirm Pages deploy, record run IDs here | unclaimed | `117dc8d6` | same as F1 | `gh`, Pages API | — |
+
+**Claim commit:** this section committed and pushed immediately, before any other work.
+
+### Session `117dc8d6` — completion record (2026-11-21)
+
+| ID | Task | Status | Owner | Files touched | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| F1 | Line-by-line verification vs official docs | done | `117dc8d6` | `reports/verify-117dc8d6.md` (new) | demo env, Get Markets/Market, batch candlesticks, market ticker, orderbook, settlement, Create Order V2 — all fetched and matched; live site fetched (connected, trading active) | F10 partially superseded by relay (W1); left open because flagged counts are DOM-asserted — logged for integration owner |
+| F2 | Full local suite | done | `117dc8d6` | same | Node 78/78 · Python 42/42 · links 35/0 · runtime 17/17 · signing 6/6 · diff-check clean | `live-alerts-check.mjs` TLS failure is sandbox-only; runs on CI |
+| F3 | Liveness audit + fix | done | `117dc8d6` | `suggestions.html` (S8 open→built + callout), `SUGGESTIONS.md` (pointer fix) | brief requirements; official docs | S8 evidence was stale post-PR #88; no test asserts S8 status |
+| F4 | PR → main, merge, Pages confirm | in progress | `117dc8d6` | same | `gh`, Pages API | — |
+
+Full detail: `reports/verify-117dc8d6.md`.
+
+### Session `117dc8d6` — F4 final record (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#89 — verify: session 117dc8d6 final verification + S8 status fix](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/89), branch `arena/117dc8d6-kalshidash2` → `main` |
+| Merge | `gh pr merge 89 --merge` → **MERGED** 2026-11-21T23:08:28Z, merge commit [`70744d5`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/70744d5a802e238f6e0d8742a9abebfc1158dd5a) |
+| Checks on merged SHA | `Static site link check` **success** (run 44960300785) · `verify-live-site` **success** (run 44960300855) |
+| Pages deploy | Pages API `status: built`, source `main:/`, URL https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Live site | Fetched via fetch tool: reachable, "Connected to the Kalshi demo API", trading active |
+| Local suite | Node 78/78 · Python 42/42 · links 35/0 · runtime 17/17 · signing 6/6 |
+
+Session `117dc8d6` is complete: F1–F4 **done**. Flagged items (F10, A11, W2/W3, F15/A5, R9) remain published on `flagged.html` and do not block anything.
