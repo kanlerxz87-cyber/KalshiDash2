@@ -209,10 +209,10 @@ is used by the static reports and the downtime fallback only.
 
 | Suite | Result |
 |---|---|
-| `node --test tests/*.test.mjs` | **151/151 pass** at merge time — the tree keeps growing under parallel sessions; this session contributes `result-semantics` (11) and `chart-axis` (10), both green |
+| `node --test tests/*.test.mjs` | **154/154 pass** at merge time — the tree keeps growing under parallel sessions; this session contributes `result-semantics` (11) and `chart-axis` (10), both green |
 | `python3 -m unittest discover -s tools` | **42/42 OK** |
 | `python3 -m unittest discover -s tests` | **20 run, OK** (3 skipped: `cryptography` absent in this sandbox) |
-| `tests/dom`: `npm test` | **42/42** — alerts 19, summary 5 (76 flags: 36 open / 40 mitigated), category 18 |
+| `tests/dom`: `npm test` | **44/44** across the three suites at merge time (alerts, summary — which derives the flag counts — and category) |
 | `python3 tools/check_site_links.py .` | **36 pages, 0 broken** |
 | `node tools/verify/page-runtime-check.mjs` | **18/18 pages clean**, 36 pages link-checked |
 | `node evidence/auth-sign-test.mjs` | **6/6** |
