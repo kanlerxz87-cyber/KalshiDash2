@@ -256,7 +256,7 @@
         not be guessed at:</p>
       <ul style="margin:6px 0 6px 18px">
         <li>the <a href="alerts.html">Live alerts</a> page keeps the <strong>top 30 markets per topic</strong>
-          by money traded, and rescans the open-event list every 10 minutes;</li>
+          by volume × last YES price proxy, and rescans the open-event list every 10 minutes;</li>
         <li>the reusable engine behind the <a href="simulator.html">paper trader</a> reads at most
           <strong>six pages of 200 open events — 1,200 events</strong> per poll.</li>
       </ul>
@@ -361,7 +361,7 @@
 
     <div class="irregularity" id="A6">
       <h3>A6 — The alert universe is partial by design <span class="tag yes">mitigated</span></h3>
-      <p><strong>What was found:</strong> the page watches the top 30 open markets per topic by money traded, and scans at most 12 pages of 200 open events. A market outside the top 30 can move ≥ $0.10 without an alert.</p>
+      <p><strong>What was found:</strong> the page watches the top 30 open markets per topic by volume × last YES price proxy, and scans at most 12 pages of 200 open events. A market outside the top 30 can move ≥ $0.10 without an alert.</p>
       <p><strong>Status here:</strong> the page states the universe, the scanned event count, and a warning when the scan may have hit its page limit.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
     </div>
@@ -388,10 +388,30 @@
     </div>
 
     <div class="irregularity" id="A10">
-      <h3>A10 — Test-only esbuild dependency has a moderate security advisory <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> <code>npm audit --prefix tests/dom</code> reports the locked esbuild 0.24.2 as affected by GHSA-67mh-4wv8-2f99. The advisory describes an esbuild development-server issue where websites can send requests to the server and read responses; npm reports 0.28.2 as a fix.</p>
-      <p><strong>Impact boundary:</strong> esbuild is a development dependency of the DOM test harness, not a runtime dependency of the static GitHub Pages site. The harness uses it for bundling tests; it does not start the vulnerable development server. No production-site compromise was observed. The dependency was not upgraded in this integration change because that would alter another session's completed test setup; reassess the upgrade and rerun the DOM checks.</p>
+      <h3>A10 — Test-only esbuild dependency security advisory <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the DOM test harness previously locked esbuild 0.24.2, affected by GHSA-67mh-4wv8-2f99. The advisory describes a development-server issue where websites can send requests to the server and read responses; it lists versions through 0.24.2 as affected and 0.25.0 as the first patched version.</p>
+      <p><strong>Mitigation:</strong> the test-only dependency was upgraded to 0.25.0. On 2026-11-21, <code>npm audit --prefix tests/dom</code> reported zero vulnerabilities and both DOM regression suites passed. This check does not guarantee the absence of future vulnerabilities. The harness uses esbuild for bundling tests and does not start its development server; esbuild is not a runtime dependency of the static site.</p>
       <p class="small"><strong>Official source:</strong> <a class="src-link" href="https://github.com/advisories/GHSA-67mh-4wv8-2f99" target="_blank" rel="noopener noreferrer">GitHub Security Advisory GHSA-67mh-4wv8-2f99 ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A11">
+      <h3>A11 — Dollar-activity ranking is a proxy, not actual dollars traded <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the dashboard ranks by Σ(<code>volume_fp</code> × <code>last_price_dollars</code>). Kalshi defines <code>volume_fp</code> as contract volume and <code>last_price_dollars</code> as the last traded YES-contract price. Multiplying cumulative contracts by the current last price is a project-defined proxy; it is <strong>not</strong> the sum of the dollar consideration of completed trades.</p>
+      <p><strong>Related field:</strong> <code>notional_value_dollars</code> is documented as the total value of a single contract at settlement. It is not an aggregate traded-dollar field. The Get Trades API returns individual trades, but this dashboard does not yet aggregate them into a clearly defined, windowed dollar-volume metric.</p>
+      <p><strong>Status here:</strong> the overview, category pages and alert-universe text now label the current ranking as a volume × price proxy. It remains a limitation against the exact "highest dollar amount" requirement; do not interpret it as cash traded.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A12">
+      <h3>A12 — Snapshot over-described a capped YES-price product as exact traded notional <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>scripts/collect.py</code> summed <code>yes_price_dollars × count_fp</code> over at most 3,000 rows from <code>GET /markets/trades</code> (without a <code>min_ts</code> time bound), but called the result "exact traded notional" and described contract counts as gross dollar notional.</p>
+      <p><strong>Correction:</strong> the collector comments and metadata now describe contract counts as counts and name the limited calculation <code>sampled_yes_price_times_contracts</code>. The captured snapshot's numeric results were preserved as arithmetic from returned fields, but re-labelled; they are not represented as complete or all-side cash turnover. The former unsupported statement that every contract equals $1 of gross traded notional was removed.</p>
+      <p><strong>Residual limitation:</strong> the snapshot is historical, capped, and side-agnostic for that derived product. It is not a live or comprehensive traded-dollar total. No unsupported value is substituted for it.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market fields ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades schema and pagination ↗</a></p>
     </div>
 
     <div class="irregularity" id="R1">
@@ -601,22 +621,28 @@
 
     <div class="irregularity" id="Y9">
       <h3>Y9 — Dead file: <code>assets/js/jumps.js</code> claimed to be in use but is imported nowhere <span class="tag yes">fixed</span></h3>
-      <p><strong>What was found:</strong> its header said "Used by the category charts to mark every move of at
-        least $0.10", but no page or module imported it. The live jump logic is
+      <p><strong>What was found:</strong> its header says "Used by the category charts to mark every move of at
+        least $0.10", but no page or module imports it. The live jump logic is
         <code>detectJumps</code> in <code>assets/js/market.js</code> (identical threshold), used by
         <code>category.js</code>. The file was a leftover from a duplicate implementation that was dropped in a
         merge (see R2).</p>
-      <p><strong>Resolution (session <code>bc079e84</code>, 2026-11-21):</strong> the dead file was removed
-        after re-verifying with <code>grep</code> that no page, module or test imports it. Canonical jump
-        detection in <code>assets/js/market.js</code> is unchanged and was re-verified against the official
-        candlestick schema.</p>
-      <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps"</code> over the repository shows only
-        <code>market.js</code>/<code>category.js</code> usage; <code>assets/js/market.js</code> defines
-        <code>detectJumps</code>.</p>
+      <p><strong>Resolution (2026-11-21, session <code>9d7b4124</code>):</strong> the file was deleted after
+        re-running the grep (the only remaining references were this flag's own text) and confirming
+        <code>node tools/verify/page-runtime-check.mjs</code> still passes 17/17 pages without it.</p>
+      <p><strong>Follow-up (session <code>75490e0f</code>, 2026-11-21):</strong> the jump logic the chart
+        needs (inclusive float-safe $0.10 threshold, candle <code>prev</code> as the comparison, null-y
+        gaps crossed) now lives as <code>detectJumps</code> / <code>jumpMarkers</code> in
+        <code>assets/js/market.js</code> — the same module the deleted file pointed at — and
+        <code>category.js</code> imports them from there. The marker shape is returned as
+        <code>{t, y, dir, delta}</code> so the chart dot draws; see Y13. Covered by
+        <code>tests/jumps.test.mjs</code> (6 tests) in CI.</p>
+      <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps.js"</code> returns no importer;
+        <code>assets/js/market.js</code> exports <code>detectJumps</code>, <code>jumpMarkers</code>,
+        <code>JUMP_THRESHOLD</code>.</p>
     </div>
 
     <div class="irregularity" id="Y10">
-      <h3>Y10 — Duplicate site generation still published at <code>/docs/</code> <span class="tag warn">open</span></h3>
+      <h3>Y10 — Duplicate site generation still published at <code>/docs/</code> <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> because Pages serves <code>main:/</code>, the older <code>docs/</code>
         generation is still reachable at <code>/docs/</code>. It carries the defects F6–F8 that the root site
         fixed, so a visitor who lands there sees the uncorrected version. Nothing links to it from the root
@@ -624,6 +650,12 @@
       <p><strong>Decision needed:</strong> delete <code>docs/</code>, or add a redirect from
         <code>/docs/</code> to the root. Deleting is out of scope for this session (it is another session's
         output and the brief says not to discard other sessions' work).</p>
+      <p><strong>Mitigation (2026-11-21, session <code>9d7b4124</code>):</strong> the redirect option was
+        taken — <code>docs/index.html</code> now redirects to the root site, so a visitor who lands on
+        <code>/docs/</code> no longer sees the defective generation presented as the dashboard. The
+        <code>docs/</code> subpages remain reachable directly for historical reference (nothing was
+        deleted), and the root site still links nowhere under <code>/docs/</code>. Marked
+        <em>mitigated</em>, not <em>fixed</em>, because the duplicate generation itself still exists.</p>
     </div>
 
     <div class="irregularity" id="Y11">
@@ -636,14 +668,174 @@
         it from the control. That is research work, not a documentation check, and inventing a number here
         would be exactly the kind of fabrication this site refuses.</p>
     </div>
+
+    <div class="irregularity" id="Z1">
+      <h3>Z1 — <code>previous_price_dollars</code> wording: docs say "a day ago", the site said "before the last change" <span class="tag warn">open</span></h3>
+      <p><strong>What was found (session <code>3b869340</code>, 2026-11-21):</strong> the verification register
+        claimed <code>previous_price_dollars</code> is "the price before the exchange's last change" and
+        marked it <em>verified</em> with evidence "Documented response schema". The official Get Market
+        schema actually describes the field as <em>"Price for the last traded YES contract on this market
+        a day ago in dollars"</em> — a different meaning. The site's alert engine compares
+        <code>last_price_dollars</code> against <code>previous_price_dollars</code> and labels that
+        comparison "exchange previous price", which is accurate as a field name, but the interpretation
+        wording in the register and code comments was not supported by the documentation.</p>
+      <p><strong>What changed:</strong> the register claim now quotes the documentation, is marked
+        <em>partially verified</em>, and points here; the code comments in
+        <code>config.js</code>, <code>alerts-core.js</code>, <code>alert-engine.js</code> and
+        <code>market.js</code> now quote the schema. No alert behaviour changed: the between-polls
+        comparison remains the true sudden-swing test, and the reference comparison is still labelled
+        with the comparison that produced it.</p>
+      <p><strong>What would close it:</strong> confirmation from Kalshi (or a live observation that
+        distinguishes the two meanings — e.g. a market whose last trade is minutes old, where "a day ago"
+        and "previous trade" give different values). Until then the field is used only as the exchange's
+        own reference price, never as a claim about what happened before the last change.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/live-engine-check.md" target="_blank" rel="noopener noreferrer">live-engine-check.md ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="W1">
+      <h3>W1 — The WebSocket live feed is opt-in: it needs a demo API key, and a browser cannot open the socket itself <span class="tag warn">open</span></h3>
+      <p><strong>What was found (session <code>1607f1f9</code>, 2026-11-21):</strong> the Kalshi WebSocket
+        handshake requires the three <code>KALSHI-ACCESS-*</code> headers, and a browser's
+        <code>WebSocket</code> constructor accepts only a URL and an optional subprotocol list — it has no
+        headers parameter. A page served by GitHub Pages therefore <em>cannot</em> open a Kalshi socket on its
+        own, and the socket additionally requires an API key that this repository deliberately does not
+        contain.</p>
+      <p><strong>What this session did:</strong> added <code>scripts/kalshi_ws.py</code> (a signed WebSocket
+        ticker client) and <code>scripts/relay.py</code>, which opens the socket server-side and republishes
+        the frames to the browser as Server-Sent Events on <code>/live/stream</code>. The alerts page uses the
+        stream when it is present and falls back to the REST poll when it is not, and the status pill names
+        the source that is actually running.</p>
+      <p><strong>Why it is still open:</strong> the live path needs a demo key and a process the visitor runs
+        themselves. On the plain GitHub Pages deployment — which is what visitors see — the page runs on the
+        REST poll, and the page says so. The relay is a local tool, not a hosted service, so the per-second
+        ticker flush is only reachable for someone who runs it locally.</p>
+      <p><strong>What would close it:</strong> a hosted relay with the key held server-side. That is a
+        deployment decision with a credential-management and cost consequence, so it is put in front of the
+        owner rather than assumed. The page never claims to be live when it is polling.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">Quick start: WebSockets ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/websockets/websocket-connection" target="_blank" rel="noopener noreferrer">WebSocket connection ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="W2">
+      <h3>W2 — The WebSocket ticker payload carries no <code>previous_price_dollars</code>, so one of the site's two swing comparisons is unavailable on that path <span class="tag warn">open</span></h3>
+      <p><strong>What was found (session <code>1607f1f9</code>, 2026-11-21):</strong> the site's REST path
+        detects a swing two ways — between two of the page's own readings, and against the exchange's own
+        <code>previous_price_dollars</code>. The documented WebSocket <code>ticker</code> payload
+        (<code>market_ticker</code>, <code>price_dollars</code>, <code>yes_bid_dollars</code>,
+        <code>yes_ask_dollars</code>, <code>volume_fp</code>, <code>open_interest_fp</code>,
+        <code>yes_bid_size_fp</code>, <code>yes_ask_size_fp</code>, <code>last_trade_size_fp</code>,
+        <code>dollar_volume</code>, <code>dollar_open_interest</code>, <code>ts</code>, <code>ts_ms</code>,
+        <code>time</code>) has <strong>no</strong> <code>previous_price_dollars</code> field.</p>
+      <p><strong>What this session did:</strong> the WebSocket path uses the between-readings comparison only,
+        and every message it produces is labelled <em>"WebSocket ticker"</em> so the reader can tell which
+        comparison produced it. The REST path keeps both comparisons, and the page still runs the REST poll
+        even when the stream is live — the poll is what supplies the exchange's own reference price and the
+        quotes the paper strategies are marked against.</p>
+      <p><strong>Why it is still open:</strong> nothing in the site's own code can supply the field. It would
+        have to come from Kalshi, either as a ticker field or as a separate channel. Guessing a substitute
+        would misrepresent the exchange's own reference, which is the thing the comparison exists to
+        represent.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="W3">
+      <h3>W3 — The WebSocket ticker coalesces changes, so an intermediate price may never be seen <span class="tag warn">open</span></h3>
+      <p><strong>What was found (session <code>1607f1f9</code>, 2026-11-21):</strong> the documented ticker
+        channel states that changes are coalesced and flushed roughly once per second, so intermediate values
+        may be omitted. A price that moves $0.05 and then $0.05 again inside one flush window can arrive as
+        a single $0.10 move, or as two moves, or — if it ends where it started — as no move at all.</p>
+      <p><strong>What this session did:</strong> the swing logic compares each arriving reading against the
+        previous reading it holds, and a $0.10 difference is inclusive of the threshold, so a swing that
+        arrives coalesced is still caught. What cannot be recovered is the <em>path</em> the price took, so the
+        site reports the move between two observations and never claims to have seen every intermediate
+        price.</p>
+      <p><strong>Why it is still open:</strong> the coalescing is the exchange's behaviour and is not
+        configurable. A swing that happened and reversed inside one flush window is invisible to any
+        subscriber, and the site does not present the WebSocket feed as a complete tick history.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1c · Defects fixed by session <code>75490e0f</code> (2026-11-21)</h2>
+    <p class="sub">Found by re-reading every published page and JS module against the official API reference
+      (fetched 2026-11-21). Each item names the source that proves it.</p>
+
+    <div class="irregularity" id="Y12">
+      <h3>Y12 — Strategies page filed fills with its own taxonomy, missing <code>Culture</code> and gas exclusions <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>strategies.html</code> <code>topicForTicker</code> hand-rolled
+        regexes: <code>Entertainment|Social</code> for culture (missing the literal <code>Culture</code>
+        category), and <code>/gas price|gasoline|aaa gas/i</code> for gas with no exclusions — so a
+        natural-gas, WTI, diesel or Las Vegas fill would be filed as gas, contradicting the dashboard's
+        own classifier (F8).</p>
+      <p><strong>Fix shipped:</strong> the page now imports <code>classifyEvent</code> from
+        <code>assets/js/market.js</code> and files every fill through the one canonical taxonomy.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y13">
+      <h3>Y13 — Chart jump markers drew the line but never the dot <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/ui.js</code> <code>lineChart</code> draws a marker dot
+        at <code>mk.y</code> and colours the line by <code>mk.dir</code>. <code>assets/js/category.js</code>
+        passed the raw <code>detectJumps</code> output (<code>{t, from, to, delta, dir}</code> — no
+        <code>y</code>), so the <code>if (mk.y …)</code> guard never fired and the dot never drew.
+        The <code>jumpMarkers</code> helper that existed in the (then-unused)
+        <code>assets/js/jumps.js</code> returned <code>{t, y, up}</code> — also mismatched
+        (<code>up</code> vs <code>dir</code>). That file has since been deleted (Y9); the helper now lives in
+        <code>assets/js/market.js</code>.</p>
+      <p><strong>Fix shipped:</strong> <code>jumpMarkers</code> in <code>assets/js/market.js</code> returns
+        <code>{t, y, dir, delta}</code> and <code>category.js</code> passes
+        <code>jumpMarkers(jumps)</code> (including on resize).</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y14">
+      <h3>Y14 — Truncated scans could be mis-labelled (and the claim said 6 pages when the page reads 12) <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/alerts.js</code> set
+        <code>capped: events.length &gt;= 12*200</code> — false when the last page returned fewer than 200
+        rows. <code>assets/js/market.js</code> <code>discoverTopic</code> set
+        <code>capped = pages &gt;= maxPages</code> — true even when the final page exactly filled the budget
+        with an empty cursor. Separately, <code>assets/js/claims.js</code> claimed "at most 6 pages" while
+        the Live alerts page reads 12 (the 6-page budget is the paper engine's).</p>
+      <p><strong>Fix shipped:</strong> both call sites now use <code>getAll()</code>'s
+        <code>__capped</code> flag (set only when the budget ran out with a cursor outstanding), and the
+        claim names both budgets and both call sites.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y15">
+      <h3>Y15 — <code>moneyTraded</code> defaulted a missing volume to 0, reporting $0.00 <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/market.js</code> <code>moneyTraded</code> used
+        <code>num(m.volume_fp ?? m.volume ?? 0)</code> — a market that returned no volume field scored
+        <code>0 × price = $0.00</code> with <code>derivable: true</code>, violating the site's own rule
+        that a missing value renders as <code>n/a</code>, never <code>$0.00</code>.</p>
+      <p><strong>Fix shipped:</strong> a missing volume (or price) now returns
+        <code>{value: null, derivable: false}</code> and the row is counted as missing-price.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
+    </div>
   </div>
 
   <div class="card">
     <h2>5 · Fee-schedule verification (session <code>bc079e84</code>, added 2026-11-21)</h2>
     <p class="sub">Found while closing the fee gap (F15/A5) against the official documents.</p>
 
-    <div class="irregularity" id="Z1">
-      <h3>Z1 — Fee schedule footnote ("centicent") contradicts its own fee table <span class="tag warn">open</span></h3>
+    <div class="irregularity" id="Z2">
+      <h3>Z2 — Fee schedule footnote ("centicent") contradicts its own fee table <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> the fee schedule PDF defines "round up" as rounding
         "such that the fee + positionCost is rounded to a centicent" ($0.0001), but every one of its 42
         worked fee-table values is consistent with rounding to the <em>cent</em> ($0.01) — e.g. 1 contract at

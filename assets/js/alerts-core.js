@@ -7,7 +7,8 @@
  * Nothing is predicted. The "High-ROI watch" is a transparent rule set that
  * stands in for a model; it is not a model, and no return is forecast.
  *
- * Kept free of imports so it runs unchanged in the browser and in Node tests.
+ * Imports only TRADE_SCREEN from config.js (no DOM, no network), so it runs
+ * unchanged in the browser and in Node tests.
  */
 
 /* A sudden swing is a change of at least this many dollars per contract
@@ -63,8 +64,9 @@ export function quoteOf(m) {
   };
 }
 
-/* Money traded, as the site defines it everywhere: volume × last price. */
-export function moneyTraded(m) {
+/* Project-defined volume-price proxy: cumulative contract volume × current last YES price.
+ * This is not the sum of actual trade consideration (nor an exchange-provided dollar-volume field). */
+export function volumePriceProxy(m) {
   const v = num(m?.volume_fp);
   const p = priceOf(m);
   return v === null || p === null ? null : v * p;
@@ -118,10 +120,12 @@ export function detectMoves(prev, markets, { threshold = THRESHOLD, at = Date.no
 
 /* A swing measured against the exchange's own previous price.
  *
- * Kalshi publishes `previous_price_dollars` on every market: the price before
- * the exchange's last change. Comparing it with `last_price_dollars` gives a
- * swing that is available on the very first poll, without waiting for a second
- * reading, and it is the exchange's own reference rather than this page's.
+ * Kalshi publishes `previous_price_dollars` on every market. The schema
+ * describes it as the last traded YES price a day ago; this page uses it as
+ * the exchange's own reference price (see Flagged Z1). Comparing it with
+ * `last_price_dollars` gives a swing that is available on the very first
+ * poll, without waiting for a second reading, and it is the exchange's own
+ * reference rather than this page's.
  * (https://docs.kalshi.com/api-reference/market/get-market)
  *
  * The same move is reported again on every later poll until the exchange rolls
@@ -312,7 +316,7 @@ export function summarize(trades) {
 /* -------------------------------------------------------------- universe */
 
 /* Choose which open markets to poll: the top `perTopic` markets per topic by
- * money traded, plus any ticker in `keep` (open positions keep being tracked
+ * the volume × last YES-price proxy, plus any ticker in `keep` (open positions keep being tracked
  * until they resolve). */
 export function pickUniverse(markets, { perTopic = 30, keep = [] } = {}) {
   const byTopic = new Map();
@@ -323,7 +327,7 @@ export function pickUniverse(markets, { perTopic = 30, keep = [] } = {}) {
   }
   const out = new Map();
   for (const list of byTopic.values()) {
-    list.sort((a, b) => (moneyTraded(b) ?? -1) - (moneyTraded(a) ?? -1));
+    list.sort((a, b) => (volumePriceProxy(b) ?? -1) - (volumePriceProxy(a) ?? -1));
     for (const m of list.slice(0, perTopic)) out.set(m.ticker, m);
   }
   const keepSet = new Set(keep);

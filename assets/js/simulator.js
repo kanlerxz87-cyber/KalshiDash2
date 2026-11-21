@@ -65,7 +65,7 @@ const CLOSE_EPS = 1e-9;
  *   contracts at $0.45 → model 1.7325 + rounding 0.0075 = $1.74). The PDF's
  *   "centicent" footnote does not match its own table; the mechanics do.
  *   This tester follows the mechanics. The footnote discrepancy is published
- *   on the Flagged page (D4) for review.
+ *   on the Flagged page (Z2) for review.
  *
  *   Per-series multipliers: only the Non-Standard Fees rows read verbatim
  *   from the PDF are encoded below (the taker-multiplier-0 rows, the only

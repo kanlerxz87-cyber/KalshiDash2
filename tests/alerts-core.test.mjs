@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   detectMoves, watchCheck, planTrades, updateTrade, summarize,
-  pickUniverse, chunk, quoteOf, THRESHOLD, WATCH_RULES
+  pickUniverse, chunk, quoteOf, volumePriceProxy, THRESHOLD, WATCH_RULES
 } from "../assets/js/alerts-core.js";
 
 const mk = (over = {}) => ({
@@ -171,13 +171,19 @@ test("summary computes win rate, realized P&L and ROI on cost from resolved trad
   assert.equal(row.unrealized, 0.05);
 });
 
-test("pickUniverse keeps the top N per topic by money traded plus kept tickers", () => {
+test("pickUniverse keeps the top N per topic by the volume-price proxy plus kept tickers", () => {
   const markets = [];
   for (let i = 0; i < 5; i++) markets.push(mk({ ticker: `E-${i}`, _topic: "gas", volume_fp: String(10 * (i + 1)), last_price_dollars: "0.5000" }));
   markets.push(mk({ ticker: "C-1", _topic: "crypto", volume_fp: "1", last_price_dollars: "0.1000" }));
   markets.push(mk({ ticker: "NOTOPIC", _topic: null }));
   const u = pickUniverse(markets, { perTopic: 2, keep: ["C-1", "E-0"] }).map(m => m.ticker).sort();
   assert.deepEqual(u, ["C-1", "E-0", "E-3", "E-4"]);
+});
+
+test("volume-price proxy is contract volume times current last YES price, or null if either is missing", () => {
+  assert.equal(volumePriceProxy(mk({ volume_fp: "12.00", last_price_dollars: "0.2500" })), 3);
+  assert.equal(volumePriceProxy(mk({ volume_fp: null, last_price_dollars: "0.2500" })), null);
+  assert.equal(volumePriceProxy(mk({ volume_fp: "12.00", last_price_dollars: null })), null);
 });
 
 test("chunk splits arrays without losing items", () => {

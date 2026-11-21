@@ -20,15 +20,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install the signing dependency for the WebSocket client tests
+        run: pip install --quiet cryptography
       - name: Test link checker
         run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Kalshi WebSocket client unit tests
+        run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Validate local links and anchors in the published site
         run: python tools/check_site_links.py .
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
+      - name: Live-feed unit tests
+        run: node --test tests/live-core.test.mjs
       - name: Taxonomy + multivariate classifier tests
         run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
         run: node --test tests/simulator-core.test.mjs
+      - name: Chart jump-detection unit tests
+        run: node --test tests/jumps.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs

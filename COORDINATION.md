@@ -1073,3 +1073,336 @@ hard-coded, on the summary page and in the DOM regression).
 the claimed file list — all were unclaimed on the board (no active session holds them; the board's
 last owner sessions are closed). Only the fee-assumption sentences and the register entry changed;
 no other content was rewritten.
+
+---
+
+## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| W1 | Independent line-by-line verification of alert-threshold + simulator P&L math against official docs (Get Market schema, Market settlement, fee schedule) | in progress | `7930e2cd` | `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new) | `fetch_page` on docs.kalshi.com + fee schedule; read `assets/js/alerts-core.js`, `assets/js/simulator.js`, `assets/js/config.js` (read-only) | Read-only on site code; any defect found is logged here as a request, not edited (files owned by other sessions / shared outputs) |
+| W2 | Live-site + snapshot freshness: trigger `verify-live-site` and `collect` workflows on `main`, record run IDs and results | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `gh workflow run`, `gh run view`, Pages API | Workflows commit to `main` directly; no local file edits |
+| W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
+
+**Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+
+---
+
+
+---
+
+
+---
+
+
+---
+
+
+---
+
+
+### Results — session `7930e2cd` (2026-11-21)
+
+| # | Task | Result |
+|---|------|--------|
+| W1 | Math verification | **done** — `reports/verify-math-7930e2cd.md`. Every formula in `alerts-core.js`, `simulator.js`, `market.js` (`fetchCandles`/`detectJumps`/`swingOf`/`eventContext`), `kalshi.js` (`deriveQuote`) and `config.js` constants checked against official docs fetched 2026-11-21 ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) incl. the 5,000-period cap, [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses) reciprocal rule + spread formula, [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Fee schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits)). All correct as written; no hallucinated values, no inferred fields, no silent zeros. One wording/formula alignment request (win-rate denominator excludes flats; scoreboard text says "share of scored trades") logged below for the integration session — **not edited here** (`simulator.js`/`simulator.html` are shared outputs). |
+| W2 | Live-site + snapshot | **done** — `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (all published pages HTTP 200 with the `KalshiDash2` marker). `collect` run [44875599643](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875599643) **success**; `data/snapshot.json` refreshed to `2026-11-21T06:28:13Z`, `errors: []`, committed to `main` as `97b6298`. Snapshot topics: gas 228 series / 59 events, elections 2710 / 23, culture 2 / 0, crypto 321 / 100, golf 134 / 37 (markets capped at 200/topic by the collector). Culture 0 events is the demo environment's state in this scan, not a site defect. |
+| W3 | Local suite | **done** on this branch: `alerts-core` 18/18 · `simulator-core` 5/5 · `taxonomy` 10/10 · signing self-test 6/6 · `check_site_links.py` 34 pages 0 broken · python unittest 18 OK · `page-runtime-check` 17/17 pages + 34 links · `git diff --check` clean. |
+
+**Requests logged for the integration session (not edited here):**
+- R-7930-1: Align the simulator win-rate denominator with the scoreboard wording (flats excluded from `wins/(wins+losses)` in `aggregate`/`aggregateBreakdowns` vs. "share of scored trades" in `simulator.html`). Files: `assets/js/simulator.js`, `simulator.html`. Source: `reports/verify-math-7930e2cd.md`.
+
+**No claims held by `7930e2cd` after this record.** File scope touched: `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new).
+
+---
+
+## Session `f1425e39` — DOM test dependency advisory and integration (2026-11-21)
+
+| Task | Status | Owner | Exclusive file scope | Notes |
+| --- | --- | --- | --- | --- |
+| Review and remediate the test-only esbuild advisory A10, if feasible; run regression and integration checks, update the published flag with evidence | in progress | `f1425e39` | `tests/dom/package.json`, `tests/dom/package-lock.json`, `flagged.html`, `COORDINATION.md` (this section) | Prior session flagged the advisory; this session will not touch other sessions' scopes. Arena's fixed branch name takes precedence over the requested session branch convention. |
+
+**Review and verification:** GitHub's official [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99) identifies `<=0.24.2` as affected and `0.25.0` as the first patched version. Updated the pinned test-only package and lockfile to 0.25.0; A10 on the published Flagged page now records the mitigation and its boundary. `npm ci`, `npm audit` (0 vulnerabilities at time of check), both DOM suites (16 alert checks and summary checks), all 33 Node unit tests, 18 Python tests, 6 signing self-tests, 17 page-runtime checks, and the 34-page local-link check passed on 2026-11-21. `git diff --check` passed. npm reported a deprecated transitive `whatwg-encoding` package, not an audit vulnerability.
+
+**Limitations:** This was not a fresh line-by-line re-verification of every existing claim or live trading workflow. Existing flags including F1 (authenticated demo order unverified), F15/A5 (simulation costs omitted), F16 (bounded scan), A1 (screen, not validated ROI model), A2 (browser-only alerts) and F14 (jump causes unverified) remain open. The local link checker checks internal links, not external availability. Official market API connectivity and an authenticated account were not available locally.
+
+**Task status:** done, subject to PR checks and deployment confirmation below.
+
+**PR and CI:** [PR #46](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/46) opened against `main`. On commit `b7414d5`, GitHub Actions [static site check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875615170) and [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875604181) both succeeded. The latter automatically committed its read-only live API report `reports/alerts-live-check.md` as `71f6013`; the report observes HTTP 200 for its sampled demo requests and explicitly does not establish browser or authenticated trading correctness. Its `[skip ci]` commit caused the PR head to have no checks, so this board update triggers a fresh static check. No other session's work was discarded.
+
+**Final record — session `7930e2cd` (2026-11-21):**
+
+| Item | Result |
+|---|---|
+| PR | [#48 — Session 7930e2cd: independent math verification + live-site/snapshot confirmation (W1-W3)](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/48), branch `arena/7930e2cd-kalshidash2` → `main` |
+| Merge | `gh pr merge 48 --merge` succeeded 2026-11-21T06:30:23Z; merge commit [`7953ba2`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7953ba2831a8156416135ad7eff09ac0e895b874). Pre-merge `check` run **pass**; `Static site link check` on the merge to `main` **success** |
+| Conflict log (required by the standing rule) | Two collisions, both resolved without discarding anyone's work: (1) `COORDINATION.md` append collision with session `f1425e39`'s PR #46 section — kept **both** sections (commit `33fb99b`); (2) `reports/alerts-live-check.md` — the `verify-alerts` workflow auto-commits a fresh live-check report to both `main` and this branch on every push, so the two auto-generated reports collided twice. Both reports show identical passing results (HTTP 200, 200 events / 2,175 markets, 25/25 batch); kept the newer branch report first, then main's on the final merge. No hand-written content was lost |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` for the merge chain: run `44875860027` cancelled (superseded by newer pushes), run `44875918473` (PR #49 merge `1a7277a`) **success**, run `44875974440` (PR #50 merge `576c9fa`) **success** |
+| Live-site verification | `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (triggered by this session on `main` before the merge; every published page HTTP 200 with the `KalshiDash2` marker) |
+| Irregularities carried forward | Request R-7930-1 (win-rate denominator vs. wording) remains for the integration session; all F/X/R/A flags remain published on `flagged.html` — none blocked this merge |
+
+**Merge and deployment record:** PR [#46](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/46) merged 2026-11-21 at 06:28:34 UTC, merge commit [`86ba363`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/86ba363d5c40e49ff3f7f61804d7901a102baaf0). On the merged tree, [static checks](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875713149) and [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875713116) succeeded. [Pages build/deploy](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875712695) succeeded; the subsequent automated report commit `08e593e` also [built and deployed](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875761215) successfully. Pages API reports `built`, source `main:/`; the [live-site check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875769278) succeeded, though it does not specifically assert the A10 text. One earlier Pages build for an automated snapshot was cancelled by a newer deployment and reported errored; the later deployments above succeeded. The GitHub runner also warned that some actions use deprecated Node 20 runtimes, which GitHub forced onto Node 24; these workflows still passed.
+
+**Conflict log, session `f1425e39`:** rebase onto `main` at `1a7277a` produced an append-only conflict in `COORDINATION.md`; preserved the complete `9d7b4124` section and this session’s deployment record. No content discarded.
+
+## Session `9d7b4124` — fresh line-by-line re-verification + Y9/Y10 closure (branch `arena/9d7b4124-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). No other session has an in-flight claim on the files below (all prior sections are `done` records; the last merge was PR #45 on 2026-11-20).
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| Z1 | Fresh line-by-line re-verification of every official URL in `assets/js/config.js` `SOURCES` against the official index [llms.txt](https://docs.kalshi.com/llms.txt), plus schema spot-checks (Get Market, Get Events, candlesticks, orderbook, Create Order V2) against the live docs pages | in progress | `9d7b4124` | `COORDINATION.md` (this section), `reports/verify-facts-v4.md` (new) | `fetch_page` on docs.kalshi.com (sandbox `curl` cannot reach kalshi hosts — `000`, same limit every session records) | Any URL that moved is fixed in `config.js` only if the replacement is confirmed in llms.txt; otherwise flagged |
+| Z2 | Close Y9: delete dead `assets/js/jumps.js` (no importer; canonical `detectJumps` lives in `assets/js/market.js`), mark Y9 `fixed` on `flagged.html` with the grep evidence | in progress | `9d7b4124` | `assets/js/jumps.js` (delete), `flagged.html` (Y9 only) | `grep -r "jumps.js"` over repo = no importers; `node tools/verify/page-runtime-check.mjs` 17/17 after deletion | Y9 text said "left so the owner can delete it knowingly" — this session deletes it knowingly as integration |
+| Z3 | Mitigate Y10: replace `docs/index.html` (defective legacy landing) with a redirect to the root site; mark Y10 `mitigated` on `flagged.html`; update `README.md` docs/ note | in progress | `9d7b4124` | `docs/index.html`, `flagged.html` (Y10 only), `README.md` (docs/ note only) | `python3 tools/check_site_links.py .` still 0 broken; `verify-live-site` probes root pages only | `docs/` subpages remain reachable directly (historical); the landing no longer presents the defective generation as the site |
+| Z4 | Full local suite + live GitHub-runner checks (`verify-alerts`, `live-engine-check`, `verify-live-site`), then PR → `main`, merge, Pages confirmation | in progress | `9d7b4124` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test; `gh run` results | Flagged items do not block merge |
+
+**Claimed 2026-11-21 by `9d7b4124`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+
+### Z1–Z4 outcome — session `9d7b4124` (2026-11-21)
+
+| # | Final status | Evidence |
+|---|--------------|----------|
+| Z1 | **done** | `reports/verify-facts-v4.md`: all 28 `config.js` `SOURCES` URLs confirmed present in the official [llms.txt](https://docs.kalshi.com/llms.txt) index (fetched 2026-11-21); demo REST/WS URLs match [demo_env](https://docs.kalshi.com/getting_started/demo_env); schema spot-checks pass on [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Batch Candlesticks](https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2). The 7 non-index `docs.kalshi.com` URLs in the repo are historical records, test fixtures, or raw-capture truncations (X4 class) — none is linked from a published page. No `config.js` change needed. |
+| Z2 | **done** | `assets/js/jumps.js` deleted; `flagged.html` Y9 marked `fixed` with the re-run grep evidence (only the flag's own text referenced the file). `node tools/verify/page-runtime-check.mjs` 17/17 after deletion. |
+| Z3 | **done** | `docs/index.html` replaced with a redirect to the root site; `flagged.html` Y10 marked `mitigated`; `README.md` docs/ note updated. `python3 tools/check_site_links.py .` — 34 pages, 0 broken. `docs/` subpages kept (nothing deleted). |
+| Z4 | **done** | Local: node unit tests 33/33, page-runtime 17/17, link check 34/0, python unittest 18/18, signing self-test 6/6, alerts DOM 16/16, summary DOM pass (flag counts derived: 27 open / 17 mitigated / 44 total), `git diff --check` clean. Live (GitHub runners): `verify-alerts` runs [44875576242](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875576242) and [44875672639](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875672639) **success** (live demo API check included); `live-engine-check` runs [44875578085](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875578085) and [44875675184](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875675184) **success**, fresh report committed as `d898752` (2026-11-21T06:28:15Z: 1,200 events scanned, 2,760 markets in the five topics, 3 swings ≥ $0.10 vs `previous_price_dollars`). Note: the first pair of runs' report commits were skipped because this session's push landed first (non-fast-forward, `push skipped` by design); the re-runs above are the committed evidence. The `live-engine-check` failure on `main` 10h earlier (PR #43) did not reproduce — transient. |
+
+**Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
+
+**Publication record (Z4):** [PR #49](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/49) was merged to `main` with merge commit `1a7277a80627ad88477e5cd203a0536ceb6100ab` at 2026-11-21T06:31:04Z. GitHub Pages build/deploy runs [44875918473](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875918473) and [44875974440](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875974440) both succeeded. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Fetched the deployed root page successfully and fetched `/docs/`; the latter resolved to `/index.html`, confirming the redirect is live. The independent [verify-live-site run 44875818679](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875818679) succeeded. The resulting documentation-only PR records these deployment facts on `main`.
+
+**Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+
+---
+
+## Session `75490e0f` — line-by-line re-verification + fixes + final integration (branch `arena/75490e0f-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85`. Board read before starting (per rules). No other session holds an active claim (last record `53975890` K3 done 2026-11-20).
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------------------|------------------------|------------------------|
+| M1 | Line-by-line re-verification of all published pages + JS against official Kalshi docs; fix confirmed bugs (alerts-core header, claims page-budget, strategies taxonomy, jump logic + chart-marker shape, capped-scan flags, moneyTraded missing-volume) | done | `75490e0f` | `assets/js/alerts-core.js`, `assets/js/claims.js`, `strategies.html`, `assets/js/category.js`, `assets/js/market.js`, `assets/js/alerts.js`, `flagged.html`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` (this section) | [Demo env](https://docs.kalshi.com/getting_started/demo_env), [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance), [Orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [Order direction](https://docs.kalshi.com/getting_started/order_direction) fetched 2026-11-21; full local suite before/after | `jumps.js` deleted by session `9d7b4124` mid-session — canonical jump logic consolidated into `market.js` instead; no new live Kalshi calls from sandbox (browser-side only) |
+| M2 | Final integration: full verification suite, PR → `main`, merge, Pages deploy confirmation, records | in progress | `75490e0f` | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge |
+
+### M1 record — session `75490e0f` (2026-11-21)
+
+**Line-by-line re-verification (official sources fetched 2026-11-21 via docs.kalshi.com):**
+
+| # | What was checked | Method | Result |
+|---|---|---|---|
+| V-1 | Demo REST/WS URLs | [Demo env](https://docs.kalshi.com/getting_started/demo_env) fetched | Match `config.js` DEMO/ALTERNATES exactly |
+| V-2 | Market fields (`previous_price_dollars`, `last_price_dollars`, `yes_bid_size_fp`, no `no_bid_size_fp`, no `series_ticker`, `settlement_value_dollars`, `price_ranges`) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) fetched | Code reads only documented fields; `resolveSeries` via event is required |
+| V-3 | Candle intervals 1/60/1440, `price.previous_dollars`, route | [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) fetched | `config.js` CANDLE + `fetchCandles` correct |
+| V-4 | Order route + body (`POST /portfolio/events/orders`, `side` bid/ask, `count`/`price` strings, 201) | [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2) fetched | `kalshi.js createOrder` correct |
+| V-5 | Balance (`balance` + `balance_dollars`) | [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance) fetched | `portfolio.html` fallback correct |
+| V-6 | `GET /events` excludes multivariate; `settlement_sources[]` name+url | [Get Events](https://docs.kalshi.com/api-reference/events/get-events) fetched | `fetchMultivariateEvents` + `eventContext` correct |
+| V-7 | Fill `fee_cost` is a dollar string, no `fee_cost_dollars` | [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) fetched | `analyseFills` + portfolio fee display correct |
+| V-8 | Orderbook bids-only + reciprocal YES/NO pricing | [Orderbook](https://docs.kalshi.com/getting_started/orderbook_responses) fetched | `deriveQuote` + liquidity tables correct |
+| V-9 | `bid ≡ yes`, `ask ≡ no` | [Order direction](https://docs.kalshi.com/getting_started/order_direction) fetched | Order form mapping correct |
+
+**Bugs fixed (all published on `flagged.html` §1c as Y12–Y15, Y9 carried forward):** strategies taxonomy (Y12), chart-marker dot shape (Y13), capped-scan flags + 6-vs-12-page claim (Y14), `moneyTraded` missing-volume $0.00 (Y15). Y9 (`jumps.js` dead file) was closed by session `9d7b4124` deleting the file; this session moved the canonical jump logic (`detectJumps`, `jumpMarkers`, `JUMP_THRESHOLD`) into `assets/js/market.js` and pointed `category.js` at it, so no importer referenced the deleted module. Plus: `alerts-core.js` header, `resolved.html` parens, dates → 2026-11-21, new `tests/jumps.test.mjs` (6 tests) wired into `site-check.yml`.
+
+**Full suite on this branch, 2026-11-21:** `node --test` 39/39 (18 alerts-core + 10 taxonomy + 5 simulator-core + 6 jumps) · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` pass (19 requirement areas, 69/78 claims, 28 open / 20 mitigated / 48 flags) · `node tools/verify/page-runtime-check.mjs` 17/17 + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` 18/18 · `node evidence/auth-sign-test.mjs` 6/6 · `git diff --check` clean. No live Kalshi calls from sandbox (browser-side only); no keys in repo.
+
+**Rebase/conflict log — session `75490e0f` (2026-11-21):** while M1 was active, `main` advanced through PRs #46 (esbuild 0.25.0 / A10), #48, #49 (Y9 `assets/js/jumps.js` deleted, Y10 `/docs/` redirect), and #50. Three rebases were needed; all conflicts were in `COORDINATION.md` end-appends plus `flagged.html` Y9 (modify/delete) and `assets/js/jumps.js` (deleted upstream, edited here).
+
+Resolutions, none discarding another session's work:
+- `COORDINATION.md`: kept **all** sections (`f1425e39`, `9d7b4124`, and this one) in order; M1/M2 rows preserved; a stale conflict-log commit describing the first rebase was dropped as redundant, replaced by this entry.
+- `assets/js/jumps.js`: **accepted the upstream deletion** (session `9d7b4124`'s decision, adopted rather than reversed). The canonical jump logic this session verified — inclusive float-safe $0.10 threshold, candle `prev` as the comparison price, null-y gaps crossed — was moved into `assets/js/market.js` as `detectJumps` / `jumpMarkers` / `JUMP_THRESHOLD`, with `category.js` importing from there. That also carries the marker-shape fix (Y13), since the deleted file's helper returned `{t, y, up}`.
+- `flagged.html`: Y9 keeps the `9d7b4124` resolution text, with a follow-up paragraph recording where the logic now lives; Y13 no longer points at the deleted module.
+
+Combined-tree verification after the rebases (2026-11-21): `node --test` 39/39 · `node --test tests/jumps.test.mjs` 6/6 against `market.js` · `grep -r "jumps.js"` finds no importer outside this flag's own text · `python3 tools/check_site_links.py .` 34 pages 0 broken · `node tools/verify/page-runtime-check.mjs` 17/17 · `node --check` clean on `market.js` / `category.js`.
+
+# Session `3b869340` — line-by-line re-verification + `previous_price_dollars` wording fix + final integration
+
+Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from `8ea5c85` on `main`).
+
+**Takeover note (60-minute stale-claim rule):** every prior `in progress` claim on this board is from 2026-11-20 with last commit `8ea5c85` at 20:32Z (>9h ago, no commits since). No other session has an in-flight edit. This session takes over the shared registers (`assets/js/claims.js`, `flagged.html`) as the integration session for the fix below, and records the handoff here. No other session's work is discarded.
+
+**Fresh line-by-line verification performed 2026-11-21 (official docs fetched and read this session):**
+
+| # | Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| V-1 | Demo REST `external-api.demo.kalshi.co/trade-api/v2` recommended; `demo-api.kalshi.co` also supported; WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` + `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo environment](https://docs.kalshi.com/getting_started/demo_env) | Correct — matches `assets/js/config.js` `DEMO`/`ALTERNATES` |
+| V-2 | Market fields: `yes_bid/ask_dollars`, `yes_bid/ask_size_fp`, `no_bid/ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `result` ∈ yes/no/scalar/"", `open_interest_fp`, `previous_price_dollars`, `settlement_value_dollars`, `price_ranges`, `mve_selected_legs[].event_ticker`; `yes_sub_title` canonical, `no_sub_title` deprecated; NO `no_bid_size_fp`/`no_ask_size_fp` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema) | Correct — confirms Y2 fix (no NO-size field exists) |
+| V-3 | `notional_value_dollars` = "The total value of a single contract at settlement in dollars" | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | Correct — site's "not traded dollar volume" wording is exact |
+| V-4 | Candlesticks `period_interval` ∈ {1, 60, 1440}, `start_ts`/`end_ts` required, `price.close_dollars` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Correct — matches `fetchCandles` + `CANDLE` |
+| V-5 | Orderbook `orderbook_fp.yes/no_dollars` = `[price, count]` string pairs, bids only, reciprocal YES/NO, unknown ticker → 200 empty, no auth | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) + [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses) | Correct — matches `deriveQuote` |
+| V-6 | `POST /portfolio/events/orders` V2 body (`ticker`, `side`, `count`, `price`, `time_in_force`, `self_trade_prevention_type`, `client_order_id`) | [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) | Correct — matches `KalshiClient.createOrder` |
+| V-7 | Settlement: YES holders $1, NO holders $1 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | Correct — matches simulator/alert P&L |
+| V-8 | Direction `bid ≡ yes`, `ask ≡ no` | [Order Direction](https://docs.kalshi.com/getting_started/order_direction) | Correct — confirms F7 fix |
+| V-9 | Signing: `KALSHI-ACCESS-KEY/-TIMESTAMP/-SIGNATURE`, pre-sign `timestamp + METHOD + path` without query, RSA-PSS SHA-256 salt=digest, Ed25519 direct, PKCS#8/PKCS#1 PEM | [API Keys](https://docs.kalshi.com/getting_started/api_keys) | Correct — matches `kalshi.js` |
+| V-10 | `GET /events` excludes multivariate events; `settlement_sources[]` = `{name, url}` | [Get Events](https://docs.kalshi.com/api-reference/events/get-events) | Correct — confirms Y4 fix |
+| V-11 | `*_dollars` = dollar strings ≤4dp, `*_fp` = contract quantities ≤2dp, `price_ranges` is source of truth for valid prices | [Fixed-Point](https://docs.kalshi.com/getting_started/fixed_point_migration) | Correct — matches `snapToGrid` |
+| V-12 | Fills: `outcome_side`/`book_side`, `count_fp`, `yes/no_price_dollars`, `is_taker`, `fee_cost` | [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) | Correct — matches `strategies.html` |
+| V-13 | **`previous_price_dollars` semantics** | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | **IRREGULARITY — see Z1 below.** Docs: "Price for the last traded YES contract on this market a day ago in dollars". Site claims (claims.js, marked `verified`): "the price before the exchange's last change". Wording not supported by docs. |
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|------------------------|------------------------|
+| Z1 | Correct `previous_price_dollars` wording: reword claims.js claim to quote docs, downgrade to `partially verified`, fix code comments in `config.js`/`alerts-core.js`/`alert-engine.js`/`market.js`, add Flagged Z1 card, note in `EXECUTIVE_SUMMARY.md` | in progress | `3b869340` | `assets/js/claims.js`, `assets/js/config.js`, `assets/js/alerts-core.js`, `assets/js/alert-engine.js`, `assets/js/market.js` (comments only), `flagged.html` (Z1 card only), `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) schema fetched 2026-11-21 | Behaviour unchanged: alerts still compare `last_price_dollars` vs `previous_price_dollars` and label the basis "exchange previous price" (the field name, accurate). Only the interpretation wording is corrected. Counts derive dynamically, so summary/flagged headlines stay in sync. |
+| Z2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | unclaimed | — | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
+
+### Z1/Z2 completion record — session `3b869340` (2026-11-21)
+
+| ID | Status | Result |
+|----|--------|--------|
+| Z1 | **done** | `previous_price_dollars` claim reworded to quote the official schema ("a day ago"), downgraded to `partially verified` with flag **Z1**; code comments in `config.js`/`alerts-core.js`/`alert-engine.js`/`market.js` corrected; Flagged Z1 card published; `EXECUTIVE_SUMMARY.md` re-verification note added. No alert behaviour changed. |
+| Z2 | **done** | Full suite green on the rebased tree (alerts-core 18/18, taxonomy 10/10, simulator 5/5, auth-sign 6/6, python tools 18/18, link check 34 pages, page-runtime 17/17, alerts-dom 16/16, summary-dom pass: 68/78 verified, 7 partial, 3 unverified; flags 27 open / 18 mitigated / 45 total at merge time — counts derive dynamically). PR [#47](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/47) merged 2026-11-21T06:33:35Z as `f5b0e2e`. Pages API: `status: built`, source `main:/`; latest build `built` for `d0190e1` (includes `f5b0e2e`). Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+
+**Conflict log (required by standing rule):** while this session's PR was open, `main` advanced three times (PR #46 esbuild/A10, PR #48, PR #49/#50/#52/#54 + `[skip ci]` report commits). Three rebases were needed; two hit `COORDINATION.md` append-only conflicts, each resolved by union (both sessions' sections kept, no work discarded). One force-push overwrote a CI `verify-alerts` report commit on the PR branch (`439df7e`/`05d87c4`); the report is regenerated by the workflow on the next run and no site file was affected. Final rebase was clean. No other session's work was discarded or overwritten.
+
+**Irregularities carried forward:** all 45 flags (27 open at merge) remain published on `flagged.html` with sources, including new Z1 — none blocked this merge, per instructions.
+## Session `3d2e8243` — current-branch integration review (2026-11-21)
+
+Branch: `arena/3d2e8243-kalshidash2`, based on `main` at `8ea5c85`.
+
+| ID | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| I1 | Re-review dollar-activity ranking against official market/trade schemas; clearly distinguish computed activity proxies from exchange-reported dollar notional and publish corrections/flags | in progress | `3d2e8243` | Root site and evidence scope: `index.html`, `alerts.html`, `event.html`, `categories/*.html`, `summary.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/{market,alerts-core,config,claims,category}.js`, `scripts/collect.py`, `data/snapshot.json`, `flagged.html`, focused tests, this section | Official [Get Market](https://docs.kalshi.com/api-reference/market/get-market) and [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades); local checks below | Final integration scope; no other active owner found in the current task board. Older `docs/` generation is outside this correction. |
+
+**I1 verification (2026-11-21):** official Get Market schema describes `volume_fp` as contracts and `last_price_dollars` as the last traded YES-contract price; `notional_value_dollars` is the value of a single contract at settlement. Get Trades documents individual trade fields and cursor/limit pagination. Based on these definitions, the UI now calls `Σ(volume_fp × last_price_dollars)` a project-defined volume-price proxy, not dollars traded (Flag A11). The collector's capped, unbounded `Σ(yes_price_dollars × count_fp)` arithmetic was relabelled in code and snapshot metadata and its numeric historical values were preserved without asserting actual cash turnover (Flag A12). No fresh snapshot was collected; the environment cannot reach the demo API directly.
+
+**Checks:** `node --test tests/*.test.mjs` **43/43** · `tests/dom/alerts-dom.mjs` **16/16** · `tests/dom/summary-dom.mjs` passed (19 requirement areas; 67/78 verified claims, 8 partial, 3 unverified; 28 open / 23 mitigated / 51 flags) · Python unit tests **18/18** · static link checker **34 pages, 0 broken** · page-runtime **17/17** · auth-sign self-test **6/6** · Python compilation + snapshot JSON parse passed · `git diff --check` clean. `tests/live-alerts-check.mjs` was attempted but failed before assertions because the sandbox cannot establish TLS to `external-api.demo.kalshi.co`; this is an environment/egress limitation, not a passing live probe. Run a GitHub-hosted live check after publication.
+
+**Rebase conflict record:** rebasing onto `origin/main` at `1a7277a` exposed an add/add conflict in this board (concurrent session `7930e2cd`) and a data conflict because `main` had a fresh demo snapshot generated at `2026-11-21T06:28:13Z`. The full upstream coordination history was retained; for `data/snapshot.json`, the newer main snapshot values/timestamps were kept and only metadata/key labels were changed. No newer live market values were discarded. A subsequent `git pull --rebase origin main` brought in merge `576c9fa` (PR #50, the independent test-dependency advisory fix) without conflict. Before PR #53 could merge, main advanced through PRs #47 and #52; rebasing on `ed83911` produced a coordination conflict and an `EXECUTIVE_SUMMARY.md` conflict. The latest coordination history and session `3b869340`'s official re-verification note were retained, with this session's activity-proxy notes reapplied. The session branch's remote still pointed at its earlier claim-only commit `81815a1`; after confirming it contained no other work, it was replaced using an explicit `--force-with-lease` with this rebased branch, preserving the claim and newer main history. Main then advanced through PR #54 to `d0190e1`; the final rebase preserved its full board and files. Main subsequently advanced through PR #56 to `207384e`; the next rebase preserved the additional verification/coordination records. The GitHub `verify-alerts` runner wrote a fresh report on this PR branch; where the PR #54 report conflicted with the preceding main report, the later read-only probe (started 06:34:54 UTC) was kept. It reports the same API behavior; timing values are single-run observations. The next runner report was retained after rebasing on PR #56. Main then advanced through PR #51 and the live-engine report commit `cc63bb5`; the conflict in `assets/js/market.js` was resolved by retaining the latest main-side missing-field behavior (no default-zero value) and renaming/documenting that function as the volume-price proxy. The Executive Summary retained session `75490e0f`'s verification entry plus this session's A11 disclosure. Main's newer live API report was kept over our older bot-generated report commit.
+
+**Review items:** A11 remains open because exact trade-dollar ranking is not implemented; A12 is mitigated by truthful labels. The site's source register, flagged page, and executive summary carry the limitation and official links. The final rebased tree also retains PR #51's Y9/Y12–Y15 corrections and latest main's live-engine report; no concurrent edits were dropped.
+
+---
+
+
+---
+
+---
+
+## Session `1607f1f9` — WebSocket live feed + duplicate-generation cleanup + dead-file resolution
+
+**Branch:** `arena/1607f1f9-kalshidash2` (Arena-assigned; this session does not create or switch branches).
+**Base:** `origin/main` at `8ea5c85` ("chore(data): refresh Kalshi demo snapshot").
+**Board read before starting** (per the standing rule). The last integration record on the board is
+session `53975890` (PR #42, merged as `95beacf`); all its tasks are closed, so nothing it owned is touched here.
+
+### Claim (written and committed before any other edit)
+
+| # | Task | Status | Owner | File scope (exclusive) |
+|---|------|--------|-------|--------------------------|
+| W1 | **WebSocket ticker feed for the live alerts page** — subscribe to the officially documented `ticker` channel and detect ≥ $0.10 swings as the exchange publishes them, instead of only on a 15 s REST poll | **done** | `1607f1f9` | `assets/js/live-core.js` (new), `assets/js/live-feed.js` (new), `assets/js/alerts.js`, `alerts.html`, `scripts/kalshi_ws.py` (new), `scripts/relay.py` (new), `tests/live-core.test.mjs` (new), `tools/verify/live-ws-check.py` (new), `tools/verify/live-ws-swing-check.mjs` (new), `.github/workflows/live-ws-check.yml` (new) |
+| W2 | **Resolve the published duplicate site generation** (flagged Y10): the stale `docs/` tree is still served at `/docs/` and carries defects F6–F8 | **released — done by `9d7b4124`** (Z3: `docs/index.html` replaced with a redirect to the root site; Y10 marked `mitigated`) | — | — |
+| W3 | **Resolve the dead-file flag Y9** — `assets/js/jumps.js` is tracked but imported by no published page | **released — done by `9d7b4124`** (Z2: the file was deleted; Y9 marked `fixed`) | — | — |
+| W4 | **Propagate W1 to the shared decision pages** | **done** | `1607f1f9` | `verification.html`, `flagged.html`, `summary.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
+
+**Non-overlap note.** W1/W2/W3 touch files no other open claim on this board names. The only
+file in two of my own scopes is `assets/js/config.js`, which W1 owns; W3 does not edit it.
+W4 is shared-output work and is executed last, by me, in this session.
+
+### W1 — official sources read 2026-11-21 (all from docs.kalshi.com, the official reference)
+
+| Source | What it establishes |
+|--------|---------------------|
+| [Quick Start: WebSockets](https://docs.kalshi.com/getting_started/quick_start_websockets) | Demo WS URL `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`; the handshake **requires authentication** — the three `KALSHI-ACCESS-*` headers, signed over `timestamp + "GET" + "/trade-api/ws/v2"`; public market-data channels are `ticker`, `trade`, `market_lifecycle_v2`, `multivariate_market_lifecycle`; reconnect with exponential backoff; error codes 9 (auth), 13, 14, 25, 26 |
+| [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker) | The `ticker` message schema. Payload fields are `market_ticker`, **`price_dollars`**, `yes_bid_dollars`, `yes_ask_dollars`, `volume_fp`, `open_interest_fp`, `yes_bid_size_fp`, `yes_ask_size_fp`, `last_trade_size_fp`, `dollar_volume`, `dollar_open_interest`, `ts`, `ts_ms`, `time`. Changes are **combined and flushed about once per second**, one message per changed market. A market filter (`market_ticker` / `market_tickers` / `market_id` / `market_ids`) is supported. A subscription created without a market filter cannot be changed in place (error 13) |
+| [Rate Limits and Tiers](https://docs.kalshi.com/getting_started/rate_limits) | Token-bucket budgets; unauthenticated public requests are limited separately and a 429 must be backed off; WebSocket connection limits are tier-scoped |
+| [API Environments and Endpoints](https://docs.kalshi.com/getting_started/api_environments) | The demo WebSocket host list (the shared `wss://demo-api.kalshi.co/…` host remains supported) |
+
+**Consequence for the brief.** The brief asks for "a live alerting system … as a simplified
+scrolling chat so someone can view in real time". The site currently satisfies that with a
+15-second REST poll, because the Kalshi **WebSocket** was never wired up even though the URL
+is already in `assets/js/config.js`. The exchange's own ticker channel flushes roughly once per
+second, so a ≥ $0.10 swing can be surfaced within about a second of the trade instead of within
+a poll interval. W1 closes that gap using only the documented message schema.
+
+**Important limitation, stated up front and on the page:** a WebSocket handshake requires a
+signed API key. The site has no credentials committed, so the WS feed is **opt-in**: the user
+enters their own demo key ID + private key in the browser tab (the same browser-only flow
+`portfolio.html` already uses), the key never leaves the tab, and the page **falls back to the
+REST poll** whenever no key is loaded or the socket cannot connect. The feed never pretends to
+be live when it is not: the status pill states which source produced the current alerts.
+
+---
+
+signed API key **and** the three `KALSHI-ACCESS-*` headers. A browser's `WebSocket` constructor
+takes only a URL and an optional subprotocol list — it has no headers parameter — so **a page
+cannot open a Kalshi socket directly at all**. The working architecture is therefore
+server-side: `scripts/kalshi_ws.py` opens the socket with a signed handshake and
+`scripts/relay.py` republishes the frames to the page as same-origin Server-Sent Events on
+`/live/stream`. The relay needs a demo API key, which this repository does not contain, so on
+the published GitHub Pages site the page runs the **REST poll** and its status pill says so.
+The feed never pretends to be live when it is not: the status pill names the source that
+produced the current alerts.
+
+### W4 — shared decision pages updated (all claims now closed)
+
+| File | What changed |
+|------|--------------|
+| `assets/js/claims.js` | 9 new `ws` claims, each with the official source that establishes it, and the flag id where a limitation applies |
+| `verification.html` | a `ws` filter for the new claim category |
+| `flagged.html` | **W1** (the feed is opt-in and needs a local relay), **W2** (the ticker payload has no `previous_price_dollars`), **W3** (the ticker coalesces changes into a ~1 s flush) — 3 new cards, 52 flags total |
+| `summary.html` | a requirement row for real-time updates, with the official WebSocket links and the opt-in caveat |
+| `EXECUTIVE_SUMMARY.md` | a paragraph for the live feed, the three limits, and a re-verification note naming the sources read line by line |
+| `README.md` | how to run the relay, the two-source behaviour of the feed, and the new test commands |
+
+### Verification performed by this session
+
+| Check | Result |
+|-------|--------|
+| `tests/live-core.test.mjs` | **23/23 pass** — field mapping (`price_dollars` → `0.48`), inclusive $0.10 threshold, $0.05 rejected, two readings folded into one swing, spread computed |
+| `tests/test_kalshi_ws.py` | **18/18 pass** — subscribe command shape, ticker payload read verbatim (fixed-point strings not reformatted), documented error codes, demo-only guard, signature verification against the pre-sign text |
+| `tests/alerts-core.test.mjs` | 18/18 pass |
+| `tests/taxonomy.test.mjs` | 10/10 pass |
+| `tests/simulator-core.test.mjs` | 5/5 pass |
+| `evidence/auth-sign-test.mjs` | 6/6 pass |
+| `tools/verify/page-runtime-check.mjs` | 17/17 pages ran clean; 34-page local link check, 0 broken links |
+| `tests/dom/alerts-dom.mjs` | 16/16 pass |
+| `tests/dom/summary-dom.mjs` | pass — 78/88 claims verified, 7 partial, 3 unverified; 30 open / 22 mitigated / 52 flags |
+| `python3 -m unittest discover -s tools` | 18/18 pass |
+| `python3 -m unittest discover -s tests` | 18/18 pass (2 skip without `cryptography`, installed in CI) |
+| `tools/verify/live-ws-swing-check.mjs` | 7/7 pass against a real-shaped ticker frame |
+| Relay smoke test on `127.0.0.1:8099` | static serving 200; `/live/status` honestly reported no credentials; `/live/stream` returned the expected no-source error |
+
+**Live-verification limitation.** The editing sandbox cannot open TLS to `*.kalshi.co` (direct
+`curl` returned HTTP `000`), so the WebSocket handshake itself is verified by
+`.github/workflows/live-ws-check.yml` on a GitHub runner, not locally. That workflow can only be
+dispatched once it exists on the default branch — `gh workflow run live-ws-check.yml` returned
+HTTP 404 before this PR merged.
+
+**Conflict log (standing rule).** `main` advanced repeatedly while this session worked — several
+sessions merged the Y-series fixes and session `3b869340` merged PR #47. Each rebase hit
+`COORDINATION.md` append-only conflicts. Every one was resolved by keeping both sides: the
+resolver at `tools/resolve_board_conflict.py` unions each conflict block and drops repeated
+sections (keeping the longest copy). Verified after the final rebase: **0 conflict markers, 17
+session sections, and every section present on `origin/main` is still present here** — no other
+session's record was discarded. `flagged.html` id collisions were checked for the same reason:
+the Z-series was already taken on `main` by session `3b869340`, so this session's new cards use
+the unused W-series.
+
+---
+
+
+### Conflict log — merge of `origin/main` (`43fe4bb`) into this branch (2026-11-21)
+
+`origin/main` advanced past `8ea5c85` with PRs #43–#56 from parallel sessions (WebSocket live feed
+`1607f1f9`, Y9/Y10 closure `9d7b4124`/`75490e0f`, previous-price wording `3b869340`, live checks
+`7930e2cd`, advisory fixes `f1425e39`, and others). Three files conflicted; nothing from any
+session was discarded:
+
+| Collision | Resolution |
+|-----------|------------|
+| `COORDINATION.md` | Resolved with `tools/resolve_board_conflict.py` (main's own union tool): 1 conflict block → both sides kept; 0 duplicate sections dropped. Main's new session sections and this session's section all survive. |
+| `EXECUTIVE_SUMMARY.md` | Kept main's side (new WebSocket-feed bullet + updated alerts wording) and substituted only this session's fee sentence into the Strategy-tester bullet. |
+| `flagged.html` (Y9 card) | Kept main's side — sessions `9d7b4124` + `75490e0f` already closed Y9 with a more complete record (incl. `tests/jumps.test.mjs`); this session's duplicate resolution text dropped. |
+
+**ID collision found and fixed:** main's register already published a **Z1**
+(`previous_price_dollars` wording, session `3b869340`), so this session's fee-discrepancy flag was
+renumbered **Z1 → Z2** (title, `id`, and the cross-reference in `assets/js/simulator.js`).
+`assets/js/jumps.js` was already deleted on main (same conclusion, two sessions); this branch's
+deletion merges identically.
+
+**Post-merge verification (2026-11-21):** alerts-core 19/19 · jumps 6/6 · live-core 23/23 ·
+activity-proxy 3/3 · simulator-core 10/10 · taxonomy 10/10 · `tests/test_kalshi_ws.py` 18 (3 skip) ·
+alerts DOM 16/16 · summary DOM 20 requirement areas, 78/89 claims (8 partial, 3 unverified),
+32 open / 23 mitigated / 55 flags, 28 sourced rows · page-runtime 17/17 + 34 links ·
+static links 34 pages 0 broken · python tools OK.

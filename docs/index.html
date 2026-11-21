@@ -1,29 +1,22 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KalshiDash2 — Kalshi Demo Dashboard</title><link rel="stylesheet" href="assets/style.css"></head><body>
-<header><span class="logo">📈 KalshiDash2 <span class="badge">DEMO</span></span>
-<nav><a href="index.html" class="active">Home</a><a href="dashboard.html">Live Dashboard</a><a href="categories.html">Categories</a><a href="portfolio.html">Portfolio &amp; Trading</a><a href="trades.html">Trades &amp; Strategy</a><a href="resolved.html">Resolved Events</a><a href="analysis.html">Analysis &amp; Strategies</a><a href="suggestions.html">Suggestions</a><a href="questions.html">Open Questions</a><a href="verification.html">Verification</a><a href="sources.html">Sources</a><a href="flagged.html">Flagged for Review</a></nav></header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0; url=../index.html">
+<title>KalshiDash2 — this page has moved</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
 <main>
-<h1>KalshiDash2 — Kalshi Demo Dashboard</h1>
-<p>A live, interactive dashboard for the <b>Kalshi demo</b> exchange. It tracks the highest-dollar live events in five topics — <b>gas prices, elections, culture, crypto, golf</b> — follows them until they resolve (yes/no), and (with your own demo API keys) executes trades and analyzes performance. Every number on this site comes from a live API response or an official source link. Nothing is guessed.</p>
-<div class="grid">
-<div class="card"><h2 style="margin-top:0">📊 Live Dashboard</h2><p>Highest-dollar open markets per topic, price charts (seconds / minutes / hours), and live liquidity (contracts available at each price).</p><a class="btn" href="dashboard.html">Open dashboard</a></div>
-<div class="card"><h2 style="margin-top:0">📂 Categories</h2><p>Subpages by category — gas prices, elections, culture, crypto, golf — each with its own highest-dollar table, chart, and order book.</p><a class="btn" href="categories.html">Browse categories</a></div>
-<div class="card"><h2 style="margin-top:0">💼 Portfolio &amp; Trading</h2><p>Demo-account balance, positions, fills, and order placement — signed in your browser with your own demo keys.</p><a class="btn" href="portfolio.html">Open portfolio</a></div>
-<div class="card"><h2 style="margin-top:0">🧾 Trades &amp; Strategy</h2><p>Trade log categorized by trade type (price band), with a strategy library per type — proposals for review, never auto-executed.</p><a class="btn" href="trades.html">Open trades &amp; strategy</a></div>
-<div class="card"><h2 style="margin-top:0">🏁 Resolved Events</h2><p>Watched markets tracked until settlement, with the final yes/no outcome.</p><a class="btn" href="resolved.html">Open resolved tracker</a></div>
-<div class="card"><h2 style="margin-top:0">🧠 Analysis &amp; Strategies</h2><p>Your demo fills categorized by topic, side, and outcome, with strategy notes derived from real results.</p><a class="btn" href="analysis.html">Open analysis</a></div>
-<div class="card"><h2 style="margin-top:0">💡 Suggestions</h2><p>Proposed improvements, each with cost, risk, and a decision gate — nothing is implemented until you pick a path.</p><a class="btn" href="suggestions.html">Review suggestions</a></div>
-<div class="card"><h2 style="margin-top:0">❓ Open Questions</h2><p>What we know, what we don't, and how to find the missing information.</p><a class="btn" href="questions.html">See questions</a></div>
-<div class="card"><h2 style="margin-top:0">📚 Sources</h2><p>Every official page used, with what each one confirms — plus the analytic conventions this project adds (clearly labeled as non-official).</p><a class="btn" href="sources.html">See sources</a></div>
-<div class="card"><h2 style="margin-top:0">⚠️ Flagged for Review</h2><p>Irregularities, unverified items, and doc discrepancies — published, non-blocking, with suggested actions.</p><a class="btn" href="flagged.html">See flagged items</a></div>
-</div>
-<div class="card"><h2 style="margin-top:0">Executive summary</h2>
-<table><tbody>
-<tr><td><b>Purpose</b></td><td>Collect, organize, and analyze the highest-dollar live Kalshi demo events in gas prices, elections, culture, crypto, and golf; track them to resolution; trade and analyze performance on the demo account.</td></tr>
-<tr><td><b>Data source</b></td><td>Kalshi demo REST API <code>https://external-api.demo.kalshi.co/trade-api/v2</code> (recommended) and WebSocket <code>wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>. Public market data needs no key. <a href="https://docs.kalshi.com/getting_started/quick_start_create_order">Source</a></td></tr>
-<tr><td><b>Also supported</b></td><td><code>https://demo-api.kalshi.co/trade-api/v2</code> and <code>wss://demo-api.kalshi.co/trade-api/ws/v2</code> — selectable in code (<code>DEMO_BASE</code> in <code>assets/app.js</code>). <a href="https://docs.kalshi.com/getting_started/demo_env">Source</a></td></tr>
-<tr><td><b>Auth</b></td><td>Trading/portfolio requires an API key ID + signed request (RSA-PSS or Ed25519). Keys are entered in the browser only and never stored in this repo. <a href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests">Source</a></td></tr>
-<tr><td><b>Money safety</b></td><td>Demo uses mock funds; demo prices/behavior may not match production. No real money is involved. <a href="https://docs.kalshi.com/getting_started/demo_env">Source</a></td></tr>
-<tr><td><b>Verification rule</b></td><td>Every table row links an official source. Values that can't be confirmed are left blank and flagged — never inferred. See <a href="verification.html">Verification</a> and <a href="flagged.html">Flagged for Review</a>.</td></tr>
-</tbody></table></div>
-</main><footer>Demo only. Built with data from <a href="https://docs.kalshi.com">docs.kalshi.com</a>.</footer></body></html>
+<h1>KalshiDash2 — this page has moved</h1>
+<p>The <code>/docs/</code> generation of this site was superseded by the verified rebuild at the
+repository root. It carried three defects (F6–F8) that the current site fixes, so this landing page
+now redirects to the current site instead of presenting the old generation as the dashboard.</p>
+<p>If you are not redirected automatically, open the
+<a href="../index.html">current KalshiDash2 dashboard</a>.</p>
+<p class="muted small">The older <code>docs/</code> subpages remain reachable directly for historical
+reference. See <a href="../flagged.html">Flagged for Review, item Y10</a> for the full record.</p>
+</main>
+</body>
+</html>

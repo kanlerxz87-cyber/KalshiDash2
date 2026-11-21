@@ -9,7 +9,7 @@
 //   4. GET /events/{event_ticker}                          (settlement_sources shape)
 //   5. A second batch read after a pause, fed through detectMoves()
 import { writeFileSync } from "node:fs";
-import { detectMoves, moneyTraded } from "../assets/js/alerts-core.js";
+import { detectMoves, volumePriceProxy } from "../assets/js/alerts-core.js";
 
 const BASE = "https://external-api.demo.kalshi.co/trade-api/v2";
 const OUT = new URL("../reports/alerts-live-check.md", import.meta.url);
@@ -60,7 +60,7 @@ async function main() {
   out(`- Price/quote fields present on the first 50 active markets: **${fieldsOk ? "yes" : "NO"}**`);
   out();
 
-  const top = [...active].sort((a, b) => (moneyTraded(b) ?? -1) - (moneyTraded(a) ?? -1));
+  const top = [...active].sort((a, b) => (volumePriceProxy(b) ?? -1) - (volumePriceProxy(a) ?? -1));
   const tickers25 = top.slice(0, BATCH).map(m => m.ticker);
   const tickers100 = top.slice(0, 100).map(m => m.ticker);
 

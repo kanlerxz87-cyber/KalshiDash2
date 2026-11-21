@@ -8,7 +8,8 @@ import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineC
 import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE, ALERT } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
-  bucketCandles, LiveSampler, Watchlist, detectJumps, getEvent, eventContext
+  bucketCandles, LiveSampler, Watchlist, getEvent, eventContext,
+  detectJumps, jumpMarkers
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
 
@@ -84,7 +85,7 @@ function renderStats(res) {
    * (https://docs.kalshi.com/api-reference/market/get-market) */
   const touch = open.reduce((a, m) => a + (num(m.yes_bid_size_fp) || 0) + (num(m.yes_ask_size_fp) || 0), 0);
   $("#cat-stats").innerHTML = [
-    { k: "Money traded", v: money(totalMoney), m: "Σ volume × last price" },
+    { k: "Volume × price proxy", v: money(totalMoney), m: "Σ contracts × last YES price (proxy)" },
     { k: "Open events", v: int(res.events.length), m: "matching this topic" },
     { k: "Open interest", v: int(oi), m: "contracts across markets" },
     { k: "Resting size at touch", v: int(touch), m: "Σ yes_bid_size_fp + yes_ask_size_fp" }
@@ -226,11 +227,14 @@ async function drawWindow() {
       if (interval === 1 && bucket > 60) pts = bucketCandles(pts, bucket);
       state.candles = res;
       // ≥ $0.10 swings inside the official candle series, marked on the chart.
-      const jumps = detectJumps(pts, ALERT.defaultThreshold);
+      // jumpMarkers() converts to the {t, y, dir} shape ui.js lineChart draws;
+      // passing the raw jumps (which carry `to`, not `y`) drew the vertical
+      // line but never the dot.
+      const jumps = detectJumps(pts, { threshold: ALERT.defaultThreshold });
       state.jumps = jumps;
       renderChart([
         { key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: pts }
-      ], win, res, { markers: jumps });
+      ], win, res, { markers: jumpMarkers(jumps) });
       const traded = pts.filter(p => p.y !== null).length;
       pill($("#chart-status"), "live", `${traded} priced periods`);
       $("#chart-src").innerHTML = `
@@ -242,7 +246,7 @@ async function drawWindow() {
         /* A market can legitimately have candles with no trade price (no trade
          * in the window). Rather than leave an empty chart, look for another
          * market in this topic that does have a priced candle series and offer
-         * it — the board already ranks markets by money traded, so the reader
+         * it — the board already ranks markets by volume × last YES-price proxy, so the reader
          * is pointed at one that is actually trading. */
         const alt = await pricedAlternative(market, state.markets);
         $("#chart-empty").innerHTML = `<div class="callout warn" style="margin:12px 0 0">
@@ -418,7 +422,7 @@ function drawWindowDebounced() {
   resizeT = setTimeout(() => {
     if (state.candles) {
       renderChart([{ key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: state.candles.points }],
-        currentWindow(), state.candles, { markers: state.jumps || [] });
+        currentWindow(), state.candles, { markers: jumpMarkers(state.jumps || []) });
     }
   }, 150);
 }

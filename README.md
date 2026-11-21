@@ -14,7 +14,9 @@ automated simulated trades, demo trading, trade categorization and performance a
 >   build publishes the whole repository. Its separate deploy workflow
 >   (`.github/workflows/pages.yml`) has been manual-only since PR #17 ended the two-deployer race
 >   (see `COORDINATION.md`, task P1), so nothing under `docs/` is auto-deployed any more. Nothing
->   in it was deleted or edited by the merge that brought the rebuild in.
+>   in it was deleted or edited by the merge that brought the rebuild in. Since 2026-11-21 its
+>   landing page (`docs/index.html`) redirects to the root site (Flagged Y10, mitigated), so
+>   visitors no longer land on the defective generation; subpages remain for historical reference.
 >
 > `COORDINATION.md` records which session owns what.
 
@@ -38,15 +40,20 @@ fetched in the browser and never transcribed into the repo.
 
 ## What it does
 
-- **Overview** — every live event in the five topics, ranked by money traded, open interest or
-  contract volume, with the formula for each shown inline, plus the biggest $0.10+ swings in
+- **Overview** — every live event in the five topics, ranked by a clearly labelled volume × last YES-price proxy, open interest or
+  contract volume, with the formula for each shown inline. The volume-price figure is not actual dollars traded; the dashboard flags this limitation. It also shows the biggest $0.10+ swings in
   the current scan.
 - **Live alerts** — two scrolling chats: every contract-price swing of **$0.10 or more in either
   direction**, and a **High-ROI watch** of the moves that pass a transparent rule set (a
   placeholder for a model, not an edge). Swings are detected two ways — against the exchange's own
-  `previous_price_dollars` and between two consecutive polls — and every message is labelled with
+  `previous_price_dollars` and between two consecutive readings — and every message is labelled with
   the comparison that produced it. A table view of the same events carries one official API link
   per row. Four paper strategies run automatically on the alerts; no orders are placed.
+  The feed has two possible sources and the status pill always names the one that is running:
+  the Kalshi **WebSocket `ticker` channel** (about one flush per second, reached through
+  `scripts/relay.py`) or the REST poll. A browser cannot open a Kalshi socket itself — the
+  handshake needs headers a page cannot set — so the relay opens it server-side and republishes
+  the frames. Without the relay the page falls back to polling and says so.
 - **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
   simulated trade is scored against the market's own `settlement_value_dollars`, with YES and NO
   entry prices handled as complements and the assumptions (official-schedule fees modelled; no spread,
@@ -111,12 +118,43 @@ Any static server works; ES modules require HTTP, not `file://`:
 python3 -m http.server 8080
 ```
 
+### With the live WebSocket ticker feed (optional)
+
+The plain static server above gives the REST-polled alerts page. To get the
+exchange's own per-second ticker flush instead, run the relay. It needs a
+**demo** API key — create one at <https://demo.kalshi.co> (Account & security →
+API Keys). The key is never written to disk and never sent to the browser.
+
+```bash
+pip install websockets cryptography requests
+
+export KALSHI_KEY_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+export KALSHI_PRIVATE_KEY_PATH=./kalshi-demo-key.pem
+
+python3 scripts/relay.py --port 8080 --auto-universe
+# then open http://localhost:8080/alerts.html
+```
+
+The relay serves the site on the same origin and republishes the Kalshi
+WebSocket frames to the page as Server-Sent Events on `/live/stream`. Without
+it, the page falls back to the REST poll and the status pill says which source
+is running.
+
+To watch the raw ticker stream without the site:
+
+```bash
+python3 scripts/kalshi_ws.py --ticker KXHIGHNY-26NOV20-T74.5
+```
+
+Both scripts are hard-locked to the demo hosts and refuse to talk to production.
+
 ## Verification
 
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
 node --test tests/alerts-core.test.mjs    # alert engine unit tests (18)
+node --test tests/live-core.test.mjs      # live-feed field mapping and $0.10 threshold tests (23)
 node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (10)
 node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests
 (cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures

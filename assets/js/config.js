@@ -172,8 +172,8 @@ export const CANDLE = {
 };
 
 export const RANKING_MODES = [
-  { key: "money", label: "Most money traded (volume × price)",
-    formula: "Σ over markets of volume_fp × last_price_dollars" },
+  { key: "money", label: "Highest volume × last YES price proxy",
+    formula: "Σ over markets of volume_fp (contracts) × last_price_dollars (last YES trade); proxy only, not traded-dollar volume" },
   { key: "oi", label: "Most open interest (contracts)",
     formula: "Σ over markets of open_interest_fp" },
   { key: "volume", label: "Most contracts traded",
@@ -187,7 +187,9 @@ export const RANKING_MODES = [
  * or equal to $0.10 in either direction". Kalshi publishes no "swing" field,
  * so the test is built from two documented fields on every market:
  *
- *   previous_price_dollars  — the price before the exchange's last change
+ *   previous_price_dollars  — the exchange's own reference price (the schema
+ *                             describes it as the last traded YES price a day
+ *                             ago; see Flagged Z1)
  *   last_price_dollars      — the most recent trade price
  *
  * A "swing" is |last − previous| >= threshold. The same test is also applied
