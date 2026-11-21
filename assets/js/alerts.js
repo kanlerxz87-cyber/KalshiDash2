@@ -141,7 +141,10 @@ async function loadUniverse(onProgress) {
     scanned: events.length,
     matchedEvents: matched,
     liveMarkets: markets.length,
-    capped: events.length >= 12 * 200
+    /* getAll() sets __capped when it stopped at its page budget with a
+     * cursor still outstanding. A length check (events.length >= 12*200)
+     * misses the case where the last page returned fewer than 200 rows. */
+    capped: !!events.__capped
   };
   const perTopic = {};
   for (const m of S.universe) perTopic[m._topic] = (perTopic[m._topic] || 0) + 1;

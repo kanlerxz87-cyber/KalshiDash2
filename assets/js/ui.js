@@ -155,7 +155,7 @@ export function mountChrome({ page, title, depth = 0 }) {
   document.body.append(footer);
 }
 
-export const BUILD_DATE = "2026-11-20";
+export const BUILD_DATE = "2026-11-21";
 
 /* ---------------- canvas line chart ----------------
  *

@@ -115,7 +115,7 @@
 <script type="module">
 import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { SOURCES, TOPICS, STRATEGIES as TESTABLE_STRATEGIES } from "./assets/js/config.js";
-import { api, analyseFills } from "./assets/js/market.js";
+import { api, analyseFills, classifyEvent } from "./assets/js/market.js";
 
 mountChrome({ page: "strategies.html", title: "Strategies" });
 
@@ -200,20 +200,18 @@ async function topicForTicker(ticker) {
   for (const c of candidates) {
     if (topicCache.has(c)) return topicCache.get(c);
   }
-  // The reliable path: market -> event -> category.
+  // The reliable path: market -> event -> classifyEvent. This reuses the one
+  // canonical taxonomy (assets/js/market.js + assets/js/config.js) so fills
+  // are filed exactly as the dashboard files events — including the literal
+  // `Culture` category and the gas exclusions (crude / natural-gas / diesel /
+  // Vegas). A hand-rolled regex here previously missed `Culture` and had no
+  // gas exclusions.
   try {
     const mj = await api.get(`/markets/${encodeURIComponent(ticker)}`);
     const m = mj.market || mj;
     const ej = await api.get(`/events/${encodeURIComponent(m.event_ticker)}`);
     const ev = ej.event || ej;
-    const cat = ev.category || "";
-    const title = `${ev.title || ""} ${ev.series_ticker || ""}`;
-    let topic = null;
-    if (/^Elections$/i.test(cat)) topic = "elections";
-    else if (/^Entertainment$/i.test(cat) || /^Social$/i.test(cat)) topic = "culture";
-    else if (/^Crypto$/i.test(cat)) topic = "crypto";
-    else if (/^Sports$/i.test(cat) && /golf|pga|ryder|masters/i.test(title)) topic = "golf";
-    else if (/gas price|gasoline|aaa gas/i.test(title)) topic = "gas";
+    const topic = classifyEvent(ev);
     topicCache.set(ticker, topic);
     return topic;
   } catch {

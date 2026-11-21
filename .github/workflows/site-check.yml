@@ -30,5 +30,7 @@ jobs:
         run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
         run: node --test tests/simulator-core.test.mjs
+      - name: Chart jump-detection unit tests
+        run: node --test tests/jumps.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
