@@ -2448,3 +2448,14 @@ No other session had an open PR or an in-progress claim at claim time (verified 
 | F4 | PR → main, merge, confirm Pages deploy, record run IDs here | unclaimed | `117dc8d6` | same as F1 | `gh`, Pages API | — |
 
 **Claim commit:** this section committed and pushed immediately, before any other work.
+
+### Session `117dc8d6` — completion record (2026-11-21)
+
+| ID | Task | Status | Owner | Files touched | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| F1 | Line-by-line verification vs official docs | done | `117dc8d6` | `reports/verify-117dc8d6.md` (new) | demo env, Get Markets/Market, batch candlesticks, market ticker, orderbook, settlement, Create Order V2 — all fetched and matched; live site fetched (connected, trading active) | F10 partially superseded by relay (W1); left open because flagged counts are DOM-asserted — logged for integration owner |
+| F2 | Full local suite | done | `117dc8d6` | same | Node 78/78 · Python 42/42 · links 35/0 · runtime 17/17 · signing 6/6 · diff-check clean | `live-alerts-check.mjs` TLS failure is sandbox-only; runs on CI |
+| F3 | Liveness audit + fix | done | `117dc8d6` | `suggestions.html` (S8 open→built + callout), `SUGGESTIONS.md` (pointer fix) | brief requirements; official docs | S8 evidence was stale post-PR #88; no test asserts S8 status |
+| F4 | PR → main, merge, Pages confirm | in progress | `117dc8d6` | same | `gh`, Pages API | — |
+
+Full detail: `reports/verify-117dc8d6.md`.
