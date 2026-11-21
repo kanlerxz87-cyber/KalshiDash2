@@ -1703,6 +1703,21 @@ from the page, not hard-coded) · static links **35 pages / 0 broken** · page r
 Sources re-read for this record: [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets),
 [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker).
 
+### F3/F4 final record — merged, live, verified (2026-11-21, UTC)
+
+| Item | Result |
+|---|---|
+| F3 — live-render fix | [PR #64](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/64) merged with `gh pr merge 64 --merge` → `main` commit [`c18b32c`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/c18b32c). `live-site-render` on `main`: **failure** `44878586946` before → **success** `44946257008` on that commit (and **success** `44946770993` on `461aab9`, confirming it stays green). `Static site link check` `44946257002` pass. |
+| F4 — PR #60 | **Closed, not merged — it is unmergeable by anyone.** `git merge-tree --write-tree origin/main origin/arena/9543cf0d-kalshidash2` → `fatal: refusing to merge unrelated histories`: `main`'s root commit `bbdc3a0` is a squashed snapshot and shares no ancestor with that branch, so no rebase can make it mergeable. Content ported instead in [PR #73](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/73) → `main` commit [`8a13530`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/8a13530), credited to session `9543cf0d`. Explanatory comment posted on PR #60 (comment `7068832084`); by the time `gh pr close 60` ran, another session had already closed it. |
+| Ported from PR #60 | `assets/js/live-feed.js`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py` (+ CI step), `404.html`, new flag **W4**, W1/Q10 rewording. **Not** ported: `paused` in the Get Markets filter (contradicted by the official page), Q10's ticker flush rate (not documented), and the older `06:28Z` snapshot copies (main has `19:29Z`). |
+| Live-site verification (end-to-end, after merge) | `fetch_page` on the published pages: `https://kanlerxz87-cyber.github.io/KalshiDash2/404.html` serves the ported 404 page; `…/flagged.html?v=20261121b` serves the corrected **W1** ("State fix … verified with fixtures only") and the new **W4**. The first read without a cache-buster returned the pre-merge CDN copy, which is why the page was re-read. |
+| Pages deploy | Pages API `status: built`, source `main/`, `build_type: legacy`; builds `built` for `42f412f`, `0e45e17` and the current `9a12909`. |
+| Pages incident (diagnosed) | Alternating `errored` / `Page build failed.` builds with **`duration: 0`** — rejected before Jekyll ran — appeared under bursts of pushes from parallel sessions (eight pushes to `main` inside one hour). Excluded as causes: repo size (1.7 MB), symlinks, `160000` gitlinks, invalid UTF-8 in text files, unsupported filenames, Liquid delimiters outside `.github/`. Each burst self-healed on a later build with no file change, so this is recorded as a build-service/quota effect, **not a site defect**; no site file was altered in response. |
+| Local suite on the fully ported tree | `node --test` **73/73** · `tools` unittest **28 OK** · `tests` unittest **20 OK (3 skip)** · alerts DOM **16/16** · summary DOM pass (20 requirement areas, 78/89 claims verified, **33 open / 23 mitigated / 56 flags** with W4, 28 sourced rows) · static links **35 pages / 0 broken** · page runtime **17/17**. |
+| Sources re-read this session | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) (status filter = `unopened`/`open`/`closed`/`settled` only), [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker) (API key required at handshake; channel needs no further auth; ticker payload has no `previous_price_dollars`), [Kalshi rate limits](https://docs.kalshi.com/getting_started/rate_limits). |
+| Overlap logged for other sessions | [PR #77](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77) describes itself as "(PR #60 re-landed)" while this session had already landed that content in #73 — a comment was posted on #77 listing what is already on `main` (W4, `live-feed.js`, `relay.py`, the two test files, `404.html`) so it is not duplicated. [PR #75](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/75) and [PR #70](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/70) are other sessions' work and were not touched. |
+| Handover state | `main` was at `9a12909` when this record was written, with this session's work intact there (verified by reading the files at `origin/main`: `id="W4"`, `upstreamConnected`, `PAGE NOT FOUND`, `fetchWithRetry` all present). F1–F4 **done**. |
+
 ## Session `29749918` — gas-price classification audit against the live demo API (branch `arena/29749918-kalshidash2`, 2026-11-21)
 
 **Board read before starting.** Open claims on `main` at `bbdc3a0`: `f2176447` (F1–F4: `tests/dom/live-site.mjs`, PR #60 takeover, final integration) — **not touched here**. PR #60 (`arena/9543cf0d`) is open and conflicting; not touched here.
@@ -1874,6 +1889,74 @@ active session at the time of this edit; PRs #60, #69 and #70 were inspected fir
 | Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
 | Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
 
+
+## Session `5a9b44b9` — independent verification + collector taxonomy alignment
+
+Branch: `arena/5a9b44b9-kalshidash2`, rebased onto `main` `91754f1` (originally branched from `bbdc3a0`).
+Report: `reports/review-5a9b44b9.md` (sources, findings R1–R7, reproducible checks).
+
+**Coordination note.** When this session started, `f2176447` had just claimed final integration
+(F1–F4: `tests/dom/live-site.mjs`, PR #60, merges). This session took **no** part of that scope and
+did not touch `tests/dom/live-site.mjs`, PR #60, or `flagged.html`. Four further sessions merged
+while it worked; the branch was rebased and every duplicate of their work was dropped.
+
+| ID | Task | Status | Owner | Files touched | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| V1 | Verify the five-topic rules and every official `SOURCES` URL; publish an independent line-by-line report | **done** | `5a9b44b9` | `reports/review-5a9b44b9.md` (new) | Fetched 2026-11-21: [llms.txt](https://docs.kalshi.com/llms.txt), [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) (+ candlesticks, websocket index). All 28 `SOURCES` URLs matched the official index | See R2, R5, R6 |
+| V2 | Align `scripts/collect.py` with the dashboard taxonomy | **done** | `5a9b44b9` | `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` (one note string) | Official `/series` parameters only for discovery; local narrowing mirrors `assets/js/config.js`. Replay over the committed snapshot: 17 gasoline series kept, 23 oil/energy/natgas/diesel/power rows dropped; Culture now queries Culture + Social + Entertainment | Removes rows the dashboard already excludes; adds nothing |
+| V3 | Correct three published statements contradicted by the repo's own evidence | **done** | `5a9b44b9` | `assets/js/claims.js` (gas-category evidence), `assets/js/config.js` (undated Election/Crypto counts), `questions.html` (Q2 `Culture` category) | Evidence: `data/probe/api_surface.json`, `reports/verify-facts-v3.md` §G, `data/snapshot.json`; details in report §3 R4 | Scope amended after the fact — see disclosure below |
+| V4 | Verify the regenerated snapshot after the `collect` workflow runs on `main` (culture non-empty, gas gasoline-only) | unclaimed — blocked until this branch merges | — | this section | `gh workflow run collect`, run logs, `data/snapshot.json` | If live filters return no Culture series, record the finding; do not work around it |
+
+**Scope-amendment disclosure (required by the board):** V3's files (`claims.js`, `config.js`,
+`questions.html`) were not in the advance claim (which covered `scripts/collect.py`,
+`tools/test_collect.py`, `data/snapshot.json`, a new report and this board). No other session held
+them (`grep` of open PRs: PR #72 owns `flagged.html`, PR #73 owns `tests/dom/live-site.mjs`). They
+were edited because they publish statements contradicted by committed evidence; each correction is
+listed with its source in the report. No other session's work was replaced.
+
+**Conflict log (required):**
+
+| Collision | Resolution |
+|---|---|
+| `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` — session `e2718295` had already fixed the two red metadata checks on `main` (`4df6552`, `f25ecd7`) with a `DERIVATION_NOTES` single source + drift test + CI gate | Kept **main's** canonical fix; dropped this session's duplicate sentence-level test changes entirely. Re-applied only the taxonomy change on top of the new structure, and updated the one `topic_rules` note string so the new drift test passes. `diff` proves no other snapshot line changed. |
+| Five open PRs (#60, #70, #71, #72, #73, #74) and 25 new commits on `main` while this session worked | Rebased onto `91754f1` (no merge of other branches, no force-push over a CI report commit; this branch's own history was reset only after saving its files). `COORDINATION.md` re-appended rather than merged, so no session's section was rewritten. |
+
+**Checks on the rebased tree:** `node --test` 73/73 · Python tools 33/33 (30 from `main` + 3 new
+taxonomy tests) · `tests/` 18 OK / 3 skipped (`cryptography` unavailable) · alerts DOM 16/16 ·
+summary DOM pass (78/89 verified · 8 partial · 3 unverified; flags 32 open / 23 mitigated / 55
+total) · page-runtime 17/17 (34 links) · static link check 34 pages / 0 broken · signing self-test
+6/6 · `git diff --check` clean. `tests/dom/live-site.mjs` was not run to completion: it needs live
+Kalshi network access, which this sandbox does not have (recorded by every prior session).
+
+**Requests to the integration session** (also in report §6): publish R2 (demo `Entertainment`
+category carrying the natural-gas series `KXNATGASD`), R5 (`collect.yml` header mentions a
+"site offline fallback" that no page reads) and R6 (five-page `/series` discovery cap) on
+`flagged.html`; dispatch `collect` after merge and confirm Gas/Culture counts (V4).
+
+### Rebase record #2 — integrating session `32b15793` (AB1: `KXGAS`) — session `5a9b44b9`
+
+`main` moved twice more during this session (PR #71 `32b15793`, PR #72 `e2718295`, plus `[skip ci]`
+report commits). The branch was rebased onto `9a12909`; nothing was reverted.
+
+- **Adopted, not duplicated:** `32b15793`'s taxonomy fix. `assets/js/config.js` now matches
+  `KXAAAGAS*`, `AAAGAS*` (via title) and `KXGAS`, with tightened title patterns — that is `main`'s
+  version and this session's earlier gas `seriesPatterns`/`titlePatterns` text was **not** restored.
+- **Extended to the collector:** because `32b15793` found `KXGAS` only via
+  [Get Series](https://docs.kalshi.com/api-reference/market/get-series) (`GET /series/KXGAS`), and
+  `grep -c KXGAS data/snapshot.json` returns **0**, the tag-based collector could never have captured
+  it. `scripts/collect.py` now performs that documented direct lookup (`direct_series: ["KXGAS"]`) in
+  addition to the category discovery, then applies the same gasoline rule. New test:
+  `test_gas_uses_official_categories_then_the_gasoline_rule` asserts the `/series/KXGAS` call and that
+  the row is kept.
+- `assets/js/claims.js` gas entry now names all three families (`KXAAAGAS*`, `AAAGAS*`, `KXGAS`) and
+  records that `KXGAS` is fetched by ticker because it carries no tag.
+- `reports/review-5a9b44b9.md` updated: source S3b (Get Series), KXGAS evidence, gas rule text.
+
+Checks after rebase #2: `node --test` 73/73 · Python tools 33/33 · static links 35 pages / 0 broken ·
+page-runtime 17/17 · summary DOM pass · alerts DOM 16/16. Flagged items now **R2, R5, R6** (status
+`needs review` — publication on `flagged.html` belongs to the integration session, which currently
+owns that file via its own PRs).
+
 ## Session `970aabdb` — independent audit of the published site (2026-11-21)
 
 Branch: `arena/970aabdb-kalshidash2`, branched from `main` at `bbdc3a0`
@@ -1910,3 +1993,4 @@ file list). The fix is one table cell. `simulator.html` is therefore added to th
 exclusive scope. Nothing else in the site is edited.
 
 **Claim commit:** this section is committed and pushed immediately, before any other work.
+
