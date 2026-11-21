@@ -252,7 +252,7 @@
         not be guessed at:</p>
       <ul style="margin:6px 0 6px 18px">
         <li>the <a href="alerts.html">Live alerts</a> page keeps the <strong>top 30 markets per topic</strong>
-          by money traded, and rescans the open-event list every 10 minutes;</li>
+          by volume × last YES price proxy, and rescans the open-event list every 10 minutes;</li>
         <li>the reusable engine behind the <a href="simulator.html">paper trader</a> reads at most
           <strong>six pages of 200 open events — 1,200 events</strong> per poll.</li>
       </ul>
@@ -352,7 +352,7 @@
 
     <div class="irregularity" id="A6">
       <h3>A6 — The alert universe is partial by design <span class="tag yes">mitigated</span></h3>
-      <p><strong>What was found:</strong> the page watches the top 30 open markets per topic by money traded, and scans at most 12 pages of 200 open events. A market outside the top 30 can move ≥ $0.10 without an alert.</p>
+      <p><strong>What was found:</strong> the page watches the top 30 open markets per topic by volume × last YES price proxy, and scans at most 12 pages of 200 open events. A market outside the top 30 can move ≥ $0.10 without an alert.</p>
       <p><strong>Status here:</strong> the page states the universe, the scanned event count, and a warning when the scan may have hit its page limit.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a></p>
     </div>
@@ -383,6 +383,26 @@
       <p><strong>What was found:</strong> the DOM test harness previously locked esbuild 0.24.2, affected by GHSA-67mh-4wv8-2f99. The advisory describes a development-server issue where websites can send requests to the server and read responses; it lists versions through 0.24.2 as affected and 0.25.0 as the first patched version.</p>
       <p><strong>Mitigation:</strong> the test-only dependency was upgraded to 0.25.0. On 2026-11-21, <code>npm audit --prefix tests/dom</code> reported zero vulnerabilities and both DOM regression suites passed. This check does not guarantee the absence of future vulnerabilities. The harness uses esbuild for bundling tests and does not start its development server; esbuild is not a runtime dependency of the static site.</p>
       <p class="small"><strong>Official source:</strong> <a class="src-link" href="https://github.com/advisories/GHSA-67mh-4wv8-2f99" target="_blank" rel="noopener noreferrer">GitHub Security Advisory GHSA-67mh-4wv8-2f99 ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A11">
+      <h3>A11 — Dollar-activity ranking is a proxy, not actual dollars traded <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the dashboard ranks by Σ(<code>volume_fp</code> × <code>last_price_dollars</code>). Kalshi defines <code>volume_fp</code> as contract volume and <code>last_price_dollars</code> as the last traded YES-contract price. Multiplying cumulative contracts by the current last price is a project-defined proxy; it is <strong>not</strong> the sum of the dollar consideration of completed trades.</p>
+      <p><strong>Related field:</strong> <code>notional_value_dollars</code> is documented as the total value of a single contract at settlement. It is not an aggregate traded-dollar field. The Get Trades API returns individual trades, but this dashboard does not yet aggregate them into a clearly defined, windowed dollar-volume metric.</p>
+      <p><strong>Status here:</strong> the overview, category pages and alert-universe text now label the current ranking as a volume × price proxy. It remains a limitation against the exact "highest dollar amount" requirement; do not interpret it as cash traded.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="A12">
+      <h3>A12 — Snapshot over-described a capped YES-price product as exact traded notional <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>scripts/collect.py</code> summed <code>yes_price_dollars × count_fp</code> over at most 3,000 rows from <code>GET /markets/trades</code> (without a <code>min_ts</code> time bound), but called the result "exact traded notional" and described contract counts as gross dollar notional.</p>
+      <p><strong>Correction:</strong> the collector comments and metadata now describe contract counts as counts and name the limited calculation <code>sampled_yes_price_times_contracts</code>. The captured snapshot's numeric results were preserved as arithmetic from returned fields, but re-labelled; they are not represented as complete or all-side cash turnover. The former unsupported statement that every contract equals $1 of gross traded notional was removed.</p>
+      <p><strong>Residual limitation:</strong> the snapshot is historical, capped, and side-agnostic for that derived product. It is not a live or comprehensive traded-dollar total. No unsupported value is substituted for it.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market fields ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades schema and pagination ↗</a></p>
     </div>
 
     <div class="irregularity" id="R1">

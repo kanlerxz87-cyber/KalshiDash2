@@ -229,10 +229,10 @@ def main() -> int:
     for key, spec in TOPICS.items():
         raw, urls = collect_series(client, key, spec)
         series_urls[key] = sorted(set(urls))
-        # Official volume_fp is a fixed-point contract count; 1 contract has a
-        # $1.00 notional (notional_value_dollars on every market), so contracts
-        # are numerically equal to gross dollar notional. Sorting is therefore
-        # on a real dollar amount, not an estimate.
+        # Official volume_fp is a fixed-point contract count. Use it only for
+        # preliminary series selection; it is not traded-dollar volume. The
+        # live dashboard's separate volume × current-price ranking is itself a
+        # proxy, not an exchange-reported notional (see flagged.html#A11).
         raw.sort(key=lambda s: float(s.get("volume_fp") or 0), reverse=True)
         series_by_topic[key] = raw
         topics[key] = {
@@ -274,11 +274,13 @@ def main() -> int:
                     mm["_event_title"] = ev.get("title", "")
                     mm["_source"] = f"{BASE}/markets/{m['ticker']}"
 
-    # ------------------------------------------------------- traded notional
-    # Exact traded notional from the official trades feed:
-    #   notional = SUM(yes_price_dollars * count_fp) over the sampled window.
+    # --------------------------------------------------- sampled trade product
+    # This is only the explicit arithmetic product SUM(yes_price_dollars *
+    # count_fp) over the newest trades returned by this capped request. There
+    # is no time bound; the fetch is limited to 3 pages × 1000 rows. The result
+    # is NOT described as actual all-side cash turnover or complete volume.
     trades, trade_urls = client.paginate("/markets/trades", "trades", {"limit": 1000}, max_pages=3)
-    notional: dict[str, dict] = {}
+    trade_products: dict[str, dict] = {}
     for t in trades:
         tk = t.get("ticker")
         if not tk:
@@ -288,9 +290,9 @@ def main() -> int:
             qty = float(t.get("count_fp") or 0)
         except (TypeError, ValueError):
             continue
-        n = notional.setdefault(tk, {"notional_dollars": 0.0, "contracts_fp": 0.0, "trades": 0,
+        n = trade_products.setdefault(tk, {"yes_price_times_contracts": 0.0, "contracts_fp": 0.0, "trades": 0,
                                      "last_trade_time": None})
-        n["notional_dollars"] += px * qty
+        n["yes_price_times_contracts"] += px * qty
         n["contracts_fp"] += qty
         n["trades"] += 1
         lt = t.get("created_time")
@@ -365,8 +367,8 @@ def main() -> int:
         mk_rows = []
         for t in mk_ids:
             m = dict(markets[t])
-            n = notional.get(t)
-            m["_traded_notional_dollars"] = round(n["notional_dollars"], 2) if n else None
+            n = trade_products.get(t)
+            m["_sampled_yes_price_times_contracts"] = round(n["yes_price_times_contracts"], 2) if n else None
             m["_traded_contracts_fp"] = round(n["contracts_fp"], 2) if n else None
             m["_trade_count"] = n["trades"] if n else None
             m["_last_trade_time"] = n["last_trade_time"] if n else None
@@ -395,17 +397,16 @@ def main() -> int:
             "api_calls": client.calls,
             "errors": client.errors[:20],
             "derivation_notes": {
-                "dollar_volume": (
+                "contract_volume": (
                     "volume_fp / volume_24h_fp / open_interest_fp are fixed-point contract "
-                    "counts. Every market reports notional_value_dollars = 1.0000, so one "
-                    "contract carries exactly $1.00 of notional and a contract count is "
-                    "numerically equal to gross dollar notional. No price weighting is "
-                    "applied."
+                    "counts. These fields are not converted to traded-dollar volume."
                 ),
-                "traded_notional_dollars": (
-                    "Exact: SUM(yes_price_dollars * count_fp) over every trade returned by "
-                    "GET /markets/trades in the sampled window (3 pages x limit 1000). "
-                    "Only populated for tickers that appear in that window."
+                "sampled_yes_price_times_contracts": (
+                    "Computed arithmetic: SUM(yes_price_dollars * count_fp) over up to "
+                    "3 pages x limit 1000 from GET /markets/trades. No min_ts time bound is "
+                    "passed; pagination is capped. This is not asserted as actual all-side "
+                    "cash turnover or complete market activity. Only returned trade tickers "
+                    "receive a value."
                 ),
                 "ranking": "events/markets sorted by volume_24h_fp desc, then volume_fp desc.",
                 "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching.",

@@ -242,7 +242,10 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
 
 /* ---------------- ranking ---------------- */
 
-export function moneyTraded(m) {
+/* Project-defined volume-price proxy, not actual dollars traded. Kalshi documents
+ * volume_fp as contracts and last_price_dollars as the last traded YES price.
+ * The product is a ranking convention, not an exchange-reported dollar-volume field. */
+export function volumePriceProxy(m) {
   // Both inputs are API values. When either is missing, the money figure is
   // not derivable, so the row is flagged rather than guessed. (Defaulting a
   // missing volume to 0 would report $0.00 for a market that simply never
@@ -268,7 +271,7 @@ export function rankEvents(events, mode = "money") {
     for (const m of ms) {
       volume += num(m.volume_fp) || 0;
       oi += num(m.open_interest_fp) || 0;
-      const mt = moneyTraded(m);
+      const mt = volumePriceProxy(m);
       if (mt.derivable) money += mt.value; else missingPrice++;
     }
     return {

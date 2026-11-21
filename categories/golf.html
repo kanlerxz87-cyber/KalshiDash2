@@ -26,7 +26,7 @@
     <h2>Live board</h2>
     <div class="toolbar">
       <div class="segmented" id="board-mode" role="group" aria-label="Rank by">
-        <button data-mode="money" aria-pressed="true">Money traded</button>
+        <button data-mode="money" aria-pressed="true">Volume × price proxy</button>
         <button data-mode="oi" aria-pressed="false">Open interest</button>
         <button data-mode="volume" aria-pressed="false">Contracts</button>
       </div>
@@ -36,15 +36,16 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Event</th><th class="num">Markets</th><th class="num">Money traded</th>
+          <th>Event</th><th class="num">Markets</th><th class="num">Volume × price proxy</th>
           <th class="num">Open interest</th><th class="num">Contracts</th><th>Closes</th><th>Result</th><th>Actions</th><th>Official source</th>
         </tr></thead>
         <tbody id="board-body"><tr><td colspan="9"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
       <div class="table-note">
-        <strong>Money traded</strong> is calculated as volume<sub>fp</sub> × last_price_dollars per market,
-        summed over the event. Both inputs come from
-        <a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events?with_nested_markets=true ↗</a>.
+        <strong>Volume × price proxy</strong> is a project-defined proxy: volume<sub>fp</sub> × last_price_dollars per market,
+        summed over the event. It is <strong>not actual dollars traded</strong>; Kalshi documents volume as contracts
+        and last_price as the last traded YES price. Both inputs come from
+        <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market fields ↗</a>.
       </div>
     </div>
   </div>

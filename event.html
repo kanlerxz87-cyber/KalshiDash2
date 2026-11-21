@@ -22,13 +22,13 @@
   <div class="card">
     <h2>Markets in this event</h2>
     <p class="sub">One row per market. Prices, sizes and results are copied from the API; nothing is derived
-      except <em>money traded</em>, which is labelled with its formula.</p>
+      except the project-defined <em>volume × last YES price proxy</em>, which is not actual traded-dollar volume and is labelled with its formula.</p>
     <div class="table-wrap">
       <table>
         <thead><tr>
           <th>Market</th><th>Status</th><th class="num">Last</th><th class="num">YES bid</th>
           <th class="num">YES ask</th><th class="num">Open interest</th><th class="num">Volume</th>
-          <th class="num">Money traded</th><th>Result</th><th>Actions</th><th>Official source</th>
+          <th class="num">Volume × price proxy</th><th>Result</th><th>Actions</th><th>Official source</th>
         </tr></thead>
         <tbody id="ev-markets"><tr><td colspan="11"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
@@ -101,18 +101,18 @@ async function load() {
       ${topic ? `topic <a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : "outside the five tracked topics"}
       ${src(SOURCES.events, "events API")}`;
 
-    let volume = 0, oi = 0, moneyTraded = 0, noPrice = 0;
+    let volume = 0, oi = 0, volumePriceProxy = 0, noPrice = 0;
     for (const m of markets) {
       volume += num(m.volume_fp) || 0;
       oi += num(m.open_interest_fp) || 0;
       const px = num(m.last_price_dollars);
       const vol = num(m.volume_fp);
-      if (px === null || vol === null) noPrice++; else moneyTraded += px * vol;
+      if (px === null || vol === null) noPrice++; else volumePriceProxy += px * vol;
     }
     const resolved = markets.filter(m => ["yes", "no"].includes((m.result || "").toLowerCase())).length;
     $("#ev-stats").innerHTML = [
       { k: "Markets", v: int(markets.length), m: "in this event" },
-      { k: "Money traded", v: money(moneyTraded), m: noPrice ? `${noPrice} market(s) without a price` : "Σ volume × last price" },
+      { k: "Volume × price proxy", v: money(volumePriceProxy), m: noPrice ? `${noPrice} market(s) without a price` : "Σ contracts × last YES price (proxy)" },
       { k: "Open interest", v: int(oi), m: "contracts" },
       { k: "Resolved", v: `${int(resolved)} / ${int(markets.length)}`, m: "exchange reported yes/no" }
     ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");

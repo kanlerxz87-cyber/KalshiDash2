@@ -119,7 +119,7 @@ const Q = [
     q: "Which live events count as \"highest dollar amount\"?",
     know: "The API exposes volume_fp (contracts), open_interest_fp (contracts) and last_price_dollars (dollars) per market. There is no single \"dollars traded\" field.",
     dontknow: "Whether \"dollars\" means money changing hands, open exposure, or contract count — the three rank markets differently.",
-    answer: "No single reading is provable from the API, so the dashboard ranks by all three and states the formula used for each. The default, money traded = Σ(volume × last price), is computed by this site and labelled as computed, never presented as an API field.",
+    answer: "No single reading is provable from these fields as exact traded dollars. The dashboard ranks by the volume × last YES-price proxy, open interest, and contract volume, and states each formula. The volume-price proxy is computed by this site; it is not presented as exchange-reported traded-dollar volume.",
     action: "Decide which definition is the business metric; the site already lets the ranking switch without code changes.",
     sources: [`${D}/api-reference/market/get-markets`, `${D}/api-reference/events/get-events`]
   },
