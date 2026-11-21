@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-21T23:12:15.913Z
+- Run at: 2026-11-21T23:26:48.577Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -21,6 +21,7 @@
 | --- | --- | --- | --- |
 | `KXNEWPOPE-70-LANT` | 0.18 | 0.98 | +0.80 |
 | `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
+| `KXGTA6SONGS-30-MOB` | 0.54 | 0.63 | +0.09 |
 | `KXPERFORMBONDSONG-35-ELT` | 0.91 | 0.89 | -0.02 |
 | `KXNEWPOPE-70-PPIZ` | 0.10 | 0.10 | 0.00 |
 | `KXNEWPOPE-70-PPAR` | 0.54 | 0.54 | 0.00 |
@@ -28,15 +29,14 @@
 | `KXNEWPOPE-70-MZUP` | 0.10 | 0.10 | 0.00 |
 | `KXNEWPOPE-70-PERD` | 0.38 | 0.38 | 0.00 |
 | `KXNEWPOPE-70-AARB` | 0.10 | 0.10 | 0.00 |
-| `KXNEWPOPE-70-ZQ01` | 0.00 | 0.00 | 0.00 |
 
 ## 2 · Strategy tester
 
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 7
-- History requests that failed: 5
+- Markets with usable one-minute history: 11
+- History requests that failed: 0
 - Simulated trades produced: 3
 
 | Strategy | Trades | Wins | Losses | Hit rate | Avg entry price | P&L / contract | ROI |
