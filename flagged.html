@@ -1107,8 +1107,8 @@
       <p><strong>Fixed 2026-11-21 (session <code>c33971c1</code>):</strong> the taxonomy now resolves
         <code>GET /series/{series_ticker}</code> for the series behind each event, reads its
         <code>categories[]</code> list together with its primary <code>category</code>, and classifies from
-        that. Each lookup is cached for the life of the page and capped per scan (60 series), because public
-        reads are rate-limited. The deprecated event field survives only as a <em>labelled fallback</em>:
+        that. Each lookup is cached for the life of the page and capped per scan (30 series, spent on the series with the most events), because
+        public reads are rate-limited. The deprecated event field survives only as a <em>labelled fallback</em>:
         <code>classifyEventWithBasis()</code> returns <code>basis: "series" | "event" | "none"</code>, the alert
         page prints the tally it used ("topic came from the series record for N events, and from the deprecated
         event <code>category</code> field for M"), and <code>tests/taxonomy.test.mjs</code> pins the precedence so
@@ -1504,6 +1504,33 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market (notional_value_dollars) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Z4">
+      <h3>Z4 — One live-engine-check run failed while five workflows started on the same push; the identical code passed on re-run <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the push that carried this session's merge to <code>main</code> started five
+        workflows at once (<code>verify-alerts</code>, <code>live-engine-check</code>, <code>live-site-render</code>,
+        <code>verify-live-site</code>, <code>Static site link check</code>). Four passed;
+        <code>live-engine-check</code>
+        (<a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961672766" target="_blank" rel="noopener noreferrer">run 44961672766</a>,
+        commit <code>519de08</code>) exited <code>1</code> at its first gate — the one that fires only when
+        <code>engine.errors</code> is non-empty, i.e. when its own scan of the demo API did not complete.</p>
+      <p><strong>What was ruled out:</strong> the failure is not the series-category lookups added by this session.
+        Those run <em>after</em> the events scan inside the same poll, and each lookup failure is caught inside
+        <code>fetchSeriesCategories()</code>, so it cannot populate <code>engine.errors</code>; the gate that fired
+        precedes them.</p>
+      <p><strong>Re-run:</strong> the same <code>main</code> commit was re-dispatched —
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961815807" target="_blank" rel="noopener noreferrer">run 44961815807</a>,
+        commit <code>fc73a72</code> (same engine code) — and <strong>passed in 18 s</strong>, writing its report.
+        Consistent with the scenario the rate-limit page describes: unauthenticated traffic is limited separately
+        and no numeric budget is published (flag A8/F3), so a burst of five concurrent scans can be throttled.</p>
+      <p><strong>Why it is flagged:</strong> "the API was not reachable" and "we were throttled" produce the same
+        exit code here, and the run log was not retrievable from this container (the log-blob download failed with
+        <code>EOF</code>), so the cause is <em>inferred from timing and from the successful re-run</em>, not read
+        from the error text. Anyone reviewing this can confirm it in one click.</p>
+      <p><strong>What would close it:</strong> the run log for <code>44961672766</code> showing a <code>429</code>
+        (throttling) or a network error (transport), and — if it is throttling — spacing the five workflows so
+        they do not scan simultaneously.</p>
     </div>
 
     <h2>What is <em>not</em> flagged</h2>
