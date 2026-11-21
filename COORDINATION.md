@@ -1551,3 +1551,52 @@ No new irregularities found this session. Pre-existing flags on `flagged.html` c
 | Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
 
 Session `0d6f4f1f` is complete: R1–R2 **done**.
+
+---
+
+---
+
+---
+
+## Session `29749918` — gas-price classification audit against the live demo API (branch `arena/29749918-kalshidash2`, 2026-11-21)
+
+**Board read before starting.** Open claims on `main` at `bbdc3a0`: `f2176447` (F1–F4: `tests/dom/live-site.mjs`, PR #60 takeover, final integration) — **not touched here**. PR #60 (`arena/9543cf0d`) is open and conflicting; not touched here.
+
+**Claim (written and committed before any other edit):**
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|----------------------------------|------------------------|
+| GC1 | Re-check flag **F4** ("no open gas-price markets on the demo") against the live demo REST API, and audit the two gas-classification rules that disagree: `scripts/collect.py` (official tags `Gas`, `Oil & Gas`, `Oil and energy`) vs `assets/js/config.js` `CATEGORIES.gas` (series regex `^KXA{3}GAS`). Record every gas-related series/event/market found, its official `tags`/`category`/`settlement_sources`, and whether each rule includes or excludes it. | **done** | `29749918` | `reports/gas-coverage-29749918.md` (new), `COORDINATION.md` (this section) | `fetch_page` on `external-api.demo.kalshi.co/trade-api/v2/*` (sandbox `curl` cannot reach kalshi hosts; `fetch_page` can), and [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) | Read-only on site code. Any defect found is logged here as a request to the owner of `config.js` / `collect.py` / `flagged.html`, not edited. |
+
+### GC1 record — session `29749918` (2026-11-21, UTC)
+
+**Result:** full write-up in [`reports/gas-coverage-29749918.md`](reports/gas-coverage-29749918.md). Every row there links an official source (demo REST URLs, [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), [Get Market](https://docs.kalshi.com/api-reference/market/get-market.md), and the EIA weekly retail gasoline page for `KXGAS`).
+
+| Check | Outcome |
+|---|---|
+| F4 ("no open gas-price markets on the demo") | **Superseded.** Live demo API on 2026-11-21 returns open, `active` AAA gas events: `KXAAAGASW-26NOV23`, `KXAAAGASD-26NOV22`, `KXAAAGASM-26NOV30`, `KXAAAGASM-26DEC31`, `KXAAAGASWNJ-26NOV23`. |
+| Browser rule vs collector rule | Disagree. Applied to the 40 stored gas series in `data/snapshot.json`: 17 match both, **23 match only the collector** (WTI, Brent, natural gas, diesel, ERCOT electricity, solar, oil rigs, SPR…), 0 browser-only. |
+| Gasoline series missed by both rules | `KXGAS` ("Gas weekly", settlement source EIA U.S. weekly retail gasoline). No open events at fetch time. |
+| Non-prefixed gasoline family | `AAAGASM` is matched only through its title (`US gas price`), not its ticker. |
+| Quote freshness | `updated_time` is defined by the official schema as the last *non-trading metadata* update. It is **not** a quote time, so the 2026-11-15 `updated_time` on `KXAAAGASW` does not prove staleness. |
+| Checks run | `python3 tools/check_site_links.py .` → 34 HTML pages, 0 broken. No code changed, so the test suites were not re-run. |
+
+**Irregularities / requests (logged, not edited — each belongs to a file another session owns or to the integration session):**
+
+| ID | Request | Owner / file |
+|----|---------|--------------|
+| GC-I1 | Re-title or close **F4** on `flagged.html` with the evidence in `reports/gas-coverage-29749918.md` §3. | integration session (`flagged.html`) |
+| GC-I2 | Pick one gas definition for both the snapshot and the browser board; the two currently disagree (§5). | `scripts/collect.py` `TOPICS["gas"]`; `assets/js/config.js` |
+| GC-I3 | The collector's `gas` label includes non-gasoline markets (crude, natgas, diesel, electricity, solar). Narrow the filter or relabel as "Energy & commodities". | `scripts/collect.py`; `data/snapshot.json` (regenerated only by the `collect` workflow) |
+| GC-I4 | Add the exact ticker `KXGAS` (EIA weekly retail gasoline) to the gas rule. | `assets/js/config.js` |
+| GC-I5 | Add `^AAAGAS` to the gas series patterns so `AAAGASM` does not depend on title wording. | `assets/js/config.js` |
+| GC-I6 | Do not label `updated_time` as a quote time on any page. | any page that shows it |
+
+Limitations: single point in time (2026-11-21 UTC); a sample of series families, not a full count of the browser's bounded 2,400-event scan; reads were made through the page-fetch tool because sandbox `curl` cannot reach Kalshi hosts. Manual browser checks of the URLs in the report reproduce the same results.
+
+
+### Conflict / handoff log — session `29749918` (2026-11-21, UTC)
+
+- **Rebase conflict on `COORDINATION.md`:** `origin/main` advanced to `882e074` (PR #63, session `0d6f4f1f`, R1 snapshot-note fix). My claim commit conflicted (add/add on the append-only board). Resolved with `tools/resolve_board_conflict.py`: 1 block unioned, 0 duplicate sections dropped, 0 markers left, all 19 `main` session sections present. Nothing from `main` discarded.
+- **Overlap check with R1:** R1 changes only derivation-note strings in `scripts/collect.py` and `data/snapshot.json`. My GC-I2/GC-I3 concern the gas tag filter (`TOPICS["gas"]`), a different line. No substantive overlap.
+- **Own-branch history rewrite:** a chained `git pull --rebase; git push` ran while the rebase was still paused and pushed my pre-rebase GC1 commit `8c7e8f2` to `arena/29749918-kalshidash2`. The rebased branch was then rejected as non-fast-forward. Replaced **only my own** superseded commits with `git push --force-with-lease=arena/29749918-kalshidash2:8c7e8f2` (lease pinned to that exact SHA). No other session's commits are on this branch.
