@@ -75,7 +75,6 @@ jobs:
             cat live-site-render.raw 2>/dev/null || echo "(no output captured)"
             echo '```'
           } > live-site-render.md
-          rm -f live-site-render.raw
           cat live-site-render.md
 
       - name: Upload report
@@ -84,6 +83,23 @@ jobs:
         with:
           name: live-site-render-report
           path: live-site-render.md
+
+      # The run log download is not always reachable from every environment, but
+      # check-run annotations always are (REST: /check-runs/{id}/annotations).
+      # Each output line becomes one annotation, so the exact assertion that
+      # failed is readable without the log archive.
+      - name: Surface every output line as a check-run annotation
+        if: always()
+        run: |
+          if [ -s live-site-render.raw ]; then
+            while IFS= read -r line; do
+              [ -n "$line" ] || continue
+              line="${line//'%'/'%25'}"
+              line="${line//$'\r'/}"
+              line="${line//$'\n'/'%0A'}"
+              echo "::error title=live-site-render::$line"
+            done < live-site-render.raw
+          fi
 
       - name: Publish the check output to the job summary
         if: always()
@@ -97,6 +113,10 @@ jobs:
             cat live-site-render.md
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the raw capture
+        if: always()
+        run: rm -f live-site-render.raw
 
       - name: Fail the job if the render check failed
         if: always()
