@@ -1,7 +1,7 @@
 # Independent current-site audit — session `f468e69b`
 
 **Checked:** 2026-11-21 UTC  
-**Initial review base:** `cc9112b974f9957c4ddcacbe606b79e142b7cb4f` (PR #88 merge); the branch was then rebased onto `70744d5a802e238f6e0d8742a9abebfc1158dd5a` (PR #89 merge) and deployment/render checks were repeated against that latest `main` SHA.
+**Initial review base:** `cc9112b974f9957c4ddcacbe606b79e142b7cb4f` (PR #88 merge); the branch was rebased onto `70744d5a802e238f6e0d8742a9abebfc1158dd5a` (PR #89 merge) and then onto `afc2c0bf25e9cd873e7130193303fce8f40ebf30` after PR #92 merged. The current deploy, live-page probe and live-render checks were confirmed after the integration merge.
 
 **Live Pages URL:** <https://kanlerxz87-cyber.github.io/KalshiDash2/>  
 **Scope:** current published root site, primary API claims, test suites, Pages configuration and latest deployment checks. This is a fresh cross-check of the current release, not a claim that every historical evidence file was re-captured in this turn; prior line-by-line reports remain linked from `COORDINATION.md` and the Verification page.
@@ -49,11 +49,11 @@ The first attempt to run DOM checks before installing the test dependencies coul
 ### Live GitHub checks and publication
 
 - Pages API reports **`status: built`**, **legacy** source **`main:/`**, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>.
-- Latest `main` deployment: [Pages build #44960300363](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300363) **success** at SHA `70744d5`.
-- Latest `main` static link check: [run #44960300785](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300785) **success** at SHA `70744d5`.
-- Latest deployment page probe: [verify-live-site #44960300855](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960300855) **success** at SHA `70744d5`.
-- Latest deployment live render: [live-site-render #44960406107](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960406107) **success** at SHA `70744d5`; its workflow ran the published page code against the demo API on a GitHub runner.
-- The live-render run reports a **GitHub Actions Node.js 20 deprecation annotation** for `actions/*@v4`; the check itself passed. This is runner/tooling maintenance, not a failed site check.
+- **PR #92** ([audit: independent current-release review](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/92)) merged at `2026-11-21T23:11:40Z`, merge commit [`31e251b`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/31e251b6b3f280581e523dc777ed4c8d255bbb1a); both PR checks passed.
+- Final Pages build after the merge: [run #44960633462](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960633462) **success** at SHA `afc2c0b`; Pages API reports **built**, source `main:/`.
+- Post-merge current-site checks: [verify-live-site #44960608485](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608485), [live-site-render #44960608499](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608499), [Static site link check #44960608522](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608522), [verify-alerts #44960608611](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608611) and [live-engine-check #44960608578](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608578) all **success** on SHA `0de03ce` (the merge tree before a generated report-only bot commit).
+- Two overlapping Pages builds for `31e251b` and `0de03ce` were **cancelled** by GitHub's priority/concurrency handling; the subsequent Pages build #44960633462 for `afc2c0b` completed successfully and Pages API is now `built`. This was deployment-run contention, not a Jekyll/content failure.
+- Live-render runs report a **GitHub Actions Node.js 20 deprecation annotation** for `actions/*@v4`; tests passed. This is runner/tooling maintenance, not a failed site check.
 
 ## Irregularities / items retained for review
 
