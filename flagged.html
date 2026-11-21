@@ -686,6 +686,13 @@
         <code>market.js</code> now quote the schema. No alert behaviour changed: the between-polls
         comparison remains the true sudden-swing test, and the reference comparison is still labelled
         with the comparison that produced it.</p>
+      <p><strong>Trader-facing fix (2026-11-21, session <code>c6a50f54</code>):</strong> the wording had
+        been corrected in the register but not where it is read. <code>alerts.html</code> explained the
+        column with "exchange previous price" and never said the baseline was a day old, so a 24-hour move
+        printed beside sub-minute poll moves could be read as a sudden swing. Every row produced by that
+        comparison is now labelled <em>exchange previous price (a day ago)</em>, and the table note states
+        that such a row is a 24-hour move, not a move seen in the last few seconds. The label is derived
+        from the schema wording quoted above, not inferred.</p>
       <p><strong>What would close it:</strong> confirmation from Kalshi (or a live observation that
         distinguishes the two meanings — e.g. a market whose last trade is minutes old, where "a day ago"
         and "previous trade" give different values). Until then the field is used only as the exchange's

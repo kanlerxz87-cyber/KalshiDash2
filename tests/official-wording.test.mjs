@@ -56,3 +56,24 @@ test("A9 cites both official pages and keeps the unresolved part explicit", () =
   assert.match(card[0], /Still unverified/, "the unknown must be labelled, not filled in");
   assert.match(card[0], /Correction/, "the retraction must be visible on the card");
 });
+
+// The reference comparison is a 24-hour move. Kalshi's Get Market schema:
+// "previous_price_dollars — Price for the last traded YES contract on this
+// market a day ago in dollars". The alerts page must never present that
+// comparison without saying the baseline is a day old, or a 24-hour move reads
+// as a sudden swing next to sub-minute poll moves (Flagged Z1).
+test("the reference comparison is labelled as a day-old baseline", async () => {
+  const { detectReferenceSwings } = await import("../assets/js/alerts-core.js");
+  const [swing] = detectReferenceSwings(
+    [{ ticker: "T", last_price_dollars: "0.60", previous_price_dollars: "0.30" }],
+    { threshold: 0.1 }
+  );
+  assert.ok(swing, "a $0.30 move against the reference must be detected");
+  assert.match(swing.basis, /a day ago/,
+    "the basis label must say the reference price is a day old");
+
+  const page = read("alerts.html");
+  assert.match(page, /a day ago/,
+    "the alerts table note must state that the reference baseline is a day old");
+  assert.match(page, /24-hour/, "the table note must call the move a 24-hour move");
+});
