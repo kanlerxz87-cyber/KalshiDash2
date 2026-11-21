@@ -1507,3 +1507,16 @@ BC4 below).
 `COORDINATION.md` commit on top of the fully-checked `b0e976b` tree), merged with
 `gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
 Session `bc079e84` is complete: BC1–BC4 **done**.
+
+## Session `0d6f4f1f` — snapshot-label drift fix + final integration verification (2026-11-21)
+
+Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
+
+**Takeover note (60-minute stale-claim rule):** all prior `in progress` claims on this board are from 2026-11-20/21 with last commits hours ago and no in-flight edits on this branch. This session takes over the two files below as final-integration scope and records the handoff here. No other session's work is discarded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Fix snapshot-label drift: `scripts/collect.py` derivation notes no longer contain the exact disclaimer phrases both test suites require (`contract-count fields`, `not asserted as actual all-side cash turnover`); `data/snapshot.json` notes carry the same drift. Restore the phrases in the collector source and in the snapshot note strings (no data re-collection, no values changed). | in progress | `0d6f4f1f` | `scripts/collect.py` (derivation-note strings only), `data/snapshot.json` (`_meta.derivation_notes` strings only), `COORDINATION.md` (this section) | `tests/activity-proxy.test.mjs`, `tools/test_collect.py` (both assert the exact phrases) | Bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated the snapshot from a collector whose note strings had drifted from the tests. Fix restores test-required wording; market data values untouched. |
+| R2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | unclaimed | — | `COORDINATION.md` (this section) | `node --test`, python tools tests, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
