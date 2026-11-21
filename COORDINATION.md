@@ -1537,3 +1537,5 @@ Base: `origin/main` at `8ea5c85` (== this branch at claim time). Board and open 
 | Task | Status | Owner | Exclusive file scope | Evidence / coordination |
 |---|---|---|---|---|
 | Correct false LIVE status and restore polling when the upstream WebSocket disconnects; cover state transitions and reconnection | in progress | `9543cf0d` | `assets/js/live-feed.js`, `scripts/relay.py`, new `tests/live-feed-state.test.mjs`, new `tests/test_relay_state.py`, `COORDINATION.md` (this section) | Fake-EventSource reproduction above; `TickerSource._set_state` currently calls an optional callback, but does not broadcast state to SSE subscribers. PR #57 owns `flagged.html`: requested the flag there, not editing it here. |
+
+**R5 test wiring claim:** `9543cf0d` additionally claims `.github/workflows/site-check.yml` solely to run `tests/live-feed-state.test.mjs` in the existing static check; the Python test is already picked up by unittest discovery. PR #57's workflow edit is `verify-alerts.yml`, not this file.
