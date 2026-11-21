@@ -41,7 +41,10 @@ def resolve_conflicts(lines):
             while k < len(lines) and not lines[k].startswith(">>>>>>> "):
                 k += 1
             if j >= len(lines) or k >= len(lines):
-                out.append(lines[i])
+                # An unterminated conflict: the marker has no closing
+                # separator, so the text after it is ordinary content that
+                # both sides share. Drop the stray marker and keep the text.
+                orphans += 1
                 i += 1
                 continue
             out.extend(lines[i + 1:j])
