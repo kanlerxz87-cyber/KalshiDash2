@@ -1024,3 +1024,52 @@ integration: full suite, PR → `main`, merge without waiting, Pages deploy conf
 
 **Session note (branch naming):** per Arena's binding, all work happens on `arena/bc079e84-kalshidash2`;
 the brief's `session-<id>/<task>` naming is not usable here (same note as sessions `869f5339`/`4208a2dd`).
+
+### BC1 record — line-by-line re-verification against official docs (fetched live 2026-11-21)
+
+Unlike earlier sessions (which could only reach docs via GitHub runners), this sandbox's `fetch_page`
+reached `docs.kalshi.com` and `kalshi.com` directly, so every check below is a first-hand read of the
+official page on 2026-11-21.
+
+| # | What was verified | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| V-1 | Every market field the alert engine and data layer use (`last_price_dollars`, `previous_price_dollars`, `yes_bid/yes_ask_dollars`, `yes_bid/yes_ask_size_fp`, `no_bid/no_ask_dollars`, `volume_fp`, `volume_24h_fp`, `open_interest_fp`, `notional_value_dollars`, `settlement_value_dollars`, `result`, `status`, `close_time`, `price_ranges`) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | `alerts-core.js`, `market.js`, `config.js` field usage matches the published schema exactly. Pass. |
+| V-2 | Candlestick endpoint contract: path `/series/{series_ticker}/markets/{ticker}/candlesticks`, required `start_ts`/`end_ts` in **seconds**, `period_interval` enum **1/60/1440**, ≤ **5,000** periods per request, optional `include_latest_before_start` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | `fetchCandles` matches; window-splitting on the 5,000-period cap is correct. Pass. |
+| V-3 | Candlestick response shape: `candlesticks[].end_period_ts`, `yes_bid/yes_ask.{open,low,high,close}_dollars`, `price.{open,low,high,close,mean,previous,min,max}_dollars` (string\|null), `volume_fp`, `open_interest_fp` | same page (200 response schema) | `fetchCandles` parses exactly these fields; null prices preserved. Pass. |
+| V-4 | Taker fee formula `round up(M × 0.07 × C × P × (1−P))`, maker `M × 0.0175 × C × P × (1−P)` (maker M default 0), no settlement fee, no membership fee; Non-Standard per-series multipliers (incl. `KXPGATOUR`/`KXPGARYDER`/`KXPGASOLHEIM` 1/1, `KXAAAGASM` 1/1, `KXBTCY`/`KXETHY` 0/0) | [Fee Schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf) ("July 2026 – 7.7.26 Update", effective 2026-07-07) | Fee model implemented from these values (BC2). Pass. |
+| V-5 | Fee "round up" mechanics: trade fee = model fee ceil to $0.000001; rounding fee aligns (revenue − trade fee) to the member grid ($0.0001 direct / $0.01 non-direct); rebate accumulator keeps net fee ≥ 0 | [Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding) | Mechanics reproduce the PDF's entire 42-value fee table and the page's own worked example ($0.055 buy → net $0.005). Asserted in unit tests. Pass (footnote discrepancy flagged Z1). |
+| V-6 | Market settlement payout ($1/contract on the correct side; complement for NO), used by every P&L path | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | `updateTrade`/`replayStrategy`/`Paper.settle` consistent. Pass. |
+| V-7 | Docs note: candlesticks for markets settled before the historical cutoff need `GET /historical/markets/{ticker}/candlesticks` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Observation only: the tester already reports per-market history errors instead of inventing points. Noted, no change needed. |
+
+Also re-ran on this branch (all green): `node --test tests/alerts-core.test.mjs` 18/18 · `node --test tests/simulator-core.test.mjs` **10/10** · `node --test tests/taxonomy.test.mjs` 10/10 · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` (19 requirement areas, 70/79 claims — 6 partial, 3 unverified; 29 open / 16 mitigated / 45 flags; 27 sourced rows) · `node tools/verify/page-runtime-check.mjs` 17/17 pages + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` OK · `node evidence/auth-sign-test.mjs` 6/6.
+
+### BC2 record — fee modelling (closes the fee half of F15/A5)
+
+- **Implemented** (files: `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`,
+  plus wording in `summary.html`, `index.html`, `strategies.html`, `README.md`, `EXECUTIVE_SUMMARY.md`,
+  `assets/js/claims.js`, `flagged.html`): `FEE_SCHEDULE` constants, `modelFeeDollars`, `fillFeeDollars`
+  (official rounding mechanics), `takerFeeMultiplier` (verbatim zero-multiplier rows from the PDF),
+  fee + net-P&L fields on every replayed trade (entry taker fee; exit taker fee on round trips;
+  **no** settlement fee on settlement exits — the schedule states there is none), fee/contract and
+  P&L-after-fees columns on the scoreboard and ledger, fee columns + fee-schedule source links in the
+  CSV export, and updated assumption panels naming the formula and both official sources.
+- **Verified**: 5 new unit tests — all 42 official fee-table values (1 and 100 contracts), the Fee
+  Rounding worked example (revenue −$0.055 → trade fee $0.003639 + rounding $0.001361 = $0.005),
+  zero-multiplier series, trade-level fee fields, CSV columns. `10/10` pass.
+- **Not changed (still flagged)**: spread, slippage, queue position (F15 stays open, re-worded);
+  live paper strategies on `alerts.html` remain fee-free (A5 stays open, re-worded). Fee-schedule
+  footnote discrepancy published as **Z1** (open — Kalshi clarification).
+
+### BC3 record — dead file removed (closes Y9)
+
+`assets/js/jumps.js` deleted after `grep` confirmed zero importers (its only mention outside
+`COORDINATION.md`/`flagged.html` was the flag card itself). Canonical jump detection remains
+`detectJumps` in `assets/js/market.js`, re-verified against the official candlestick schema (V-3).
+Y9 marked **fixed** on the register. Flag counts now 29 open / 16 mitigated / 45 total (derived, not
+hard-coded, on the summary page and in the DOM regression).
+
+**Scope extension (logged per the rules):** BC2's wording updates touched `summary.html`,
+`index.html`, `strategies.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/claims.js` beyond
+the claimed file list — all were unclaimed on the board (no active session holds them; the board's
+last owner sessions are closed). Only the fee-assumption sentences and the register entry changed;
+no other content was rewritten.
