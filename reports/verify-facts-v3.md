@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-20T14:02:16Z |
+| Captured (UTC) | 2026-11-21T06:31:41Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `854f0be8afe764cd79e4ff74446b71381601349b` |
+| Commit | `c33654abb7b3e38ace16d6cb62d2d4d30efc240e` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -15,13 +15,13 @@
 | `GET /events?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /series?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXDEMOFUTHOURLY-26NOV20H15-UP` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXDEMOFUTHOURLY-26NOV20H15-UP/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXDEMOFUTHOURLY-26NOV21H07-UP` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXDEMOFUTHOURLY-26NOV21H07-UP/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /events/KXDEMOFUTHOURLY-26NOV20H15` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV20H15-UP/candlesticks?start_ts=1795096938&end_ts=1795183338&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /events/KXDEMOFUTHOURLY-26NOV21H07` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV21H07-UP/candlesticks?start_ts=1795156304&end_ts=1795242704&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
-**Resolved ids used above:** market `KXDEMOFUTHOURLY-26NOV20H15-UP` → event `KXDEMOFUTHOURLY-26NOV20H15` → series `KXDEMOFUTHOURLY`
+**Resolved ids used above:** market `KXDEMOFUTHOURLY-26NOV21H07-UP` → event `KXDEMOFUTHOURLY-26NOV21H07` → series `KXDEMOFUTHOURLY`
 
 ## B. Market → event → series lookup path (needed for candlesticks)
 
@@ -67,7 +67,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "yes_sub_title"
  ],
  "series_ticker": null,
- "event_ticker": "KXDEMOFUTHOURLY-26NOV20H15"
+ "event_ticker": "KXDEMOFUTHOURLY-26NOV21H07"
 }
 ```
 
@@ -96,17 +96,17 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
 
 `period_interval=1` (minutes), last 24h:
 ```json
-{"candlesticks":[{"end_period_ts":1795183260,"open_interest_fp":"50.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5667","open_dollars":"0.6500"},"volume_fp":"120.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"0.5500","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0100","high_dollars":"0.6500","low_dollars":"0.0000","open_dollars":"0.6500"}},{"end_period_ts":1795183320,"open_interest_fp":"30.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5500",
+{"candlesticks":[{"end_period_ts":1795240860,"open_interest_fp":"50.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5667","open_dollars":"0.6500"},"volume_fp":"120.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"0.5500","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0100","high_dollars":"0.6500","low_dollars":"0.0100","open_dollars":"0.0100"}},{"end_period_ts":1795240920,"open_interest_fp":"30.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5500",
 ```
 
 `period_interval=60` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV20H15-UP"}
+{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV21H07-UP"}
 ```
 
 `period_interval=1440` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV20H15-UP"}
+{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV21H07-UP"}
 ```
 
 Unsupported `period_interval=5`:
@@ -117,7 +117,7 @@ HTTP 400
 
 ## D. Orderbook — resting bid depth (liquidity)
 ```json
-{"orderbook_fp":{"no_dollars":[],"yes_dollars":[["0.0100","10.00"]]}}
+{"orderbook_fp":{"no_dollars":[["0.0100","1.00"]],"yes_dollars":[["0.0100","11.00"]]}}
 ```
 
 ## E. Order write routes (unauthenticated: route existence only)
