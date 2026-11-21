@@ -1794,3 +1794,39 @@ summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated
 these from the DOM, so no hard-coded figure was changed). `flagged.html` was not claimed by any other
 active session at the time of this edit; PRs #60, #69 and #70 were inspected first and were all
 `CONFLICTING`, and none of them had been merged.
+## Session `970aabdb` — independent audit of the published site (2026-11-21)
+
+Branch: `arena/970aabdb-kalshidash2`, branched from `main` at `bbdc3a0`
+(`chore(data): refresh Kalshi demo snapshot [skip ci]`, 2026-11-21T19:29Z). The branch was
+rebased onto `main` at `b254e21` mid-session (PR #63/#65 landed under it), then merged twice more
+as `main` advanced; because the append-only board conflicts on every concurrent merge, the branch
+was finally **rebuilt as a single change on top of `main` at `0e45e17`** (PRs #72/#73/#74 and the
+19:29Z snapshot refresh included), carrying exactly this session's three file changes and this
+section — nothing else. Every board entry above was read before this claim was written and
+re-read after each merge.
+
+**Overlap avoidance.** Active sessions at claim time: `0d6f4f1f` (R1: `scripts/collect.py` +
+`data/snapshot.json` wording — merged via PR #63 during this session; R2 — done, PR #65),
+`f2176447` (final integration takeover, incl. I2 `tests/dom/live-site.mjs` and PR #60 — not
+touched), `9543cf0d` (PR #60 open: `.github/workflows/site-check.yml`, `404.html`,
+`assets/js/live-feed.js`, `scripts/relay.py`, `flagged.html`, `questions.html`,
+`VERIFICATION.md`, `docs/*`, `tests/*`). This session edited no shared file except one claimed
+`simulator.html` table cell (scope amendment below), and added one new report.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| A1 | Full local verification suite on the tree, exact results recorded | done (re-verified after rebase; see below) | `970aabdb` | `COORDINATION.md` (this section), `reports/independent-audit-970aabdb.md` (new) | local runs; recorded in the report | The 2 R1 failures seen at claim time are fixed on `main` (PR #63) and pass here |
+| A2 | Independent line-by-line review of the published (root) site; live pages reachable; official-source spot checks (`llms.txt`, Get Markets, Market Ticker) | done | `970aabdb` | same as A1, plus `simulator.html` (one cell, claimed in the amendment below) | docs.kalshi.com via `fetch_page` (sandbox shell has no kalshi.co route — same limit every session records); GitHub API for Pages/runs | D1 fixed (simulator fee row); D2 F10 staleness logged as request; D3/D4 owned elsewhere |
+| A3 | PR → `main`; merge; confirm Pages deploy; record run IDs here | in progress at claim-PR time; final merge/deploy record appended to this section in a follow-up commit after the PR merges | `970aabdb` | same as A1 | `gh`, Pages API | Docs + one table cell; does not pre-empt the final-integration merges of the other open PRs |
+
+**Scope amendment (2026-11-21, committed before the edit):** A2 found one stale table cell in
+`simulator.html` ("Fee schedule (not applied in the simulation)", line 199) that contradicts the
+page's own assumptions section and the fee-modelled scoreboard note (fees ARE modelled since
+session `bc079e84` BC2, with round-up taker fee and no settlement fee). No test asserts the string
+(checked: `grep -rn "not applied in the simulation"` = only `simulator.html:199`; `tests/` and
+`tools/` have no Fee-schedule row assertion). No other active claim names `simulator.html`
+(`0d6f4f1f` = collect.py/snapshot; `f2176447` = live-site.mjs + PR #60 files; `9543cf0d` = PR #60
+file list). The fix is one table cell. `simulator.html` is therefore added to this session's
+exclusive scope. Nothing else in the site is edited.
+
+**Claim commit:** this section is committed and pushed immediately, before any other work.
