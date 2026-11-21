@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Check local links and fragments in the static GitHub Pages site."""
+"""Check local links and fragments in the static GitHub Pages site.
+
+The default root is the repository root, which is what GitHub Page publishes
+(`main:/`). Run `python3 tools/check_site_links.py docs` to check only the legacy
+`docs/` generation.
+"""
 
 from __future__ import annotations
 
@@ -30,7 +35,12 @@ class LinkParser(HTMLParser):
 
 def inspect(root: Path) -> list[str]:
     errors: list[str] = []
-    pages = sorted(root.rglob("*.html"))
+    if not root.exists():
+        return [f"No HTML files found under {root}"]
+    skip = {"node_modules", ".git", ".venv", "venv", "__pycache__"}
+    pages = sorted(
+        page for page in root.rglob("*.html") if not skip & set(page.relative_to(root).parts)
+    )
     if not pages:
         return [f"No HTML files found under {root}"]
 
@@ -79,14 +89,22 @@ def inspect(root: Path) -> list[str]:
 
 def main() -> int:
     argp = argparse.ArgumentParser(description=__doc__)
-    argp.add_argument("root", nargs="?", type=Path, default=Path("docs"))
+    # GitHub Pages publishes this repository with source `main:/`, so the
+    # directory it serves is the repository root. Defaulting to anything else
+    # (this used to default to the legacy `docs/` tree) makes a bare local run
+    # check pages that are not the published set.
+    argp.add_argument("root", nargs="?", type=Path, default=Path("."))
     root = argp.parse_args().root.resolve()
     errors = inspect(root)
     if errors:
         print("Static site link check failed:")
         print("\n".join(f"- {error}" for error in errors))
         return 1
-    print(f"Static site link check passed ({len(list(root.rglob('*.html')))} HTML pages checked).")
+    skip = {"node_modules", ".git", ".venv", "venv", "__pycache__"}
+    checked = [
+        page for page in root.rglob("*.html") if not skip & set(page.relative_to(root).parts)
+    ]
+    print(f"Static site link check passed ({len(checked)} HTML pages checked).")
     return 0
 
 

@@ -462,7 +462,18 @@ def main() -> int:
     ap.add_argument("--top-book", type=int, default=20)
     ap.add_argument("--sleep", type=float, default=0.25)
     ap.add_argument("--max-events-per-series", type=non_negative_int, default=10)
+    ap.add_argument(
+        "--print-notes",
+        action="store_true",
+        help="Print DERIVATION_NOTES as JSON and exit. No network access.",
+    )
     args = ap.parse_args()
+
+    if args.print_notes:
+        # Lets the Node and Python tests read the canonical disclosure text from
+        # the generator itself instead of hard-coding a copy of the prose.
+        print(json.dumps(DERIVATION_NOTES, indent=2, sort_keys=True))
+        return 0
 
     client = Client(sleep=args.sleep)
     started = datetime.now(timezone.utc)

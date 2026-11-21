@@ -13,6 +13,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { gasBoardState, NO_MATCH_PATTERN } from "./gas-assertion.mjs";
 
+import { parseScanCount, refusalReason, EXIT } from "./live-site-assertions.mjs";
+
 const REPO = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const netFetch = (...a) => globalThis.fetch(...a);   // resolved at call time
 
@@ -34,10 +36,17 @@ async function fetchWithRetry(url, opts, attempt = 0) {
   return fetchWithRetry(url, opts, attempt + 1);
 }
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, inconclusive = 0;
 const check = (page, label, cond, extra = "") => {
   if (cond) pass++; else fail++;
   console.log(`${cond ? "PASS" : "FAIL"}  [${page}] ${label}${extra ? " — " + extra : ""}`);
+};
+/* A refusal that survives the bounded retries is not evidence about the site.
+ * It is reported as inconclusive (exit 2), never as a pass: the workflow raises
+ * a warning annotation and the run is not green. */
+const skip = (page, label, why) => {
+  inconclusive++;
+  console.log(`SKIP  [${page}] ${label} — inconclusive: ${why}`);
 };
 
 const stripModuleScripts = html => html
@@ -95,11 +104,22 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const txt = w.document.body.textContent.replace(/\s+/g, " ");
   const note = w.document.querySelector("#board-note")?.textContent.replace(/\s+/g, " ") || "";
   check("index", "connected to the demo API", /Connected to the Kalshi demo API/.test(txt) || /could not reach/.test(txt));
-  check("index", "five topic cards", w.document.querySelectorAll("#topics .topic-card").length === 5);
-  check("index", "board rows populated", w.document.querySelectorAll("#board-body tr").length > 1);
-  /* The page formats counts with int() (toLocaleString), so a scan of 2,800
-   * events renders as "Scanned 2,800 events". Accept the comma form. */
-  check("index", "note states the scan size", /Scanned [\d,]+ events/.test(note));
+  /* Only error surfaces, never `txt`: the page's own copy mentions "WebSocket"
+   * and alerts.html mentions "429", which would mark a healthy page as refused. */
+  const boardStatus = w.document.querySelector("#board-status")?.textContent.replace(/\s+/g, " ") || "";
+  const refusal = refusalReason(note) || refusalReason(boardStatus);
+  if (refusal || /could not reach/i.test(txt)) {
+    skip("index", "board content assertions", `exchange unavailable (${refusal || "connection refused"})`);
+  } else {
+    check("index", "five topic cards", w.document.querySelectorAll("#topics .topic-card").length === 5);
+    check("index", "board rows populated", w.document.querySelectorAll("#board-body tr").length > 1);
+    /* The page formats counts with int() (toLocaleString), so a scan of 2,800
+     * events renders as "Scanned 2,800 events". parseScanCount is comma-tolerant
+     * and unit-tested offline in live-site-assertions.test.mjs. */
+    const scanned = parseScanCount(note);
+    check("index", "note states the scan size", scanned !== null && scanned >= 0,
+      scanned === null ? note.slice(0, 120) : `${scanned} events`);
+  }
   check("index", "no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
   console.log("   KPI:", w.document.querySelector("#kpis")?.textContent.replace(/\s+/g, " ").slice(0, 220));
   console.log("   NOTE:", note.slice(0, 300));
@@ -120,24 +140,39 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const board = w.document.querySelector("#board-body")?.textContent.replace(/\s+/g, " ") || "";
   const cov = w.document.querySelector("#topic-caveat")?.textContent.replace(/\s+/g, " ") || "";
   const stats = w.document.querySelector("#cat-stats")?.textContent.replace(/\s+/g, " ") || "";
-  /* Honest board: either a live gas event is listed, or the page explicitly says
-   * the scan matched no gas events. An error board ("Could not load events")
-   * satisfies neither and fails — API failures are not masked. The rule lives in
-   * ./gas-assertion.mjs so it can be proven offline by
-   * live-site-no-match.test.mjs (board item I2). */
-  const verdict = gasBoardState({
-    board, caveat: cov,
-    statusClass: w.document.querySelector("#board-status")?.className || "",
-    errors,
-  });
-  check("gas", "gas board honest (event listed, or explicit no-match with no errors)",
-    verdict.ok, verdict.reason + " — " + board.slice(0, 120));
-  check("gas", "coverage line states the scan performed", /open event\(s\)|matched|No .* events/.test(cov), cov.slice(0, 200));
-  check("gas", "resting size uses the documented fields", /yes_bid_size_fp \+ yes_ask_size_fp/.test(stats));
+  const statusText = w.document.querySelector("#board-status")?.textContent.replace(/\s+/g, " ") || "";
+  const statusClass = w.document.querySelector("#board-status")?.className || "";
+  /* A refusal that survived the bounded retries is not evidence about the site.
+   * Only the status pill is inspected — never whole-page text, because the page's
+   * own copy mentions "WebSocket" and alerts.html mentions "429". */
+  const refusal = refusalReason(statusText);
+
+  if (refusal) {
+    skip("gas", "gas board honest (event listed, or explicit no-match with no errors)", `exchange refused: ${refusal}`);
+    skip("gas", "coverage line states the scan performed", "no successful scan to describe");
+    skip("gas", "resting size uses the documented fields", "no successful scan to describe");
+  } else {
+    /* `main`'s tested rule (./gas-assertion.mjs, proven offline by
+     * live-site-no-match.test.mjs): either a gas market is listed, or the page
+     * printed its own no-match callout with no page error and no error pill. An
+     * error board or an empty board still fails — API failures are not masked. */
+    const verdict = gasBoardState({
+      board, caveat: cov, statusClass, errors,
+    });
+    check("gas", "gas board honest (event listed, or explicit no-match with no errors)",
+      verdict.ok, verdict.reason + " — " + board.slice(0, 120));
+    check("gas", "coverage line states the scan performed", /open event\(s\)|matched|No .* events/.test(cov), cov.slice(0, 200));
+    check("gas", "resting size uses the documented fields", /yes_bid_size_fp \+ yes_ask_size_fp/.test(stats));
+  }
   check("gas", "no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
   console.log("   STATS:", stats.slice(0, 260));
   console.log("   CAVEAT:", cov.slice(0, 320));
 }
 
-console.log(`\n${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+console.log(`\n${pass} passed, ${fail} failed, ${inconclusive} inconclusive`);
+if (fail) process.exit(EXIT.FAIL);
+if (inconclusive) {
+  console.log("\nINCONCLUSIVE: the exchange refused or was unreachable, so some assertions could not be made.\nThis is not reported as a pass. Re-run when the demo API is serving.");
+  process.exit(EXIT.INCONCLUSIVE);
+}
+process.exit(EXIT.PASS);

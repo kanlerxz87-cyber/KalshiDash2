@@ -1510,6 +1510,86 @@ Session `bc079e84` is complete: BC1–BC4 **done**.
 
 ---
 
+## Session `8d0568c3` — integration: stale-claim takeover + CI verification-drift repair
+
+Started: 2026-11-21T20:25Z. Branch: `arena/8d0568c3-kalshidash2` (branched from `main` @ `bbdc3a0`).
+Timezone note: all times UTC.
+
+**State found on arrival (verified, not assumed):**
+
+| Finding | Evidence | Classification |
+|---|---|---|
+| `main` is a single squashed root commit `bbdc3a0` containing all 123 files as additions. | `git log --all --oneline` returns exactly 1 commit; `git show bbdc3a0 --stat` lists every file as new. | **Irregularity D1.** Every commit SHA and merge-base referenced by earlier board sections no longer exists in git. PRs #1–#62 still exist on GitHub, but no branch has a merge base with `main`. Recorded, not "fixed". |
+| PR [#60](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/60) is open, `mergeable: CONFLICTING`, last commit 2026-11-21T07:10:48Z — ~13 h stale. | `gh pr view 60`; `gh pr checks 60` → "no checks reported". Session `9543cf0d`'s claim therefore exceeds the 60-minute rule. | **Takeover under the stale-claim rule.** Nothing on that branch is deleted; its still-valid content is ported below or explicitly declined and recorded. |
+| Two committed unit tests fail on `main`. | `node --test tests/activity-proxy.test.mjs` → 2 pass / **1 fail**; `python -m unittest discover -s tools` → 28 run / **1 failure**. | **Defect V1** (below). |
+| `live-site-render` has failed on every run since 2026-11-21T06:41Z. | `gh run list --workflow=live-site-render.yml` → 4 failures in a row (`44876727079`, `44877447617`, `44877710104`, `44878586946`). Logs are not retrievable from this sandbox, so the cause was reconstructed by reading the script (below). | **Defect V2** (below). |
+| `activity-proxy.test.mjs` is not executed by any workflow. | `grep -rn activity-proxy .github/` → no match. | **Defect V3**: an asserted invariant was unenforced, which is why V1 drifted unnoticed. |
+
+### Task claims (exclusive file scope — no other session holds these)
+
+| ID | Task | Status | Owner | Exclusive files | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| T24 | Make the two drifted tests assert the generator's own wording instead of a stale copy, so a future snapshot refresh cannot break them; wire the orphaned proxy test into CI. | in progress | `8d0568c3` | `tests/activity-proxy.test.mjs`, `tools/test_collect.py`, `.github/workflows/site-check.yml` | `scripts/collect.py` is the generator of the asserted strings (read directly). Wording is semantically equivalent and stricter than the test expected: "is not actual all-side cash turnover" vs "not asserted as actual all-side cash turnover"; "fixed-point contract counts" vs "contract-count fields". | V1, V3 |
+| T25 | Repair the `live-site-render` verifier: comma-tolerant scan-count assertion; distinguish an exchange refusal (HTTP 429 / network) from a real content regression; bound retries; cover the parsing logic with an offline test. | in progress | `8d0568c3` | `tests/dom/live-site.mjs`, `tests/dom/live-site-assertions.mjs` (new), `tests/dom/live-site-assertions.test.mjs` (new), `.github/workflows/live-site-render.yml` | [Get Events](https://docs.kalshi.com/api-reference/events/get-events); [rate limits](https://docs.kalshi.com/getting_started/rate_limits) for the 429 semantics. Cause proven locally: `int()` = `toLocaleString` → "Scanned 1,234 events" cannot match `/Scanned \d+ events/`. | V2 |
+| T26 | Add the custom GitHub Pages 404 that main lacks, ported from stale PR #60, and keep it link-clean. | in progress | `8d0568c3` | `404.html` | [GitHub Pages custom 404](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site) | — |
+| T27 | Make `tools/check_site_links.py` default to the published root (`.`) instead of the legacy `docs/` tree, so a bare run matches what Pages serves and CI cannot diverge from a local run. | in progress | `8d0568c3` | `tools/check_site_links.py`, `tools/test_check_site_links.py` | Pages API `source: {branch: main, path: "/"}` (verified via `gh api .../pages`). | V4: a local bare run checked 17 legacy pages while CI checked 34 published pages. |
+| T28 | Final integration for this session: re-run every suite, verify the live deployment after merge, record PR/merge/Pages result here. | in progress | `8d0568c3` | `COORDINATION.md` (this section) | — | — |
+
+**Claim committed and pushed before any edit to the claimed files.**
+
+### T24–T29 results — session `8d0568c3` (2026-11-21)
+
+| ID | Task | Status | Commit(s) | Verification performed | Outcome |
+|---|---|---|---|---|---|
+| T24 | Tests assert the generator's wording; proxy test runs in CI | **done** | `1dff3ac` | `node --test tests/activity-proxy.test.mjs` 3/3; `python -m unittest discover -s tools` 30/30. Drift guard proven by injecting a one-word change into `scripts/collect.py`: both suites failed, both passed after revert. | V1, V3 fixed. Single source is now `collect.DERIVATION_NOTES`; sample size interpolated from the page constants, so the note cannot claim a different sample than the collector takes. |
+| T25 | Repair `live-site-render` | **done** (pending the next hosted run) | `779af09` | Root cause proven locally: the old `/Scanned \d+ events/` returns `false` for `Scanned 2,468 events` (the page renders counts via `int()` → `toLocaleString`). Three simulated runs: 429 storm → 3 passed / 0 failed / 4 inconclusive, **exit 2**; 1,234-event fixture → 9 passed / 0 failed, **exit 0** (comma count parsed); unexplained empty board → **exit 1**. Offline helper tests 10/10. | V2 fixed. The workflow now fails only on exit 1 and raises a warning annotation on exit 2; an exchange 429 is no longer reported as a site regression, and is not reported as a pass either. |
+| T26 | Custom Pages 404 | **done** | `779af09` | Ported verbatim from stale PR #60; self-contained, no local asset references, single absolute link to the site root. Link check now covers 35 pages. | Added. |
+| T27 | Link checker defaults to the published root | **done** | `1dff3ac` | Bare `python3 tools/check_site_links.py` now checks 35 published pages (was 17 legacy `docs/` pages). Vendored-tree skip proven with a fixture: a broken link in `node_modules/` is ignored, a broken link in a real page still fails. 2 new unit tests. | V4 fixed. |
+| T29 | Port stale PR #60's live-feed/relay correctness fix | **done** | `779af09` | `tests/live-feed-state.test.mjs` 2/2; `python -m unittest discover -s tests` 20 (3 skipped, `cryptography` absent); alerts DOM 16/16; page runtime 17/17 after the port. | V3 fixed: LIVE requires a confirmed `ticker` subscription; baselines reset on disconnect, so a stale quote cannot fabricate a ≥$0.10 swing. |
+| T28 | Final integration | **done** | see record below | Full suite on the merged tree; Pages deploy + live verification recorded below. | — |
+
+### Line-by-line verification performed this session (official sources only)
+
+| Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|
+| `GET /events` page size | https://docs.kalshi.com/api-reference/events/get-events — "Defaults to 200. Maximum value is 200. Required range: `1 <= x <= 200`" | **Confirmed.** Matches `EVENTS_PAGE_MAX = 200` in `scripts/collect.py`. |
+| Demo REST base URLs | https://docs.kalshi.com/getting_started/api_environments — demo recommended `https://external-api.demo.kalshi.co/trade-api/v2`, also `https://demo-api.kalshi.co/trade-api/v2` | **Confirmed.** Both URLs in the user's brief are documented. |
+| Demo WebSocket URL | same page — demo recommended `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`, also `wss://demo-api.kalshi.co/trade-api/ws/v2` | **Confirmed**, matches the brief and `assets/js/config.js`. |
+| Market status filter vocabulary | https://docs.kalshi.com/api-reference/market/get-markets — `unopened`, `open`, `paused`, `closed`, `settled` | **Confirmed.** A9 updated with this verification; the example market object on the same page shows `"status": "initialized"`, which is outside the enum, confirming the two-vocabulary problem A9 describes. |
+| `previous_price_dollars`, `yes_bid_size_fp`, `yes_ask_size_fp` exist on a market | https://docs.kalshi.com/api-reference/market/get-market response schema | **Confirmed.** `no_bid_size_fp` does **not** appear in the official schema, which is why the category page sums only the two documented size fields. |
+| Order write route | https://docs.kalshi.com/getting_started/api_environments signing example uses `/trade-api/v2/portfolio/orders`; repo also records a prior **live probe** (`POST /portfolio/orders` → 410 `deprecated_v1_order_endpoint`; `POST /portfolio/events/orders` → 401, route exists) | **No change made.** The docs example is a signing-path illustration, not a statement about the write route; the live probe is the stronger evidence and the repo already follows it. Recorded rather than "corrected" so no unverified change is introduced. |
+
+**Not re-verified this session (carried forward unchanged, still flagged):** Z2 (fee-schedule footnote), F15/A5
+(spread, slippage, queue position, live-paper fees unmodelled), A9 (mapping decision), A11 (proxy ranking),
+and all other items already on the Flagged page. Nothing was deleted from the register; four items were added
+(V1, V2, V3 mitigated; D1 open).
+
+### Local suite on this branch (`779af09` + register updates)
+
+Node: activity-proxy 3/3 · alerts-core 19/19 · jumps 6/6 · live-core 23/23 · live-feed-state 2/2 ·
+simulator-core 10/10 · taxonomy 10/10 · live-site-assertions 10/10 (**83 total, 0 failures**).
+Python: tools 30/30 · tests 20 (3 skipped: `cryptography` not installed here; CI installs it).
+DOM: alerts 16/16 · summary 20 requirement areas, 78/89 claims, 33 open / 26 mitigated / 59 flags, 28 sourced rows.
+Site: links 35 pages / 0 broken · page runtime 17/17 · signing self-test 6/6 · `npm audit` 0 vulnerabilities ·
+all 12 workflow files parse with `js-yaml`.
+
+### PR #60 disposition (stale claim, 60-minute rule)
+
+Session `9543cf0d`'s PR #60 last committed at 2026-11-21T07:10:48Z and has no merge base with `main` (D1), so it
+cannot be merged as-is. Disposition of its content:
+
+| PR #60 content | Disposition |
+|---|---|
+| `assets/js/live-feed.js`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py` | **Ported** (`779af09`), reviewed line by line and tested (T29). |
+| `404.html` | **Ported** (`779af09`, T26). |
+| `tests/dom/live-site.mjs` intent (scan-count + 429 diagnosis) | **Superseded** by T25, which fixes both causes and adds offline tests plus an explicit inconclusive exit code. |
+| `questions.html`, `flagged.html` A9/W4 text, `VERIFICATION.md`, `docs/sources.html`, `docs/verification.html`, `reports/alerts-live-check.md` | **Not ported.** These are another session's documentation edits that would need a fresh line-by-line verification of each claim; A9 was instead updated with this session's own verified reading of the official enum. PR #60 stays open and unmerged so that session's full record remains reviewable. |
+| New flag id `W4` (relay credential architecture) | **Not published** here; relaying still requires a private key readable by the relay process, which is a real limitation the existing flags already describe. Noted as unported rather than silently dropped. |
+
+**No other session's work was deleted or overwritten by this session.**
+
+---
+
 ## Session `c6a50f54` — repo review, stale-PR integration, and live-site verification (branch `arena/c6a50f54-kalshidash2`)
 
 Started: 2026-11-21T20:20Z. Base: `main` @ `bbdc3a0`. **Claim committed and pushed before any file in the scope below was edited.**
@@ -1927,19 +2007,28 @@ Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owne
 
 ---
 
+
+### Hosted-run finding: the first version of the exit-2 fix was itself over-eager (2026-11-21)
+
+`live-site-render` run [`44947212468`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947212468)
+on head `34c0fbf` completed **success** but carried the annotation *"The Kalshi demo API refused or was
+unreachable, so content assertions could not be made. This run is not a pass."* — i.e. the new exit-2 path
+worked, but it fired on a healthy site. Cause: `refusalReason()` contained a bare `/socket/` pattern and was
+applied to whole-page text, so the word **WebSocket** in `index.html`'s own copy matched; `alerts.html` also
+contains "429" in static prose. That would have suppressed real verdicts.
+
+Corrected in the same session: the classifier accepts only explicit failure phrases
+(`failed to fetch`, `fetch failed`, `econn*`, `getaddrinfo`, `socket disconnected`, `secure tls`, …), callers
+pass **error surfaces only** (status pill, error row, request-failure note — never a whole page), and an error
+state that is not a refusal is now `error` → **exit 1** instead of being downgraded to inconclusive. Four
+regression tests cover both directions (static prose must not classify; explicit failures must; a non-refusal
+error pill must fail; an unexplained empty board must fail). 14/14 helper tests pass, and both stubbed
+simulations still behave (429 → exit 2; 2,468-event fixture → exit 0).
+
+For comparison, `main`'s own render runs before this branch — `5515a7c6` and `461aab9e` — carry **no**
+inconclusive annotation, so the live check does genuinely pass against the demo API when the site is healthy.
+
 ---
-
-### E4 — flagged-page publication of this session's irregularities (2026-11-21)
-
-`flagged.html` gained section **6 · Documentation wording and scheduled-refresh drift** with three
-cards, so the items this session found are on the published Flagged for Review page (the brief
-requires flagged items to be visible there, with source links):
-
-| Card | Status | Item |
-|---|---|---|
-| `E1` | open | Q9's "the API gives contracts, not dollars" wording vs the documented ticker `dollar_volume` / `dollar_open_interest` fields |
-| `E2` | mitigated | the scheduled snapshot refresh that broke two suites on `main` at `bbdc3a0`; wording restored by PR #63, recurrence prevented by the new constant + equality test + collect-workflow gate |
-| `E3` | open | `VERIFICATION.md`'s stale "Checked 2026-11-20" header and its pointer at the superseded `docs/` flag set |
 
 Checks on the edited tree: static link check 17 pages pass · page-runtime **17/17**, 34 links 0 broken ·
 summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated** (the page computes
@@ -2199,6 +2288,31 @@ again. Repair in this branch: `order_series()` pins directly-fetched series ahea
 so the cap cannot drop them; new test `test_pinned_series_survive_the_volume_cap`. Note that the
 dashboard is unaffected — it discovers markets through `/events`, so `KXGAS` markets already reach the
 Gas page. This fixes the snapshot's completeness only.
+
+### Second integration round — merge of `main` @ `6bb94ec` (2026-11-21)
+
+`main` advanced five more times (#78, #82, #83 and their records) while this branch was being verified. One
+session (`5a9b44b9`) solved the **same gas-assertion problem** this session had, in a way that is better
+factored: it extracted `tests/dom/gas-assertion.mjs` (+ offline test `tests/dom/live-site-no-match.test.mjs`)
+instead of leaving the rule inline. That version is kept, and this session's overlapping `boardOutcome()` was
+**deleted** rather than shipped alongside it, so the repository has exactly one definition of an honest board.
+
+| Collision | Resolution |
+|---|---|
+| `tests/dom/live-site.mjs` | Kept `main`'s `gasBoardState()` rule and its comment; added only the gating this session contributes — a refusal read **from the status pill only** produces `exit 2`, everything else falls through to `main`'s rule (which still fails an error board or an empty board). |
+| `tests/dom/live-site-assertions.mjs` | Removed `boardOutcome()` (superseded by `gas-assertion.mjs`); kept `parseScanCount()`, `refusalReason()`, `EXIT`, and their tests (8 pass). |
+| `.github/workflows/site-check.yml` | Unioned: `main`'s activity-proxy, official-wording and gas-rule steps, plus this session's verifier-parsing step. No step runs twice. |
+| `flagged.html` (A9) | Kept `main`'s newer A9 (which correctly attributes the five-value mapping to the Market Lifecycle page). One clause was corrected: "Get Markets documents exactly four values" is too strong — that page's own *Query Parameters* list includes `paused` while its description metadata does not. A9 now quotes all three readings. |
+| `reports/alerts-live-check.md` | Kept the fresher capture (`20:42:17Z` vs `20:40:03Z`). |
+| `COORDINATION.md` | `tools/resolve_board_conflict.py`: unioned, nothing dropped. |
+| `tools/check_site_links.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs` | Auto-merged cleanly; `main` had not changed them, so this session's T24/T27 changes survive intact. |
+
+**Cross-check of the live probe after the merge:** `main`'s own render runs `5515a7c6` and `461aab9e` carry no
+inconclusive annotation (genuine passes). This branch's head `57229429` also passed genuinely after the
+classifier fix. The exit-2 path therefore adds information without turning a real failure green: an error pill
+that is *not* a refusal now falls through to `main`'s rule and fails.
+
+---
 
 ### IV3 deployment record — session `32b15793` (2026-11-21)
 

@@ -44,5 +44,11 @@ jobs:
         run: node --test tests/official-wording.test.mjs
       - name: Live-probe gas rule (offline proof)
         run: node --test tests/dom/live-site-no-match.test.mjs
+      # Offline unit tests for the live-render verifier's parsing/classification
+      # helpers, so their comma/rate-limit handling cannot regress without a
+      # network run. `main`'s gas rule above is kept; this covers the refusal
+      # classification and the comma-tolerant scan count.
+      - name: Live-render verifier parsing tests
+        run: node --test tests/dom/live-site-assertions.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
