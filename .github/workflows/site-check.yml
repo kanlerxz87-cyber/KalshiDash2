@@ -47,6 +47,10 @@ jobs:
         run: node --test tests/sources-page.test.mjs
       - name: Chart jump-detection unit tests
         run: node --test tests/jumps.test.mjs tests/historical-tier.test.mjs
+      - name: Chart X-axis label tests (seconds / minutes / hours / days)
+        run: node --test tests/chart-axis.test.mjs
+      - name: Settlement-result semantics tests (yes / no / scalar)
+        run: node --test tests/result-semantics.test.mjs
       - name: Activity proxy + snapshot label tests
         run: node --test tests/activity-proxy.test.mjs
       - name: Published official-wording tests
