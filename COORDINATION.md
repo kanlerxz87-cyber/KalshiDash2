@@ -1001,6 +1001,31 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
 
+## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| W1 | Independent line-by-line verification of alert-threshold + simulator P&L math against official docs (Get Market schema, Market settlement, fee schedule) | in progress | `7930e2cd` | `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new) | `fetch_page` on docs.kalshi.com + fee schedule; read `assets/js/alerts-core.js`, `assets/js/simulator.js`, `assets/js/config.js` (read-only) | Read-only on site code; any defect found is logged here as a request, not edited (files owned by other sessions / shared outputs) |
+| W2 | Live-site + snapshot freshness: trigger `verify-live-site` and `collect` workflows on `main`, record run IDs and results | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `gh workflow run`, `gh run view`, Pages API | Workflows commit to `main` directly; no local file edits |
+| W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
+
+**Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+
+### Results — session `7930e2cd` (2026-11-21)
+
+| # | Task | Result |
+|---|------|--------|
+| W1 | Math verification | **done** — `reports/verify-math-7930e2cd.md`. Every formula in `alerts-core.js`, `simulator.js`, `market.js` (`fetchCandles`/`detectJumps`/`swingOf`/`eventContext`), `kalshi.js` (`deriveQuote`) and `config.js` constants checked against official docs fetched 2026-11-21 ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) incl. the 5,000-period cap, [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses) reciprocal rule + spread formula, [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Fee schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits)). All correct as written; no hallucinated values, no inferred fields, no silent zeros. One wording/formula alignment request (win-rate denominator excludes flats; scoreboard text says "share of scored trades") logged below for the integration session — **not edited here** (`simulator.js`/`simulator.html` are shared outputs). |
+| W2 | Live-site + snapshot | **done** — `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (all published pages HTTP 200 with the `KalshiDash2` marker). `collect` run [44875599643](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875599643) **success**; `data/snapshot.json` refreshed to `2026-11-21T06:28:13Z`, `errors: []`, committed to `main` as `97b6298`. Snapshot topics: gas 228 series / 59 events, elections 2710 / 23, culture 2 / 0, crypto 321 / 100, golf 134 / 37 (markets capped at 200/topic by the collector). Culture 0 events is the demo environment's state in this scan, not a site defect. |
+| W3 | Local suite | **done** on this branch: `alerts-core` 18/18 · `simulator-core` 5/5 · `taxonomy` 10/10 · signing self-test 6/6 · `check_site_links.py` 34 pages 0 broken · python unittest 18 OK · `page-runtime-check` 17/17 pages + 34 links · `git diff --check` clean. |
+
+**Requests logged for the integration session (not edited here):**
+- R-7930-1: Align the simulator win-rate denominator with the scoreboard wording (flats excluded from `wins/(wins+losses)` in `aggregate`/`aggregateBreakdowns` vs. "share of scored trades" in `simulator.html`). Files: `assets/js/simulator.js`, `simulator.html`. Source: `reports/verify-math-7930e2cd.md`.
+
+**No claims held by `7930e2cd` after this record.** File scope touched: `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new).
+
 ---
 
 ## Session `f1425e39` — DOM test dependency advisory and integration (2026-11-21)
