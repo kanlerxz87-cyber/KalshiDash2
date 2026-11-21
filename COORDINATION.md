@@ -2432,3 +2432,24 @@ resolved by keeping `main`'s already-merged work (board union tool, fresher bot 
 and re-landing only this session's unique contributions. This session deleted its own duplicate
 `boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
 removed.
+
+---
+
+## Session `0ecc28c2` — independent line-by-line re-verification + final integration (branch `arena/0ecc28c2-kalshidash2`, 2026-11-21)
+
+**Claimed at 2026-11-21T23:10Z.** Branch base: `cc9112b` (merge of PR #88, `main`). No other session
+holds a claim on the files below; every prior `in progress` claim on this board is older than the
+60-minute stale-claim window (last commits 20:55Z or earlier), so this session takes the scope over
+and records the handoff here. Nothing from any other session is discarded.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| Z1 | Line-by-line re-verification of the published site's official-source claims; record every check with the official URL it was checked against | **in progress** | `0ecc28c2` | `reports/session-review-0ecc28c2.md` (new), this section | docs.kalshi.com (fetched this session, see report) | — |
+| Z2 | Run every local suite on the branch base and record exact counts | **in progress** | `0ecc28c2` | this section, `reports/session-review-0ecc28c2.md` | local `node --test`, `python3 -m unittest`, `tools/check_site_links.py` | — |
+| Z3 | Final integration for this branch: PR → `main`, merge, confirm Pages deploy, record PR link + merge result | **in progress** | `0ecc28c2` | this section | `gh pr create` / `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+**File scope note:** this session deliberately does **not** edit `index.html`, `assets/js/**`,
+`data/snapshot.json`, `scripts/collect.py`, or any page owned by a currently-running session
+(`117dc8d6` has a final-verification job running on its own branch as this claim lands). Findings that
+require a change in those files are logged as requests on this board and as items in the report,
+never silently rewritten.
