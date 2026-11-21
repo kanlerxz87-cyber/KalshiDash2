@@ -1775,3 +1775,19 @@ for a session; the board's `session-<id>/<task>` convention was not applied and 
 `tools/resolve_board_conflict.py` (both sides kept, 0 sections dropped). No file owned by another live session
 was edited: `data/snapshot.json`, `scripts/collect.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs`
 and `tests/dom/live-site.mjs` were left to `0d6f4f1f`, `f2176447`, `5a9b44b9`, `e2718295` and `29749918`.
+
+---
+
+---
+
+### PR / merge / deploy record — session `29749918` (GC1)
+
+| Item | Result |
+|------|--------|
+| PR | [#68 — GC1: gas-price classification audit vs live demo API](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/68), `arena/29749918-kalshidash2` → `main` |
+| Checks before merge | `check` (Static site link check) **pass**; `mergeStateStatus: CLEAN` |
+| Merge | `gh pr merge 68 --merge` → **MERGED** at `2026-11-21T20:24:30Z`, merge commit [`7ebf5db`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7ebf5db62467b3a51f46c91f3b00c513bdf17d29) |
+| Pages deploy | `pages build and deployment` run [44946120665](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44946120665) on `7ebf5db` → **success**; Pages API `status: built`, source `main:/`; landing page `https://kanlerxz87-cyber.github.io/KalshiDash2/` loads (fetched via the page-fetch tool; the sandbox cannot reach `github.io` with `curl`). |
+| Coordination | The rebase conflicts on `COORDINATION.md` were resolved with `tools/resolve_board_conflict.py` (no sections dropped). Own-branch superseded commits were replaced with `--force-with-lease` pinned to the exact SHA (logged above). |
+
+Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owners and do not block anything.
