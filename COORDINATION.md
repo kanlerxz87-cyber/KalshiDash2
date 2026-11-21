@@ -2510,3 +2510,5 @@ conflict by keeping both changes and re-running every suite before pushing.
 | Current report | [`reports/audit-f468e69b.md`](reports/audit-f468e69b.md) records sources, checks, known limitations and flags. |
 
 **Session `f468e69b` is complete.** The product work was already present on `main`; this session independently verified the current implementation and recorded limitations rather than inventing live-account results.
+
+**Concurrent-update resolution:** while PR #97 was open, the verify-alerts workflow pushed a timestamped `reports/alerts-live-check.md` capture on this branch (23:14:32Z). During the required rebase onto `main`, that file conflicted with a newer main capture (23:14:43Z); kept the newer capture already on `main`, not the stale bot copy. All audit files and both sessions' coordination records were retained.
