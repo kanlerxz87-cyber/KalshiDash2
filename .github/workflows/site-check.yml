@@ -38,5 +38,11 @@ jobs:
         run: node --test tests/simulator-core.test.mjs
       - name: Chart jump-detection unit tests
         run: node --test tests/jumps.test.mjs
+      - name: Activity proxy + snapshot label tests
+        run: node --test tests/activity-proxy.test.mjs
+      - name: Published official-wording tests
+        run: node --test tests/official-wording.test.mjs
+      - name: Live-probe gas rule (offline proof)
+        run: node --test tests/dom/live-site-no-match.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs

@@ -257,6 +257,18 @@ class TopicTaxonomyTests(unittest.TestCase):
             ["AAAGASM", "AAAGASMAX", "KXAAAGASW", "KXGAS"],
         )
 
+    def test_pinned_series_survive_the_volume_cap(self):
+        rows = [
+            {"ticker": "LOWVOL", "volume_fp": "1.00", "_pinned": True},
+            {"ticker": "HIGHVOL", "volume_fp": "999999.00"},
+            {"ticker": "MIDVOL", "volume_fp": "500.00"},
+        ]
+
+        ordered = collect.order_series(rows)
+
+        self.assertEqual([r["ticker"] for r in ordered], ["LOWVOL", "HIGHVOL", "MIDVOL"])
+        self.assertEqual([r["ticker"] for r in ordered[:2]], ["LOWVOL", "HIGHVOL"])
+
     def test_every_topic_uses_only_documented_query_parameters(self):
         documented = {"category", "categories", "tags"}
         local_keys = {"series_patterns", "title_patterns", "exclude_patterns"}
@@ -270,3 +282,78 @@ class TopicTaxonomyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TopicRuleWordingTests(unittest.TestCase):
+    """Topic selection must be described as the filter actually applied.
+
+    The Get Series List spec describes `category` in full (exact, case-sensitive,
+    matched against the series' `categories` discovery list) but leaves `tags`
+    with no described semantics at all:
+    https://docs.kalshi.com/api-reference/market/get-series-list
+
+    History: `main` reworked gas from a tags filter onto documented categories
+    plus a local retail-gasoline rule (because the tag list pulled WTI, Brent,
+    natural gas and diesel into a topic labelled "Gas Prices"). These assertions
+    follow that rework: a topic filtered by categories must not also describe tag
+    matching, and the one topic still filtered by tags must not present a tag
+    list as an official taxonomy.
+    """
+
+    def test_category_filtered_notes_do_not_describe_tag_matching(self):
+        for key, spec in collect.TOPICS.items():
+            if "tags" in spec["series_filter"]:
+                continue
+            with self.subTest(topic=key):
+                self.assertNotIn(
+                    "tags parameter", spec["note"],
+                    "this topic is filtered by category, not tags",
+                )
+
+    def test_tag_filtered_topics_do_not_call_tags_an_official_taxonomy(self):
+        for key, spec in collect.TOPICS.items():
+            if "tags" not in spec["series_filter"]:
+                continue
+            with self.subTest(topic=key):
+                self.assertIn("tag", spec["note"].lower())
+                self.assertNotRegex(
+                    spec["note"], r"official Kalshi tag\b",
+                    "the spec does not describe tag matching semantics, so a tag "
+                    "filter must not be presented as an official taxonomy",
+                )
+
+    def test_committed_snapshot_rules_match_the_collector(self):
+        root = Path(__file__).resolve().parents[1]
+        snapshot = json.loads((root / "data" / "snapshot.json").read_text(encoding="utf-8"))
+        for key, topic in snapshot["topics"].items():
+            with self.subTest(topic=key):
+                self.assertEqual(topic["rule"], collect.TOPICS[key]["note"])
+
+
+class NoStaleScanCountsTests(unittest.TestCase):
+    """Scan counts must come from the scan being viewed, never a stored number.
+
+    The topic notes render on every category page. Two of them carried
+    point-in-time counts ("740 of 1,000 live events", Crypto "only 2") that were
+    wrong within a day - the 2026-11-21 snapshot holds 86 crypto events.
+    """
+
+    def test_topic_notes_carry_no_digit_counts(self):
+        import re
+        for key in ("gas", "elections", "culture", "crypto", "golf"):
+            with self.subTest(topic=key):
+                self.assertIsNone(
+                    re.search(r"\d", collect.TOPICS[key]["note"]),
+                    "a stored count in a topic note goes stale; use the live scan count",
+                )
+
+    def test_published_config_notes_carry_no_digit_counts(self):
+        import re
+        root = Path(__file__).resolve().parents[1]
+        config = (root / "assets" / "js" / "config.js").read_text(encoding="utf-8")
+        block = config[config.index("export const TOPICS"):config.index("export const WINDOWS")]
+        for match in re.finditer(r'key: "(\w+)"[\s\S]*?note:\s*\n?\s*"([^"]+)"', block):
+            if match.group(1) not in ("gas", "elections", "culture", "crypto", "golf"):
+                continue
+            with self.subTest(topic=match.group(1)):
+                self.assertIsNone(re.search(r"\d", match.group(2)))

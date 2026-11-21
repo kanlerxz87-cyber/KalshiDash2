@@ -380,12 +380,33 @@
     </div>
 
     <div class="irregularity" id="A9">
-      <h3>A9 — Two status vocabularies, with no confirmed mapping between them <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter documents its possible values as <code>unopened</code>, <code>open</code>, <code>closed</code> and <code>settled</code> (page fetched and read 2026-11-21). The page treats <code>active</code> and <code>open</code> as live.</p>
-      <p><strong>Corrected 2026-11-21:</strong> an earlier version of this flag — and of entry S6 in the older <code>docs/</code> generation — listed <code>paused</code> as a filter value. The current Get Markets page does not document <code>paused</code> in that enumeration, so the value has been removed from this flag rather than left standing as an unverified claim. The site never sends <code>status=paused</code>; it asks for <code>status=open</code>, so no request depends on this.</p>
-      <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest.</p>
-      <p><strong>Still unverified:</strong> the complete mapping between filter values and the <code>status</code> strings returned on market objects. Nothing is inferred here.</p>
-      <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
+      <h3>A9 — Two status vocabularies: the filter list and the mapping are on different pages <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the Market Lifecycle page lists the object statuses returned by
+        <code>GET /markets</code> and <code>GET /markets/{ticker}</code> — <code>initialized, active,
+        inactive, closed, determined, disputed, amended, finalized</code> — and gives a five-value filter
+        table that maps <code>unopened</code>→<code>initialized</code>, <code>open</code>→<code>active</code>,
+        <code>paused</code>→<code>inactive</code>, <code>closed</code>→any market past <code>close_time</code>
+        not yet <code>finalized</code>, <code>settled</code>→<code>finalized</code>. The Get Markets reference
+        documents the <code>status</code> parameter as exactly <code>unopened</code>, <code>open</code>,
+        <code>closed</code>, <code>settled</code> — four values, no <code>paused</code>. Both pages are
+        official (fetched 2026-11-21) and they disagree. The page treats <code>active</code> and
+        <code>open</code> as live.</p>
+      <p><strong>Corrected twice, and the first correction was wrong.</strong> An earlier version of this flag
+        listed <code>paused</code> as a Get Markets filter value with the Market Lifecycle page cited. A
+        later pass removed it, correctly noting that Get Markets does not document it. The complete statement
+        is both parts together: the filter list on the Get Markets page has four values, and the
+        filter-to-status mapping that includes <code>paused</code> is on the Market Lifecycle page. Each
+        wording is now attributed to the page that contains it.</p>
+      <p><strong>Observed:</strong> the most recent open-events scan (2026-11-21) returned 2,161 markets with
+        status <code>active</code> and 14 with <code>finalized</code>; the 2026-11-20 scan of the same query
+        returned 2,157 and 14 (<code>reports/alerts-live-check.md</code> §1). The page treats
+        <code>active</code> and <code>open</code> as live and skips the rest, so an <code>inactive</code>
+        (paused) market is not watched and produces no alert while it is paused.</p>
+      <p><strong>Still unverified:</strong> which page is authoritative for the filter, and whether the
+        exchange accepts <code>status=paused</code>. No such request has been run from a verifiable runner,
+        so it is not asserted. The site never sends <code>status=paused</code> — it asks for
+        <code>status=open</code> — so no behaviour depends on the answer.</p>
+      <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> (four filter values) · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a> (five-value mapping + object statuses)</p>
     </div>
 
     <div class="irregularity" id="A10">
@@ -686,6 +707,13 @@
         <code>market.js</code> now quote the schema. No alert behaviour changed: the between-polls
         comparison remains the true sudden-swing test, and the reference comparison is still labelled
         with the comparison that produced it.</p>
+      <p><strong>Trader-facing fix (2026-11-21, session <code>c6a50f54</code>):</strong> the wording had
+        been corrected in the register but not where it is read. <code>alerts.html</code> explained the
+        column with "exchange previous price" and never said the baseline was a day old, so a 24-hour move
+        printed beside sub-minute poll moves could be read as a sudden swing. Every row produced by that
+        comparison is now labelled <em>exchange previous price (a day ago)</em>, and the table note states
+        that such a row is a 24-hour move, not a move seen in the last few seconds. The label is derived
+        from the schema wording quoted above, not inferred.</p>
       <p><strong>What would close it:</strong> confirmation from Kalshi (or a live observation that
         distinguishes the two meanings — e.g. a market whose last trade is minutes old, where "a day ago"
         and "previous trade" give different values). Until then the field is used only as the exchange's
@@ -780,6 +808,65 @@
         subscriber, and the site does not present the WebSocket feed as a complete tick history.</p>
       <p class="small"><strong>Source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="W5">
+      <h3>W5 — The live render probe demanded a gas market that the demo exchange need not have <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>tests/dom/live-site.mjs</code> asserted the literal ticker
+        <code>KXAAAGAS</code> on the Gas page. When the demo exchange had no matching <em>open</em> gas market,
+        the page correctly rendered “No … events in this scan” and the probe failed anyway — so the
+        <code>live-site-render</code> workflow could not pass, and its failure said nothing about the page.
+        The bounded fix was claimed by session <code>3d2e8243</code> and never written.</p>
+      <p><strong>Fix shipped (session <code>c6a50f54</code>):</strong> the rule now lives in one module,
+        <code>tests/dom/gas-assertion.mjs</code>. A live gas market passes; the page's own no-match callout
+        also passes, but only when no JavaScript error was raised <em>and</em> the board status pill is not in
+        its error state. An empty board, a failed fetch, or any page error still fails. Seven offline cases
+        (<code>tests/dom/live-site-no-match.test.mjs</code>) prove the rule without network access, so it can be
+        reviewed even when the exchange is unreachable from the editing sandbox.</p>
+      <p><strong>Verification boundary:</strong> the offline cases pass locally. The live
+        <code>live-site-render</code> run has not been re-run against the exchange from this session; it is
+        dispatched by the workflow on the next push to <code>main</code> and its result is recorded in
+        <code>COORDINATION.md</code>.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1d · Defects fixed by session <code>c6a50f54</code> (2026-11-21)</h2>
+    <p class="sub">Found by reading the official OpenAPI markdown for Get Series List and Get Market against
+      the code that publishes topic labels and alert labels (both fetched 2026-11-21).</p>
+
+    <div class="irregularity" id="W6">
+      <h3>W6 — Topic notes presented a <code>tags</code> filter as official Kalshi vocabulary, and carried stale scan counts <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> two separate wording defects on a panel that renders on every
+        category page (<code>#topic-note</code> in <code>assets/js/category.js</code>).</p>
+      <p>(a) <em>Unsupported vocabulary claim.</em> The snapshot rules and the collector said Gas and Golf
+        were "selected by the official Kalshi tag(s)" and that topic rules used "Official Kalshi
+        <code>category</code> / <code>tags</code> values, never free-text matching". The Get Series List spec
+        describes <code>category</code> fully — exact, case-sensitive, matched against the series'
+        <code>categories</code> discovery list — but gives the <code>tags</code> parameter <strong>no</strong>
+        described matching semantics at all. Calling a tag filter "official vocabulary" was an inference,
+        not a documented fact.</p>
+      <p>(b) <em>Stale counts.</em> The Elections note said "740 of 1,000 live events scanned" and the Crypto
+        note said "only 2 live events in the demo scan". Both are point-in-time observations baked into
+        published text: the 2026-11-21 snapshot holds <strong>86</strong> crypto events and 23 election
+        events, so the Crypto line understated the topic by a factor of 43 on a page a trader uses to decide
+        whether a topic is worth watching.</p>
+      <p><strong>Fix shipped:</strong> category topics now cite the documented parameter behaviour;
+        tag-based topics state that the spec leaves tag matching undescribed, so the filter is what the URL
+        applied rather than a documented taxonomy; and no topic note carries a stored count any more — the
+        page prints the scan it just ran. Four regression tests hold this
+        (<code>tools/test_collect.py</code>: <code>TopicRuleWordingTests</code>,
+        <code>NoStaleScanCountsTests</code>), including one that fails if the committed snapshot's rules
+        drift from the collector's.</p>
+      <p><strong>Still unverified:</strong> whether <code>tags</code> matching is exact, prefix-based,
+        case-sensitive, or multi-value OR/AND. The spec does not say and no controlled request has been run
+        to find out, so nothing is asserted about it.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        (OpenAPI markdown: <code>category</code> described, <code>tags</code> undescribed)</p>
     </div>
   </div>
 

@@ -71,7 +71,25 @@ async function mockFetch(url) {
     const ev = decodeURIComponent(path.slice("/events/".length));
     const e = EVENTS.find(x => x.event_ticker === ev);
     if (!e) return reply(404, { error: { code: "not_found" } });
-    return reply(200, { event: { ...e, settlement_sources: [{ name: "Fixture settlement source", url: "https://example.org/fixture-" + ev }] }, markets: [] });
+    return reply(200, {
+      event: {
+        ...e,
+        series_ticker: "FIXSERIES",
+        settlement_sources: [{ name: "Fixture settlement source", url: "https://example.org/fixture-" + ev }],
+      },
+      markets: []
+    });
+  }
+  if (path.startsWith("/series/")) {
+    const st = decodeURIComponent(path.slice("/series/".length));
+    if (st !== "FIXSERIES") return reply(404, { error: { code: "not_found" } });
+    return reply(200, {
+      series: {
+        ticker: st,
+        contract_url: "https://example.org/contract-filing.pdf",
+        contract_terms_url: "https://example.org/contract-terms.pdf",
+      }
+    });
   }
   return reply(404, { error: { code: "not_mocked", path } });
 }
@@ -209,6 +227,24 @@ check("no page errors were logged", () => {
 });
 check("the settlement source link from the event record is rendered", () => {
   assert.ok($("#feed-all").innerHTML.includes("Fixture settlement source"));
+});
+check("each alert links the demo site, documented as the root only", () => {
+  const html = $("#feed-all").innerHTML;
+  assert.ok(html.includes("Kalshi demo site"), "the demo site link is rendered");
+  assert.ok(html.includes("https://demo.kalshi.co/"), "it points at the documented root");
+  assert.ok(!/demo\.kalshi\.co\/markets\//.test(html),
+    "no per-market demo URL is fabricated; the docs document the root only");
+});
+check("the official contract filing from the series record is rendered", () => {
+  const html = $("#feed-all").innerHTML;
+  assert.ok(html.includes("https://example.org/contract-filing.pdf"),
+    "contract_url from GET /series/{ticker} is linked");
+  assert.ok(html.includes("official contract filing"));
+});
+check("evidence links are labelled as checks, not causes", () => {
+  const html = $("#feed-all").innerHTML;
+  assert.ok(html.includes("Check the price against:"), "the evidence row is framed as a check");
+  assert.ok(!/caused by/i.test(html), "no alert claims a cause for a price move");
 });
 
 for (const [s, n] of results) console.log(s, n);

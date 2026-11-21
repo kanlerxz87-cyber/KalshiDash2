@@ -11,6 +11,7 @@ import { JSDOM, VirtualConsole } from "jsdom";
 import * as esbuild from "esbuild";
 import fs from "node:fs";
 import path from "node:path";
+import { gasBoardState, NO_MATCH_PATTERN } from "./gas-assertion.mjs";
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const netFetch = (...a) => globalThis.fetch(...a);   // resolved at call time
@@ -109,25 +110,28 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const { w, errors } = await run("categories/gas.html", {
     waitUntil: w => {
       const b = w.document.querySelector("#board-body")?.textContent || "";
-      const cov = w.document.querySelector("#topic-caveat")?.textContent || "";
-      /* Stop on a live gas event, on the page's explicit no-match state, or on
-       * an error state. The no-match state is a successful scan that matched
-       * zero gas events (renderCoverage in assets/js/category.js); waiting for
-       * KXAAAGAS alone would burn the full timeout on a legitimate empty scan. */
-      return /KXAAAGAS/.test(b)
-        || /No .* events in this scan/.test(cov)
-        || (w.document.querySelector("#board-status")?.className || "").includes("err");
+      const status = w.document.querySelector("#board-status")?.className || "";
+      // Settled = the board rendered rows, the page reported an error, or the
+      // page published its explicit no-match state (see the checks below).
+      const caveat = w.document.querySelector("#topic-caveat")?.textContent || "";
+      return /KXAAAGAS/.test(b) || status.includes("err") || NO_MATCH_PATTERN.test(caveat);
     }
   });
   const board = w.document.querySelector("#board-body")?.textContent.replace(/\s+/g, " ") || "";
   const cov = w.document.querySelector("#topic-caveat")?.textContent.replace(/\s+/g, " ") || "";
   const stats = w.document.querySelector("#cat-stats")?.textContent.replace(/\s+/g, " ") || "";
-  /* Honest board: either a live gas event is listed, or the page explicitly
-   * says the scan returned no gas events. An error board ("Could not load
-   * events") satisfies neither and fails — API failures are not masked. */
-  check("gas", "gas board honest (event listed or explicit no-match)",
-    /KXAAAGAS/.test(board) || /returned no .* events in this scan/i.test(board),
-    board.slice(0, 140));
+  /* Honest board: either a live gas event is listed, or the page explicitly says
+   * the scan matched no gas events. An error board ("Could not load events")
+   * satisfies neither and fails — API failures are not masked. The rule lives in
+   * ./gas-assertion.mjs so it can be proven offline by
+   * live-site-no-match.test.mjs (board item I2). */
+  const verdict = gasBoardState({
+    board, caveat: cov,
+    statusClass: w.document.querySelector("#board-status")?.className || "",
+    errors,
+  });
+  check("gas", "gas board honest (event listed, or explicit no-match with no errors)",
+    verdict.ok, verdict.reason + " — " + board.slice(0, 120));
   check("gas", "coverage line states the scan performed", /open event\(s\)|matched|No .* events/.test(cov), cov.slice(0, 200));
   check("gas", "resting size uses the documented fields", /yes_bid_size_fp \+ yes_ask_size_fp/.test(stats));
   check("gas", "no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));

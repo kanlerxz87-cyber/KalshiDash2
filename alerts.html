@@ -135,10 +135,13 @@
         <tbody id="alert-rows"><tr><td colspan="10"><div class="empty">Waiting for the first poll…</div></td></tr></tbody>
       </table>
       <div class="table-note">
-        <strong>Comparison</strong> says which test produced the row: <em>between two polls</em> (this page's own
-        readings) or <em>exchange previous price</em> (<code>previous_price_dollars</code> against
-        <code>last_price_dollars</code>, both from
-        <a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>).
+        <strong>Comparison</strong> says which test produced the row. <em>Between two polls</em> is this page's own
+        readings, seconds apart. <em>Exchange previous price (a day ago)</em> is <code>previous_price_dollars</code>
+        against <code>last_price_dollars</code>, and the schema defines that first field as the last traded YES price
+        <strong>a day ago</strong>
+        (<a href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>) —
+        so that row is a <strong>24-hour</strong> move, not a move observed in the last few seconds. Read the
+        Comparison column before treating a row as a sudden swing.
         <strong>Screen</strong> is the tradeability score out of 100 — a ranking, not a probability.
         <strong>High-ROI rules</strong> is the four-rule gate; the details are on the watch feed.
       </div>
