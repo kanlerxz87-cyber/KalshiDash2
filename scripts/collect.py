@@ -491,17 +491,19 @@ def main() -> int:
             "errors": client.errors[:20],
             "derivation_notes": {
                 "contract_volume": (
-                    "volume_fp, volume_24h_fp, and open_interest_fp are fixed-point contract "
-                    "counts, not traded-dollar volume. notional_value_dollars is the value "
-                    "of a single contract at settlement, not cumulative turnover."
+                    "volume_fp, volume_24h_fp, and open_interest_fp are contract-count fields "
+                    "(fixed-point contract counts), not traded-dollar volume. "
+                    "notional_value_dollars is the value of a single contract at settlement, "
+                    "not cumulative turnover."
                 ),
                 "sampled_yes_price_times_contracts": (
                     "Computed arithmetic: SUM(yes_price_dollars * count_fp) over valid rows "
                     "returned by GET /markets/trades (up to 3 pages x limit 1000). No min_ts "
                     "time bound is passed; pagination is capped. Missing/invalid prices or "
-                    "counts are skipped. This sample product is not actual all-side cash "
-                    "turnover, gross cash exchanged, full-history activity, or a complete "
-                    "24-hour total; only tickers with valid returned rows receive a value."
+                    "counts are skipped. This sample product is not asserted as actual "
+                    "all-side cash turnover, gross cash exchanged, full-history activity, or "
+                    "a complete 24-hour total; only tickers with valid returned rows receive "
+                    "a value."
                 ),
                 "sampled_trade_contracts_fp": "SUM(count_fp) for valid rows in the market's returned trade sample; not complete volume.",
                 "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
