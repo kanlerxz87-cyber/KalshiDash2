@@ -1338,3 +1338,11 @@ Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originall
 - Checks on the post-#53 tree: Node tests **43/43**; Python tools **28/28** after aligning an assertion with the official `contract-count fields` wording; alerts DOM **16/16**; summary DOM passed (19 requirement areas; 67/78 verified, 8 partial, 3 unverified); npm audit **0 vulnerabilities**; site links **34/0 broken**; page-runtime **17/17**; signing self-test **6/6**; Python compile and `git diff --check` passed.
 
 **Latest-main watch:** PR [#55](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/55) merged at `2026-11-21T06:44:45Z` as `63921af0e8b207b34365d44cb0da6eeccef6e400` (no T22 file overlap). The Pages build for the subsequent report commit is still being checked; `verify-live-site` on `63921af` failed at its wait/probe step while Pages was transitioning. Static site checks on that commit passed, but T22 will not merge until the latest deployed site and its live-page check are confirmed healthy.
+
+### T23 claim — align the live-site probe with the published heading
+
+| ID | Task | Status | Owner | Exclusive file scope | Verification | Irregularity |
+|---|---|---|---|---|---|---|
+| T23 | Replace the stale root-page content needle in the live Pages verifier with the current published H1, then run the verifier after the latest Pages deployment | in progress | `df4e0876` | `.github/workflows/verify-live.yml` (exclusive), `COORDINATION.md` (this claim/result only) | Root `index.html` and workflow assertion inspected; final check via GitHub-hosted `verify-live-site` | The workflow currently expects a heading removed when PR #53 relabelled the activity metric. This is a verifier drift, not a change to site content. |
+
+**T23 claim is recorded before editing `.github/workflows/verify-live.yml`.** No other active claim includes this workflow file.
