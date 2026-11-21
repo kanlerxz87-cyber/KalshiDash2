@@ -1151,6 +1151,32 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a></p>
     </div>
 
+    <div class="irregularity" id="AC3">
+      <h3>AC3 — The manual Pages workflow publishes <code>docs/</code>, but Pages serves the root <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>.github/workflows/pages.yml</code> uploads
+        <code>path: docs</code> and deploys that artifact, while the live Pages configuration is
+        <code>build_type: legacy</code> with source <code>main:/</code> — the repository root. The two
+        therefore describe different site trees. The workflow is <code>workflow_dispatch</code>-only
+        (its push trigger was removed to stop a two-deployer race), so it normally does nothing; but if a
+        maintainer ran it expecting to repair a failed build, it would publish the <em>legacy</em>
+        generation instead of the current one.</p>
+      <p><strong>Observed live:</strong> a maintainer-style dispatch of that workflow was run on 2026-11-21
+        while the Pages API reported <code>errored</code>. The root site was checked immediately afterwards
+        and was <strong>not</strong> replaced: <code>/KalshiDash2/</code> still served the root landing page,
+        and <code>/KalshiDash2/dashboard.html</code> — a file that exists only under
+        <code>docs/</code> — was not served at all. So no visitor saw the wrong site.</p>
+      <p><strong>Why it stays open:</strong> changing the artifact path, or deleting the workflow, is a
+        deployment-configuration decision for the repository owner, not a silent edit. It also interacts with
+        Flagged Y10 (the <code>docs/</code> redirect stub).</p>
+      <p><strong>What would close it:</strong> point the workflow's <code>path</code> at the repository root
+        (or delete the workflow and rely on the legacy builder), and record which of the two is authoritative
+        in <code>README.md</code>.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/.github/workflows/pages.yml" target="_blank" rel="noopener noreferrer">pages.yml ↗</a>
+        <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">GitHub Pages publishing source ↗</a>
+        <a class="src-link" href="reports/session-review-0ecc28c2.md" target="_blank" rel="noopener noreferrer">session report ↗</a></p>
+    </div>
+
     <div class="irregularity" id="AC2">
       <h3>AC2 — Three topic rows cited a glossary page that does not contain the claim <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> the claim register's rows <em>"Elections is a category"</em>,
