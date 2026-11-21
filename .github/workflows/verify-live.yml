@@ -99,7 +99,7 @@ jobs:
             fi
           }
 
-          probe "/" "Highest-dollar live markets, tracked to resolution" "landing page"
+          probe "/" "Live market activity, tracked to resolution" "landing page heading"
           probe "summary.html" "Executive summary" "executive summary"
           probe "summary.html" "Official basis / evidence" "summary source/evidence column"
           probe "summary.html" "id=\"defect-matrix\"" "defect rows include sources or evidence"
