@@ -86,11 +86,10 @@
         </p>
       </div>
       <div class="callout warn" style="margin:0">
-        <h3>S8 — Resolve the multi-session overlap</h3>
+        <h3>S8 — Resolve the multi-session overlap ✓ done</h3>
         <p style="margin:0" class="small">
-          Seven branches wrote to this repository concurrently. Until one owner performs the integration,
-          any page may be replaced by another session's work. This is an operational risk to everything else
-          on this list.
+          Resolved 2026-11-21: PR #88 merged to <code>main</code>, Pages built, no open PRs.
+          Shared outputs now land only through the integration branch.
         </p>
       </div>
     </div>
@@ -183,11 +182,11 @@ const S = [
   },
   {
     id: "S8", cat: "ops", rec: "yes",
-    status: "open",
+    status: "built",
     title: "Name a single integration owner for shared outputs",
     decision: "Whose version of the site is the site?",
-    evidence: "Seven arena/* branches exist and main advanced during this session; the brief reserves shared outputs for a final integration session.",
-    missing: "The maintainer's choice of owner — Q14.",
+    evidence: "Done 2026-11-21: PR #88 merged to main (merge commit cc9112b), GitHub Pages built from main:/, no open PRs at verification time. Shared outputs are merged only via the integration branch.",
+    missing: "None — closed by PR #88.",
     cost: "Low",
     risk: "None, other than requiring one decision",
     sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]

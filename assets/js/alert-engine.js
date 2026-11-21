@@ -31,9 +31,14 @@
  * as "n/a" rather than as zero.
  */
 import { ALERT, TRADE_SCREEN, TOPICS } from "./config.js";
-import { getAll, classifyEvent, num, screenMarket, getEvent, eventContext } from "./market.js";
+import { getAll, classifyEvent, num, screenMarket, getEvent, eventContext, fetchSeriesCategories } from "./market.js";
 
 /* -------------------------------------------------------------------------- */
+
+/* One series lookup per distinct series, cached for the page's life; bounded so
+ * a scan cannot spend an unbounded number of public reads (Kalshi publishes no
+ * numeric budget for unauthenticated traffic — flag A8). */
+const SERIES_LOOKUP_CAP = 60;
 
 export class AlertEngine {
   constructor({
@@ -105,6 +110,13 @@ export class AlertEngine {
       });
       this.scanned = events.length;
       this.lastEvents = events;
+
+      /* Classify from the series-level category where possible (the event
+       * `category` field is officially deprecated). Cached across polls, so the
+       * cost is one request per distinct series for the page's lifetime. */
+      const seriesCoverage = await fetchSeriesCategories(
+        events.map(e => e.series_ticker), { cap: SERIES_LOOKUP_CAP });
+      this.seriesCoverage = seriesCoverage;
 
       const swings = [];
       let marketCount = 0;

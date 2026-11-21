@@ -1,6 +1,6 @@
 # Suggestions — KalshiDash2
 
-See `docs/suggestions.html` for the interactive table with decision gates. Nothing is implemented until a path is chosen.
+See `suggestions.html` (published site root) for the interactive decision board with current status per item. The legacy `docs/suggestions.html` is historical reference only.
 
 | # | Suggestion | Decision gate |
 |---|------------|---------------|

@@ -16,7 +16,7 @@
  */
 import { mountChrome, esc, $, pill, int, src, emptyRow } from "./ui.js";
 import { TOPICS, DEMO } from "./config.js";
-import { api, getAll, classifyEvent } from "./market.js";
+import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategories } from "./market.js";
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
   watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
@@ -29,6 +29,10 @@ const SIM_CAP = 500;
 const FEED_CAP = 300;
 const BATCH = 25;
 const PER_TOPIC = 30;
+/* One series lookup per distinct series, cached for the page's life. 60 keeps the
+ * extra read cost bounded on top of the event scan (public reads are rate-limited
+ * and Kalshi publishes no numeric budget for unauthenticated traffic — flag A8). */
+const SERIES_LOOKUP_CAP = 60;
 const UNIVERSE_TTL_MS = 10 * 60 * 1000;
 const MAX_BACKOFF_S = 300;
 const LIVE_STATUSES = ["active", "open"];
@@ -120,11 +124,19 @@ async function loadUniverse(onProgress) {
     key: "events", maxPages: 12, limit: 200,
     onPage: n => onProgress && onProgress(n)
   });
+  /* Topic comes from the series-level category where it can be resolved; the
+   * event-level `category` is a deprecated field and is only the fallback.
+   * See the note above classifyEvent in market.js for the official source. */
+  const seriesCoverage = await fetchSeriesCategories(
+    events.map(e => e.series_ticker), { cap: SERIES_LOOKUP_CAP });
   const markets = [];
   let matched = 0;
+  const basis = { series: 0, event: 0, none: 0 };
   S.meta = new Map();
   for (const ev of events) {
-    const topic = classifyEvent(ev);
+    const verdict = classifyEventWithBasis(ev);
+    basis[verdict.basis] = (basis[verdict.basis] || 0) + 1;
+    const topic = verdict.topic;
     if (!topic) continue;
     matched++;
     for (const m of ev.markets || []) {
@@ -135,6 +147,7 @@ async function loadUniverse(onProgress) {
         _event_ticker: ev.event_ticker,
         _event_title: ev.title,
         _category: ev.category,
+        _categories: verdict.categories,
         _series_ticker: ev.series_ticker
       });
     }
@@ -149,6 +162,8 @@ async function loadUniverse(onProgress) {
     scanned: events.length,
     matchedEvents: matched,
     liveMarkets: markets.length,
+    categoryBasis: basis,
+    seriesCoverage,
     /* getAll() sets __capped when it stopped at its page budget with a
      * cursor still outstanding. A length check (events.length >= 12*200)
      * misses the case where the last page returned fewer than 200 rows. */
@@ -594,8 +609,14 @@ function renderUniverseNote() {
   if (!el) return;
   if (!u) { el.textContent = "Scanning open events…"; return; }
   const per = TOPICS.map(t => `${t.label} ${u.perTopic[t.key] || 0}`).join(" · ");
+  const b = u.categoryBasis || { series: 0, event: 0 };
+  const basisNote = ` Topic came from the series record for ${int(b.series)} event(s)` +
+    (b.event ? `, and from the deprecated event \u0060category\u0060 field for ${int(b.event)}` : "") +
+    (u.seriesCoverage && u.seriesCoverage.capped
+      ? ` (${int(u.seriesCoverage.capped)} series not looked up in this scan: per-scan cap)`
+      : "") + ".";
   el.innerHTML = `Scanned ${int(u.scanned)} open events (${int(u.matchedEvents)} in the five topics; ${int(u.liveMarkets)} live markets). ` +
-    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}`;
+    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}${basisNote}`;
 }
 
 /* The same swings as the feeds, as a table. Every row links the official API
