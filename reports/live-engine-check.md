@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-21T06:33:47.409Z
+- Run at: 2026-11-21T06:38:40.852Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -36,8 +36,8 @@
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 4
-- History requests that failed: 1
+- Markets with usable one-minute history: 3
+- History requests that failed: 0
 - Simulated trades produced: 0
 
 _No strategy fired in this universe._
