@@ -2141,3 +2141,34 @@ the day-old comparison label, `gas-assertion.mjs`, the three CI steps this sessi
 No file in this session's scope is claimed there, so they do not block this PR; they should be
 reconciled against `main` by their owner. Everything this session changed is either already merged
 to `main` or included in PR [#77](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77).
+
+---
+
+### Session `5a9b44b9` — V5 verification attempt + collector publish reliability fix
+
+**V5 result so far: not achieved.** The refreshed snapshot did not reach `main`.
+
+| Attempt | Run | Result | Evidence |
+|---|---|---|---|
+| 1 | [44947239975](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947239975) | job success, **no snapshot commit** | `data/snapshot.json` still `generated_at 2026-11-21T19:29:02Z`; no `chore(data)` commit after `bbdc3a0` |
+| 2 | [44947401192](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947401192) | job success, **no snapshot commit** | same; `main` gained PR #81 during the run |
+
+Cause found by reading `collect.yml` line by line: the commit step ended with
+`git push || echo "push skipped (branch protected or diverged)"`. `main` moves constantly while the
+~2-minute collection runs, so the push is rejected, the rejection is swallowed, and the job still
+reports success. This is a real reliability defect, not a data defect: the scheduled refresh can
+stay stale indefinitely with no failure signal.
+
+**Repair (R8):** the commit step now rebases onto `origin/main` and retries the push up to four
+times, and **fails the job** (`::error::` + exit 1) if it still cannot publish, so a stale snapshot
+is visible in CI instead of silent. No change to what is collected.
+
+| ID | Task | Status | Owner | Files | Verification |
+|---|---|---|---|---|---|
+| V5 | Confirm the regenerated snapshot on `main` (Culture non-empty; Gas gasoline-only; `KXGAS` present) | in progress — blocked on a publish that survives concurrent merges | `5a9b44b9` | this section, `.github/workflows/collect.yml` | Re-dispatch after the R8 fix lands; record the run and the topic counts |
+| R8 | Stop swallowing snapshot push rejections | **done** in this branch | `5a9b44b9` | `.github/workflows/collect.yml` | Workflow YAML inspected; retry loop + non-zero exit on failure |
+
+**Offline verification that the new taxonomy does what it claims (no live API needed):** replaying
+`collect.collect_series` over the committed series rows keeps exactly the 17 gasoline series and
+drops the 23 oil/nat-gas/diesel/power/barrels rows; Culture issues the three documented category
+queries. Covered by `tools/test_collect.py::TopicTaxonomyTests` (3 tests).
