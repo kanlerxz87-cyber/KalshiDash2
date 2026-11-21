@@ -2477,6 +2477,21 @@ Session `117dc8d6` is complete: F1–F4 **done**. Flagged items (F10, A11, W2/W3
 
 ---
 
+## Session `190f6069` — archived (historical) data tier: claim + scope (2026-11-21)
+
+**Session ID:** `190f6069` · **Branch:** `arena/190f6069-kalshidash2` (base `cc9112b`)
+
+| Task | Status | Owner | Files / scope | Sources checked | Notes |
+|---|---|---|---|---|---|
+| H1 — Read the live/historical partition from the official docs and close the site's silent gaps: candle field shapes, archived-candlestick fallback, archived settled markets in the strategy-tester universe | in progress | `190f6069` | `assets/js/market.js`, `assets/js/simulator.js`, `assets/js/category.js`, `assets/js/config.js`, `assets/js/claims.js` (one new claim only), `simulator.html`, `tests/historical-tier.test.mjs` (new), `.github/workflows/site-check.yml`, `reports/historical-tier-190f6069.md` (new), this section | [Historical Data](https://docs.kalshi.com/getting_started/historical_data) · [Get Historical Market Candlesticks](https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks) · [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) · [Get Historical Markets](https://docs.kalshi.com/api-reference/historical/get-historical-markets) · docs sitemap (all cited official links exist) | Read-only elsewhere. This session does not edit `index.html`, the nav in `assets/js/ui.js`, `flagged.html`, `verification.html`, `summary.html`, `data/snapshot.json`, `docs/`, or `scripts/`. |
+| H2 — Full local suite, PR → `main`, merge, confirm Pages deploy, record result | in progress | `190f6069` | this section | `node --test`, `tools/check_site_links.py`, `tools/verify/page-runtime-check.mjs`, python `tools` suite, `gh`, Pages API | Flagged/unverified items do not block the merge. |
+
+**Non-overlap statement.** Sessions `f468e69b`, `0ecc28c2` and `117dc8d6` claimed verification/integration
+work on their own branches in the same window. This claim is limited to the data-tier defect above and
+touches no shared table data, index page or navigation, so it cannot collide with a re-verification pass.
+If any of those sessions lands a change to one of the files listed here, this session resolves the
+conflict by keeping both changes and re-running every suite before pushing.
+
 ## Session `f468e69b` — current-turn independent product/source audit
 
 | ID | Task | Status | Owner | Exclusive files | Official sources / verification | Irregularities |

@@ -447,6 +447,64 @@ export async function resolveSeries(market) {
 
 /* ---------------- candlesticks ---------------- */
 
+/* ---- one parser for both candy tiers -------------------------------------
+ *
+ * Kalshi partitions exchange data into a live tier and a historical tier
+ * (https://docs.kalshi.com/getting_started/historical_data, fetched 2026-11-21):
+ *
+ *   "Markets and their candlesticks that settled before [market_settled_ts]
+ *    are only available via `GET /historical/markets`" — and the candlesticks
+ *    for those markets only via `GET /historical/markets/{ticker}/candlesticks`.
+ *
+ * The two endpoints return the SAME numbers under DIFFERENT field names:
+ *
+ *   live       GET /series/{series}/markets/{ticker}/candlesticks
+ *              price.close_dollars, price.previous_dollars, volume_fp, ...
+ *   historical GET /historical/markets/{ticker}/candlesticks
+ *              price.close,         price.previous,         volume, ...
+ *
+ * (Both schemas fetched 2026-11-21 from
+ *  https://docs.kalshi.com/api-reference/market/get-market-candlesticks and
+ *  https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks.)
+ *
+ * `parseCandle` accepts either shape and never substitutes a value that the
+ * response did not carry: a missing field stays null, which the UI renders as
+ * a gap rather than a price.
+ * ------------------------------------------------------------------------- */
+export function parseCandle(c) {
+  const dollars = o => num(o?.close_dollars ?? o?.close);
+  return {
+    t: Number(c?.end_period_ts) * 1000,
+    y: dollars(c?.price),
+    open: num(c?.price?.open_dollars ?? c?.price?.open),
+    high: num(c?.price?.high_dollars ?? c?.price?.high),
+    low: num(c?.price?.low_dollars ?? c?.price?.low),
+    mean: num(c?.price?.mean_dollars ?? c?.price?.mean),
+    prev: num(c?.price?.previous_dollars ?? c?.price?.previous),
+    yesBid: num(c?.yes_bid?.close_dollars ?? c?.yes_bid?.close),
+    yesAsk: num(c?.yes_ask?.close_dollars ?? c?.yes_ask?.close),
+    volume: num(c?.volume_fp ?? c?.volume),
+    openInterest: num(c?.open_interest_fp ?? c?.open_interest)
+  };
+}
+
+/* A market is treated as settled-tier eligible only when the exchange's own
+ * fields say so: it carries a `result`, or its status is one of the terminal
+ * lifecycle states, or its published close time has already passed.
+ * (https://docs.kalshi.com/getting_started/market_lifecycle,
+ *  https://docs.kalshi.com/api-reference/market/get-market) */
+const SETTLED_STATUSES = ["settled", "closed", "finalized", "determined"];
+
+export function isSettledMarket(market, nowMs = Date.now()) {
+  if (!market) return false;
+  const result = String(market.result || "").toLowerCase();
+  if (result === "yes" || result === "no") return true;
+  const status = String(market.status || "").toLowerCase();
+  if (SETTLED_STATUSES.includes(status)) return true;
+  const close = Date.parse(market.close_time || "");
+  return Number.isFinite(close) && close < nowMs;
+}
+
 /* Fetch candles, splitting the range so a request never exceeds the documented
  * 5,000-period cap. Returns points in the chart's {t, y} shape, where y is the
  * trade close price for the period and is null when the period had no trades. */
@@ -456,9 +514,16 @@ export async function resolveSeries(market) {
  * current clock would request a window that ends after settlement and miss the
  * trading history entirely. (GET /series/{series}/markets/{ticker}/candlesticks
  * takes required `start_ts` and `end_ts` — no "now" default is documented.)
- * https://docs.kalshi.com/api-reference/market/get-market-candlesticks */
-export async function fetchCandles(market, { seconds, interval, endTs }) {
-  const series = await resolveSeries(market);
+ * https://docs.kalshi.com/api-reference/market/get-market-candlesticks
+ *
+ * Historical tier: when the live tier returns no candles at all AND the market
+ * is settled, the same window is requested from
+ * GET /historical/markets/{ticker}/candlesticks, which the docs say is the only
+ * place archived settled markets live. The result records which tier answered
+ * (`via`) and links that exact request (`source`), so a chart or a backtest can
+ * never imply it read the live tier when it did not.
+ * https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks */
+export async function fetchCandles(market, { seconds, interval, endTs, allowHistorical = true } = {}) {
   const periodSeconds = interval * 60;
   const maxSpan = CANDLE.maxPeriodsPerRequest * periodSeconds;
   const end = Number.isFinite(endTs) ? Math.floor(endTs) : Math.floor(Date.now() / 1000);
@@ -467,39 +532,80 @@ export async function fetchCandles(market, { seconds, interval, endTs }) {
   const chunks = [];
   for (let s = start; s < end; s += maxSpan) chunks.push([s, Math.min(s + maxSpan, end)]);
 
-  const points = [];
-  let rawCount = 0;
-  for (const [s, e] of chunks) {
-    const url = `/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(market.ticker)}` +
-      `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
-    const j = await api.get(url);
-    const candles = j.candlesticks || [];
-    rawCount += candles.length;
-    for (const c of candles) {
-      points.push({
-        t: c.end_period_ts * 1000,
-        y: num(c.price?.close_dollars),
-        open: num(c.price?.open_dollars),
-        high: num(c.price?.high_dollars),
-        low: num(c.price?.low_dollars),
-        mean: num(c.price?.mean_dollars),
-        prev: num(c.price?.previous_dollars),
-        yesBid: num(c.yes_bid?.close_dollars),
-        yesAsk: num(c.yes_ask?.close_dollars),
-        volume: num(c.volume_fp),
-        openInterest: num(c.open_interest_fp)
-      });
+  const readChunks = async (pathFor) => {
+    const points = [];
+    let rawCount = 0;
+    for (const [s, e] of chunks) {
+      const j = await api.get(pathFor(s, e));
+      const candles = j.candlesticks || [];
+      rawCount += candles.length;
+      for (const c of candles) points.push(parseCandle(c));
     }
-  }
-  points.sort((a, b) => a.t - b.t);
-  return {
-    points,
-    interval,
-    seconds,
-    series,
-    rawCount,
-    source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    points.sort((a, b) => a.t - b.t);
+    return { points, rawCount };
   };
+
+  const liveUrl = (series, s, e) =>
+    `/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(market.ticker)}` +
+    `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
+  const histUrl = (s, e) =>
+    `/historical/markets/${encodeURIComponent(market.ticker)}` +
+    `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
+
+  /* A market whose series cannot be resolved can still have archived candles:
+   * the historical route needs only the ticker. So the resolve failure is kept
+   * instead of thrown, and the fallback decides whether it matters. */
+  let series = market.series_ticker || null;
+  let liveError = null;
+  let live = { points: [], rawCount: 0 };
+  try {
+    series = await resolveSeries(market);
+    live = await readChunks((s, e) => liveUrl(series, s, e));
+  } catch (e) {
+    liveError = e;
+  }
+
+  if ((live.points.length > 0 || !allowHistorical || !isSettledMarket(market))) {
+    if (!live.points.length && liveError) throw liveError;
+    return {
+      points: live.points,
+      interval,
+      seconds,
+      series,
+      rawCount: live.rawCount,
+      via: "live",
+      historicalError: null,
+      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    };
+  }
+
+  /* Live tier returned nothing for a settled market: ask the historical tier. */
+  try {
+    const hist = await readChunks(histUrl);
+    if (!hist.points.length && liveError) throw liveError;
+    return {
+      points: hist.points,
+      interval,
+      seconds,
+      series,
+      rawCount: hist.rawCount,
+      via: "historical",
+      historicalError: null,
+      source: `${DEMO.rest}/historical/markets/${market.ticker}/candlesticks`
+    };
+  } catch (e) {
+    if (liveError) throw liveError;
+    return {
+      points: live.points,
+      interval,
+      seconds,
+      series,
+      rawCount: live.rawCount,
+      via: "live",
+      historicalError: e.message,
+      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    };
+  }
 }
 
 /* Aggregate 1-minute candles into a coarser bucket when a window would need too

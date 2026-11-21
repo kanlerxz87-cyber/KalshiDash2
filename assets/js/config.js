@@ -48,6 +48,14 @@ export const SOURCES = {
   marketSettlement: "https://docs.kalshi.com/getting_started/market_settlement",
   lifecycle:      "https://docs.kalshi.com/getting_started/market_lifecycle",
   historical:     "https://docs.kalshi.com/getting_started/historical_data",
+  /* Live/historical partition (fetched 2026-11-21):
+   * https://docs.kalshi.com/getting_started/historical_data — "markets and their
+   * candlesticks that settled before [market_settled_ts] are only available via
+   * GET /historical/markets"; each data type has its own cutoff, published by
+   * GET /historical/cutoff. The two tiers use DIFFERENT response field names for
+   * candles, so assets/js/market.js `parseCandle` reads both shapes. */
+  historicalMarkets:  "https://docs.kalshi.com/api-reference/historical/get-historical-markets",
+  historicalCandles:  "https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks",
   sharding:       "https://docs.kalshi.com/getting_started/exchange_sharding",
   feeRounding:    "https://docs.kalshi.com/getting_started/fee_rounding",
   terms:          "https://docs.kalshi.com/getting_started/terms"
