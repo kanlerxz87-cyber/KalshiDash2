@@ -2437,6 +2437,45 @@ in `COORDINATION.md` (add/add on the tail of the board).
 (3 skipped — `cryptography` absent in this container) · signing self-test 6/6 · static link check **35 pages,
 0 broken** · page runtime **17/17 clean**.
 
+### Session `c33971c1` — FINAL RECORD: merged to `main`, Pages live (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#91 — session c33971c1: series-level category (deprecation fix), VERIFICATION refresh, live-verified flag corrections](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/91), branch `arena/c33971c1-kalshidash2` → `main` |
+| Merge | `gh pr merge 91 --merge` succeeded **2026-11-21T23:12:03Z**; merge commit [`0de03ce`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/0de03ce40975b2fbc7dca2b2edaf18fa82c7b8a6). PR state at merge: `MERGEABLE`, `CLEAN`, both `check` runs **SUCCESS**. |
+| Concurrency | Two other sessions merged first (#89 → `70744d5`, #90 → `b197886`) and a third merged #92 (`31e251b`) between my branch's base and my merge. `main` was merged into this branch twice; the only conflict was `COORDINATION.md` (add/add) and it was union-resolved with `tools/resolve_board_conflict.py`, keeping **both** sessions' sections verbatim. A CI bot also pushed `reports/alerts-live-check.md` to this branch mid-session; that commit was merged, not force-pushed over. Logged in the conflict table above. |
+| Checks on `main` after the merge | `Static site link check` **success** (run 44960608522) · `live-site-render` **success** (44960608499) · `live-engine-check` **success** (44960608578) · `verify-live-site` **success** (44960608485) · `verify-alerts` queued/success |
+| Pages deploy | Pages API: `status: built`, `build_type: legacy`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Build for the merged tree's successor commit `afc2c0b` **succeeded** (run 44960633462). Two intermediate builds were recorded as *errored/cancelled* during the burst of merges — documented as flag **Z3**, with the evidence that the site stayed live and the next build succeeded. |
+| Post-merge CI anomaly | `live-engine-check` failed on the merge push (run 44961672766) while four sibling workflows passed; the same code **passed on re-dispatch** (run 44961815807, 18 s). Cause inferred, not read (the log blob was unreachable from this container) — published as flag **Z4**, with the evidence that rules out the new series lookups. |
+| Series-lookup politeness change | After that observation, the per-scan lookup budget was halved (60 → 30) and ordered by how many events each series carries, so the added public reads buy the most coverage per request. Tests: `tests/taxonomy.test.mjs` 16 → 17 (frequency ordering). |
+| Live content verified after deploy | `flagged.html` serves this session's F4 re-check text ("Re-checked 2026-11-21 (session c33971c1, live)") and `assets/js/market.js` serves the series-category code (`SERIES_CATEGORIES`, `classifyEventWithBasis`) — both fetched from the published site, not inferred from the merge. |
+| Final local suite on the merged tree | Node **83/83** (8 files) · DOM **19/19** · Python `tools/` **42/42** · Python `tests/` **20** (3 skipped, `cryptography` absent here) · signing self-test **6/6** · static link check **35 pages / 0 broken** · page runtime **17/17 clean** |
+
+### What this session contributed that no other session had
+
+1. **The series-level category fix (flag AB3).** The one substantive correctness change: the site's entire topic
+   taxonomy rested on a field Kalshi marks `deprecated: true`. It now resolves `GET /series/{ticker}` (cached,
+   capped, failure-tolerant), reads `categories[]` ∪ `category`, and reports which basis decided each event so
+   the fallback is visible rather than implied. 5 new tests pin the precedence.
+2. **A way to check the API from this container.** Every prior session recorded "the sandbox cannot reach
+   kalshi.co" and moved live checks to CI. The page-fetch proxy *can* reach both `docs.kalshi.com` and
+   `external-api.demo.kalshi.co`; all live observations in this session are direct, dated and URL-cited in
+   `reports/live-verify-c33971c1.md`.
+3. **Three flags corrected because the live API contradicts their premise:** F4 (an open gas event exists),
+   SB4 (the `KXGAS`→`GAS` alias inference is wrong — two distinct records), F10 (the WebSocket *is* wired, via
+   the relay; W1/W4 keep the honest limits).
+4. **`VERIFICATION.md` rebuilt (E3)** — re-dated, repointed at the published register, two stale *unverified*
+   rows corrected, six rows added, and each row now states whether it rests on a document or a live request.
+5. **Flag Z3** — the Pages build-record anomaly observed during the merge burst, with the three run IDs so the
+   claim can be re-checked.
+
+### Flag register state after this session
+
+72 items + **Z3** = 73 published. Open items are published, labelled and linked; nothing was deleted. Items this
+session changed: **AB3** open → mitigated, **SB4** unverified → mitigated, **F4** open → mitigated, **F10**
+open → mitigated, **E3** open → fixed, **Z3** added (open). Flagged items and unverified values block nothing,
+per the brief.
+
 ## Session `117dc8d6` — final verification + liveness audit (2026-11-21)
 
 Branch: `arena/117dc8d6-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
@@ -3016,3 +3055,17 @@ Final Pages state after that merge: build `519de080` (a descendant of the board 
 published site is generated from a tree that contains both PR #94 and this record. Builds `68cd5e0`, `e8474483`,
 `519de080` (first attempt) and `dfd79661` reported `Page build failed.` within seconds of a neighbouring push —
 the same race described above; the retry of `519de080` built in 52.6 s and is what the site serves.
+
+**Session `190f6069` — addendum (2026-11-21T23:2xZ):** the record above landed through a second
+PR, [#101](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/101) (merged `dfd7966`), because #93
+was already merged when the record was written. #101 also gave the simulator's "Where each number
+comes from" table one sourced row per data tier. Checks on `dfd7966`: `Static site link check`
+success (44961396764) · `verify-live-site` success (44961396802). Local suite on the rebased tree:
+Node **133/133**, Python `tools` **42/42**, links **36 pages / 0 broken**, page runtime **18/18**.
+
+Pages confirmation for these merges: several `pages-build-deployment` runs were cancelled by the
+concurrency group while other sessions merged (#94, #98, #103, #106) in the same minutes, so the
+Pages API momentarily reported `errored`; the surviving builds finished and the API now reports
+`status: built` (last successful build 44962008944). The deployed `simulator.html` was fetched from
+the live host and does serve both this session's universe/candlestick text and the per-tier source
+rows, so the deployment is current rather than stale.

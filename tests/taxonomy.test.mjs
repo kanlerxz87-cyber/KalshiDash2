@@ -263,3 +263,23 @@ test("gas exclusions still apply when the category comes from the series record"
     category: "", series_ticker: "KXAAAGASW", title: "US gas prices this week"
   })), "gas");
 });
+
+test("the lookup budget is spent on the series carrying the most events", async () => {
+  clearSeriesCategoryCache();
+  const seen = [];
+  const fetcher = async (path) => {
+    const ticker = decodeURIComponent(path.split("/series/")[1]);
+    seen.push(ticker);
+    return { series: { ticker, category: "Economics", categories: ["Economics"] } };
+  };
+  // "RARE" appears once, "BUSY" appears four times, "MID" twice.
+  const tickers = ["RARE", "MID", "BUSY", "BUSY", "MID", "BUSY", "BUSY"];
+  const out = await fetchSeriesCategories(tickers, { fetcher, cap: 2 });
+  assert.deepEqual(seen, ["BUSY", "MID"], "only the two highest-frequency series are fetched");
+  assert.equal(out.requested, 3);
+  assert.equal(out.fetched, 2);
+  assert.equal(out.capped, 1);
+  // The one that did not fit still falls back and is never guessed at.
+  assert.equal(seriesCategoriesFor("RARE"), null);
+  assert.equal(classifyEvent(ev({ category: "Crypto", series_ticker: "RARE" })), "crypto");
+});
