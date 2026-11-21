@@ -1507,3 +1507,32 @@ BC4 below).
 `COORDINATION.md` commit on top of the fully-checked `b0e976b` tree), merged with
 `gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
 Session `bc079e84` is complete: BC1–BC4 **done**.
+
+---
+
+## Session `8d0568c3` — integration: stale-claim takeover + CI verification-drift repair
+
+Started: 2026-11-21T20:25Z. Branch: `arena/8d0568c3-kalshidash2` (branched from `main` @ `bbdc3a0`).
+Timezone note: all times UTC.
+
+**State found on arrival (verified, not assumed):**
+
+| Finding | Evidence | Classification |
+|---|---|---|
+| `main` is a single squashed root commit `bbdc3a0` containing all 123 files as additions. | `git log --all --oneline` returns exactly 1 commit; `git show bbdc3a0 --stat` lists every file as new. | **Irregularity D1.** Every commit SHA and merge-base referenced by earlier board sections no longer exists in git. PRs #1–#62 still exist on GitHub, but no branch has a merge base with `main`. Recorded, not "fixed". |
+| PR [#60](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/60) is open, `mergeable: CONFLICTING`, last commit 2026-11-21T07:10:48Z — ~13 h stale. | `gh pr view 60`; `gh pr checks 60` → "no checks reported". Session `9543cf0d`'s claim therefore exceeds the 60-minute rule. | **Takeover under the stale-claim rule.** Nothing on that branch is deleted; its still-valid content is ported below or explicitly declined and recorded. |
+| Two committed unit tests fail on `main`. | `node --test tests/activity-proxy.test.mjs` → 2 pass / **1 fail**; `python -m unittest discover -s tools` → 28 run / **1 failure**. | **Defect V1** (below). |
+| `live-site-render` has failed on every run since 2026-11-21T06:41Z. | `gh run list --workflow=live-site-render.yml` → 4 failures in a row (`44876727079`, `44877447617`, `44877710104`, `44878586946`). Logs are not retrievable from this sandbox, so the cause was reconstructed by reading the script (below). | **Defect V2** (below). |
+| `activity-proxy.test.mjs` is not executed by any workflow. | `grep -rn activity-proxy .github/` → no match. | **Defect V3**: an asserted invariant was unenforced, which is why V1 drifted unnoticed. |
+
+### Task claims (exclusive file scope — no other session holds these)
+
+| ID | Task | Status | Owner | Exclusive files | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| T24 | Make the two drifted tests assert the generator's own wording instead of a stale copy, so a future snapshot refresh cannot break them; wire the orphaned proxy test into CI. | in progress | `8d0568c3` | `tests/activity-proxy.test.mjs`, `tools/test_collect.py`, `.github/workflows/site-check.yml` | `scripts/collect.py` is the generator of the asserted strings (read directly). Wording is semantically equivalent and stricter than the test expected: "is not actual all-side cash turnover" vs "not asserted as actual all-side cash turnover"; "fixed-point contract counts" vs "contract-count fields". | V1, V3 |
+| T25 | Repair the `live-site-render` verifier: comma-tolerant scan-count assertion; distinguish an exchange refusal (HTTP 429 / network) from a real content regression; bound retries; cover the parsing logic with an offline test. | in progress | `8d0568c3` | `tests/dom/live-site.mjs`, `tests/dom/live-site-assertions.mjs` (new), `tests/dom/live-site-assertions.test.mjs` (new), `.github/workflows/live-site-render.yml` | [Get Events](https://docs.kalshi.com/api-reference/events/get-events); [rate limits](https://docs.kalshi.com/getting_started/rate_limits) for the 429 semantics. Cause proven locally: `int()` = `toLocaleString` → "Scanned 1,234 events" cannot match `/Scanned \d+ events/`. | V2 |
+| T26 | Add the custom GitHub Pages 404 that main lacks, ported from stale PR #60, and keep it link-clean. | in progress | `8d0568c3` | `404.html` | [GitHub Pages custom 404](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site) | — |
+| T27 | Make `tools/check_site_links.py` default to the published root (`.`) instead of the legacy `docs/` tree, so a bare run matches what Pages serves and CI cannot diverge from a local run. | in progress | `8d0568c3` | `tools/check_site_links.py`, `tools/test_check_site_links.py` | Pages API `source: {branch: main, path: "/"}` (verified via `gh api .../pages`). | V4: a local bare run checked 17 legacy pages while CI checked 34 published pages. |
+| T28 | Final integration for this session: re-run every suite, verify the live deployment after merge, record PR/merge/Pages result here. | in progress | `8d0568c3` | `COORDINATION.md` (this section) | — | — |
+
+**Claim committed and pushed before any edit to the claimed files.**
