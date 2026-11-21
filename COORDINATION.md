@@ -1001,6 +1001,81 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
 
+---
+
+## Session `bc079e84` — fresh line-by-line re-verification + simulator fee modelling + final integration (branch `arena/bc079e84-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (squashed checkout; board read in full before starting). **This
+section is appended only.** Every board above is preserved unchanged.
+
+Role: (1) a fresh line-by-line re-verification pass of the published root site against the
+**official Kalshi docs, fetched live on 2026-11-21** (this sandbox's `fetch_page` tool can reach
+`docs.kalshi.com`, so verification is direct rather than delegated to runners), (2) close the
+open A5 fee gap in the simulator if — and only if — the official fee schedule formula can be
+confirmed from the official PDF, (3) resolve the Y9 dead-file irregularity, (4) final
+integration: full suite, PR → `main`, merge without waiting, Pages deploy confirmation, records.
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------------------|------------------------|------------------------|
+| BC1 | Line-by-line re-verification of core modules (`alerts-core.js`, `market.js`, `simulator.js`, `kalshi.js`, `config.js`) against official API reference pages fetched 2026-11-21; fix any discrepancy found | in progress | `bc079e84` | read-only first; fixes logged + limited to files below | docs.kalshi.com (live fetches, recorded below) | — |
+| BC2 | Simulator fee modelling (A5): confirm the official fee schedule from the official PDF; implement verified fee estimation in the strategy tester, labelled with its source; update tests | in progress | `bc079e84` | `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs` | https://kalshi.com/docs/kalshi-fee-schedule.pdf (fetched 2026-11-21) | Only implemented if the formula is confirmed verbatim; otherwise A5 stays open |
+| BC3 | Resolve Y9 (`assets/js/jumps.js` tracked but unused): remove the dead module, mark the flag mitigated on the register, keep canonical jump detection in `market.js` | in progress | `bc079e84` | `assets/js/jumps.js`, `flagged.html`, `tests/dom/summary-dom.mjs` (counts only) | repo grep + page-runtime check | Flag counts change 29/15/44 → 29/16/44; DOM expectations updated with them |
+| BC4 | Final integration: full verification suite, PR → `main`, merge, Pages deploy confirmation, this record | pending | `bc079e84` | `COORDINATION.md` (this section), `EXECUTIVE_SUMMARY.md` (only if wording must change) | `gh` CLI; GitHub Pages API | Flagged items do not block merge |
+
+**Session note (branch naming):** per Arena's binding, all work happens on `arena/bc079e84-kalshidash2`;
+the brief's `session-<id>/<task>` naming is not usable here (same note as sessions `869f5339`/`4208a2dd`).
+
+### BC1 record — line-by-line re-verification against official docs (fetched live 2026-11-21)
+
+Unlike earlier sessions (which could only reach docs via GitHub runners), this sandbox's `fetch_page`
+reached `docs.kalshi.com` and `kalshi.com` directly, so every check below is a first-hand read of the
+official page on 2026-11-21.
+
+| # | What was verified | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| V-1 | Every market field the alert engine and data layer use (`last_price_dollars`, `previous_price_dollars`, `yes_bid/yes_ask_dollars`, `yes_bid/yes_ask_size_fp`, `no_bid/no_ask_dollars`, `volume_fp`, `volume_24h_fp`, `open_interest_fp`, `notional_value_dollars`, `settlement_value_dollars`, `result`, `status`, `close_time`, `price_ranges`) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) | `alerts-core.js`, `market.js`, `config.js` field usage matches the published schema exactly. Pass. |
+| V-2 | Candlestick endpoint contract: path `/series/{series_ticker}/markets/{ticker}/candlesticks`, required `start_ts`/`end_ts` in **seconds**, `period_interval` enum **1/60/1440**, ≤ **5,000** periods per request, optional `include_latest_before_start` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | `fetchCandles` matches; window-splitting on the 5,000-period cap is correct. Pass. |
+| V-3 | Candlestick response shape: `candlesticks[].end_period_ts`, `yes_bid/yes_ask.{open,low,high,close}_dollars`, `price.{open,low,high,close,mean,previous,min,max}_dollars` (string\|null), `volume_fp`, `open_interest_fp` | same page (200 response schema) | `fetchCandles` parses exactly these fields; null prices preserved. Pass. |
+| V-4 | Taker fee formula `round up(M × 0.07 × C × P × (1−P))`, maker `M × 0.0175 × C × P × (1−P)` (maker M default 0), no settlement fee, no membership fee; Non-Standard per-series multipliers (incl. `KXPGATOUR`/`KXPGARYDER`/`KXPGASOLHEIM` 1/1, `KXAAAGASM` 1/1, `KXBTCY`/`KXETHY` 0/0) | [Fee Schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf) ("July 2026 – 7.7.26 Update", effective 2026-07-07) | Fee model implemented from these values (BC2). Pass. |
+| V-5 | Fee "round up" mechanics: trade fee = model fee ceil to $0.000001; rounding fee aligns (revenue − trade fee) to the member grid ($0.0001 direct / $0.01 non-direct); rebate accumulator keeps net fee ≥ 0 | [Fee Rounding](https://docs.kalshi.com/getting_started/fee_rounding) | Mechanics reproduce the PDF's entire 42-value fee table and the page's own worked example ($0.055 buy → net $0.005). Asserted in unit tests. Pass (footnote discrepancy flagged Z1). |
+| V-6 | Market settlement payout ($1/contract on the correct side; complement for NO), used by every P&L path | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | `updateTrade`/`replayStrategy`/`Paper.settle` consistent. Pass. |
+| V-7 | Docs note: candlesticks for markets settled before the historical cutoff need `GET /historical/markets/{ticker}/candlesticks` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Observation only: the tester already reports per-market history errors instead of inventing points. Noted, no change needed. |
+
+Also re-ran on this branch (all green): `node --test tests/alerts-core.test.mjs` 18/18 · `node --test tests/simulator-core.test.mjs` **10/10** · `node --test tests/taxonomy.test.mjs` 10/10 · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` (19 requirement areas, 70/79 claims — 6 partial, 3 unverified; 29 open / 16 mitigated / 45 flags; 27 sourced rows) · `node tools/verify/page-runtime-check.mjs` 17/17 pages + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` OK · `node evidence/auth-sign-test.mjs` 6/6.
+
+### BC2 record — fee modelling (closes the fee half of F15/A5)
+
+- **Implemented** (files: `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`,
+  plus wording in `summary.html`, `index.html`, `strategies.html`, `README.md`, `EXECUTIVE_SUMMARY.md`,
+  `assets/js/claims.js`, `flagged.html`): `FEE_SCHEDULE` constants, `modelFeeDollars`, `fillFeeDollars`
+  (official rounding mechanics), `takerFeeMultiplier` (verbatim zero-multiplier rows from the PDF),
+  fee + net-P&L fields on every replayed trade (entry taker fee; exit taker fee on round trips;
+  **no** settlement fee on settlement exits — the schedule states there is none), fee/contract and
+  P&L-after-fees columns on the scoreboard and ledger, fee columns + fee-schedule source links in the
+  CSV export, and updated assumption panels naming the formula and both official sources.
+- **Verified**: 5 new unit tests — all 42 official fee-table values (1 and 100 contracts), the Fee
+  Rounding worked example (revenue −$0.055 → trade fee $0.003639 + rounding $0.001361 = $0.005),
+  zero-multiplier series, trade-level fee fields, CSV columns. `10/10` pass.
+- **Not changed (still flagged)**: spread, slippage, queue position (F15 stays open, re-worded);
+  live paper strategies on `alerts.html` remain fee-free (A5 stays open, re-worded). Fee-schedule
+  footnote discrepancy published as **Z1** (open — Kalshi clarification).
+
+### BC3 record — dead file removed (closes Y9)
+
+`assets/js/jumps.js` deleted after `grep` confirmed zero importers (its only mention outside
+`COORDINATION.md`/`flagged.html` was the flag card itself). Canonical jump detection remains
+`detectJumps` in `assets/js/market.js`, re-verified against the official candlestick schema (V-3).
+Y9 marked **fixed** on the register. Flag counts now 29 open / 16 mitigated / 45 total (derived, not
+hard-coded, on the summary page and in the DOM regression).
+
+**Scope extension (logged per the rules):** BC2's wording updates touched `summary.html`,
+`index.html`, `strategies.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/claims.js` beyond
+the claimed file list — all were unclaimed on the board (no active session holds them; the board's
+last owner sessions are closed). Only the fee-assumption sentences and the register entry changed;
+no other content was rewritten.
+
+---
+
 ## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
 
 Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
@@ -1306,6 +1381,50 @@ the unused W-series.
 
 ---
 
+
+### Conflict log — merge of `origin/main` (`43fe4bb`) into this branch (2026-11-21)
+
+`origin/main` advanced past `8ea5c85` with PRs #43–#56 from parallel sessions (WebSocket live feed
+`1607f1f9`, Y9/Y10 closure `9d7b4124`/`75490e0f`, previous-price wording `3b869340`, live checks
+`7930e2cd`, advisory fixes `f1425e39`, and others). Three files conflicted; nothing from any
+session was discarded:
+
+| Collision | Resolution |
+|-----------|------------|
+| `COORDINATION.md` | Resolved with `tools/resolve_board_conflict.py` (main's own union tool): 1 conflict block → both sides kept; 0 duplicate sections dropped. Main's new session sections and this session's section all survive. |
+| `EXECUTIVE_SUMMARY.md` | Kept main's side (new WebSocket-feed bullet + updated alerts wording) and substituted only this session's fee sentence into the Strategy-tester bullet. |
+| `flagged.html` (Y9 card) | Kept main's side — sessions `9d7b4124` + `75490e0f` already closed Y9 with a more complete record (incl. `tests/jumps.test.mjs`); this session's duplicate resolution text dropped. |
+
+**ID collision found and fixed:** main's register already published a **Z1**
+(`previous_price_dollars` wording, session `3b869340`), so this session's fee-discrepancy flag was
+renumbered **Z1 → Z2** (title, `id`, and the cross-reference in `assets/js/simulator.js`).
+`assets/js/jumps.js` was already deleted on main (same conclusion, two sessions); this branch's
+deletion merges identically.
+
+**Post-merge verification (2026-11-21):** alerts-core 19/19 · jumps 6/6 · live-core 23/23 ·
+activity-proxy 3/3 · simulator-core 10/10 · taxonomy 10/10 · `tests/test_kalshi_ws.py` 18 (3 skip) ·
+alerts DOM 16/16 · summary DOM 20 requirement areas, 78/89 claims (8 partial, 3 unverified),
+32 open / 23 mitigated / 55 flags, 28 sourced rows · page-runtime 17/17 + 34 links ·
+static links 34 pages 0 broken · python tools OK.
+
+**Rebase note (2026-11-21):** the standing "git pull --rebase before every push" rule is unsafe
+after a merge commit: `git pull --rebase` began linearizing the merge and replaying `main`'s
+commits (`e0096d6` conflicted). Aborted with `git rebase --abort` exactly as session `ae228af4`
+did — nothing discarded; the branch ref and the remote both hold the merge commit `5dbf5d7`.
+When a branch carries a merge of `main`, push directly (remote is an ancestor) instead of rebasing.
+
+**CI breakage found and fixed (2026-11-21, integration duty):** every `verify-alerts` run since
+commit `978c223` (session `1607f1f9`, 06:37 UTC) failed instantly with **zero jobs** — on every
+branch and on `main` — because of a workflow-file parse error: the step name
+`Unit tests (live feed: WebSocket ticker + REST fallback)` contains an unquoted `: ` that YAML
+reads as a mapping ("bad indentation of a mapping entry (41:36)", reproduced with `js-yaml`
+locally). One-line fix: the name is now quoted. All 12 workflow files parse clean afterwards.
+`verify-alerts.yml` was not in any active claim (last owner `75932362`, closed; the breaking edit
+was an unlogged extension of `1607f1f9`'s W1). Logged here per the coordination rules. The same
+commit's `site-check.yml` additions parse fine and were not touched.
+
+---
+
 ## Session `df4e0876` — collector semantics and sample-bound verification
 
 Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originally based on `main` at `8ea5c85`.
@@ -1359,3 +1478,10 @@ Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originall
 - On the merged SHA, `pages build and deployment` [44877695888](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877695888) **succeeded**, `Static site link check` [44877697166](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877697166) **succeeded**, and `verify-live-site` [44877697152](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877697152) **succeeded**. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>; the verifier probed the deployed pages and assertions.
 - The `verify-alerts` workflow run [44877696126](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44877696126) is marked failure by GitHub, but the Jobs API returns zero jobs and no logs are retrievable. It is not a reported PR check; the PR's static check and the local alert/DOM suites passed. This unclassified workflow-run result is recorded, not attributed to T22.
 - The independent `live-site-render` workflow remains the separate, bounded I2 issue above; its report is unavailable from this sandbox. It does not invalidate the successful live-page probe or Pages deployment and was not edited in T22/T23.
+
+### Conflict log — second merge of `origin/main` (`dbcfc67`, PRs #58/#59, `df4e0876`) (2026-11-21)
+
+| Collision | Resolution |
+|-----------|------------|
+| `COORDINATION.md` | `tools/resolve_board_conflict.py`: 1 block unioned, 0 sections dropped. Both sessions' records kept. |
+| `reports/verify-facts-v3.md` | Two bot captures (my branch `06:55:15Z` vs main `06:48:24Z`); kept the **fresher** `06:55:15Z` capture, matching the board's standing "take the fresher capture" precedent. The dropped capture remains in main's history. |

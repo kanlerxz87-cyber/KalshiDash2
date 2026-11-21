@@ -232,16 +232,20 @@
     </div>
 
     <div class="irregularity" id="F15">
-      <h3>F15 — Simulated trades carry no fees, spread or slippage <span class="tag warn">open</span></h3>
+      <h3>F15 — Simulated trades carry no spread or slippage (fees now modelled) <span class="tag warn">open</span></h3>
       <p><strong>What is unverified:</strong> the true profitability of any strategy. A simulated fill is
         placed at the trade-close price of the candle that fired the signal, so it ignores the bid–ask
-        spread, the size available at that price, and the fee schedule.</p>
+        spread, the size available at that price, and queue position.</p>
+      <p><strong>Partial mitigation (session <code>bc079e84</code>, 2026-11-21):</strong> trading fees are now
+        modelled from the official schedule — taker fee = round up(M × 0.07 × C × P × (1−P)) with the
+        exchange's own rounding mechanics — and every backtest row reports both fee-per-contract and
+        P&amp;L-after-fees. The fee model reproduces all 42 published values in the official fee table
+        (unit-tested). Spread, slippage and queue position are still not modelled.</p>
       <p><strong>Impact:</strong> every simulated result on the <a href="simulator.html">Strategy Tester</a>
-        page is <strong>optimistic</strong> by an amount this site cannot quantify.</p>
-      <p><strong>Status here:</strong> the assumption is printed in a warning panel above every backtest
-        result, the fee schedule is linked from that panel, and no live strategy comparison is published.</p>
+        page is still <strong>optimistic</strong> by an amount this site cannot quantify.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Fee schedule (PDF) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Order-book responses ↗</a></p>
     </div>
 
@@ -345,9 +349,14 @@
     </div>
 
     <div class="irregularity" id="A5">
-      <h3>A5 — Simulated trades ignore fees, slippage and queue position <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> the paper strategies enter at the displayed ask for one contract, mark at the best bid, and settle at $1 or $0. Kalshi fees are not deducted, and a real order may not fill at the displayed ask. Simulated P&amp;L is therefore optimistic.</p>
-      <p><strong>Source for fees:</strong> <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Kalshi fee schedule (PDF) ↗</a></p>
+      <h3>A5 — Paper strategies ignore fees, slippage and queue position <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the paper strategies enter at the displayed ask for one contract, mark at the best bid, and settle at $1 or $0. Kalshi fees are not deducted in the live paper book, and a real order may not fill at the displayed ask. Simulated P&amp;L is therefore optimistic.</p>
+      <p><strong>Partial mitigation (session <code>bc079e84</code>, 2026-11-21):</strong> the Strategy Tester's
+        backtested trades now deduct official-schedule fees (see F15). The <em>live</em> paper strategies on
+        the <a href="alerts.html">Live alerts</a> page still do not deduct fees; their mark-to-market figures
+        are labelled "before fees".</p>
+      <p><strong>Source for fees:</strong> <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">Kalshi fee schedule (PDF) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding ↗</a></p>
     </div>
 
     <div class="irregularity" id="A6">
@@ -615,7 +624,7 @@
       <p><strong>What was found:</strong> its header says "Used by the category charts to mark every move of at
         least $0.10", but no page or module imports it. The live jump logic is
         <code>detectJumps</code> in <code>assets/js/market.js</code> (identical threshold), used by
-        <code>category.js</code>. The file is a leftover from a duplicate implementation that was dropped in a
+        <code>category.js</code>. The file was a leftover from a duplicate implementation that was dropped in a
         merge (see R2).</p>
       <p><strong>Resolution (2026-11-21, session <code>9d7b4124</code>):</strong> the file was deleted after
         re-running the grep (the only remaining references were this flag's own text) and confirming
@@ -818,6 +827,30 @@
         <code>{value: null, derivable: false}</code> and the row is counted as missing-price.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5 · Fee-schedule verification (session <code>bc079e84</code>, added 2026-11-21)</h2>
+    <p class="sub">Found while closing the fee gap (F15/A5) against the official documents.</p>
+
+    <div class="irregularity" id="Z2">
+      <h3>Z2 — Fee schedule footnote ("centicent") contradicts its own fee table <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the fee schedule PDF defines "round up" as rounding
+        "such that the fee + positionCost is rounded to a centicent" ($0.0001), but every one of its 42
+        worked fee-table values is consistent with rounding to the <em>cent</em> ($0.01) — e.g. 1 contract at
+        $0.01 is listed as a $0.01 fee although the raw formula gives $0.000693.</p>
+      <p><strong>How this site resolves it (not a guess — verified arithmetic):</strong> the official
+        <em>Fee Rounding</em> page documents the exchange's actual mechanics: the model fee is rounded up to
+        $0.000001, then a "rounding fee" aligns the balance change to the member's precision grid
+        ($0.0001 direct, $0.01 non-direct). Applying those mechanics on the $0.01 grid reproduces
+        <strong>all 42</strong> published fee-table values exactly (asserted row by row in
+        <code>tests/simulator-core.test.mjs</code>), including the official worked example on the Fee Rounding
+        page itself. The strategy tester implements those mechanics and labels its fee columns accordingly.</p>
+      <p><strong>Why it stays open:</strong> the PDF footnote itself is still inconsistent with its own
+        table; only Kalshi can confirm which wording is intended. Review link:
+        <a class="src-link" href="https://kalshi.com/docs/kalshi-fee-schedule.pdf" target="_blank" rel="noopener noreferrer">fee schedule (PDF) ↗</a> ·
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">fee rounding ↗</a>.</p>
     </div>
   </div>
 
