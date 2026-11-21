@@ -2561,4 +2561,110 @@ traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official**
 `volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
 control with the request count stated, never on every poll. If any page of trades is unreachable the figure
 renders as `n/a` and is flagged, never as `$0.00`.
->>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)
+## Session `02091230` — line-by-line API-contract re-verification + alert-feed usability (2026-11-21)
+
+Branch: `arena/02091230-kalshidash2`, branched from `main` @ `cc9112b`.
+State at claim time (verified, not assumed): `gh pr list --state open` → **no open PRs**; `origin/main`
+= `cc9112b`; working tree clean; local suite green (78/78 Node unit tests, 42/42 Python tool tests,
+35-page link check, 17/17 page-runtime). No other session has an open claim, so the scopes below are exclusive.
+
+### Task claims (exclusive file scope)
+
+| ID | Task | Status | Owner | Exclusive files | Verification planned | Irregularities |
+|---|---|---|---|---|---|---|
+| U1 | Independent line-by-line re-verification of the API contracts this site depends on, against the official docs (not against the repo's own text) | **in progress** | `02091230` | `COORDINATION.md` (this section) | Orderbook shape, Create Order V2, Get Market `previous_price_dollars`, Get Markets/Get Events `limit`, Get Balance, Get Positions, WS `ticker` payload, official fee schedule PDF + fee rounding | **U-I1**: `assets/js/market.js:23` says the documented page limit for `GET /markets` **and** `GET /events` is 200. Get Markets documents **default 100, maximum 1000**; only Events documents 200. |
+| U2 | Fix U-I1 and remove two pieces of dead/unsafe code found in the same pass | unclaimed → **in progress** | `02091230` | `assets/js/market.js`, `index.html` | Local Node + page-runtime suite after the edit | **U-I2**: `rankEvents()` emits a `seriesUrl` that is an *event* URL and whose ternary has identical branches; nothing reads it. **U-I3**: `analyseFills()` computes `notional = count × 1` ("$1 per contract at settlement") although the documented `notional_value_dollars` need not be $1 for scalar markets; nothing renders it. |
+| U3 | Alert feed: let a trader track an alerted market to resolution and open the event detail page, without leaving the feed | **in progress** | `02091230` | `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs` | Alerts DOM test + page runtime + a new unit test for the helper that builds the watch entry | Uses only documented fields already on the alert (`ticker`, `to`, quotes, OI). No new inference. |
+| U4 | Publish two newly verified facts (fee-table parity; WS whole-dollar notional exists) in the registers, with sources | **in progress** | `02091230` | `assets/js/claims.js`, `suggestions.html` | Claim register renders; suggestions page link check | `dollar_volume` / `dollar_open_interest` are documented **only** on the WS ticker payload, not on REST market objects; the suggestion says so explicitly. |
+| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | unclaimed | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
+
+**Claim committed and pushed before any edit to the files above.**
+
+### Sources fetched for U1 (2026-11-21, all official)
+
+| # | Source | What it confirms |
+|---|---|---|
+| U-S1 | <https://docs.kalshi.com/api-reference/market/get-market-orderbook.md> | `200` body is `{"orderbook_fp": {"yes_dollars": [[price, count]], "no_dollars": [...]}}`; `depth` 0–100, default 0. Matches `deriveQuote()` and `?depth=20`. |
+| U-S2 | <https://docs.kalshi.com/api-reference/orders/create-order-v2.md> | Route `POST /portfolio/events/orders`; body `ticker, side(bid|ask), count "10.00", price "0.5600", time_in_force, self_trade_prevention_type, client_order_id`; `201` returns `order_id`. Matches `createOrder()`. |
+| U-S3 | <https://docs.kalshi.com/api-reference/market/get-market.md> | `previous_price_dollars` = "Price for the last traded YES contract on this market **a day ago** in dollars"; status enum is `initialized…finalized`; `notional_value_dollars` = single-contract settlement value. Confirms the alerts page wording and Flag A11. |
+| U-S4 | <https://docs.kalshi.com/api-reference/market/get-markets.md> | `limit`: "Defaults to 100. **Maximum value is 1000.**"; query `status` enum `unopened/open/paused/closed/settled`; `tickers` comma-separated. Confirms U-I1. |
+| U-S5 | <https://docs.kalshi.com/api-reference/portfolio/get-balance.md> | `balance` is **cents**, `balance_dollars` is a fixed-point dollar string; `portfolio_value` is cents with no `_dollars` twin. Matches `portfolio.html`. |
+| U-S6 | <https://docs.kalshi.com/api-reference/portfolio/get-positions.md> | `MarketPosition` carries `market_exposure_dollars`, `realized_pnl_dollars`, `fees_paid_dollars`. Matches the positions table. |
+| U-S7 | <https://docs.kalshi.com/websockets/market-ticker.md> | Ticker payload: `market_ticker`, `price_dollars`, quotes, `volume_fp`, `open_interest_fp`, `dollar_volume`, `dollar_open_interest`, `ts_ms`. Confirms `live-core.js` mapping. |
+| U-S8 | <https://kalshi.com/docs/kalshi-fee-schedule.pdf> ("effective July 7, 2026") | `fee = roundup(M × 0.07 × C × P × (1−P))`, maker `0.0175`, "no settlement fee", the 21-row general fee table, and **all ten** zero-multiplier series. Matches `FEE_SCHEDULE` + `ZERO_TAKER_FEE_SERIES` exactly. |
+| U-S9 | <https://docs.kalshi.com/getting_started/fee_rounding.md> | Trade fee `ceil_6dp`, balance alignment grid `$0.0001` direct / `$0.01` non-direct, rebate mechanics. Matches `fillFeeDollars()`; the PDF table is reproduced with the non-direct grid. |
+
+Not verified here (sandbox cannot open TLS to Kalshi hosts from the shell; browser/CI paths already cover them):
+live demo responses, CORS, and Pages rendering. Those remain the responsibility of the hosted workflows whose
+run IDs are recorded elsewhere on this board.
+
+### U1–U4 results — session `02091230` (2026-11-21)
+
+| ID | Status | Files | Verification performed | Outcome |
+|---|---|---|---|---|
+| U1 | **done** | this section | The nine sources U-S1…U-S9 were fetched and compared line by line with the code that consumes them (`kalshi.js deriveQuote/createOrder`, `market.js getAll/fetchCandles/analyseFills`, `portfolio.html`, `live-core.js`, `simulator.js` fee model). | All shapes match **except** U-I1. The simulator's ten zero-multiplier series match the fee-schedule PDF exactly; the 21-row fee table and the 42 worked values are already asserted in `tests/simulator-core.test.mjs`. |
+| U2 | **done** | `assets/js/market.js`, `index.html` | `node --check`; page-runtime 17/17; Node suite after each edit. | U-I1 fixed (comment now states 1000 for Markets, 200 for Events; default 200 legal on both). `seriesUrl` removed (unused; identical branches). `analyseFills().notional` removed (unused; assumed $1/contract). The dead duplicate `rows` array on `index.html` that was immediately recomputed as `sorted` was removed too. |
+| U3 | **done** | `assets/js/alerts-core.js`, `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/official-wording.test.mjs`, `tests/dom/alerts-dom.mjs` | `node --test tests/alerts-core.test.mjs` 21/21; `node --test tests/official-wording.test.mjs` 5/5; alerts DOM **21/21** (two new checks click the button and inspect localStorage); page runtime 17/17; link check 35/35. | Two feeds now scroll in a 480px log (380px mobile) and sit side by side at ≥1000px. Each message offers **Track to resolution** (writes the alert's documented fields to the same watch list `resolved.html` polls until yes/no) and **event detail**. `marketRefFromAlert()` is pure and unit-tested; a missing field stays null. |
+| U4 | **done** | `assets/js/claims.js`, `suggestions.html`, `flagged.html` | Register/flagged render (page runtime); summary DOM 20 areas, 81/92 verified claims, 74 flags; link check clean. | Three new verified claims (per-endpoint page limits, ten zero-multiplier series, `orderbook_fp` shape). Suggestion **S17** proposes ranking by the WS-only `dollar_volume`/`dollar_open_interest`, stating that REST does not carry them and that the sign semantics need one captured session. Flags **SC1** (unstyled/non-scrolling chats — mitigated) and **SC2** (wrong page-limit comment + dead fields — mitigated) published. |
+
+**New irregularity found and fixed (SC1)** is the substantive one: the brief's central UI — two scrolling chats — was rendering
+unstyled because the renderer emits `.msg` while the stylesheet only knew `.chat-msg`, and the scroll-area class was never
+applied. This was invisible to every prior suite because no test compared rendered classes with the stylesheet. The new guard
+closes that gap.
+
+**Deliberately not changed:** the `$0.10` threshold and its inclusive float-safe comparison, the day-ago label for
+`previous_price_dollars` (re-confirmed by U-S3), the volume × price proxy ranking (switching it to a dollar field would need the
+WS field that S17 describes), and the `docs/` generational redirect (owned by the earlier integration records).
+
+### Conflict log — integrating `main` @ `31e251b` (PR #92) — session `02091230`
+
+`main` advanced by 9 commits while this session worked (PRs #89, #90, #92 from sessions `117dc8d6` and
+`f468e69b`). The branch was rebased onto `31e251b`; nothing from either side was dropped.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `COORDINATION.md` | add/add: `main` appended sessions `117dc8d6` and `f468e69b`; this branch appended its claim at the same end-of-file point | Union — both sessions' sections kept in full, then this session's section after them. Markers removed by deleting only the three conflict lines; verified no session heading was lost (`grep` for both ids). |
+| `suggestions.html` | `main` changed the S8 entry and callout to "built" (PR #88 closed); this session added S17 and changed the KPI labels | Both kept: S8 remains `built` with its merged text, S17 follows S16, and the KPI now shows "Already on the site" alongside Recommended/Optional/Later. Re-checked by page runtime and link check. |
+| everything else | no overlap (`main`'s other changes were `SUGGESTIONS.md` and two new `reports/` files) | untouched. |
+
+Open PRs at integration time: #91 (series-level category) and #93 (archived candle tier). Neither claims a file
+this session edits except that #93 may touch `assets/js/market.js` in the candlestick section; this session's
+`market.js` edits are confined to the `getAll` header comment, the unused `seriesUrl` line in `rankEvents`, and the
+unused `notional` line in `analyseFills`, so a rebase by that owner should be conflict-free or trivially so.
+
+**Session state after rebase:** Node 81/81 · Python tools 42/42 · Python tests 20 (3 skipped) · alerts DOM 21/21 ·
+summary DOM pass (81/92 verified claims, 8 partial, 3 unverified; 41 open / 33 mitigated / 74 flags) · page runtime
+17/17 · link check 35 pages / 0 broken · signing self-test 6/6 · `git diff --check` clean.
+
+### Conflict log #2 — integrating `main` @ `afc2c0b` (PR #91) — session `02091230`
+
+PR [#91](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/91) (session `c33971c1`, series-level category
+classification) merged into `main` after PR #94 was opened and touched four of this session's files. The branch
+was rebased onto `afc2c0b`; every change from #91 is retained and re-tested.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `assets/js/alerts.js` | one import line: #91 added `classifyEventWithBasis` + `fetchSeriesCategories`; this session added `Watchlist` | Single union import line; body changes from both sides applied without loss (`git diff origin/main -- assets/js/alerts.js` shows only this session's additions). |
+| `assets/js/market.js` | #91 added series-category helpers near classification; this session changed the `getAll` header comment and removed two unused fields | Auto-merged; `git diff origin/main -- assets/js/market.js` contains **only** this session's three intended hunks. |
+| `assets/js/claims.js`, `flagged.html`, `suggestions.html` | both sides appended/labelled entries | Auto-merged; register counts re-derived by the summary DOM test (now 86 Node tests on the combined tree). |
+| `COORDINATION.md` | add/add again | Union: #91's and this session's sections both present. |
+| `reports/alerts-live-check.md` | the CI bot's capture for this branch (23:11:56Z) vs `main`'s capture (23:10:59Z) | Kept the **fresher** capture (23:11:56Z), per the board's standing precedent; both files contained the same observations, only timings and the commit SHA differed. The bot's commit was cherry-picked, not dropped. |
+
+**Post-rebase suite on the combined tree:** Node **86/86** · Python tools **42/42** · Python tests **20** (3 skipped) ·
+alerts DOM **21/21** · summary DOM pass · page runtime **17/17** · link check **35 pages / 0 broken** · signing **6/6**.
+
+### Conflict log #3 — integrating `main` @ `f7f461e` (PR #93) — session `02091230`
+
+PR [#93](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/93) (archived candle tier) merged while PR #94 was
+open and rewrote large parts of `assets/js/market.js`, `category.js`, `config.js`, `simulator.js` and added
+`tests/historical-tier.test.mjs`. Rebased onto `f7f461e`.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `assets/js/market.js` | #93 added the historical candle tier around `fetchCandles` / `getAll`; this session's three hunks are the `getAll` header comment, removal of unused `seriesUrl`, removal of unused `notional` | Auto-merged; `git diff origin/main -- assets/js/market.js` shows exactly those three hunks and nothing else. |
+| `reports/alerts-live-check.md` | this branch carried the bot capture at 23:11:56Z; `main` now carries a **newer** one at 23:13:24Z | Kept `main`'s fresher capture; this branch's older bot commit was dropped by the rebase (its observations were identical — only timings and SHA differed). This is the inverse of log #2, where this branch's capture was the fresher one. |
+| everything else | no textual overlap | untouched. |
+
+**Post-rebase suite on the combined tree (PR #93 included):** Node **100/100** (includes #93's
+`tests/historical-tier.test.mjs`) · Python tools **42/42** · Python tests **20** (3 skipped) · alerts DOM
+**21/21** · summary DOM pass · page runtime **17/17** · link check **35 pages / 0 broken** · signing **6/6**.

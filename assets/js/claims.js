@@ -452,5 +452,22 @@ export const CLAIMS = [
     detail: "The board reads at most 10 pages of 200 open events; the API reports no total, so the share scanned is not knowable from the response",
     source: `${D}/api-reference/events/get-events`,
     ev: "The page now labels a page-budget-limited scan as partial; the uncovered share is unmeasured (X8)",
-    status: "unverified", flag: "Y8" }
+    status: "unverified", flag: "Y8" },
+
+  // ---- per-endpoint verification pass, session 02091230 (2026-11-21) ----
+  { cat: "limits", claim: "Page-size limits are per endpoint, not one shared number",
+    detail: "GET /markets: limit defaults to 100, maximum 1000. GET /events: limit defaults to 200, maximum 200. The shared client therefore follows the returned cursor instead of assuming one page is the whole set, and its default of 200 is valid on both.",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Both OpenAPI parameter definitions fetched 2026-11-21 (Get Markets MarketLimitQuery: 'Defaults to 100. Maximum value is 1000.'; Get Events EventLimitQuery: maximum 200). A stale code comment claiming 200 for both was corrected.",
+    status: "verified" },
+  { cat: "trading", claim: "Ten series carry a zero maker and taker fee multiplier",
+    detail: "KXBTCY, KXETHY, KXCITRINI, KXDOED, KXELECTIRAN, KXGAMBLINGREPEAL, KXGREENLAND, KXIRANDEMOCRACY, KXLAYOFFSYINFO, KXPAHLAVIHEAD. Every other row of the Non-Standard Fees table has multiplier 1, and a series absent from the table uses the general default.",
+    source: "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+    ev: "PDF ('effective July 7, 2026') transcribed row by row on 2026-11-21 and compared with ZERO_TAKER_FEE_SERIES in assets/js/simulator.js — the same ten tickers, no more and no fewer. The general formula (roundup(M × 0.07 × C × P × (1−P))), maker 0.0175, 'no settlement fee' and the 21-row fee table also match.",
+    status: "verified" },
+  { cat: "api", claim: "Order book returns fixed-point dollar levels under orderbook_fp",
+    detail: "The 200 body is {orderbook_fp: {yes_dollars: [[price, count], …], no_dollars: […]}}; `depth` accepts 0–100 and 0 means all levels. Quotes are derived as documented: a NO bid at y implies a YES ask at 1 − y.",
+    source: `${D}/api-reference/market/get-market-orderbook`,
+    ev: "Response schema and depth range fetched 2026-11-21; assets/js/kalshi.js deriveQuote reads orderbook_fp.yes_dollars / no_dollars and the pages request depth=20.",
+    status: "verified" }
 ];

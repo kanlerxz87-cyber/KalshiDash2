@@ -20,10 +20,13 @@ export const api = new KalshiClient();
  *   rows.__capped  true when `maxPages` ran out while the API still had a
  *                  cursor — the list is incomplete and callers must say so
  *                  rather than present a partial scan as the whole exchange.
- * The documented page limit for GET /markets and GET /events is 200
- * (https://docs.kalshi.com/api-reference/market/get-markets,
- *  https://docs.kalshi.com/api-reference/events/get-events), so a single page
- * is never assumed to be the full set. */
+ * Page-size limits differ by endpoint, so `limit` is never assumed to be the
+ * whole set and every caller here follows the cursor instead:
+ *   GET /markets  limit defaults to 100, maximum 1000
+ *     (https://docs.kalshi.com/api-reference/market/get-markets)
+ *   GET /events   limit defaults to 200, maximum 200
+ *     (https://docs.kalshi.com/api-reference/events/get-events)
+ * The default below (200) is valid for both endpoints. */
 export async function getAll(path, { key, maxPages = 20, limit = 200, onPage } = {}) {
   const out = [];
   let cursor = "";
@@ -395,7 +398,6 @@ export function rankEvents(events, mode = "money") {
       volume, oi, money, missingPrice,
       result: dominantResult(ms),
       closeTime: earliest(ms.map(m => m.close_time)),
-      seriesUrl: ev.series_ticker ? `${DEMO.rest}/events/${ev.event_ticker}` : `${DEMO.rest}/events/${ev.event_ticker}`,
       source: `${DEMO.rest}/events/${ev.event_ticker}`,
       markets: ms
     };
@@ -771,7 +773,12 @@ export function analyseFills(fills, { topicResolver } = {}) {
     const side = f.outcome_side || f.side || null;
     const price = side === "no" ? noPrice : yesPrice;
     const cost = count !== null && price !== null ? count * price : null;
-    const notional = count !== null ? count * 1 : null;   // $1 per contract at settlement
+    /* No `notional` field is derived here. Kalshi defines notional_value_dollars
+     * as the settlement value of ONE contract, and it is not always $1 (scalar
+     * markets settle on a value range), nor is it returned on a fill. The
+     * previous `count × 1` guess was unused by every page and has been removed
+     * rather than left as a plausible-looking wrong number.
+     * (https://docs.kalshi.com/api-reference/market/get-market) */
     return {
       fill_id: f.fill_id || f.trade_id || "",
       order_id: f.order_id || "",
@@ -779,7 +786,6 @@ export function analyseFills(fills, { topicResolver } = {}) {
       side,
       book_side: f.book_side || null,
       count, price, cost, fee,
-      notional,
       is_taker: f.is_taker ?? null,
       ts: f.created_time ? Date.parse(f.created_time) : (f.ts ? f.ts * 1000 : null),
       topic: topicResolver ? topicResolver(f.ticker || f.market_ticker) : null,

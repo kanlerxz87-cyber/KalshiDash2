@@ -317,6 +317,37 @@ export function summarize(trades) {
   });
 }
 
+/* ------------------------------------------------------- watch references */
+
+/* Build the market-shaped object Watchlist.add() expects, from an alert.
+ *
+ * A trader reading the feed should be able to put a market on the resolution
+ * watch list without hunting for it on another page. `Watchlist` (market.js)
+ * only reads documented market fields, so the alert's own values are mapped
+ * onto those names and nothing is invented:
+ *   last_price_dollars  <- the alert's `to` price (the reading that fired)
+ *   yes_bid_dollars / yes_ask_dollars <- the quote captured with the alert
+ *   status, result      <- as reported at alert time
+ * A field the alert did not carry stays null, which the UI renders as n/a.
+ * `close_time` is not on an alert and is deliberately left null rather than
+ * guessed. Returns null when the alert has no ticker.
+ */
+export function marketRefFromAlert(alert) {
+  if (!alert || !alert.ticker) return null;
+  const q = alert.quote || {};
+  return {
+    ticker: alert.ticker,
+    title: alert.title || "",
+    event_ticker: alert.eventTicker || "",
+    last_price_dollars: alert.to ?? null,
+    yes_bid_dollars: q.yesBid ?? null,
+    yes_ask_dollars: q.yesAsk ?? null,
+    status: alert.status ?? null,
+    result: alert.result ?? "",
+    close_time: null
+  };
+}
+
 /* -------------------------------------------------------------- universe */
 
 /* Choose which open markets to poll: the top `perTopic` markets per topic by
