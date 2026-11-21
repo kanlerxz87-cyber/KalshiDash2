@@ -319,14 +319,14 @@ export const CLAIMS = [
     source: `${D}/api-reference/market/get-markets`,
     ev: "Live, GitHub runner, 2026-11-20: reports/alerts-live-check.md §2–3", status: "partially verified", flag: "A7" },
   { cat: "api", claim: "Market status filter values",
-    detail: "Status filter lists unopened, open, paused, closed, settled; lifecycle page lists the object statuses",
-    source: `${D}/getting_started/market_lifecycle`,
-    ev: "Documented (fetched 2026-11-20). Live: 2,157 markets 'active' and 14 'finalized' in the open-events scan (reports/alerts-live-check.md §1).",
+    detail: "The Get Markets reference lists the status filter as unopened, open, closed, settled. The Market Lifecycle page lists five values and adds paused → inactive. The two official pages disagree; the site states each page's wording separately and asserts neither as the single truth (Flagged A9).",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Both pages fetched 2026-11-21. Get Markets description: four values. Market Lifecycle filter table: five values with the mapping to object statuses. Live: 2,161 markets reported 'active' and 14 'finalized' in the 2026-11-21 open-events scan (reports/alerts-live-check.md §1).",
     status: "partially verified", flag: "A9" },
 
   // ---- swing detection, tradeability screen and the merged alerts page ----
   { cat: "api", claim: "previous_price_dollars is the exchange's own reference price next to last_price_dollars",
-    detail: "Get Market returns previous_price_dollars next to last_price_dollars, so a swing can be measured against the exchange's own reference. The schema describes it as 'the last traded YES contract on this market a day ago'; the site uses it as a reference price and labels that comparison 'exchange previous price' — see Flagged Z1",
+    detail: "Get Market returns previous_price_dollars next to last_price_dollars, so a swing can be measured against the exchange's own reference. The schema describes it as 'Price for the last traded YES contract on this market a day ago in dollars'; the site labels that comparison 'exchange previous price (a day ago)' because it is a 24-hour move, not an intraday one — see Flagged Z1",
     source: `${D}/api-reference/market/get-market`,
     ev: "Documented response schema (fetched 2026-11-20, re-checked 2026-11-21); live values captured in reports/live-engine-check.md §1",
     status: "partially verified", flag: "Z1" },

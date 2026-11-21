@@ -11,8 +11,9 @@ import { JSDOM, VirtualConsole } from "jsdom";
 import * as esbuild from "esbuild";
 import fs from "node:fs";
 import path from "node:path";
+import { gasBoardState, NO_MATCH_PATTERN } from "./gas-assertion.mjs";
 
-import { parseScanCount, refusalReason, boardOutcome, EXIT } from "./live-site-assertions.mjs";
+import { parseScanCount, refusalReason, EXIT } from "./live-site-assertions.mjs";
 
 const REPO = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const netFetch = (...a) => globalThis.fetch(...a);   // resolved at call time
@@ -129,14 +130,11 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const { w, errors } = await run("categories/gas.html", {
     waitUntil: w => {
       const b = w.document.querySelector("#board-body")?.textContent || "";
-      const cov = w.document.querySelector("#topic-caveat")?.textContent || "";
-      /* Stop on a live gas event, on the page's explicit no-match state, or on
-       * an error state. The no-match state is a successful scan that matched
-       * zero gas events (renderCoverage in assets/js/category.js); waiting for
-       * KXAAAGAS alone would burn the full timeout on a legitimate empty scan. */
-      return /KXAAAGAS/.test(b)
-        || /No .* events in this scan/.test(cov)
-        || (w.document.querySelector("#board-status")?.className || "").includes("err");
+      const status = w.document.querySelector("#board-status")?.className || "";
+      // Settled = the board rendered rows, the page reported an error, or the
+      // page published its explicit no-match state (see the checks below).
+      const caveat = w.document.querySelector("#topic-caveat")?.textContent || "";
+      return /KXAAAGAS/.test(b) || status.includes("err") || NO_MATCH_PATTERN.test(caveat);
     }
   });
   const board = w.document.querySelector("#board-body")?.textContent.replace(/\s+/g, " ") || "";
@@ -144,20 +142,25 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const stats = w.document.querySelector("#cat-stats")?.textContent.replace(/\s+/g, " ") || "";
   const statusText = w.document.querySelector("#board-status")?.textContent.replace(/\s+/g, " ") || "";
   const statusClass = w.document.querySelector("#board-status")?.className || "";
-  const verdict = boardOutcome({ boardText: board, caveatText: cov, statusText, statusClass });
+  /* A refusal that survived the bounded retries is not evidence about the site.
+   * Only the status pill is inspected — never whole-page text, because the page's
+   * own copy mentions "WebSocket" and alerts.html mentions "429". */
+  const refusal = refusalReason(statusText);
 
-  /* Honest board: either a live gas event is listed, or the page explicitly
-   * says the scan returned no gas events. An unexplained empty board fails.
-   * A refusal that survived the retries is inconclusive, not a site defect —
-   * but it is never counted as a pass. */
-  if (verdict.outcome === "refused") {
-    skip("gas", "gas board honest (event listed or explicit no-match)", `exchange refused: ${verdict.reason}`);
+  if (refusal) {
+    skip("gas", "gas board honest (event listed, or explicit no-match with no errors)", `exchange refused: ${refusal}`);
     skip("gas", "coverage line states the scan performed", "no successful scan to describe");
     skip("gas", "resting size uses the documented fields", "no successful scan to describe");
   } else {
-    check("gas", "gas board honest (event listed or explicit no-match)",
-      verdict.outcome === "populated" || verdict.outcome === "no-match",
-      verdict.outcome === "populated" ? board.slice(0, 140) : (verdict.reason || board.slice(0, 140)));
+    /* `main`'s tested rule (./gas-assertion.mjs, proven offline by
+     * live-site-no-match.test.mjs): either a gas market is listed, or the page
+     * printed its own no-match callout with no page error and no error pill. An
+     * error board or an empty board still fails — API failures are not masked. */
+    const verdict = gasBoardState({
+      board, caveat: cov, statusClass, errors,
+    });
+    check("gas", "gas board honest (event listed, or explicit no-match with no errors)",
+      verdict.ok, verdict.reason + " — " + board.slice(0, 120));
     check("gas", "coverage line states the scan performed", /open event\(s\)|matched|No .* events/.test(cov), cov.slice(0, 200));
     check("gas", "resting size uses the documented fields", /yes_bid_size_fp \+ yes_ask_size_fp/.test(stats));
   }

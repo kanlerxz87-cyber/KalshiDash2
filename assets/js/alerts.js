@@ -46,7 +46,8 @@ const S = {
   watch: new Map(),       // alert id → watchCheck result
   trades: loadTrades(),
   skipped: {},
-  eventLinks: {},         // event ticker → { sources, category } | "loading" | "error"
+  eventLinks: {},         // event ticker → { sources, category, seriesTicker, contractUrl } | "loading" | "error"
+  seriesContracts: {},    // series ticker → [contract_url, contract_terms_url]
   intervalS: 15,
   paused: false,
   backoffS: null,
@@ -368,9 +369,37 @@ async function ensureEventLinks(eventTicker) {
     const e = j.event || j;
     const sources = (Array.isArray(e.settlement_sources) ? e.settlement_sources : [])
       .filter(s => s && typeof s.url === "string" && /^https:\/\//.test(s.url));
-    S.eventLinks[eventTicker] = { sources, category: e.category || null };
+    S.eventLinks[eventTicker] = {
+      sources,
+      category: e.category || null,
+      seriesTicker: e.series_ticker || null,
+      contractUrl: null,      // filled by ensureSeriesContract(), cached per series
+    };
   } catch {
     S.eventLinks[eventTicker] = "error";
+  }
+  renderFeeds();
+}
+
+/* The series record carries `contract_url` — the official filing behind the
+ * contract — and `contract_terms_url`. Fetched once per series and cached, so a
+ * trader can check what the contract actually says without leaving the page.
+ * (https://docs.kalshi.com/api-reference/market/get-series-list) */
+async function ensureSeriesContract(eventTicker) {
+  const ev = S.eventLinks[eventTicker];
+  if (!ev || ev === "loading" || ev === "error" || !ev.seriesTicker) return;
+  if (ev.contractUrl !== null) return;            // already fetched or absent
+  const seriesTicker = ev.seriesTicker;
+  ev.contractUrl = undefined;                     // mark as in flight
+  try {
+    const j = await api.get(`/series/${encodeURIComponent(seriesTicker)}`);
+    const rec = j.series || j;
+    const urls = [rec.contract_url, rec.contract_terms_url]
+      .filter(u => typeof u === "string" && /^https:\/\//.test(u));
+    S.seriesContracts[seriesTicker] = urls;
+    S.eventLinks[eventTicker].contractUrl = urls[0] || false;
+  } catch {
+    S.eventLinks[eventTicker].contractUrl = false;
   }
   renderFeeds();
 }
@@ -419,6 +448,41 @@ function feedItems(list) {
   return S.alerts.filter(a => (S.topic === "all" || a.topic === S.topic) && (!list || list(a)));
 }
 
+/* The Kalshi demo market site. The demo-environment guide documents the root
+ * (https://demo.kalshi.co/) but no per-market path, so this links the root only
+ * and never fabricates a ticker URL. The row above it already links the exact
+ * official API response the price came from. */
+function eventPageUrl() {
+  return DEMO.site;
+}
+
+/* One-click places to check what could plausibly explain a move.
+ *
+ * These are *not* claimed causes. Kalshi's own `settlement_sources` say which
+ * source decides the market; they say nothing about why a price changed. So the
+ * panel offers (a) the official source that resolves the market, (b) for a
+ * gas-price market, the one public page the contract is measured against, and
+ * (c) the official contract filing for the series, when the series record
+ * publishes one. Everything rendered is a link, never an inference.
+ */
+function evidenceHTML(a, ev) {
+  const links = [];
+  if (ev && ev !== "loading" && ev !== "error") {
+    const seriesUrls = ev.seriesTicker ? S.seriesContracts[ev.seriesTicker] || [] : [];
+    const contract = seriesUrls[0];
+    if (a.topic === "gas") {
+      // The AAA daily national average — the figure the retail-gas series are
+      // settled against (settlement source recorded on the event record).
+      links.push(`<a href="https://gasprices.aaa.com/" target="_blank" rel="noopener noreferrer">AAA daily gas price ↗</a>`);
+    }
+    if (contract) {
+      links.push(`<a href="${esc(contract)}" target="_blank" rel="noopener noreferrer">official contract filing ↗</a>`);
+    }
+  }
+  if (!links.length) return "";
+  return `<div class="links"><span class="muted">Check the price against:</span> ${links.join(" · ")}</div>`;
+}
+
 function msgHTML(a, watchFeed) {
   const up = a.direction === "up";
   const q = a.quote || {};
@@ -460,8 +524,10 @@ function msgHTML(a, watchFeed) {
       ${ruleLine}
       <div class="links">
         ${src(`${DEMO.rest}/markets/${a.ticker}`, "GET /markets/" + a.ticker)}
+        · <a href="${esc(eventPageUrl())}" target="_blank" rel="noopener noreferrer">Kalshi demo site ↗</a>
         · ${sources}
       </div>
+      ${evidenceHTML(a, ev)}
     </article>`;
 }
 
@@ -479,6 +545,15 @@ function renderFeed(el, items, watchFeed, emptyText) {
 }
 
 function renderFeeds() {
+  /* The contract filing is one extra request per series, fetched lazily after a
+   * render so the feed never waits on it. Cached per series, so a busy feed costs
+   * at most one request per series, not one per alert. */
+  for (const a of S.alerts) {
+    const ev = S.eventLinks[a.eventTicker];
+    if (ev && ev !== "loading" && ev !== "error" && ev.contractUrl === null) {
+      queueMicrotask(() => { ensureSeriesContract(a.eventTicker); });
+    }
+  }
   const all = feedItems();
   const watch = feedItems(a => (S.watch.get(a.id) || {}).pass)
     .sort((a, b) => ((b.screen?.score ?? 0) - (a.screen?.score ?? 0)) || (b.at - a.at));

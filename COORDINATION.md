@@ -1590,6 +1590,76 @@ cannot be merged as-is. Disposition of its content:
 
 ---
 
+## Session `c6a50f54` — repo review, stale-PR integration, and live-site verification (branch `arena/c6a50f54-kalshidash2`)
+
+Started: 2026-11-21T20:20Z. Base: `main` @ `bbdc3a0`. **Claim committed and pushed before any file in the scope below was edited.**
+
+### Repo review findings recorded before editing (read-only pass)
+
+| # | Finding | Evidence |
+|---|---------|----------|
+| R1 | **The CI "green main" is partly an artefact.** The scheduled collector commits `data/snapshot.json` with `[skip ci]`, so pushes to `main` are not tested. The last non-skip push to `main` was `3a41b33`/`0da4a54`; the only checks that ran on `bbdc3a0` are `pages build and deployment` and `Collect demo snapshot`. `Static site link check` has not run on the current tree. | `gh run list --branch main` (12 runs inspected); `.github/workflows/collect.yml` commit step message |
+| R2 | **The collector snapshot regressed its own labels.** `tools/test_collect.py::SnapshotMetadataTests` fails on `main` (`1 failure / 28 tests`). The test requires the literal `contract-count fields`; the last two bot refreshes rewrote the note to `fixed-point contract counts`, so the automated 6-hourly job silently undoes the T22 wording. | `python3 -m unittest discover -s tools -p 'test_*.py'` → `FAIL: test_snapshot_labels_contract_counts_and_sampled_trade_value` (line 146) |
+| R3 | **Published status-vocabulary correction is wrong.** `assets/js/claims.js` (claim "Market status filter values") and `flagged.html` A9 state that the Get Markets `status` filter advertises `paused`. The official Get Markets reference lists exactly `unopened`, `open`, `closed`, `settled`; the **mapping** of `paused` → `inactive` is documented on the Market Lifecycle page, not as a Get Markets filter value. Two official pages disagree, and the repo quoted the wrong one. | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) (operation description) vs [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle) (filter table) — both fetched 2026-11-21 |
+| R4 | **`live-site-render` has never passed in this repo's published-observation window.** `tests/dom/live-site.mjs` demands `/KXAAAGAS/` on the Gas page, which must fail whenever the demo exchange publishes no matching open gas market. The bounded fix (allow the page's own no-match state, still fail on API errors) is claimed by session `3d2e8243` and was never written. | run `44878586946` failure; `tests/dom/live-site.mjs:98`; board §I2 |
+| R5 | **PR #60 is stale and conflicting.** Branch `arena/9543cf0d-kalshidash2`, 18 commits, last commit `1d3b9b1` at 07:10Z (13 h idle, past the 60-minute rule), `mergeStateStatus: DIRTY`. Its code work (relay state gating, `404.html`, Q10/A9 refresh, `tests/live-feed-state.test.mjs`, Get Markets `paused` edit) is real and was never merged. | `gh pr view 60`; `git diff --stat origin/main origin/arena/9543cf0d-kalshidash2` |
+| R6 | **CLI cannot reach the exchange or the published site.** `curl` to `docs.kalshi.com` (TLS), `external-api.demo.kalshi.co` and the Pages host all return HTTP `000` from this sandbox. Verification of docs is done with the page-fetch tool; verification of live API/site behaviour must happen in a GitHub-hosted runner. | direct `curl -o /dev/null -w '%{http_code}'` on three hosts |
+
+### Claims (exclusive file scope for this session)
+
+| ID | Task | Status | Owner | Exclusive file scope |
+|----|------|--------|-------|----------------------|
+| C1 | Take over stale PR #60 under the 60-minute rule; re-land its verified work on top of current `main` **minus** the incorrect `paused`-as-a-filter-value edit (R3) | in progress | `c6a50f54` | `404.html`, `assets/js/live-feed.js`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py`, `.github/workflows/site-check.yml`, `questions.html`, `flagged.html` (W4 + A9 text only) |
+| C2 | Fix the collector-label regression so the scheduled job preserves the T22 wording, and add a guard test that the collector's emitted notes satisfy the published-label assertions | in progress | `c6a50f54` | `scripts/collect.py`, `tools/test_collect.py` |
+| C3 | Correct the published status-vocabulary claim on both pages, citing both official pages, and re-derive the affected claim/flag counts | in progress | `c6a50f54` | `assets/js/claims.js`, `flagged.html` (A9 only), `tests/dom/summary-dom.mjs` (expected counts only) |
+| C4 | Close the bounded live-render item (R4): accept the page's explicit no-match state without masking API/JS failures; add an offline fixture test so the assertion is provable without the exchange | in progress | `c6a50f54` | `tests/dom/live-site.mjs`, `.github/workflows/live-site-render.yml`, `tests/dom/live-site-no-match.test.mjs` |
+| C5 | Final integration for this branch: run every suite, open PR → `main`, merge, confirm Pages deploy and live-site probe; record results here | in progress | `c6a50f54` | `COORDINATION.md` (this section), `README.md` (status line only) |
+
+No other active claim exists on the files above (PR #60's owner has been idle since 07:10Z; sessions `3d2e8243`, `df4e0876`, `bc079e84` recorded completion). Shared outputs (`index.html`, navigation, table data) are **not** edited by this session.
+
+### C1–C5 results — session `c6a50f54` (2026-11-21)
+
+**Sources fetched and read line by line this session** (all 2026-11-21):
+
+| Source | URL | What it settled |
+|--------|-----|-----------------|
+| Get Markets | https://docs.kalshi.com/api-reference/market/get-markets | `status` filter is **four** values: `unopened, open, closed, settled` (operation description, read from the page's embedded OpenAPI data) — this is what made R3 a correction rather than a fix |
+| Market Lifecycle | https://docs.kalshi.com/getting_started/market_lifecycle | the **five**-value filter table incl. `paused` → `inactive`, and the object-status list — the page the repo had quoted for the wrong claim |
+| Get Market (OpenAPI markdown) | https://docs.kalshi.com/api-reference/market/get-market.md | `previous_price_dollars` = "Price for the last traded YES contract on this market **a day ago** in dollars"; `volume_fp` / `volume_24h_fp` "in contracts"; `open_interest_fp` "contracts bought … disregarding netting"; `notional_value_dollars` "total value of a single contract at settlement" |
+| Get Series List (OpenAPI markdown) | https://docs.kalshi.com/api-reference/market/get-series-list.md | `category` is fully described (exact, case-sensitive, matched against `categories`); **`tags` has no described semantics** — the basis for W6 |
+| Rate Limits | https://docs.kalshi.com/getting_started/rate_limits.md | unauthenticated requests "are subject to separate limits … back off on `429`"; **no numeric unauthenticated limit is published**, so Q10 must not imply one |
+| Get Markets (re-read for C2) | https://docs.kalshi.com/api-reference/market/get-markets | pagination/ordering rules behind the collector's cap behaviour |
+
+**Work completed**
+
+| ID | Outcome | Verification |
+|----|---------|--------------|
+| C1 | Stale PR #60 re-landed (404, relay state gating, its 4 fixture tests, site-check wiring) **minus** the unsupported `paused` filter edit, which was re-verified and rejected. PR closed with the reasoning. | `gh pr close 60`; `node --test tests/live-feed-state.test.mjs` 2/2; `python3 -m unittest tests.test_relay_state` 2/2 |
+| C2 | Collector label regression fixed at the source of truth: one `derivation_notes()` function now feeds both the snapshot and the tests (`tools/test_collect.py` guard added). The failing test on `main` and the silently-failing `tests/activity-proxy.test.mjs` both pass. Snapshot: labels only, no captured value touched. | `python3 -m unittest discover -s tools` 34/34; `node --test tests/activity-proxy.test.mjs` 3/3 |
+| C3 | Status-vocabulary correction published (A9 + claims register), both official pages cited, unknown left labelled unverified, guard test added. | `node --test tests/official-wording.test.mjs` 4/4 |
+| C4 | `live-site-render` gas rule fixed and proven offline (board item I2, stale claim `3d2e8243`) — no-match state passes, API/JS failures still fail. | `node --test tests/dom/live-site-no-match.test.mjs` 7/7 |
+| C4b | New finding (**Z1 trader-facing**): the alerts page never said the reference baseline is a day old, so a 24-hour move could read as a sudden swing. Label and table note corrected. | `node --test tests/alerts-core.test.mjs` 19/19; `tests/dom/alerts-dom.mjs` 16/16 |
+| C4c | New finding (**W6**): topic notes presented a `tags` filter as official vocabulary and carried stale counts (Crypto "only 2 live events" vs 86 in the current snapshot). Fixed with 6 regression tests. | `python3 -m unittest discover -s tools` 34/34 |
+
+**Full local suite on the final tree**
+
+| Check | Result |
+|-------|--------|
+| `python3 -m unittest discover -s tools` | **34/34** (was 1 failure on `main`) |
+| `python3 -m unittest discover -s tests` | **18 passed, 3 skipped** (`cryptography` absent locally) |
+| Node unit tests (`tests/*.test.mjs`, `tests/dom/*.test.mjs`) | **84/84** across 9 files |
+| `tests/dom/alerts-dom.mjs` | **16/16** |
+| `tests/dom/summary-dom.mjs` | **20 requirement areas; 78/89 verified, 8 partial, 3 unverified; 32 open / 25 mitigated / 57 total flags; 28 sourced rows** |
+| `python3 tools/check_site_links.py .` | **35 pages, 0 broken** |
+| `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean, 35 pages / 0 broken links** |
+| `node evidence/auth-sign-test.mjs` | **6/6** |
+| All 12 workflow YAML files | parse clean (`js-yaml`) |
+| GitHub Actions `Static site link check` on `b437e83` | **success, all 17 steps** — the first run of that workflow on this tree in several days |
+
+**Container limitation, recorded not hidden:** this sandbox cannot open TLS to `*.kalshi.co`, `docs.kalshi.com` or the Pages host (`curl` → `000`). Official docs were read through the page-fetch tool. Live API behaviour is verified by the repo's own GitHub-hosted workflows, whose runs are cited above and below.
+
+---
+
 ## Session `32b15793` — independent line-by-line verification + integration (2026-11-21)
 
 Started: 2026-11-21T20:2xZ. Work branch: `arena/32b15793-kalshidash2` (Arena-fixed name), based on
@@ -1978,6 +2048,32 @@ active session at the time of this edit; PRs #60, #69 and #70 were inspected fir
 | Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
 | Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
 
+### Conflict log — merge of `origin/main` (`383b11a`) into `arena/c6a50f54-kalshidash2` (2026-11-21)
+
+`main` advanced through PRs #63–#76 while this session worked. Four of those sessions independently
+fixed items this session had also fixed. Nothing from any session was discarded: where `main`'s fix
+was newer or richer it was taken, and this session's unique fixes were re-applied on top of it.
+
+| Collision | `main`'s version (PRs #63–#76) | This session's version | Resolution |
+|-----------|-------------------------------|------------------------|------------|
+| Snapshot-label drift | `DERIVATION_NOTES` module constant + exact-equality test + a `collect.yml` gate that runs the suites **before** the `[skip ci]` bot commit (session `e2718295`, PR #72) | `derivation_notes()` function + guard test + CI wiring in `site-check.yml` | **Took `main`'s** — same root cause, and the `collect.yml` pre-commit gate is the better place to catch it. Removed this session's superseded `test_collector_emits_the_published_field_labels` to avoid two tests asserting the same thing. Kept this session's `activity-proxy` + `official-wording` + gas-rule steps in `site-check.yml` (not present on `main`). |
+| `live-site.mjs` gas assertion | Honest-board rule keyed on `/returned no .* events in this scan/i`, fixed by session `0d6f4f1f`/`f2176447` (PR #63/#64) | Same rule as a shared module (`gas-assertion.mjs`) + 7 offline cases pinned to `category.js`'s actual wording | **Kept this session's** structure (one implementation, provable offline) and merged `main`'s wording and comment. Both reject error boards; neither masks API failures. |
+| A9 status vocabulary | `main` removed the `paused` filter value and called it corrected | This session retracted the removal and published the full two-page statement (`paused` → `inactive` **is** documented, on the Market Lifecycle filter table) | **Kept this session's**, because `main`'s text still leaves the mapping undescribed. Written to agree with `main` where it is right: Get Markets documents four filter values, and the flag now says so explicitly instead of implying a contradiction. |
+| Q10 streaming answer | Rewritten and more precise (cites the Market Ticker page for the key-at-handshake rule and W4) | Ported from PR #60, less precise | **Took `main`'s.** This session's port of PR #60 is superseded. |
+| `reports/alerts-live-check.md` | Bot capture 20:28:00Z | Bot capture 20:31:42Z | **Kept the fresher capture** (standing board precedent). The older capture remains in `main`'s history. |
+| `COORDINATION.md` | 29 session sections | this session's section appended | `tools/resolve_board_conflict.py`: 1 block unioned, 0 sections dropped. Verified: **every session heading present on `origin/main` is still present here** (29 → 30 sections). |
+
+**Post-merge verification (2026-11-21).** Python tools **35/35** · `tests/` Python 18 (3 skip) ·
+Node unit **84/84** across 9 files · alerts DOM **16/16** · summary DOM 20 requirement areas,
+78/89 verified (8 partial, 3 unverified), **36 open / 28 mitigated / 64 total flags**, 28 sourced rows ·
+static links **35 pages, 0 broken** · page-runtime **17/17** · signing self-test **6/6** ·
+**all 12 workflow files parse clean**.
+
+**Rebase hazard avoided:** `git pull --rebase` after a merge commit linearises `main` and replays its
+commits (documented twice on this board). Pushed the merge commit directly; remote was an ancestor.
+
+---
+
 
 ## Session `5a9b44b9` — independent verification + collector taxonomy alignment
 
@@ -2083,6 +2179,25 @@ exclusive scope. Nothing else in the site is edited.
 
 **Claim commit:** this section is committed and pushed immediately, before any other work.
 
+
+### Conflict log — second merge of `origin/main` (`e74b3b2`, PR #70) (2026-11-21)
+
+| Collision | `main` (session `970aabdb`, PR #70) | This session | Resolution |
+|-----------|-------------------------------------|--------------|------------|
+| Gas topic selection | Gas moved off the `tags` filter onto documented categories (Economics/Commodities) + a local retail-gasoline rule, because the tag list pulled WTI/Brent/natural gas/diesel into "Gas Prices" | Tag-based wording corrected per the Get Series List spec | **Took `main`'s** — it fixes the misclassification *and* the wording problem. Recast this session's test class to the new reality: category-filtered topics must not describe tag matching; the one remaining tag-filtered topic (Golf) must not call tags an official taxonomy. |
+| Golf note | unchanged (`"Selected by the official Kalshi tag 'Golf'."`) | — | **Fixed here**: the tag list is a request parameter, and the spec describes no tag-matching semantics. Note rewritten and the snapshot rule synced. |
+| Elections/Crypto counts | Counts removed with a sourced comment pointing at `reports/verify-facts-v3.md` | Counts removed | **Took `main`'s** comment (better sourced); this session's `NoStaleScanCountsTests` still guards the outcome on both sides. |
+| `reports/alerts-live-check.md` | bot capture | bot capture | **Kept the fresher capture** (standing precedent). |
+| `COORDINATION.md` | 30 sections | this session's section | `tools/resolve_board_conflict.py`: 1 block unioned, 0 dropped. **Every session heading on `origin/main` is still present** (verified). |
+| `DEMO.site` | n/a | added for the new demo-site link | Re-added after `main`'s `config.js` was taken wholesale; caught by the DOM test, which is the point of pinning it. |
+
+**Post-merge verification (2026-11-21):** Python tools **38/38** · `tests/` Python 18 (3 skip) ·
+Node unit **85/85** across 9 files · alerts DOM **19/19** · summary DOM 20 requirement areas,
+78/89 verified, **36 open / 28 mitigated / 64 total flags**, 28 sourced rows · static links
+**35 pages, 0 broken** · page-runtime **17/17** · signing **6/6** · **12 workflow files parse clean**.
+
+---
+
 ### A3 final record — session `970aabdb` (2026-11-21)
 
 | Item | Result |
@@ -2097,6 +2212,26 @@ exclusive scope. Nothing else in the site is edited.
 | Irregularities | None introduced by this session. Pre-existing flags carried forward; none block anything per the brief. |
 
 Session `970aabdb` is complete: A1–A3 **done**.
+
+### Conflict log — third merge of `origin/main` (`3f28b55`, PR #81) (2026-11-21)
+
+Only `COORDINATION.md` and the bot's live report conflicted. The board was unioned
+(`tools/resolve_board_conflict.py`, 1 block, 0 sections dropped) and the fresher bot capture kept.
+
+**Re-verified after this merge:** every one of this session's fixes is intact on `main` after PR #70/#81
+— `config.js` `DEMO.site`, the golf tag wording and its synced snapshot rule, the A9 two-page statement,
+the day-old comparison label, `gas-assertion.mjs`, the three CI steps this session added, and the
+`NoStaleScanCounts` / `TopicRuleWording` guards.
+
+**Suite:** Python tools 38/38 · `tests/` 18 (3 skip) · Node 85/85 · alerts DOM 19/19 · summary DOM
+78/89 verified, 36 open / 28 mitigated / 64 flags · links 35/0 · runtime 17/17.
+
+**Still open on the board (owned by session `970aabdb`): PR #71, PR #76 and PR #79 are open.**
+No file in this session's scope is claimed there, so they do not block this PR; they should be
+reconciled against `main` by their owner. Everything this session changed is either already merged
+to `main` or included in PR [#77](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/77).
+
+---
 
 ### Session `5a9b44b9` — V5 verification attempt + collector publish reliability fix
 
@@ -2126,3 +2261,53 @@ is visible in CI instead of silent. No change to what is collected.
 `collect.collect_series` over the committed series rows keeps exactly the 17 gasoline series and
 drops the 23 oil/nat-gas/diesel/power/barrels rows; Culture issues the three documented category
 queries. Covered by `tools/test_collect.py::TopicTaxonomyTests` (3 tests).
+
+### V5 result — session `5a9b44b9`
+
+**Repair R8 published and verified.** `collect.yml` fix merged as PR #82. Re-dispatch
+[44947676174](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947676174) **succeeded and
+pushed** `7042d8d chore(data): refresh Kalshi demo snapshot [skip ci]` — the first snapshot refresh to
+land since `bbdc3a0`.
+
+Before / after on `data/snapshot.json`:
+
+| Topic | Before (19:29Z) | After (20:43Z) |
+|---|---|---|
+| Culture | 2 series · **0 events** · **0 markets** | **40 series · 37 events · 200 markets** |
+| Gas | 40 series including `KXWTI`, `KXBRENTW`, `KXNATGASW`, `KXDIESELMON`, `KXTXERCOTPEAK`, `KXSOLAR`, `KXBARRELS` | 40 series, all retail-gasoline (`KXAAAGAS*`, `AAAGAS*`, `GAS` "Gas weekly"); `KXWTI`/`KXBRENTW`/`KXNATGASW`/`KXDIESEL*`/`KXTXERCOTPEAK`/`KXSOLAR`/`KXBARRELS` gone |
+| Elections / Crypto / Golf | 40 series each | unchanged (40 series each) |
+
+Gas events are all gas-price questions (`KXAAAGASW-26NOV23` "US gas prices this week",
+`KXAAAGASD-26NOV22` "US gas prices tomorrow", regional max/min markets, …). No WTI/Brent/nat-gas/diesel
+event remains.
+
+**Residual finding (R9, open):** `KXGAS` itself is still absent from the snapshot. The documented
+`GET /series/KXGAS` lookup did run, but the per-topic `--top-series 40` cap is applied **after**
+volume sorting, and `KXGAS` has lower volume than 40 other gasoline series, so it was truncated away
+again. Repair in this branch: `order_series()` pins directly-fetched series ahead of the volume order,
+so the cap cannot drop them; new test `test_pinned_series_survive_the_volume_cap`. Note that the
+dashboard is unaffected — it discovers markets through `/events`, so `KXGAS` markets already reach the
+Gas page. This fixes the snapshot's completeness only.
+
+### Second integration round — merge of `main` @ `6bb94ec` (2026-11-21)
+
+`main` advanced five more times (#78, #82, #83 and their records) while this branch was being verified. One
+session (`5a9b44b9`) solved the **same gas-assertion problem** this session had, in a way that is better
+factored: it extracted `tests/dom/gas-assertion.mjs` (+ offline test `tests/dom/live-site-no-match.test.mjs`)
+instead of leaving the rule inline. That version is kept, and this session's overlapping `boardOutcome()` was
+**deleted** rather than shipped alongside it, so the repository has exactly one definition of an honest board.
+
+| Collision | Resolution |
+|---|---|
+| `tests/dom/live-site.mjs` | Kept `main`'s `gasBoardState()` rule and its comment; added only the gating this session contributes — a refusal read **from the status pill only** produces `exit 2`, everything else falls through to `main`'s rule (which still fails an error board or an empty board). |
+| `tests/dom/live-site-assertions.mjs` | Removed `boardOutcome()` (superseded by `gas-assertion.mjs`); kept `parseScanCount()`, `refusalReason()`, `EXIT`, and their tests (8 pass). |
+| `.github/workflows/site-check.yml` | Unioned: `main`'s activity-proxy, official-wording and gas-rule steps, plus this session's verifier-parsing step. No step runs twice. |
+| `flagged.html` (A9) | Kept `main`'s newer A9 (which correctly attributes the five-value mapping to the Market Lifecycle page). One clause was corrected: "Get Markets documents exactly four values" is too strong — that page's own *Query Parameters* list includes `paused` while its description metadata does not. A9 now quotes all three readings. |
+| `reports/alerts-live-check.md` | Kept the fresher capture (`20:42:17Z` vs `20:40:03Z`). |
+| `COORDINATION.md` | `tools/resolve_board_conflict.py`: unioned, nothing dropped. |
+| `tools/check_site_links.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs` | Auto-merged cleanly; `main` had not changed them, so this session's T24/T27 changes survive intact. |
+
+**Cross-check of the live probe after the merge:** `main`'s own render runs `5515a7c6` and `461aab9e` carry no
+inconclusive annotation (genuine passes). This branch's head `57229429` also passed genuinely after the
+classifier fix. The exit-2 path therefore adds information without turning a real failure green: an error pill
+that is *not* a refusal now falls through to `main`'s rule and fails.

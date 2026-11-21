@@ -152,7 +152,11 @@ export function detectReferenceSwings(markets, { threshold = THRESHOLD, at = Dat
       to: last,
       delta,
       direction: delta > 0 ? "up" : "down",
-      basis: "exchange previous price",
+      // The schema is explicit: previous_price_dollars is the last traded YES
+      // price *a day ago*, so this comparison is a 24-hour move, not an
+      // intraday swing. The label says so, because a 24-hour move printed next
+      // to sub-minute poll moves would otherwise read as sudden.
+      basis: "exchange previous price (a day ago)",
       quote: quoteOf(m),
       status: m.status || null,
       result: (m.result || "").toLowerCase() || null,

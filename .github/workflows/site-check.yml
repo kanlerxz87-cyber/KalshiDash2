@@ -38,13 +38,16 @@ jobs:
         run: node --test tests/simulator-core.test.mjs
       - name: Chart jump-detection unit tests
         run: node --test tests/jumps.test.mjs
-      # Compares data/snapshot.json with the disclosure text emitted by
-      # scripts/collect.py (python3 is on the runner). This test previously ran
-      # in no workflow, which is how its assertions drifted out of date.
-      - name: Snapshot disclosure / activity-proxy tests
+      - name: Activity proxy + snapshot label tests
         run: node --test tests/activity-proxy.test.mjs
-      # Offline unit tests for the live-render verifier's parsing helpers, so its
-      # comma/rate-limit handling cannot regress without a network run.
+      - name: Published official-wording tests
+        run: node --test tests/official-wording.test.mjs
+      - name: Live-probe gas rule (offline proof)
+        run: node --test tests/dom/live-site-no-match.test.mjs
+      # Offline unit tests for the live-render verifier's parsing/classification
+      # helpers, so their comma/rate-limit handling cannot regress without a
+      # network run. `main`'s gas rule above is kept; this covers the refusal
+      # classification and the comma-tolerant scan count.
       - name: Live-render verifier parsing tests
         run: node --test tests/dom/live-site-assertions.test.mjs
       - name: Page runtime and local-link check

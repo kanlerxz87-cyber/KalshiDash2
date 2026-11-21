@@ -3,9 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  parseScanCount, formatCount, refusalReason, boardOutcome, EXIT
-} from "./live-site-assertions.mjs";
+import { parseScanCount, formatCount, refusalReason, EXIT } from "./live-site-assertions.mjs";
 
 test("scan count parses comma-formatted thousands (the bug that broke live-site-render)", () => {
   const note = `Ranked by Volume × price proxy — formula. Top 25 shown. Scanned ${formatCount(1234)} events at 7:31:00 PM (1,180 open · 54 closed).`;
@@ -41,33 +39,6 @@ test("a 4xx that is not rate limiting stays a real failure", () => {
   assert.equal(refusalReason("no error here"), null);
 });
 
-test("a populated board is populated regardless of pill text", () => {
-  assert.equal(boardOutcome({ boardText: "KXAAAGAS-25DEC yes 0.42", statusClass: "pill live" }).outcome, "populated");
-});
-
-test("an explained empty scan is a result, not a defect", () => {
-  const r = boardOutcome({
-    boardText: "The live API returned no Gas events in this scan.",
-    caveatText: "The scan returned 1,180 open event(s) (1,180 open) and none matched this topic's documented rule.",
-    statusClass: "pill live", statusText: "live · 0 events / 0 markets"
-  });
-  assert.equal(r.outcome, "no-match");
-});
-
-test("an unexplained empty board is a defect", () => {
-  const r = boardOutcome({ boardText: "", caveatText: "", statusClass: "pill warn", statusText: "loading…" });
-  assert.equal(r.outcome, "empty");
-});
-
-test("a refused request is not reported as a content regression", () => {
-  const r = boardOutcome({
-    boardText: "Could not load events: 429 rate_limited on /events?status=open",
-    statusClass: "pill err", statusText: "429 rate_limited on /events?status=open"
-  });
-  assert.equal(r.outcome, "refused");
-  assert.equal(r.reason, "HTTP 429");
-});
-
 
 test("static page prose is never mistaken for a transport failure", () => {
   // Regression: a bare /socket/ pattern matched the page's own "WebSocket" copy,
@@ -82,19 +53,6 @@ test("explicit transport failures still classify", () => {
   assert.equal(refusalReason("TypeError: Failed to fetch"), "transport");
   assert.equal(refusalReason("socket disconnected before secure TLS connection"), "transport");
   assert.equal(refusalReason("getaddrinfo EAI_AGAIN"), "transport");
-});
-
-test("a non-refusal error pill is a failure, not inconclusive", () => {
-  const r = boardOutcome({
-    boardText: "Could not load events: 400 bad_request on /events",
-    statusClass: "pill err", statusText: "400 bad_request on /events"
-  });
-  assert.equal(r.outcome, "error");
-});
-
-test("an error pill with no code at all is still a failure", () => {
-  const r = boardOutcome({ boardText: "", statusClass: "pill err", statusText: "something went wrong" });
-  assert.equal(r.outcome, "error");
 });
 
 test("exit codes keep inconclusive distinct from pass and fail", () => {

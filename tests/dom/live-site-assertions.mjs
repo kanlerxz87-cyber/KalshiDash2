@@ -57,34 +57,10 @@ export function refusalReason(text) {
   return null;
 }
 
-/* What does a topic page's board actually show?
- *   populated    — the topic's own tickers are on the board
- *   no-match     — the page explains that this scan found no matching event
- *   refused      — the exchange refused / was unreachable (inconclusive)
- *   empty        — an empty board with no explanation (a real defect)
- */
-export function boardOutcome({ boardText = "", caveatText = "", statusText = "", statusClass = "" } = {}) {
-  const board = String(boardText);
-  const caveat = String(caveatText);
-  const refused = refusalReason(statusText) || refusalReason(board);
-  if (refused) return { outcome: "refused", reason: refused };
-  const looksLikeErrorPill = /(^|\s)err(\s|$)/.test(String(statusClass));
-  /* The board's empty state is itself a table row, so "non-empty text" does not
-   * imply real data. Recognise the placeholders the page renders. */
-  const placeholder =
-    /Nothing is invented to fill the table|returned no .* events in this scan|Could not load events/i.test(board);
-  if (board.trim().length > 0 && !placeholder) {
-    return { outcome: "populated", reason: "" };
-  }
-  if (/none matched|No .* events in this scan|no matching|returned no .* events in this scan/i.test(`${caveat} ${board}`)) {
-    return { outcome: "no-match", reason: "page stated the scan result" };
-  }
-  /* An error state that is not a refusal means the site made a request the
-   * exchange rejected, or rendered an error for another reason: that is a
-   * genuine failure and must not be downgraded to "inconclusive". */
-  if (looksLikeErrorPill) return { outcome: "error", reason: statusText || "error pill" };
-  return { outcome: "empty", reason: board.slice(0, 120) || "empty board, no caveat" };
-}
+/* Note: the gas-board rule lives in ./gas-assertion.mjs (main's version, proven
+ * offline by live-site-no-match.test.mjs). An earlier version of this file had a
+ * second, overlapping implementation; it was removed when the two were merged so
+ * the site cannot have two different definitions of an honest board. */
 
 /* Exit codes for the live render script. */
 export const EXIT = { PASS: 0, FAIL: 1, INCONCLUSIVE: 2 };
