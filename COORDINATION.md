@@ -2561,7 +2561,6 @@ traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official**
 `volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
 control with the request count stated, never on every poll. If any page of trades is unreachable the figure
 renders as `n/a` and is flagged, never as `$0.00`.
->>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)
 
 ---
 
