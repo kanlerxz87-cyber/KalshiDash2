@@ -11,7 +11,11 @@
 //   Get Market (price/size fields)   https://docs.kalshi.com/api-reference/market/get-market
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyEvent, classifyMultivariate, classifyMultivariateList } from "../assets/js/market.js";
+import {
+  classifyEvent, classifyMultivariate, classifyMultivariateList,
+  classifyEventWithBasis, fetchSeriesCategories, primeSeriesCategories,
+  clearSeriesCategoryCache, seriesCategoriesFor
+} from "../assets/js/market.js";
 import { TOPICS } from "../assets/js/config.js";
 
 const ev = (over = {}) => ({ event_ticker: "EV", title: "t", category: "", series_ticker: "", ...over });
@@ -168,4 +172,94 @@ test("no topic matches on an undocumented per-market size field", async () => {
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     assert.equal(/no_bid_size_fp/.test(code), false, `${file} still reads no_bid_size_fp`);
   }
+});
+
+/* ---------------------------------------------------------------------------
+ * Series-level category.
+ *
+ * Why: the official Get Events schema marks the *event* `category` field
+ * `deprecated: true` — "Event category (deprecated, use series-level category
+ * instead)" — https://docs.kalshi.com/api-reference/events/get-events .
+ * The replacement is the series record's `categories[]` / `category`
+ * (https://docs.kalshi.com/api-reference/market/get-series-list), and the
+ * `category` query filter is documented to match any entry in that list.
+ * These cases pin the precedence so a future edit cannot quietly fall back to
+ * the deprecated field as the primary basis.
+ * ------------------------------------------------------------------------- */
+
+test("the series-level category decides, even when the deprecated event field disagrees", () => {
+  clearSeriesCategoryCache();
+  primeSeriesCategories({ KXTESTSERIES: ["Crypto"] });
+  const e = ev({ category: "Elections", series_ticker: "KXTESTSERIES" });
+  assert.equal(classifyEvent(e), "crypto");
+  const v = classifyEventWithBasis(e);
+  assert.equal(v.topic, "crypto");
+  assert.equal(v.basis, "series");
+  assert.deepEqual(v.categories, ["Crypto"]);
+});
+
+test("a series with several discovery categories matches any of them", () => {
+  clearSeriesCategoryCache();
+  // Live shape: KXDIESELMONAK returns categories ["Economics"] plus a primary
+  // category, so the union must be searched rather than the primary alone.
+  primeSeriesCategories({ KXMULTI: { cats: ["Economics", "World"], primary: "Economics" } });
+  assert.equal(classifyEvent(ev({ category: "", series_ticker: "KXMULTI" })), null,
+    "a non-topic category must not be forced into a topic");
+  primeSeriesCategories({ KXMULTI2: { cats: ["Economics", "Entertainment"], primary: "Economics" } });
+  assert.equal(classifyEvent(ev({ category: "", series_ticker: "KXMULTI2" })), "culture",
+    "the discovery list, not just the primary category, must be searched");
+});
+
+test("the deprecated event category is only a fallback, and the basis says so", () => {
+  clearSeriesCategoryCache();
+  const e = ev({ category: "Crypto", series_ticker: "KXUNKNOWN" });
+  const v = classifyEventWithBasis(e);
+  assert.equal(v.topic, "crypto");
+  assert.equal(v.basis, "event");
+  // An event with neither basis classifies to nothing rather than to a guess.
+  const none = classifyEventWithBasis(ev({ category: "", series_ticker: "" }));
+  assert.equal(none.topic, null);
+  assert.equal(none.basis, "none");
+});
+
+test("series lookups are deduplicated, cached, capped and failure-tolerant", async () => {
+  clearSeriesCategoryCache();
+  const seen = [];
+  const fetcher = async (path) => {
+    seen.push(path);
+    const ticker = decodeURIComponent(path.split("/series/")[1]);
+    if (ticker === "KXBOOM") throw new Error("500");
+    return { series: { ticker, category: "Economics", categories: ["Economics", "Elections"] } };
+  };
+  const first = await fetchSeriesCategories(["A", "A", "B", "KXBOOM"], { fetcher, cap: 10 });
+  assert.deepEqual(seen.sort(), ["/series/A", "/series/B", "/series/KXBOOM"]);
+  assert.equal(first.requested, 3);
+  assert.equal(first.fetched, 2);
+  assert.equal(first.failed, 1);
+  assert.deepEqual(seriesCategoriesFor("A").cats, ["Economics", "Elections"]);
+  // A failed lookup caches as empty: the fallback applies and no retry storm.
+  assert.equal(seriesCategoriesFor("KXBOOM").failed, true);
+  const second = await fetchSeriesCategories(["A", "B", "KXBOOM"], { fetcher, cap: 10 });
+  assert.equal(second.cached, 3);
+  assert.equal(second.fetched, 0);
+  assert.equal(seen.length, 3, "no ticker is fetched twice");
+
+  clearSeriesCategoryCache();
+  const cappedRun = await fetchSeriesCategories(["C", "D", "E"], { fetcher, cap: 2 });
+  assert.equal(cappedRun.fetched, 2);
+  assert.equal(cappedRun.capped, 1, "the per-scan cap is reported, never silently dropped");
+});
+
+test("gas exclusions still apply when the category comes from the series record", () => {
+  clearSeriesCategoryCache();
+  // Live shape: crude / natural-gas / diesel series carry an Economics category,
+  // so a category match alone must never file them under pump-price gas.
+  primeSeriesCategories({
+    KXWTI: ["Economics"], KXNATGASW: ["Economics"], KXAAAGASW: ["Economics"]
+  });
+  assert.equal(classifyEvent(ev({ category: "", series_ticker: "KXWTI", title: "WTI crude oil price" })), null);
+  assert.equal(classifyEvent(ev({ category: "", series_ticker: "KXNATGASW", title: "Natural gas price" })), null);
+  assert.equal(classifyEvent(ev({
+    category: "", series_ticker: "KXAAAGASW", title: "US gas prices this week"
+  })), "gas");
 });
