@@ -235,7 +235,14 @@ export function lineChart(canvas, series, opts = {}) {
     const t = x0 + ((x1 - x0) * i) / xSteps;
     const x = X(t);
     ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + h); ctx.stroke();
-    const label = new Date(t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: (x1 - x0) <= 600000 ? "2-digit" : undefined });
+    /* Time-of-day alone is ambiguous once the window is longer than half a day:
+     * a 7-day chart would print five different "03:15" labels with no date, and
+     * a 24-hour chart would repeat the label at midnight. Windows over 12 hours
+     * therefore carry the calendar date as well as the clock time. */
+    const span = x1 - x0;
+    const label = span > 12 * 3600 * 1000
+      ? new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : new Date(t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: span <= 600000 ? "2-digit" : undefined });
     ctx.fillStyle = "#5d6b7a";
     const tw = ctx.measureText(label).width;
     ctx.fillText(label, Math.max(pad.l, Math.min(x - tw / 2, pad.l + w - tw)), cssH - 12);

@@ -2630,3 +2630,9 @@ equivalent to a YES ASK at price ($1.00 − Y)" —
 `categories/crypto.html`, `categories/golf.html`. Change is display-only: a new "Implied YES ask"
 column computed as 1 − NO bid price, with the formula and source printed under the table. No existing
 column, value or sort order changes.
+
+**Scope extension 3 — session `d074f64f`:** chart x-axis legibility for the long windows the brief
+asks for (minutes / hours / days). Time-of-day-only tick labels repeat across days on the 24-hour and
+7-day windows, which makes a 7-day chart unreadable. Files added: `assets/js/ui.js` (tick-label format
+only; nothing else in the canvas renderer changes), `tests/dom/category-dom.mjs` (new fixture test) and
+the `tests/dom/package.json` script entry, plus the `site-check` step that runs the new test.
