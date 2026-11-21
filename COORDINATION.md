@@ -2259,3 +2259,14 @@ Gas rows are gasoline-price markets only (`KXAAAGASW-26NOV23` "US gas prices thi
 Because a requested ticker can resolve to an already-discovered series, the pinned flag is now merged into an existing row instead of being dropped by `setdefault`; test `test_a_direct_ticker_that_resolves_to_a_discovered_series_is_still_pinned` covers it.
 
 **Session status:** V1–V5 complete, R8 fixed and verified in production, R2/R5/R6/R9 published for review (needs review), PRs #75, #82, #83 merged.
+
+## Session `5a9b44b9` — final record
+
+| Item | Result |
+|---|---|
+| PRs | [#75](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/75) merged 20:35:57Z → `5515a7c` (taxonomy alignment + claim corrections + report) · [#82](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/82) merged 20:42:01Z → `1bf2e19` (collector publish retry / fail loudly) · [#83](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/83) merged 20:44:58Z → `6bb94ec` (pin direct series ahead of the cap) · [#84](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/84) merged 20:48:13Z → `c889c10` (pin flag merged into a resolved ticker; V5 record) |
+| Snapshot refresh | Runs [44947676174](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947676174) and [44947929574](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947929574) pushed `7042d8d` and `7fd4398` (`generated_at 2026-11-21T20:46:46Z`, `errors []`). Culture **0 → 37 events / 200 markets**; Gas now retail-gasoline only; `KXGAS`/`GAS` observation recorded as R9 (unverified). |
+| Pages | Deployment for `c889c10` triggered after PR #84; `pages build and deployment` for the preceding merge (`6e7a462`) succeeded, and the site served the corrected Q2 page at <https://kanlerxz87-cyber.github.io/KalshiDash2/questions.html>. |
+| Cosmetic fix | The first corrected Q2 text rendered literal `<code>` tags (and briefly an unescaped quote that broke the page's script). Both fixed in the final commit; page-runtime **17/17** restored. |
+| Flags from this session | **R2** (demo `Entertainment` category carries `KXNATGASD` "Natural Gas Daily"), **R5** (`collect.yml` header mentions a site fallback that does not exist), **R6** (5-page `/series` discovery cap), **R9** (`KXGAS` ≡ `GAS` inferred, not officially confirmed) — all `needs review`, published here with sources; `flagged.html` was not edited. |
+| Final checks | `node --test` 87/87 · Python tools 35/35 · summary DOM pass (78/89 · 8 partial · 3 unverified) · page-runtime 17/17 · static links 35 pages / 0 broken. |
