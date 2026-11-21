@@ -351,6 +351,28 @@ export const CLAIMS = [
     ev: "Live: node tools/verify/page-runtime-check.mjs runs alerts.html and simulator.html clean",
     status: "verified" },
 
+  // ---- claims added by session c33971c1 (2026-11-21, live fetch from the demo API) ----
+  { cat: "api", claim: "The event object's category field is deprecated",
+    detail: "The Get Events schema annotates `category` with deprecated: true and the description \"Event category (deprecated, use series-level category instead)\", so the site classifies topics from the series record first and treats this field as a labelled fallback",
+    source: `${D}/api-reference/events/get-events`,
+    ev: "Documented schema (fetched 2026-11-21); assets/js/market.js#classifyEventWithBasis reports which basis decided each event and alerts.html prints the tally",
+    status: "verified" },
+  { cat: "api", claim: "The series record is the documented category authority",
+    detail: "Series carry `category` (primary) and `categories[]` (the discovery list); the `category` filter on Get Series List matches any entry in `categories`, so a client that reads only the primary value can miss a membership",
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Documented parameter and schema (fetched 2026-11-21); live GET /series/KXDIESELMONAK returns categories [\"Economics\"] with a primary category",
+    status: "verified" },
+  { cat: "api", claim: "KXGAS and GAS are two distinct series records",
+    detail: "GET /series/KXGAS returns a series whose own ticker field is KXGAS, and GET /series/GAS returns one whose ticker is GAS; both are titled \"Gas weekly\" and both point at the same contract terms (GAS.pdf). Whether KXGAS is a rename of GAS is not stated anywhere official, so the site does not claim it",
+    source: `${D}/api-reference/market/get-series`,
+    ev: "Live 2026-11-21: GET /series/KXGAS -> ticker KXGAS, title \"Gas weekly\", terms .../GAS.pdf; GET /series/GAS -> ticker GAS, same title and terms",
+    status: "verified" },
+  { cat: "api", claim: "A REST market object has no dollar-volume field",
+    detail: "The market object returned by GET /markets carries volume_fp, volume_24h_fp, open_interest_fp and notional_value_dollars, but no dollar_volume; a dollar figure for traded volume exists only in the WebSocket ticker payload",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Live 2026-11-21: GET /markets?limit=3&status=open returned exactly those fields and no dollar_volume",
+    status: "verified" },
+
   // ---- claims added by session 816988dd (re-review, 2026-11-20 evening) ----
   { cat: "api", claim: "Cancelling an order requires the market ticker to auto-route",
     detail: "market_ticker is a documented cancel query parameter and is 'required for auto-routing'; without it the request defaults to shard 0 and can miss an order resting on another shard",
