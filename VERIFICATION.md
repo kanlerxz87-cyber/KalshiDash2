@@ -13,7 +13,7 @@ Checked 2026-11-20 against official sources (each source page fetched and read; 
 | Auth headers | `KALSHI-ACCESS-KEY/-SIGNATURE/-TIMESTAMP` | https://docs.kalshi.com/getting_started/quick_start_authenticated_requests | verified |
 | Signature construction | message = `timestamp(ms) + METHOD + full-path-from-root-without-query`; RSA-PSS SHA-256 salt=32 or Ed25519 direct; base64 | https://docs.kalshi.com/getting_started/quick_start_authenticated_requests | verified |
 | Balance units | cents (quick-start divides by 100) | https://docs.kalshi.com/getting_started/quick_start_authenticated_requests | verified |
-| Get Markets filters | `limit, cursor, event_ticker, series_ticker, status(unopened/open/closed/settled), min/max ts` | https://docs.kalshi.com/api-reference/market/get-markets | verified |
+| Get Markets filters | `limit, cursor, event_ticker, series_ticker, status(unopened/open/paused/closed/settled), min/max ts` | https://docs.kalshi.com/api-reference/market/get-markets | verified |
 | Market display fields | `yes_sub_title` canonical (`title` deprecated); `result` ∈ yes/no/scalar/empty; `settlement_ts` only when settled; `notional_value_dollars` = one-contract settlement value | https://docs.kalshi.com/api-reference/market/get-market | verified |
 | Series list + fields | `GET /series` (params `category/tags/include_*`; no documented limit/cursor); fields incl. `categories[]`, `tags[]` | https://docs.kalshi.com/api-reference/market/get-series-list | verified |
 | Single-market candlesticks | `GET /series/{s}/markets/{t}/candlesticks`, `period_interval` ∈ {1, 60, 1440} min | https://docs.kalshi.com/api-reference/market/get-market-candlesticks | verified |

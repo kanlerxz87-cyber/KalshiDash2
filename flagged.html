@@ -380,10 +380,10 @@
     </div>
 
     <div class="irregularity" id="A9">
-      <h3>A9 — Two status vocabularies, and the sources register is missing <code>paused</code> <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter lists <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code> and <code>settled</code>. The board's source entry S6 lists the filter values without <code>paused</code>. The page treats <code>active</code> and <code>open</code> as live.</p>
+      <h3>A9 — Two status vocabularies need a confirmed mapping <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the Market Lifecycle page lists market statuses such as <code>active</code> and <code>determined</code>. The Get Markets <code>status</code> filter lists <code>unopened</code>, <code>open</code>, <code>paused</code>, <code>closed</code> and <code>settled</code>. S6 in <code>docs/sources.html</code> formerly omitted <code>paused</code>; the list has now been corrected. The page treats <code>active</code> and <code>open</code> as live.</p>
       <p><strong>Observed:</strong> on 2026-11-20 the open-events scan returned 2,157 markets with status <code>active</code> and 14 with <code>finalized</code> (<code>reports/alerts-live-check.md</code> §1). The page treats <code>active</code> and <code>open</code> as live and skips the rest.</p>
-      <p><strong>Decision needed:</strong> confirm the mapping and correct S6 in <code>docs/sources.html</code> if you want it corrected.</p>
+      <p><strong>Still unverified:</strong> the complete mapping between filter and returned-object statuses.</p>
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a></p>
     </div>
 
@@ -706,20 +706,30 @@
       <p><strong>What this session did:</strong> added <code>scripts/kalshi_ws.py</code> (a signed WebSocket
         ticker client) and <code>scripts/relay.py</code>, which opens the socket server-side and republishes
         the frames to the browser as Server-Sent Events on <code>/live/stream</code>. The alerts page uses the
-        stream when it is present and falls back to the REST poll when it is not, and the status pill names
-        the source that is actually running.</p>
+        stream when it is present and falls back to the REST poll when it is not. A later regression fix
+        waits for subscription confirmation and clears old ticker baselines when the connection fails;
+        its state transitions were tested with fixtures, not an authenticated live connection.</p>
       <p><strong>Why it is still open:</strong> the live path needs a demo key and a process the visitor runs
         themselves. On the plain GitHub Pages deployment — which is what visitors see — the page runs on the
-        REST poll, and the page says so. The relay is a local tool, not a hosted service, so the per-second
-        ticker flush is only reachable for someone who runs it locally.</p>
-      <p><strong>What would close it:</strong> a hosted relay with the key held server-side. That is a
-        deployment decision with a credential-management and cost consequence, so it is put in front of the
-        owner rather than assumed. The page never claims to be live when it is polling.</p>
+        REST poll, and the page says so. The optional relay signs using a private key on the server side,
+        conflicting with the browser-only signing constraint; see W4. No compliant streaming deployment has
+        been verified.</p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">Quick start: WebSockets ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/websockets/websocket-connection" target="_blank" rel="noopener noreferrer">WebSocket connection ↗</a> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="W4">
+      <h3>W4 — Optional relay uses server-side signing <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>scripts/relay.py</code> loads a demo private-key file and
+        signs the WebSocket handshake in the relay process. This conflicts with the project's browser-side-only
+        signing constraint. The static GitHub Pages deployment does not run that relay and uses REST polling.</p>
+      <p><strong>Verification boundary:</strong> the status and fallback fix was tested with simulated
+        subscription, failure and reconnect events. No authenticated live handshake or demo order was tested
+        in this session. Do not treat the optional relay as a compliant credential architecture.</p>
+      <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket authentication ↗</a> · <a class="src-link" href="https://docs.kalshi.com/websockets/websocket-connection" target="_blank" rel="noopener noreferrer">Subscription responses ↗</a></p>
     </div>
 
     <div class="irregularity" id="W2">
