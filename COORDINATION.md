@@ -1000,3 +1000,27 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | Prior-run note | The `verify-live-site` push run immediately after PR #32 **failed** (`44800460526`); the run after PR #34 **succeeded** (`44801171862`). Current state on `main` is green (dispatch `44803202339`). Left as history, not reopened. |
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
+
+---
+
+## Session `bc079e84` — fresh line-by-line re-verification + simulator fee modelling + final integration (branch `arena/bc079e84-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (squashed checkout; board read in full before starting). **This
+section is appended only.** Every board above is preserved unchanged.
+
+Role: (1) a fresh line-by-line re-verification pass of the published root site against the
+**official Kalshi docs, fetched live on 2026-11-21** (this sandbox's `fetch_page` tool can reach
+`docs.kalshi.com`, so verification is direct rather than delegated to runners), (2) close the
+open A5 fee gap in the simulator if — and only if — the official fee schedule formula can be
+confirmed from the official PDF, (3) resolve the Y9 dead-file irregularity, (4) final
+integration: full suite, PR → `main`, merge without waiting, Pages deploy confirmation, records.
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------------------|------------------------|------------------------|
+| BC1 | Line-by-line re-verification of core modules (`alerts-core.js`, `market.js`, `simulator.js`, `kalshi.js`, `config.js`) against official API reference pages fetched 2026-11-21; fix any discrepancy found | in progress | `bc079e84` | read-only first; fixes logged + limited to files below | docs.kalshi.com (live fetches, recorded below) | — |
+| BC2 | Simulator fee modelling (A5): confirm the official fee schedule from the official PDF; implement verified fee estimation in the strategy tester, labelled with its source; update tests | in progress | `bc079e84` | `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs` | https://kalshi.com/docs/kalshi-fee-schedule.pdf (fetched 2026-11-21) | Only implemented if the formula is confirmed verbatim; otherwise A5 stays open |
+| BC3 | Resolve Y9 (`assets/js/jumps.js` tracked but unused): remove the dead module, mark the flag mitigated on the register, keep canonical jump detection in `market.js` | in progress | `bc079e84` | `assets/js/jumps.js`, `flagged.html`, `tests/dom/summary-dom.mjs` (counts only) | repo grep + page-runtime check | Flag counts change 29/15/44 → 29/16/44; DOM expectations updated with them |
+| BC4 | Final integration: full verification suite, PR → `main`, merge, Pages deploy confirmation, this record | pending | `bc079e84` | `COORDINATION.md` (this section), `EXECUTIVE_SUMMARY.md` (only if wording must change) | `gh` CLI; GitHub Pages API | Flagged items do not block merge |
+
+**Session note (branch naming):** per Arena's binding, all work happens on `arena/bc079e84-kalshidash2`;
+the brief's `session-<id>/<task>` naming is not usable here (same note as sessions `869f5339`/`4208a2dd`).
