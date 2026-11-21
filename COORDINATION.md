@@ -2554,3 +2554,14 @@ Behaviour after the fix: a result set with one distinct outcome reports that out
 a set with more than one distinct outcome reports `mixed`; no result reports `open`/blank. Nothing is
 coerced to `no`. Paper trades and backtests still resolve only on `yes`/`no`, because a scalar payout is
 not a $1/$0 outcome — that stays conservative and is stated on the pages.
+
+**Scope extension 2 — session `d074f64f`:** one more brief-alignment gap, proven from the site's own
+text and the official reciprocal rule. The liquidity panel's heading says "how many contracts are
+available at each price", but the NO-bid table shows only NO bid prices; a buyer of YES has to invert
+each row mentally to see the size offered at *its* price. Official rule: "A NO BID at price Y is
+equivalent to a YES ASK at price ($1.00 − Y)" —
+[Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses). Files added:
+`assets/js/category.js`, `categories/gas.html`, `categories/elections.html`, `categories/culture.html`,
+`categories/crypto.html`, `categories/golf.html`. Change is display-only: a new "Implied YES ask"
+column computed as 1 − NO bid price, with the formula and source printed under the table. No existing
+column, value or sort order changes.
