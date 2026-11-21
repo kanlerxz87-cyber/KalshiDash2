@@ -319,9 +319,9 @@ export const CLAIMS = [
     source: `${D}/api-reference/market/get-markets`,
     ev: "Live, GitHub runner, 2026-11-20: reports/alerts-live-check.md §2–3", status: "partially verified", flag: "A7" },
   { cat: "api", claim: "Market status filter values",
-    detail: "Status filter lists unopened, open, paused, closed, settled; lifecycle page lists the object statuses",
-    source: `${D}/getting_started/market_lifecycle`,
-    ev: "Documented (fetched 2026-11-20). Live: 2,157 markets 'active' and 14 'finalized' in the open-events scan (reports/alerts-live-check.md §1).",
+    detail: "The Get Markets reference lists the status filter as unopened, open, closed, settled. The Market Lifecycle page lists five values and adds paused → inactive. The two official pages disagree; the site states each page's wording separately and asserts neither as the single truth (Flagged A9).",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Both pages fetched 2026-11-21. Get Markets description: four values. Market Lifecycle filter table: five values with the mapping to object statuses. Live: 2,159 markets reported 'active' and 14 'finalized' in the 2026-11-20 open-events scan (reports/alerts-live-check.md §1).",
     status: "partially verified", flag: "A9" },
 
   // ---- swing detection, tradeability screen and the merged alerts page ----
