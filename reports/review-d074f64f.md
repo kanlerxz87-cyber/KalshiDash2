@@ -212,7 +212,7 @@ is used by the static reports and the downtime fallback only.
 | `node --test tests/*.test.mjs` | **99/99 pass** (78 on `main` + 11 result-semantics + 10 chart-axis) |
 | `python3 -m unittest discover -s tools` | **42/42 OK** |
 | `python3 -m unittest discover -s tests` | **20 run, OK** (3 skipped: `cryptography` absent in this sandbox) |
-| `tests/dom`: `npm test` | alerts **19/19**, summary **5/5** (73 flags: 41 open / 32 mitigated), category **18/18** |
+| `tests/dom`: `npm test` | alerts **19/19**, summary **5/5** (73 flags: 36 open / 37 mitigated), category **18/18** |
 | `python3 tools/check_site_links.py .` | **35 pages, 0 broken** |
 | `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean**, 35 pages link-checked |
 | `node evidence/auth-sign-test.mjs` | **6/6** |
