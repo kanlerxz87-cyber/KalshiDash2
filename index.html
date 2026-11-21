@@ -269,26 +269,6 @@ function render() {
   ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 
   /* board */
-  const rows = allRanked.map(ev => {
-    const topic = TOPICS.find(t => t.key === ev._topic);
-    const r = rankEvents([ev], state.mode)[0];
-    const result = r.result;
-    const tag = result === "yes" ? `<span class="tag yes">yes</span>`
-      : result === "no" ? `<span class="tag no">no</span>`
-      : result === "mixed" ? `<span class="tag warn">mixed</span>`
-      : `<span class="muted small">open</span>`;
-    return `<tr>
-      <td><a href="event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
-        <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
-      <td><a href="categories/${topic.key}.html">${esc(topic.label)}</a></td>
-      <td class="num">${int(r.marketCount)}</td>
-      <td class="num">${money(r.money)}</td>
-      <td class="num">${int(r.oi)}</td>
-      <td class="num">${int(r.volume)}</td>
-      <td class="nowrap small">${dt(r.closeTime)}</td>
-      <td>${tag}</td>
-    </tr>`;
-  });
   const sorted = allRanked
     .map(ev => ({ ev, r: rankEvents([ev], state.mode)[0] }))
     .sort((a, b) => state.mode === "oi" ? b.r.oi - a.r.oi : state.mode === "volume" ? b.r.volume - a.r.volume : b.r.money - a.r.money)

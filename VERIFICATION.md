@@ -1,6 +1,6 @@
 # Verification — KalshiDash2
 
-Checked 2026-11-20 against official sources (each source page fetched and read; full list on the site's Sources page, `docs/sources.html`). Live market values are never transcribed — they are fetched live in the browser (or at runtime via `scripts/kalshi_client.py`).
+First checked 2026-11-20; every row re-checked 2026-11-21 by session `0acc711d` against the same official pages plus live demo-API responses (`reports/verify-0acc711d.md`; earlier re-checks: `reports/verify-facts-e2718295.md`, `reports/verify-facts-v3.md`). The published site's full claim register is `verification.html` (root site, 89 rows, each with its official link). Live market values are never transcribed — they are fetched live in the browser (or at runtime via `scripts/kalshi_client.py`).
 
 | Claim | Value | Official source | Status |
 |-------|-------|-----------------|--------|
@@ -26,9 +26,9 @@ Checked 2026-11-20 against official sources (each source page fetched and read; 
 | Positions & settlements | `GET /portfolio/positions`, `GET /portfolio/settlements` | https://docs.kalshi.com/api-reference/portfolio/get-positions + /get-settlements | verified |
 | Demo = mock funds, separate credentials | stated by Kalshi | https://docs.kalshi.com/getting_started/demo_env | verified |
 | Series reference labels (gas/golf) | `KXAAAGASM`, `KXPGATOUR`, `KXPGARYDER`, `KXPGASOLHEIM` | https://kalshi.com/docs/kalshi-fee-schedule.pdf | verified |
-| Browser CORS from GitHub Pages | *(blank)* | — | **unverified** (F1 — sandbox cannot reach kalshi.co; test on the live site) |
-| Exact `/series` category strings per topic | *(blank — discovered live, keyword heuristic)* | — | **unverified** (F4) |
+| Browser CORS from GitHub Pages | `access-control-allow-origin: https://kanlerxz87-cyber.github.io` returned on all nine endpoints the dashboard calls (observed response header, not a documented guarantee) | `reports/verify-facts-v3.md` §A (GitHub-runner capture, 2026-11-21T06:55Z; no official page states a CORS policy) | verified by observation (also listed under "What is not flagged" on `flagged.html`; the hosted `verify-live-site` workflow re-checks the live page) |
+| Exact `/series` category strings per topic | *(blank — discovered live, never transcribed)* | — | **unverified** (`flagged.html` F8, AB3, SB1, SB3) |
 | Any specific price / volume / balance / resolution | *(blank — live only, never transcribed)* | — | **unverified** |
-| Est. dollar volume, price-band taxonomy, strategy library | *(derived / proposals — see `docs/sources.html` conventions table)* | — | **not facts** (analytic conventions, excluded from verification) |
+| Est. dollar volume, price-band taxonomy, strategy library | *(derived / proposals — formulas stated on each page; `flagged.html` A11, A12, A1, A5)* | — | **not facts** (analytic conventions, excluded from verification) |
 
-Irregularities and open items: `docs/flagged.html` (F1–F7 plus doc discrepancies D1–D3). Sandbox outbound access cannot reach kalshi.co, so live API behavior was verified by line-by-line code review against the official OpenAPI specs, not by execution; the browser (or `scripts/kalshi_client.py`) performs the live calls.
+Irregularities and open items: `flagged.html` on the published root site (the "Flagged for Review" register — F1–F17, A1–A12, AB1–AB3, D1, E1–E3, K-series, R1–R2, SB1–SB4, V1–V3, W1–W6, X1–X4, Y1–Y15, Z1–Z2; the legacy `docs/` set is superseded). Sandbox shells cannot reach kalshi.co, so live API behavior was first verified by line-by-line code review against the official OpenAPI specs; since 2026-11-21 it has also been verified by execution — GitHub-runner captures (`reports/verify-facts-v3.md`) and live demo responses read through the review tool (`reports/verify-0acc711d.md`). The browser (or `scripts/kalshi_client.py`) performs the live calls on the site itself.
