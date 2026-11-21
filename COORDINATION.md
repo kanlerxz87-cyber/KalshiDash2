@@ -1155,3 +1155,17 @@ Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from 
 | Z2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | unclaimed | — | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
 
 **Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
+
+### M2 record — session `75490e0f` final integration (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#51 — Line-by-line re-verification fixes (Y9/Y12–Y15) + jumps tests](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/51), branch `arena/75490e0f-kalshidash2` → `main` |
+| Merge | `gh pr merge 51 --merge` succeeded 2026-11-21 **06:38:28Z**; merge commit [`1510745`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/1510745fac7fe637eb6c39053884e0edbcc39020). Pre-merge: PR head `560b33f`, `check` (**Static site link check**) **SUCCESS**, PR state `MERGEABLE` |
+| Checks on the merge commit `1510745` | [Static site link check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44876500005) success · [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44876500041) success · [live-engine-check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44876500030) success · [verify-live-site](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44876500008) success · `pages build and deployment` — the push run was **cancelled** (superseded by the bot's follow-up report commit) and the next build for `cc63bb5` succeeded |
+| Pages deploy | GitHub Pages API: `status: built`, `error: null`, source `main:/`; latest `pages build and deployment` **success** for `e248853`. URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Live proof comes from GitHub-hosted runners (`verify-live-site`) because this sandbox cannot reach `github.io` directly (outbound allowlist, same limit every session records) |
+| Post-merge `main` state | Subsequent parallel sessions continued landing PRs (#53, #54, #56) on top of this merge; every `main` run observed after the merge is green. One `verify-alerts` **failure** at 06:39:10Z belongs to branch `arena/1607f1f9-kalshidash2` (`067aeb2`), **not** `main` — it is not caused by this merge and is left for that session |
+| Rebase/conflict log | Four integrations were needed because `main` moved every few minutes (PRs #46, #48, #49, #50, #52, #54, #56). All conflicts were end-append collisions in `COORDINATION.md` plus the `verify-alerts` bot's `reports/alerts-live-check.md`; each was resolved by keeping every session's section and the fresher report capture. `assets/js/jumps.js` was deleted upstream (session `9d7b4124`) mid-session — this session adopted that decision and moved the canonical jump logic into `assets/js/market.js` rather than reverting it |
+| Flagged / unverified | None of the open flags (F1, F14, F15/A5, F16, A1, A2, Z1, X1–X4, Y1–Y15 …) blocked the merge; all remain published with source links on [`flagged.html`](https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html) |
+
+**M1/M2 status: done.**
