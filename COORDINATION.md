@@ -1508,6 +1508,36 @@ BC4 below).
 `gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
 Session `bc079e84` is complete: BC1–BC4 **done**.
 
+---
+
+## Session `32b15793` — independent line-by-line verification + integration (2026-11-21)
+
+Started: 2026-11-21T20:2xZ. Work branch: `arena/32b15793-kalshidash2` (Arena-fixed name), based on
+`main` at `bbdc3a0`. **Arena fixes this branch name**; the board's `session-<id>/<task>` convention is
+not applied because the session may not rename or create branches.
+
+**Claim recorded before editing any file in scope.**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources | Notes |
+|---|---|---|---|---|---|---|
+| IV1 | Independent line-by-line verification of the published site's official-source claims against docs.kalshi.com; produce a dated verification report with links | **in progress** | `32b15793` | `reports/verify-independent-32b15793.md` (new), this section | docs.kalshi.com pages fetched this session | Read-only on site code; defects logged as requests, never silently rewritten |
+| IV2 | Repo-state audit: confirm the post-`bbdc3a0` snapshot-label drift, open PR #60 conflicting state, and CI health; record findings | **in progress** | `32b15793` | this section only | local `node --test`, `tools/`, GH API | I will **not** edit `data/snapshot.json`, `scripts/collect.py`, `tools/test_collect.py`, or `tests/activity-proxy.test.mjs` — sessions `0d6f4f1f`, `f2176447`, `5a9b44b9` are actively fixing that drift |
+| IV3 | Final integration: confirm all checks pass, merge PR #60 (or supersede it with a clean integration PR), confirm Pages deploy, record PR + result | **in progress** | `32b15793` | `COORDINATION.md`, PR/merge state | `gh`, Pages API | Only after the concurrent sessions' fixes land; do not merge a broken site |
+
+**Non-overlap statement.** I read no other session's claim as active over the files I edit
+(`reports/verify-independent-32b15793.md` is new; `COORDINATION.md` additions are this section).
+Any change I want in a file owned by another session is logged here as a request instead.
+
+**Drift found at session start (recorded, not fixed here).**
+
+| Observation | Evidence | Consequence |
+|---|---|---|
+| `data/snapshot.json` was rewritten by the scheduled `collect` run (`bbdc3a0`, 19:29Z) with labels that drop the guard phrases the repo's own tests require | `node --test tests/activity-proxy.test.mjs` → 1 failure (`"not asserted as actual all-side cash turnover"` missing); `python3 -m unittest discover -s tools` → 1 failure (`"contract-count fields"` missing) | Two red checks on `main`; **not** a factual error in captured API values — a label/assertion drift. Owners `0d6f4f1f` / `f2176447` / `5a9b44b9` |
+| PR #60 (`arena/9543cf0d`) is `CONFLICTING`/`DIRTY` and carries no checks; its own body says it "remains unmerged until that check and parallel work are resolved" | `gh pr view 60 --json mergeable,mergeStateStatus` → `CONFLICTING`, `statusCheckRollup: []` | Integration cannot merge it as-is; resolve by rebasing its content or superseding it |
+| The collector workflow `.github/workflows/collect.yml` schedules `scripts/collect.py` every 6 hours and commits to `main`, so any label guard must live in `collect.py`, not only in the snapshot | `.github/workflows/collect.yml` cron `23 */6 * * *` | Reinforces that the durable fix belongs in the generator |
+
+---
+
 ## Session `0d6f4f1f` — snapshot-label drift fix + final integration verification (2026-11-21)
 
 Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
@@ -1752,6 +1782,43 @@ The `Collect demo snapshot` workflow (`.github/workflows/collect.yml`, cron `23 
 | Conflict log | `git pull --rebase origin main` (main advanced `bbdc3a0` → `b254e21` mid-session). `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned, 0 sections dropped); `scripts/collect.py` and `data/snapshot.json` conflicts resolved by **keeping session `0d6f4f1f`'s merged strings** and refactoring around them. Nothing discarded. |
 
 
+### IV1–IV3 result — session `32b15793` (2026-11-21)
+
+| ID | Result | Evidence |
+|---|---|---|
+| IV1 | **done** | `reports/verify-independent-32b15793.md` — 43 claims checked against `docs.kalshi.com`, the official fee-schedule PDF and live demo-API JSON: **41 verified, 1 partially verified, 0 contradicted**. Sandbox `curl`/`urllib` still cannot reach `*.kalshi.co` (TLS closed, status `000`); `fetch_page` reaches both docs and `external-api.demo.kalshi.co`, so live values were read from the documented endpoint URLs directly. |
+| IV2 | **done** | Repo-state audit in §G of the report. The 2 red checks at `bbdc3a0` were snapshot-label drift, repaired on `main` by `0d6f4f1f` (R1) and `f2176447` before this branch merged forward. Post-merge local suite: Node **72/72**, tools Python **30/30**, `tests/` Python **18 pass / 3 skip** (`cryptography` absent), page-runtime **17/17**, static links **34 pages / 0 broken**, alerts DOM **16/16**, summary DOM 20 areas / 78-of-89 claims / 33 open + 25 mitigated + 58 flags / 28 sourced rows. |
+| IV3 | **done** | Integration PR and merge recorded below. |
+
+**Defects fixed in this session (unclaimed files only):**
+
+| Flag | File(s) | What changed | Official source |
+|---|---|---|---|
+| **AB1** | `assets/js/config.js`, `tests/taxonomy.test.mjs`, `flagged.html` | Gas topic now matches `KXGAS` (EIA weekly US retail gasoline; `tags: null`, title "Gas weekly") in addition to `KXAAAGAS*`. Title patterns tightened; bare `/gas/i` still banned. Regression case added (taxonomy 11/11). | [live `GET /series/KXGAS`](https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS), [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [EIA weekly retail gasoline](https://www.eia.gov/dnav/pet/PET_PRI_GND_DCUS_NUS_W.htm) |
+| **AB2** | `assets/js/category.js`, `categories/*.html` | "Contracts for sale" → "YES bid depth (contracts)"; side heading and note now say the counts are resting bids to **buy** YES. No value or calculation changed. | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) |
+| **AB3** | `flagged.html` only (open) | Logged that the site classifies on the event-level `category` field, which Kalshi marks `deprecated: true`. Fix needs a per-series lookup design decision → request to the owner of `assets/js/market.js` / `alerts.js`. | [Get Events schema](https://docs.kalshi.com/api-reference/events/get-events), [Get Series](https://docs.kalshi.com/api-reference/market/get-series) |
+
+**Recorded, not edited (other sessions' scope):**
+
+* **I1 / GC-I3** — `scripts/collect.py` `TOPICS["gas"]` selects `tags: [Gas, Oil & Gas, Oil and energy]`, so the
+  snapshot's gas bucket holds 14 crude/NATGAS/diesel series and 77 of its 200 markets from them, while the site
+  deliberately excludes those. The site is right; the generator is looser. Snapshot is not read by the live site.
+  Request to the collector's session: narrow to the pump-price families or label the energy rows in place.
+* **I5** — the strategy tester charges the taker rate on both legs of a round trip. That is conservative rather
+  than optimistic (a resting maker exit would pay the smaller maker formula). Request: one sentence beside the fee
+  note. Not a blocker.
+* **I4 / Z1** — independently confirmed: `previous_price_dollars` is documented "a day ago". The existing Z1 flag
+  is accurate; nothing reopened.
+
+**Coordination compliance.** This branch is `arena/32b15793-kalshidash2` because **Arena fixes the branch name**
+for a session; the board's `session-<id>/<task>` convention was not applied and the branch was not renamed.
+`COORDINATION.md` add/append conflicts from merging `origin/main` twice were resolved with
+`tools/resolve_board_conflict.py` (both sides kept, 0 sections dropped). No file owned by another live session
+was edited: `data/snapshot.json`, `scripts/collect.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs`
+and `tests/dom/live-site.mjs` were left to `0d6f4f1f`, `f2176447`, `5a9b44b9`, `e2718295` and `29749918`.
+
+---
+
 ---
 
 ### PR / merge / deploy record — session `29749918` (GC1)
@@ -1794,6 +1861,19 @@ summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated
 these from the DOM, so no hard-coded figure was changed). `flagged.html` was not claimed by any other
 active session at the time of this edit; PRs #60, #69 and #70 were inspected first and were all
 `CONFLICTING`, and none of them had been merged.
+
+### E1–E4 publication record — session `e2718295` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR #1 (fix) | [#67](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/67) — "fix: snapshot-metadata drift on main (2 red checks) + independent line-by-line verification"; merged `2026-11-21T20:25:42Z` as [`cbf0df9`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/cbf0df9e0cade50ab0289ee3882195b722d596e1). PR head check `check` (Static site link check) **success**. |
+| PR #2 (flagged page) | [#72](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/72) — "feat(flagged): publish session e2718295's irregularities on the Flagged for Review page"; merged `2026-11-21T20:30:55Z` as [`0e45e17`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/0e45e17c949b025ee9d219420182066e0fb8cec8). PR head check `check` **success**. |
+| Pages deployment | On `0e45e17`: `pages build and deployment` **success**, `Static site link check` **success**, `verify-live-site` **success**; Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. The transient `errored` state seen during the merge window resolved to `built` without intervention (concurrency cancellations of superseded builds). |
+| Live check of the new page | <https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html> served with cache-buster: section **6 · Documentation wording and scheduled-refresh drift** and cards `E1`–`E3` are present on the deployed page. |
+| Local suite on merged `main` (`0e45e17`) | Python tools **30/30** · Node **73/73** (main had gained two tests by then) · static link check 17 pages pass. |
+| Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
+| Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
+
 ## Session `970aabdb` — independent audit of the published site (2026-11-21)
 
 Branch: `arena/970aabdb-kalshidash2`, branched from `main` at `bbdc3a0`

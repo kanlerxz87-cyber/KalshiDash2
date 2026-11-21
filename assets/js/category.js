@@ -453,11 +453,12 @@ async function loadBook(ticker) {
         <div class="stat"><div class="k">Best YES bid</div><div class="v">${money4(q.bestYesBid)}</div><div class="m">highest resting YES bid</div></div>
         <div class="stat"><div class="k">Implied YES ask</div><div class="v">${money4(q.bestYesAsk)}</div><div class="m">1 − best NO bid</div></div>
         <div class="stat"><div class="k">YES spread</div><div class="v">${q.yesSpread === null ? `<span class="unv">n/a</span>` : (q.yesSpread * 100).toFixed(1) + "¢"}</div><div class="m">ask − bid</div></div>
-        <div class="stat"><div class="k">Contracts for sale</div><div class="v">${int(yesDepth)}</div><div class="m">YES bid depth @ ${money(yesNotional)}</div></div>
+        <div class="stat"><div class="k">YES bid depth (contracts)</div><div class="v">${int(yesDepth)}</div><div class="m">resting bids to buy YES @ ${money(yesNotional)}</div></div>
       </div>`;
     pill($("#book-status"), "live", `live · ${yesRows.length + noRows.length} levels`);
     $("#book-src").innerHTML = `Order book returns <strong>bids only</strong>; a NO bid at <em>y</em> implies a
-      YES ask at <em>1 − y</em>. ${src(SOURCES.orderbook, "order-book docs")}`;
+      YES ask at <em>1 − y</em>. The contract counts above are resting bids to <strong>buy</strong> YES, not offers
+      to sell — a seller of YES trades against those bids. ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
     pill($("#book-status"), "err", e.message);
     $("#yes-book").innerHTML = emptyRow(5, "Order book unavailable.");
