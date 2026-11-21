@@ -1888,3 +1888,47 @@ active session at the time of this edit; PRs #60, #69 and #70 were inspected fir
 | Local suite on merged `main` (`0e45e17`) | Python tools **30/30** · Node **73/73** (main had gained two tests by then) · static link check 17 pages pass. |
 | Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
 | Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
+
+
+## Session `5a9b44b9` — independent verification + collector taxonomy alignment
+
+Branch: `arena/5a9b44b9-kalshidash2`, rebased onto `main` `91754f1` (originally branched from `bbdc3a0`).
+Report: `reports/review-5a9b44b9.md` (sources, findings R1–R7, reproducible checks).
+
+**Coordination note.** When this session started, `f2176447` had just claimed final integration
+(F1–F4: `tests/dom/live-site.mjs`, PR #60, merges). This session took **no** part of that scope and
+did not touch `tests/dom/live-site.mjs`, PR #60, or `flagged.html`. Four further sessions merged
+while it worked; the branch was rebased and every duplicate of their work was dropped.
+
+| ID | Task | Status | Owner | Files touched | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| V1 | Verify the five-topic rules and every official `SOURCES` URL; publish an independent line-by-line report | **done** | `5a9b44b9` | `reports/review-5a9b44b9.md` (new) | Fetched 2026-11-21: [llms.txt](https://docs.kalshi.com/llms.txt), [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) (+ candlesticks, websocket index). All 28 `SOURCES` URLs matched the official index | See R2, R5, R6 |
+| V2 | Align `scripts/collect.py` with the dashboard taxonomy | **done** | `5a9b44b9` | `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` (one note string) | Official `/series` parameters only for discovery; local narrowing mirrors `assets/js/config.js`. Replay over the committed snapshot: 17 gasoline series kept, 23 oil/energy/natgas/diesel/power rows dropped; Culture now queries Culture + Social + Entertainment | Removes rows the dashboard already excludes; adds nothing |
+| V3 | Correct three published statements contradicted by the repo's own evidence | **done** | `5a9b44b9` | `assets/js/claims.js` (gas-category evidence), `assets/js/config.js` (undated Election/Crypto counts), `questions.html` (Q2 `Culture` category) | Evidence: `data/probe/api_surface.json`, `reports/verify-facts-v3.md` §G, `data/snapshot.json`; details in report §3 R4 | Scope amended after the fact — see disclosure below |
+| V4 | Verify the regenerated snapshot after the `collect` workflow runs on `main` (culture non-empty, gas gasoline-only) | unclaimed — blocked until this branch merges | — | this section | `gh workflow run collect`, run logs, `data/snapshot.json` | If live filters return no Culture series, record the finding; do not work around it |
+
+**Scope-amendment disclosure (required by the board):** V3's files (`claims.js`, `config.js`,
+`questions.html`) were not in the advance claim (which covered `scripts/collect.py`,
+`tools/test_collect.py`, `data/snapshot.json`, a new report and this board). No other session held
+them (`grep` of open PRs: PR #72 owns `flagged.html`, PR #73 owns `tests/dom/live-site.mjs`). They
+were edited because they publish statements contradicted by committed evidence; each correction is
+listed with its source in the report. No other session's work was replaced.
+
+**Conflict log (required):**
+
+| Collision | Resolution |
+|---|---|
+| `scripts/collect.py`, `tools/test_collect.py`, `data/snapshot.json` — session `e2718295` had already fixed the two red metadata checks on `main` (`4df6552`, `f25ecd7`) with a `DERIVATION_NOTES` single source + drift test + CI gate | Kept **main's** canonical fix; dropped this session's duplicate sentence-level test changes entirely. Re-applied only the taxonomy change on top of the new structure, and updated the one `topic_rules` note string so the new drift test passes. `diff` proves no other snapshot line changed. |
+| Five open PRs (#60, #70, #71, #72, #73, #74) and 25 new commits on `main` while this session worked | Rebased onto `91754f1` (no merge of other branches, no force-push over a CI report commit; this branch's own history was reset only after saving its files). `COORDINATION.md` re-appended rather than merged, so no session's section was rewritten. |
+
+**Checks on the rebased tree:** `node --test` 73/73 · Python tools 33/33 (30 from `main` + 3 new
+taxonomy tests) · `tests/` 18 OK / 3 skipped (`cryptography` unavailable) · alerts DOM 16/16 ·
+summary DOM pass (78/89 verified · 8 partial · 3 unverified; flags 32 open / 23 mitigated / 55
+total) · page-runtime 17/17 (34 links) · static link check 34 pages / 0 broken · signing self-test
+6/6 · `git diff --check` clean. `tests/dom/live-site.mjs` was not run to completion: it needs live
+Kalshi network access, which this sandbox does not have (recorded by every prior session).
+
+**Requests to the integration session** (also in report §6): publish R2 (demo `Entertainment`
+category carrying the natural-gas series `KXNATGASD`), R5 (`collect.yml` header mentions a
+"site offline fallback" that no page reads) and R6 (five-page `/series` discovery cap) on
+`flagged.html`; dispatch `collect` after merge and confirm Gas/Culture counts (V4).

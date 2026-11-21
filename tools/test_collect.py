@@ -190,5 +190,70 @@ class SnapshotMetadataTests(unittest.TestCase):
                     self.assertNotIn("_traded_notional_dollars", market)
 
 
+
+
+class TopicTaxonomyTests(unittest.TestCase):
+    """The collector must apply the same documented rules as the dashboard.
+
+    Official source for the query parameters:
+    https://docs.kalshi.com/api-reference/market/get-series-list
+    (category, tags, include_volume; exact and case-sensitive; no ticker filter).
+    """
+
+    class Client:
+        def __init__(self, rows):
+            self.rows = rows
+            self.calls = []
+
+        def paginate(self, path, key, params, max_pages=25):
+            self.calls.append(dict(params))
+            return list(self.rows), ["https://fixture.invalid/series"]
+
+    def test_culture_queries_the_three_categories_the_dashboard_maps(self):
+        client = self.Client([{"ticker": "KXFILM", "title": "Oscars", "category": "Culture"}])
+
+        collect.collect_series(client, "culture", collect.TOPICS["culture"])
+
+        self.assertEqual([c["category"] for c in client.calls],
+                         ["Culture", "Social", "Entertainment"])
+        for call in client.calls:
+            self.assertTrue(call["include_volume"])
+            self.assertEqual(set(call), {"category", "include_volume"})
+
+    def test_gas_uses_official_categories_then_the_gasoline_rule(self):
+        rows = [
+            {"ticker": "KXAAAGASW", "title": "US gas price up", "category": "Economics"},
+            {"ticker": "AAAGASM", "title": "US gas price", "category": "Economics"},
+            {"ticker": "AAAGASMAX", "title": "US highest gas price yearly", "category": "Economics"},
+            {"ticker": "KXWTI", "title": "WTI oil election day", "category": "Commodities"},
+            {"ticker": "KXBRENTD", "title": "Brent Oil Daily", "category": "Commodities"},
+            {"ticker": "KXNATGASW", "title": "Natural Gas Weekly", "category": "Commodities"},
+            {"ticker": "KXDIESELMON", "title": "Diesel Prices month", "category": "Economics"},
+            {"ticker": "KXTXERCOTPEAK", "title": "Texas ERCOT peak electricity demand",
+             "category": "Economics"},
+            {"ticker": "KXNBALASVEGAS", "title": "Las Vegas Aces win the title",
+             "category": "Sports"},
+        ]
+        client = self.Client(rows)
+
+        kept, _ = collect.collect_series(client, "gas", collect.TOPICS["gas"])
+
+        self.assertEqual([c["category"] for c in client.calls], ["Economics", "Commodities"])
+        self.assertEqual(
+            sorted(row["ticker"] for row in kept),
+            ["AAAGASM", "AAAGASMAX", "KXAAAGASW"],
+        )
+
+    def test_every_topic_uses_only_documented_query_parameters(self):
+        documented = {"category", "categories", "tags"}
+        local_keys = {"series_patterns", "title_patterns", "exclude_patterns"}
+        for key, spec in collect.TOPICS.items():
+            with self.subTest(topic=key):
+                self.assertTrue(set(spec["series_filter"]) <= documented,
+                                f"{key} has a non-query key in series_filter")
+                self.assertTrue(set(spec.get("local_rule") or {}) <= local_keys,
+                                f"{key} has an unexpected local_rule key")
+
+
 if __name__ == "__main__":
     unittest.main()
