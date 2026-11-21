@@ -1558,6 +1558,20 @@ No new irregularities found this session. Pre-existing flags on `flagged.html` c
 
 ---
 
+### R2 completion record — session `0d6f4f1f` (2026-11-21)
+
+| Item | Result |
+|------|--------|
+| PR | [#63 — integration: session 0d6f4f1f — snapshot-label drift fix (R1) + fresh doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), branch `arena/0d6f4f1f-kalshidash2` → `main` |
+| Merge | `gh pr merge 63 --merge` succeeded 2026-11-21T20:21:55Z; merge commit [`882e074`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/882e07446ab8c790990dd0033f90b313557aec23). PR head check `Static site link check` **pass** (run 44945843975). |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` run 44945889048 **success**; `Static site link check` run 44945890003 on `main` **success**. Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Irregularities | None new. All pre-existing flags on `flagged.html` carried forward; none blocked the merge per instructions. |
+| Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
+
+Session `0d6f4f1f` is complete: R1–R2 **done**.
+
+---
+
 ## Session `f2176447` — final integration: live-render fix (I2 takeover), PR #60 merge, Pages confirmation
 
 Work branch: `arena/f2176447-kalshidash2`, branched from `main` at `bbdc3a0`. Claim commit
@@ -1614,23 +1628,50 @@ No new irregularities were introduced; F1/F2 added no flags. All pre-existing fl
 
 ---
 
-### R2 completion record — session `0d6f4f1f` (2026-11-21)
+### F3/F4 outcome — merged PR #64, ported PR #60 (2026-11-21)
 
-| Item | Result |
-|------|--------|
-| PR | [#63 — integration: session 0d6f4f1f — snapshot-label drift fix (R1) + fresh doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63), branch `arena/0d6f4f1f-kalshidash2` → `main` |
-| Merge | `gh pr merge 63 --merge` succeeded 2026-11-21T20:21:55Z; merge commit [`882e074`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/882e07446ab8c790990dd0033f90b313557aec23). PR head check `Static site link check` **pass** (run 44945843975). |
-| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` run 44945889048 **success**; `Static site link check` run 44945890003 on `main` **success**. Live site: https://kanlerxz87-cyber.github.io/KalshiDash2/ |
-| Irregularities | None new. All pre-existing flags on `flagged.html` carried forward; none blocked the merge per instructions. |
-| Coordination compliance | Claim committed/pushed before editing; scope limited to `scripts/collect.py` (note strings), `data/snapshot.json` (note strings), `COORDINATION.md`. No overlap with open PR #60 except append-only board. `git pull --rebase` before PR; no conflicts. |
+**F3 done.** [PR #64](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/64) merged to `main` as
+merge commit `c18b32c` (`gh pr merge 64 --merge`). `live-site-render` on `main` went from
+**failure** (`44878586946`) to **success** (`44946257008`), and `Static site link check`
+(`44946257002`) passed on the same commit. Before the merge the branch was rebased on the then-current
+`main` and its own label fix was **dropped** because session `0d6f4f1f` had already merged the identical
+repair in [PR #63](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63) — duplicate work removed,
+their fix kept.
 
-Session `0d6f4f1f` is complete: R1–R2 **done**.
+**Pages incident during that window (diagnosed, not a content fault).** Three builds
+(`cbf0df9`, `dcba512`, `c18b32c`) returned `errored` / `Page build failed.` with **`duration: 0`**, i.e.
+rejected before the Jekyll step ran, after eight pushes to `main` inside one hour from parallel sessions.
+Checked and excluded as causes: repo size (1.7 MB), no symlinks, no `160000` gitlinks, no invalid-UTF-8
+files, no unsupported filenames, no Liquid delimiters outside `.github/`. The very next build
+(`e3ec8c1`) completed `built` with no intervention, and the Pages API now reports
+`status: built`, source `main/`, `build_type: legacy`. Recorded as an infrastructure/quota effect, not a
+site defect; no site file was changed in response.
 
----
+**F4 — PR #60 cannot be merged as authored, so its substance was ported.** `git merge-tree` on
+`origin/main` and PR #60's head fails with *"refusing to merge unrelated histories"*: `main`'s root commit
+`bbdc3a0` (a squashed snapshot) shares no ancestor with PR #60's branch, which descends from the
+pre-squash history. GitHub therefore reports the PR `CONFLICTING` permanently; no rebase or conflict
+resolution can make it mergeable, and this session does not push to another session's branch. Resolution:
 
----
+| PR #60 change | Action | Why |
+|---|---|---|
+| `404.html` | **ported verbatim** | useful custom 404, no conflicting content |
+| `assets/js/live-feed.js` | **ported verbatim** | real fix: SSE open ≠ upstream subscribed; state records drive LIVE only after `connected`, buffers cleared on drop so a reconnect tick is never compared to a stale price |
+| `scripts/relay.py` | **ported verbatim** | publishes its own state to SSE clients, waits for the ticker subscription confirmation, stops the reconnect loop on an unauthorized error |
+| `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py` | **ported verbatim**, and `.github/workflows/site-check.yml` now runs the JS one in CI | new fixture coverage for the above |
+| `flagged.html` W1 + new `W4` | **ported, re-verified** | W4 (relay signs server-side, conflicting with browser-only signing) is factual and new; W1 reworded to claim fixture-verified status only |
+| `flagged.html` A9, `VERIFICATION.md`, `docs/sources.html`, `docs/verification.html` (`paused` added to the Get Markets filter) | **NOT ported — contradicted by the official source** | [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), fetched and read 2026-11-21, enumerates the `status` filter as `unopened`, `open`, `closed`, `settled` only. The `paused` claim is removed from A9 instead and the correction is published on the Flagged page |
+| `questions.html` Q10 | **ported with one claim removed** | the "flushes about once a second" ticker rate could not be confirmed on the official Market Ticker page, so it is not asserted |
+| `data/snapshot.json`, `data/probe/api_surface.json` | **NOT ported** | PR #60's copies are the older `2026-11-21T06:28:13Z` capture; `main` already carries the newer `19:29Z` capture. Porting them would roll captured data backwards for no gain |
+| `reports/alerts-live-check.md` | **NOT ported** | bot-generated; `main` has a newer run |
+| `COORDINATION.md` | **not ported as a file** | recorded here instead |
 
----
+Ported work is credited to session `9543cf0d` in the commit body. Verified on the ported tree:
+`node --test` **73/73** · `tools` unittest **28 OK** · `tests` unittest **20 OK (3 skip)** ·
+alerts DOM **16/16** · summary DOM pass (flag counts moved to **33 open / 56 total** with W4, computed
+from the page, not hard-coded) · static links **35 pages / 0 broken** · page runtime **17/17**.
+Sources re-read for this record: [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets),
+[Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker).
 
 ## Session `29749918` — gas-price classification audit against the live demo API (branch `arena/29749918-kalshidash2`, 2026-11-21)
 

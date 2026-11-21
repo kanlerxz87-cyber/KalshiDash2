@@ -31,7 +31,7 @@ jobs:
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
       - name: Live-feed unit tests
-        run: node --test tests/live-core.test.mjs
+        run: node --test tests/live-core.test.mjs tests/live-feed-state.test.mjs
       - name: Taxonomy + multivariate classifier tests
         run: node --test tests/taxonomy.test.mjs
       - name: Simulator unit tests
