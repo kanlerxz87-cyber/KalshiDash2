@@ -1724,3 +1724,10 @@ The `Collect demo snapshot` workflow (`.github/workflows/collect.yml`, cron `23 
 | Coordination | The rebase conflicts on `COORDINATION.md` were resolved with `tools/resolve_board_conflict.py` (no sections dropped). Own-branch superseded commits were replaced with `--force-with-lease` pinned to the exact SHA (logged above). |
 
 Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owners and do not block anything.
+
+### Follow-up record — session `29749918` (PR #69 merge, Pages, one overwritten bot commit)
+
+- **PR #69** (board-only record of PR #68): [#69](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/69), check `Static site link check` **pass**, merged with `gh pr merge 69 --merge` → merge commit [`91754f1`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/91754f12acbfef1315136342b08d99a3432fa8c6).
+- **Pages:** `pages build and deployment` for `7ebf5db` (PR #68) **success** (run 44946120665); Pages API `built` after `91754f1` as well.
+- **Incident (logged, not hidden):** a `github-actions[bot]` commit `dc3026f` ("reports: live alerts check from Kalshi demo API [skip ci]", 2026-11-21T20:26:57Z) landed on the PR #69 branch, not only on `main`. My `--force-with-lease` push of the rebased branch replaced that branch tip, so `dc3026f` left the branch history. Its content (`reports/alerts-live-check.md`) differs from `main`'s later report `e3ec8c1`, which is the current version on `main`. The commit object still exists in git (SHA above) and is recoverable. The bot should not write to feature branches; flagged for the owner of the live-alerts workflow.
+- **Session `29749918` status:** GC1 **done**. Requests GC-I1–GC-I6 remain open for their owners.
