@@ -1485,3 +1485,19 @@ Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originall
 |-----------|------------|
 | `COORDINATION.md` | `tools/resolve_board_conflict.py`: 1 block unioned, 0 sections dropped. Both sessions' records kept. |
 | `reports/verify-facts-v3.md` | Two bot captures (my branch `06:55:15Z` vs main `06:48:24Z`); kept the **fresher** `06:55:15Z` capture, matching the board's standing "take the fresher capture" precedent. The dropped capture remains in main's history. |
+
+### BC4 final record — session `bc079e84` (2026-11-21)
+
+All four tasks are **done** (BC1 verification table above; BC2 fee model + tests; BC3 Y9 closure;
+BC4 below).
+
+| Item | Result |
+|------|--------|
+| PR | [#57 — integration: session bc079e84 — fee-modelled strategy tester (BC2), Y9 closure, fresh line-by-line doc re-verification](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/57), branch `arena/bc079e84-kalshidash2` → `main` |
+| Merge | `gh pr merge 57 --merge` succeeded 2026-11-21; merge commit [`b0e976b`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/b0e976b). PR head checks before merge: `check` (Static site link check) **pass**. |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`; `pages build and deployment` run for `b0e976b` **success** (a duplicate run was cancelled by the concurrency group; the surviving run succeeded and the Pages API reports built). |
+| Live-site verification | `verify-live-site` run [`44878586805`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44878586805) on `b0e976b` — **SUCCESS** (8s, report artifact `live-site-check-27`). |
+| Other CI on `b0e976b` | `Static site link check` **success** · `verify-alerts` **success** (first green run after the workflow-parse fix) · `live-engine-check` **success** · `verify-facts` **success** · `live-site-render` kicked off (separate render probe). |
+| Local suite on the merged tree | alerts-core 19/19 · simulator-core 10/10 (incl. 42-row official fee-table parity + Fee Rounding worked example) · taxonomy 10/10 · jumps 6/6 · live-core 23/23 · activity-proxy 3/3 · `tests/test_kalshi_ws.py` 18 (3 skip) · alerts DOM 16/16 · summary DOM 20 requirement areas, 78/89 claims (8 partial, 3 unverified), 32 open / 23 mitigated / 55 flags, 28 sourced rows · page-runtime 17/17 + 34 links · static links 34 pages 0 broken · python tools OK · signing self-test 6/6. |
+| Irregularities carried forward | **Z2** (fee-schedule "centicent" footnote vs its own table — resolved arithmetically, open for Kalshi), **F15/A5** (spread, slippage, queue position and live-paper fees still unmodelled — open), plus every pre-existing flag on `flagged.html`. None blocked the merge, per the brief. |
+| Coordination compliance | Both `origin/main` merges union-kept every session's work (`tools/resolve_board_conflict.py`); the `Z1` id collision with session `3b869340`'s flag was resolved by renumbering this session's flag to `Z2`; the repo-wide `verify-alerts` parse breakage introduced by `978c223` was fixed and logged; a `git pull --rebase`-on-merge hazard was caught, aborted, and logged (nothing discarded). |
