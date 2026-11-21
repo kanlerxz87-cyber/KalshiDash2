@@ -1071,3 +1071,14 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 **Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
 
 **Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+
+---
+
+## Session `75490e0f` — line-by-line re-verification + fixes + final integration (branch `arena/75490e0f-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85`. Board read before starting (per rules). No other session holds an active claim (last record `53975890` K3 done 2026-11-20).
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------------------|------------------------|------------------------|
+| M1 | Line-by-line re-verification of all published pages + JS against official Kalshi docs; fix confirmed bugs (alerts-core header, claims page-budget, strategies taxonomy, jumps wiring + chart-marker shape, capped-scan flags, moneyTraded missing-volume) | in progress | `75490e0f` | `assets/js/alerts-core.js`, `assets/js/claims.js`, `strategies.html`, `assets/js/category.js`, `assets/js/jumps.js`, `assets/js/market.js`, `assets/js/alerts.js`, `flagged.html`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` (this section) | [Demo env](https://docs.kalshi.com/getting_started/demo_env), [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance) fetched 2026-11-21; full local suite before/after | Y9 dead-file + marker-shape bug to resolve; no new live Kalshi calls from sandbox (browser-side only) |
+| M2 | Final integration: full verification suite, PR → `main`, merge, Pages deploy confirmation, records | unclaimed | `75490e0f` (to claim after M1) | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge |
