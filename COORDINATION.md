@@ -2561,6 +2561,106 @@ traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official**
 `volume_fp × last_price_dollars` proxy. It costs one request per market, so it is offered as an on-demand
 control with the request count stated, never on every poll. If any page of trades is unreachable the figure
 renders as `n/a` and is flagged, never as `$0.00`.
+
+---
+
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
+
+---
+
+## Session `d074f64f` — data-path code audit + requirements traceability (2026-11-21)
+
+Branch: `arena/d074f64f-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
+Overlap check at claim time: session `117dc8d6` holds F1–F3 (published-claims verification against
+docs, full local suite, liveness/interactivity audit) with scope `COORDINATION.md` (its section) and
+`reports/verify-117dc8d6.md`. It has F4 (integration) unclaimed. This session therefore does **not**
+re-do page-claim verification and does **not** claim final integration; it audits the client code
+that produces the numbers (a different question: is the *code* right, not is the *page text* right)
+and maps every line of the brief to the code/UI that implements it. No site file is edited at claim
+time.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Line-by-line audit of the client data path — `kalshi.js` (signing, order book, V2 orders), `market.js` (pagination, taxonomy, ranking, candles, jumps), `category.js` (chart windows, liquidity), `alerts-core.js` / `live-core.js` (threshold, swings, screens) — against the official Kalshi docs | in progress | `d074f64f` | `COORDINATION.md` (this section), `reports/review-d074f64f.md` (new) | docs.kalshi.com pages fetched this session, each quoted with its URL; local unit tests | Read-only on site code. A proven defect is logged here with file:line before any edit, and its file is added to this scope only if no other session claims it |
+| R2 | Requirements traceability: every requirement in the brief → the file/page/function implementing it, with the evidence that it works (test, workflow run, or code path), gaps called out | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | this repo; GitHub workflow run IDs | Gaps are listed, not papered over |
+| R3 | Full local suite on this branch, exact counts recorded; `git diff --check`; workflow YAML parse | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | local runs | — |
+| R4 | Log any request for another session's file in this section instead of editing it; hand the report to the integration owner (`117dc8d6` F4) | unclaimed | `d074f64f` | `COORDINATION.md` (this section) | — | — |
+
+**Claim commit:** this section is committed and pushed immediately, before any other work.
+
+### Scope amendment — session `d074f64f` claims a proven defect (2026-11-21)
+
+**Defect proven against the official schema, so file scope is extended (and only extended) to the files below.**
+
+| Evidence | Official source |
+|---|---|
+| `Market.result` is an enum of **`yes`, `no`, `scalar`, `""`** — `scalar` is a documented settlement outcome, not a binary one. | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema, `market.result`) and `market_type` enum `binary`/`scalar` |
+| `assets/js/market.js` `dominantResult()` returned `"no"` for any result set that contained no literal `yes`/`no` — so a settled scalar market, or an event whose only result was `scalar`, was rendered as **NO** on `index.html` and `categories/*.html`. That is an inferred value on a site whose rule is "no value is inferred". | same schema line |
+
+Files claimed for this fix (no other session has edited them; `117dc8d6` is at F4 and touched only
+`suggestions.html` + `SUGGESTIONS.md`): `assets/js/market.js`, `assets/js/category.js`, `index.html`,
+`event.html`, `resolved.html`, `flagged.html` (new card `D074-1` only), `tests/result-semantics.test.mjs`
+(new), `reports/review-d074f64f.md` (new), this section. **Request to `117dc8d6`: do not edit these files
+in F4; if your merge lands first, this branch rebases onto it.**
+
+Behaviour after the fix: a result set with one distinct outcome reports that outcome (`yes`/`no`/`scalar`);
+a set with more than one distinct outcome reports `mixed`; no result reports `open`/blank. Nothing is
+coerced to `no`. Paper trades and backtests still resolve only on `yes`/`no`, because a scalar payout is
+not a $1/$0 outcome — that stays conservative and is stated on the pages.
+
+**Scope extension 2 — session `d074f64f`:** one more brief-alignment gap, proven from the site's own
+text and the official reciprocal rule. The liquidity panel's heading says "how many contracts are
+available at each price", but the NO-bid table shows only NO bid prices; a buyer of YES has to invert
+each row mentally to see the size offered at *its* price. Official rule: "A NO BID at price Y is
+equivalent to a YES ASK at price ($1.00 − Y)" —
+[Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses). Files added:
+`assets/js/category.js`, `categories/gas.html`, `categories/elections.html`, `categories/culture.html`,
+`categories/crypto.html`, `categories/golf.html`. Change is display-only: a new "Implied YES ask"
+column computed as 1 − NO bid price, with the formula and source printed under the table. No existing
+column, value or sort order changes.
+
+**Scope extension 3 — session `d074f64f`:** chart x-axis legibility for the long windows the brief
+asks for (minutes / hours / days). Time-of-day-only tick labels repeat across days on the 24-hour and
+7-day windows, which makes a 7-day chart unreadable. Files added: `assets/js/ui.js` (tick-label format
+only; nothing else in the canvas renderer changes), `tests/dom/category-dom.mjs` (new fixture test) and
+the `tests/dom/package.json` script entry, plus the `site-check` step that runs the new test.
+
+### Session `d074f64f` — completion record (2026-11-21)
+
+| ID | Task | Status | Files touched | Sources / verification |
+|---|---|---|---|---|
+| R1 | Line-by-line audit of the client data path (29 checks) | **done** | `reports/review-d074f64f.md` (new) | 13 official pages re-read this session: Get Market, Get Markets, Get Events, Get Market Candlesticks, Get Market Orderbook, Orderbook Responses, API Keys, Create Order V2, Get Fills, Market Ticker, the **fee-schedule PDF** (fetched and quoted), Fee Rounding, Rate Limits. Fee model reconciled by hand against four rows of the PDF's own table (100 @ $0.45 → $1.74, etc.). |
+| — | **Defect D074-1 fixed:** documented `result: "scalar"` was rendered as **NO** on the overview and category boards | **done** | `assets/js/market.js`, `assets/js/category.js`, `index.html`, `event.html`, `resolved.html`, `flagged.html` (card D074-1), `tests/result-semantics.test.mjs` (new) | Get Market schema: `result` enum `yes/no/scalar/""`; `market_type` enum `binary/scalar`. Regression test fails **3/11** against the old helper, passes **11/11** against the fix. Published on `flagged.html` as D074-1 (mitigated). |
+| — | Brief alignment: implied YES ask column in the order book | **done** | `assets/js/category.js`, five `categories/*.html`, `tests/dom/category-dom.mjs` (new) | Orderbook Responses: "A NO BID at price Y is equivalent to a YES ASK at price ($1.00 − Y)". DOM test asserts NO 0.47 → ask $0.5300 and literal prices unchanged. |
+| — | Brief alignment: date-qualified X-axis ticks on >12 h chart windows | **done** | `assets/js/ui.js` (`timeTickLabel`), `tests/chart-axis.test.mjs` (new) | Brief: X = time, selectable seconds → days. 10 unit cases with explicit locale/time zone + a 7-day DOM branch. |
+| — | Simplification: removed the dead duplicated board-row template in `index.html` | **done** | `index.html` | `grep -n "\brows\b" index.html` before the change showed the array was never read; after removal page-runtime is still 17/17 and the board renders identically. |
+| R2 | Requirements traceability for every line of the brief | **done** | `reports/review-d074f64f.md` §6 | Each row names the implementing file and the test/workflow that exercises it |
+| R3 | Full local suite | **done** | — | Node **154/154** at merge time (the tree grows under parallel sessions) · Python tools **42/42** · Python tests **20 OK** (3 skipped, `cryptography` absent) · DOM suites **44/44** at merge time (summary derives 76 flags: 36 open / 40 mitigated) · links **36 pages / 0 broken** · page runtime **18/18** · signing **6/6** · `git diff --check` clean |
+| R4 | Hand-off to the integration owner | **done** | this section | The two open observations in `reports/review-d074f64f.md` §9 (O3: `Watchlist` never marks a scalar final; O4: `event.html` shows "open" for a blank result on a closed market) are logged, not edited, because they would need a payout rule / a wider claim. Flagged items do not block merge. |
+
+**Not verified by this session (recorded, not hidden):** no live Kalshi call or live page render was
+possible from this sandbox (`curl` to `*.kalshi.co` → `000`). All schema claims are from official pages
+fetched on 2026-11-21; live behaviour remains covered by the GitHub-hosted workflows.
+
+**Conflict log:** board sections were appended, never rewritten. Three rebases onto a moving `main`
+(PRs #91/#92/#93 then #94/#95/#96 merged mid-session) conflicted only in `COORDINATION.md`,
+`.github/workflows/site-check.yml` and `README.md`; each was resolved by **keeping both sides** —
+`tools/resolve_board_conflict.py` for the board, the `historical-tier` suite **plus** the two new suites
+in CI, and a single de-duplicated test list in the README. No other session's work was dropped.
+
+---
+
 ## Session `02091230` — line-by-line API-contract re-verification + alert-feed usability (2026-11-21)
 
 Branch: `arena/02091230-kalshidash2`, branched from `main` @ `cc9112b`.

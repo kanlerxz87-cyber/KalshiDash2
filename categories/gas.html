@@ -122,7 +122,8 @@
   <div class="card">
     <h2>Liquidity — how many contracts are available at each price</h2>
     <p class="sub">Resting bids by price level. Kalshi returns bids only; a NO bid at <em>y</em> is an
-      implied YES ask at <em>1 − y</em>, so both sides are shown.</p>
+      implied YES ask at <em>1 − y</em>. Both the literal bid price and the implied YES ask are shown, so
+      the size a YES buyer can take at a given price is readable directly.</p>
     <div class="toolbar">
       <button class="secondary tiny" id="book-refresh">Refresh book</button>
       <span id="book-status" class="pill idle">idle</span>
@@ -132,15 +133,15 @@
       <div>
         <h3>YES bids — resting demand for YES (sell into these)</h3>
         <div class="table-wrap"><table>
-          <thead><tr><th class="num">Price</th><th class="num">Contracts</th><th class="num">Notional</th><th>Side</th><th>Official source</th></tr></thead>
-          <tbody id="yes-book"><tr><td colspan="5"><div class="empty">Load a market first.</div></td></tr></tbody>
+          <thead><tr><th class="num">YES bid price</th><th class="num">Contracts</th><th class="num">Notional</th><th class="num">Implied YES ask</th><th>Side</th><th>Official source</th></tr></thead>
+          <tbody id="yes-book"><tr><td colspan="6"><div class="empty">Load a market first.</div></td></tr></tbody>
         </table></div>
       </div>
       <div>
-        <h3>NO bids — implies YES asks</h3>
+        <h3>NO bids — size offered to YES buyers at the implied ask</h3>
         <div class="table-wrap"><table>
-          <thead><tr><th class="num">Price</th><th class="num">Contracts</th><th class="num">Notional</th><th>Side</th><th>Official source</th></tr></thead>
-          <tbody id="no-book"><tr><td colspan="5"><div class="empty">Load a market first.</div></td></tr></tbody>
+          <thead><tr><th class="num">NO bid price</th><th class="num">Contracts</th><th class="num">Notional</th><th class="num">Implied YES ask</th><th>Side</th><th>Official source</th></tr></thead>
+          <tbody id="no-book"><tr><td colspan="6"><div class="empty">Load a market first.</div></td></tr></tbody>
         </table></div>
       </div>
     </div>
