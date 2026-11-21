@@ -1536,3 +1536,44 @@ Started: 2026-11-21T20:20Z. Base: `main` @ `bbdc3a0`. **Claim committed and push
 | C5 | Final integration for this branch: run every suite, open PR → `main`, merge, confirm Pages deploy and live-site probe; record results here | in progress | `c6a50f54` | `COORDINATION.md` (this section), `README.md` (status line only) |
 
 No other active claim exists on the files above (PR #60's owner has been idle since 07:10Z; sessions `3d2e8243`, `df4e0876`, `bc079e84` recorded completion). Shared outputs (`index.html`, navigation, table data) are **not** edited by this session.
+
+### C1–C5 results — session `c6a50f54` (2026-11-21)
+
+**Sources fetched and read line by line this session** (all 2026-11-21):
+
+| Source | URL | What it settled |
+|--------|-----|-----------------|
+| Get Markets | https://docs.kalshi.com/api-reference/market/get-markets | `status` filter is **four** values: `unopened, open, closed, settled` (operation description, read from the page's embedded OpenAPI data) — this is what made R3 a correction rather than a fix |
+| Market Lifecycle | https://docs.kalshi.com/getting_started/market_lifecycle | the **five**-value filter table incl. `paused` → `inactive`, and the object-status list — the page the repo had quoted for the wrong claim |
+| Get Market (OpenAPI markdown) | https://docs.kalshi.com/api-reference/market/get-market.md | `previous_price_dollars` = "Price for the last traded YES contract on this market **a day ago** in dollars"; `volume_fp` / `volume_24h_fp` "in contracts"; `open_interest_fp` "contracts bought … disregarding netting"; `notional_value_dollars` "total value of a single contract at settlement" |
+| Get Series List (OpenAPI markdown) | https://docs.kalshi.com/api-reference/market/get-series-list.md | `category` is fully described (exact, case-sensitive, matched against `categories`); **`tags` has no described semantics** — the basis for W6 |
+| Rate Limits | https://docs.kalshi.com/getting_started/rate_limits.md | unauthenticated requests "are subject to separate limits … back off on `429`"; **no numeric unauthenticated limit is published**, so Q10 must not imply one |
+| Get Markets (re-read for C2) | https://docs.kalshi.com/api-reference/market/get-markets | pagination/ordering rules behind the collector's cap behaviour |
+
+**Work completed**
+
+| ID | Outcome | Verification |
+|----|---------|--------------|
+| C1 | Stale PR #60 re-landed (404, relay state gating, its 4 fixture tests, site-check wiring) **minus** the unsupported `paused` filter edit, which was re-verified and rejected. PR closed with the reasoning. | `gh pr close 60`; `node --test tests/live-feed-state.test.mjs` 2/2; `python3 -m unittest tests.test_relay_state` 2/2 |
+| C2 | Collector label regression fixed at the source of truth: one `derivation_notes()` function now feeds both the snapshot and the tests (`tools/test_collect.py` guard added). The failing test on `main` and the silently-failing `tests/activity-proxy.test.mjs` both pass. Snapshot: labels only, no captured value touched. | `python3 -m unittest discover -s tools` 34/34; `node --test tests/activity-proxy.test.mjs` 3/3 |
+| C3 | Status-vocabulary correction published (A9 + claims register), both official pages cited, unknown left labelled unverified, guard test added. | `node --test tests/official-wording.test.mjs` 4/4 |
+| C4 | `live-site-render` gas rule fixed and proven offline (board item I2, stale claim `3d2e8243`) — no-match state passes, API/JS failures still fail. | `node --test tests/dom/live-site-no-match.test.mjs` 7/7 |
+| C4b | New finding (**Z1 trader-facing**): the alerts page never said the reference baseline is a day old, so a 24-hour move could read as a sudden swing. Label and table note corrected. | `node --test tests/alerts-core.test.mjs` 19/19; `tests/dom/alerts-dom.mjs` 16/16 |
+| C4c | New finding (**W6**): topic notes presented a `tags` filter as official vocabulary and carried stale counts (Crypto "only 2 live events" vs 86 in the current snapshot). Fixed with 6 regression tests. | `python3 -m unittest discover -s tools` 34/34 |
+
+**Full local suite on the final tree**
+
+| Check | Result |
+|-------|--------|
+| `python3 -m unittest discover -s tools` | **34/34** (was 1 failure on `main`) |
+| `python3 -m unittest discover -s tests` | **18 passed, 3 skipped** (`cryptography` absent locally) |
+| Node unit tests (`tests/*.test.mjs`, `tests/dom/*.test.mjs`) | **84/84** across 9 files |
+| `tests/dom/alerts-dom.mjs` | **16/16** |
+| `tests/dom/summary-dom.mjs` | **20 requirement areas; 78/89 verified, 8 partial, 3 unverified; 32 open / 25 mitigated / 57 total flags; 28 sourced rows** |
+| `python3 tools/check_site_links.py .` | **35 pages, 0 broken** |
+| `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean, 35 pages / 0 broken links** |
+| `node evidence/auth-sign-test.mjs` | **6/6** |
+| All 12 workflow YAML files | parse clean (`js-yaml`) |
+| GitHub Actions `Static site link check` on `b437e83` | **success, all 17 steps** — the first run of that workflow on this tree in several days |
+
+**Container limitation, recorded not hidden:** this sandbox cannot open TLS to `*.kalshi.co`, `docs.kalshi.com` or the Pages host (`curl` → `000`). Official docs were read through the page-fetch tool. Live API behaviour is verified by the repo's own GitHub-hosted workflows, whose runs are cited above and below.
