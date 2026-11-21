@@ -3013,3 +3013,17 @@ Final Pages state after that merge: build `519de080` (a descendant of the board 
 published site is generated from a tree that contains both PR #94 and this record. Builds `68cd5e0`, `e8474483`,
 `519de080` (first attempt) and `dfd79661` reported `Page build failed.` within seconds of a neighbouring push —
 the same race described above; the retry of `519de080` built in 52.6 s and is what the site serves.
+
+**Session `190f6069` — addendum (2026-11-21T23:2xZ):** the record above landed through a second
+PR, [#101](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/101) (merged `dfd7966`), because #93
+was already merged when the record was written. #101 also gave the simulator's "Where each number
+comes from" table one sourced row per data tier. Checks on `dfd7966`: `Static site link check`
+success (44961396764) · `verify-live-site` success (44961396802). Local suite on the rebased tree:
+Node **133/133**, Python `tools` **42/42**, links **36 pages / 0 broken**, page runtime **18/18**.
+
+Pages confirmation for these merges: several `pages-build-deployment` runs were cancelled by the
+concurrency group while other sessions merged (#94, #98, #103, #106) in the same minutes, so the
+Pages API momentarily reported `errored`; the surviving builds finished and the API now reports
+`status: built` (last successful build 44962008944). The deployed `simulator.html` was fetched from
+the live host and does serve both this session's universe/candlestick text and the per-tier source
+rows, so the deployment is current rather than stale.
