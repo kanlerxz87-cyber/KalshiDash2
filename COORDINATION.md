@@ -2432,3 +2432,30 @@ resolved by keeping `main`'s already-merged work (board union tool, fresher bot 
 and re-landing only this session's unique contributions. This session deleted its own duplicate
 `boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
 removed.
+
+---
+
+## Session `0acc711d` — fresh line-by-line verification + stale-register closure + final integration (2026-11-21)
+
+Started: 2026-11-21T21:0xZ. Branch: `arena/0acc711d-kalshidash2` (Arena-fixed name; branched from `main` @ `cc9112b`, PR #88).
+**Appended only** — every section above is preserved unchanged.
+
+**State found on arrival (verified, not assumed):** no open PRs; `main` green (`Static site link check`, `verify-live-site`,
+`live-site-render`, `verify-alerts` all `success` on `f990d20`/`cc9112b`); Pages API `status: built`, source `main:/`, latest build
+on `cc9112b` with `error: null`. Local baseline on `cc9112b`: Node **93/93**, Python tools **42/42**, Python `tests/` **20 OK
+(3 skipped)**, static links **35 pages / 0 broken**. Every prior claim on this board has a final record; no active owner holds any file.
+
+**Why this scope:** prior sessions left explicit requests "for the integration session" that are still open on the published register:
+GC-I1 (F4 says the demo has no open gas markets — session `29749918` observed open AAA gas events on 2026-11-21), D2 (F10 says
+WebSocket streaming "is not wired in" — PR #55 wired the opt-in `ticker` relay), session `5a9b44b9`'s R2/R5/R6/R9 ("needs review —
+publication on `flagged.html` belongs to the integration session", never published), and E1/E3 (Q9 wording; stale `VERIFICATION.md`
+header) which were "left for their file owners" — owners who have since closed.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| K1 | Fresh, independent line-by-line verification of the published root site's factual claims against official docs **and** the live demo API (both reachable through the page-fetch tool; sandbox `curl` cannot reach Kalshi hosts — same limit every session records). Dated report with one official link per row; anything unconfirmable recorded as unverified, never filled in. | in progress | `0acc711d` | `reports/verify-0acc711d.md` (new), this section | docs.kalshi.com pages + `external-api.demo.kalshi.co/trade-api/v2/*` responses fetched 2026-11-21 | Read-only on site code; any defect is logged here first |
+| K2 | Close the stale register items with evidence: F4 → superseded (live open gas events today), F10 → mitigated (WS relay since PR #55, residual W1), E1 → fixed (Q9 wording, after verifying the ticker payload's `dollar_volume`/`dollar_open_interest` fields on the official page), E3 → fixed (`VERIFICATION.md` header/pointer). Publish `5a9b44b9`'s R2/R5/R6/R9 as new cards under an unused id series after re-verifying each. Check GC-I6 (`updated_time` never labelled a quote time). | in progress | `0acc711d` | `flagged.html` (F4, F10, E1, E3 cards + new cards only), `questions.html` + `QUESTIONS.md` (Q9 only), `VERIFICATION.md` (header/pointer only) | Live `GET /events?status=open&series_ticker=KXAAAGASW` (fetched 2026-11-21: `KXAAAGASW-26NOV23` open, settlement source AAA); [Market Ticker (WS)](https://docs.kalshi.com/websockets/market-ticker); repo files `assets/js/live-feed.js`, `scripts/relay.py` | Flag counts on `summary.html` are DOM-derived, so no hard-coded number changes |
+| K3 | Final integration: full local suite, PR → `main`, merge without waiting, confirm Pages deploy + hosted live-site probes on the merged SHA, record PR link + result here. | in progress | `0acc711d` | `COORDINATION.md` (this section) | `gh`, Pages API, `verify-live-site` / `live-site-render` runs | Flagged items do not block the merge; a broken site does |
+
+**Claim committed and pushed before any file in scope is edited.** Shared outputs (`index.html`, navigation, table data) are not edited
+by this session unless a defect is found and logged here first.
