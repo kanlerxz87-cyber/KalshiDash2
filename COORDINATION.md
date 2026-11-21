@@ -1083,6 +1083,48 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 
 **Publication record (Z4):** [PR #49](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/49) was merged to `main` with merge commit `1a7277a80627ad88477e5cd203a0536ceb6100ab` at 2026-11-21T06:31:04Z. GitHub Pages build/deploy runs [44875918473](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875918473) and [44875974440](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875974440) both succeeded. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Fetched the deployed root page successfully and fetched `/docs/`; the latter resolved to `/index.html`, confirming the redirect is live. The independent [verify-live-site run 44875818679](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875818679) succeeded. The resulting documentation-only PR records these deployment facts on `main`.
 
+**Publication record (Z4):** PR opened from this branch to `main` after this record; merge and Pages confirmation appended below.
+
+---
+
+## Session `75490e0f` — line-by-line re-verification + fixes + final integration (branch `arena/75490e0f-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85`. Board read before starting (per rules). No other session holds an active claim (last record `53975890` K3 done 2026-11-20).
+
+| # | Task | Status | Owner | File scope (exclusive) | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------------------|------------------------|------------------------|
+| M1 | Line-by-line re-verification of all published pages + JS against official Kalshi docs; fix confirmed bugs (alerts-core header, claims page-budget, strategies taxonomy, jump logic + chart-marker shape, capped-scan flags, moneyTraded missing-volume) | done | `75490e0f` | `assets/js/alerts-core.js`, `assets/js/claims.js`, `strategies.html`, `assets/js/category.js`, `assets/js/market.js`, `assets/js/alerts.js`, `flagged.html`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` (this section) | [Demo env](https://docs.kalshi.com/getting_started/demo_env), [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance), [Orderbook](https://docs.kalshi.com/getting_started/orderbook_responses), [Order direction](https://docs.kalshi.com/getting_started/order_direction) fetched 2026-11-21; full local suite before/after | `jumps.js` deleted by session `9d7b4124` mid-session — canonical jump logic consolidated into `market.js` instead; no new live Kalshi calls from sandbox (browser-side only) |
+| M2 | Final integration: full verification suite, PR → `main`, merge, Pages deploy confirmation, records | in progress | `75490e0f` | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge |
+
+### M1 record — session `75490e0f` (2026-11-21)
+
+**Line-by-line re-verification (official sources fetched 2026-11-21 via docs.kalshi.com):**
+
+| # | What was checked | Method | Result |
+|---|---|---|---|
+| V-1 | Demo REST/WS URLs | [Demo env](https://docs.kalshi.com/getting_started/demo_env) fetched | Match `config.js` DEMO/ALTERNATES exactly |
+| V-2 | Market fields (`previous_price_dollars`, `last_price_dollars`, `yes_bid_size_fp`, no `no_bid_size_fp`, no `series_ticker`, `settlement_value_dollars`, `price_ranges`) | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) fetched | Code reads only documented fields; `resolveSeries` via event is required |
+| V-3 | Candle intervals 1/60/1440, `price.previous_dollars`, route | [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) fetched | `config.js` CANDLE + `fetchCandles` correct |
+| V-4 | Order route + body (`POST /portfolio/events/orders`, `side` bid/ask, `count`/`price` strings, 201) | [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2) fetched | `kalshi.js createOrder` correct |
+| V-5 | Balance (`balance` + `balance_dollars`) | [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance) fetched | `portfolio.html` fallback correct |
+| V-6 | `GET /events` excludes multivariate; `settlement_sources[]` name+url | [Get Events](https://docs.kalshi.com/api-reference/events/get-events) fetched | `fetchMultivariateEvents` + `eventContext` correct |
+| V-7 | Fill `fee_cost` is a dollar string, no `fee_cost_dollars` | [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) fetched | `analyseFills` + portfolio fee display correct |
+| V-8 | Orderbook bids-only + reciprocal YES/NO pricing | [Orderbook](https://docs.kalshi.com/getting_started/orderbook_responses) fetched | `deriveQuote` + liquidity tables correct |
+| V-9 | `bid ≡ yes`, `ask ≡ no` | [Order direction](https://docs.kalshi.com/getting_started/order_direction) fetched | Order form mapping correct |
+
+**Bugs fixed (all published on `flagged.html` §1c as Y12–Y15, Y9 carried forward):** strategies taxonomy (Y12), chart-marker dot shape (Y13), capped-scan flags + 6-vs-12-page claim (Y14), `moneyTraded` missing-volume $0.00 (Y15). Y9 (`jumps.js` dead file) was closed by session `9d7b4124` deleting the file; this session moved the canonical jump logic (`detectJumps`, `jumpMarkers`, `JUMP_THRESHOLD`) into `assets/js/market.js` and pointed `category.js` at it, so no importer referenced the deleted module. Plus: `alerts-core.js` header, `resolved.html` parens, dates → 2026-11-21, new `tests/jumps.test.mjs` (6 tests) wired into `site-check.yml`.
+
+**Full suite on this branch, 2026-11-21:** `node --test` 39/39 (18 alerts-core + 10 taxonomy + 5 simulator-core + 6 jumps) · `node tests/dom/alerts-dom.mjs` 16/16 · `node tests/dom/summary-dom.mjs` pass (19 requirement areas, 69/78 claims, 28 open / 20 mitigated / 48 flags) · `node tools/verify/page-runtime-check.mjs` 17/17 + 34 links · `python3 tools/check_site_links.py .` 34 pages 0 broken · `python3 -m unittest discover -s tools` 18/18 · `node evidence/auth-sign-test.mjs` 6/6 · `git diff --check` clean. No live Kalshi calls from sandbox (browser-side only); no keys in repo.
+
+**Rebase/conflict log — session `75490e0f` (2026-11-21):** while M1 was active, `main` advanced through PRs #46 (esbuild 0.25.0 / A10), #48, #49 (Y9 `assets/js/jumps.js` deleted, Y10 `/docs/` redirect), and #50. Three rebases were needed; all conflicts were in `COORDINATION.md` end-appends plus `flagged.html` Y9 (modify/delete) and `assets/js/jumps.js` (deleted upstream, edited here).
+
+Resolutions, none discarding another session's work:
+- `COORDINATION.md`: kept **all** sections (`f1425e39`, `9d7b4124`, and this one) in order; M1/M2 rows preserved; a stale conflict-log commit describing the first rebase was dropped as redundant, replaced by this entry.
+- `assets/js/jumps.js`: **accepted the upstream deletion** (session `9d7b4124`'s decision, adopted rather than reversed). The canonical jump logic this session verified — inclusive float-safe $0.10 threshold, candle `prev` as the comparison price, null-y gaps crossed — was moved into `assets/js/market.js` as `detectJumps` / `jumpMarkers` / `JUMP_THRESHOLD`, with `category.js` importing from there. That also carries the marker-shape fix (Y13), since the deleted file's helper returned `{t, y, up}`.
+- `flagged.html`: Y9 keeps the `9d7b4124` resolution text, with a follow-up paragraph recording where the logic now lives; Y13 no longer points at the deleted module.
+
+Combined-tree verification after the rebases (2026-11-21): `node --test` 39/39 · `node --test tests/jumps.test.mjs` 6/6 against `market.js` · `grep -r "jumps.js"` finds no importer outside this flag's own text · `python3 tools/check_site_links.py .` 34 pages 0 broken · `node tools/verify/page-runtime-check.mjs` 17/17 · `node --check` clean on `market.js` / `category.js`.
+
 # Session `3b869340` — line-by-line re-verification + `previous_price_dollars` wording fix + final integration
 
 Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from `8ea5c85` on `main`).

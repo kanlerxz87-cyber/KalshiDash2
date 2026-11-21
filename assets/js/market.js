@@ -181,17 +181,17 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
   const capped = {};
   for (const status of statuses) {
     const maxPages = status === "open" ? 12 : 6;
-    let pages = 0;
     const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
       key: "events",
-      maxPages,
-      onPage: () => { pages += 1; }
+      maxPages
     });
     rows.forEach(e => { e._status = status; });
     perStatus[status] = rows.length;
-    /* getAll stops early when the API returns an empty cursor; if it used every
-     * allowed page the scan may have been cut short and must say so. */
-    capped[status] = pages >= maxPages && rows.length > 0;
+    /* getAll() sets __capped when it stopped at its page budget with a
+     * cursor still outstanding. Counting pages here (pages >= maxPages)
+     * also fires when the final page exactly filled the budget but the
+     * cursor was already empty, so the flag would over-report truncation. */
+    capped[status] = !!rows.__capped;
     if (onProgress) onProgress(rows.length, status);
     events.push(...rows);
   }
@@ -243,10 +243,12 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
 /* ---------------- ranking ---------------- */
 
 export function moneyTraded(m) {
-  const vol = num(m.volume_fp ?? m.volume ?? 0);
-  const px = num(m.last_price_dollars ?? m.last_price ?? 0);
-  // Both inputs are API values. When there is no trade price, the money figure
-  // is not derivable, so the row is flagged rather than guessed.
+  // Both inputs are API values. When either is missing, the money figure is
+  // not derivable, so the row is flagged rather than guessed. (Defaulting a
+  // missing volume to 0 would report $0.00 for a market that simply never
+  // returned a volume field.)
+  const vol = num(m.volume_fp ?? m.volume);
+  const px = num(m.last_price_dollars ?? m.last_price);
   if (px === null || vol === null) return { value: null, derivable: false };
   return { value: vol * px, derivable: true };
 }
@@ -617,24 +619,74 @@ export function swingOf(market) {
   return { from, to, delta, dir: delta > 0 ? "up" : "down", basis: "exchange previous_price_dollars" };
 }
 
-/* Detect >= threshold moves inside a candle series.
- * `points` are the objects produced by fetchCandles(); each needs `t`, `y`
- * (close) and optionally `prev` (the candle's own previous_dollars). */
-export function detectJumps(points, threshold = 0.10) {
+/* The brief's threshold: a move of at least $0.10 per contract, either way.
+ * Same constant the alert feeds use (ALERT.defaultThreshold in config.js). */
+export const JUMP_THRESHOLD = 0.10;
+
+const JUMP_EPS = 1e-9;
+const round4 = x => Math.round(x * 1e4) / 1e4;
+const finite = v => v !== null && v !== undefined && Number.isFinite(Number(v));
+
+/* Detect >= threshold moves inside a plotted series.
+ *
+ * `points` are the objects produced by fetchCandles() or LiveSampler(); each
+ * needs `t` and `y` (the plotted price) and optionally `prev` (the candle's own
+ * price.previous_dollars). Points with a null `y` are gaps: they are skipped
+ * and the comparison crosses the gap, exactly like the plotted line does. The
+ * comparison price is the candle's own `prev` when present and otherwise the
+ * previous priced point — both documented fields
+ * (https://docs.kalshi.com/api-reference/market/get-market-candlesticks).
+ *
+ * The threshold is inclusive and float-safe: exactly $0.10 fires. Every jump
+ * carries both endpoints so the UI can show from → to and link the row.
+ * Call shape: detectJumps(points, 0.10) or detectJumps(points, { threshold }). */
+export function detectJumps(points, threshold = JUMP_THRESHOLD) {
+  const limit = typeof threshold === "object" && threshold !== null
+    ? (threshold.threshold ?? JUMP_THRESHOLD)
+    : threshold;
   const jumps = [];
   let last = null;
+  let lastT = null;
   for (const p of points || []) {
-    if (p.y === null || p.y === undefined) continue;
-    const prev = p.prev !== undefined && p.prev !== null ? p.prev : last;
-    if (prev !== null && prev !== undefined) {
-      const delta = Number((p.y - prev).toFixed(4));
-      if (Math.abs(delta) >= threshold) {
-        jumps.push({ t: p.t, from: prev, to: p.y, delta, dir: delta > 0 ? "up" : "down" });
+    if (!p || !finite(p.y)) continue;
+    const y = Number(p.y);
+    const ref = finite(p.prev) ? Number(p.prev) : last;
+    if (ref !== null && ref !== undefined) {
+      const delta = round4(y - ref);
+      if (Math.abs(delta) >= limit - JUMP_EPS && delta !== 0) {
+        const dir = delta > 0 ? "up" : "down";
+        jumps.push({
+          t: p.t,
+          fromT: lastT,
+          from: ref,
+          to: y,
+          delta,
+          direction: dir,
+          /* Alias for callers that read `dir` (the chart table). */
+          dir,
+          volume: finite(p.volume) ? Number(p.volume) : null,
+          /* Intra-period range (candles only): high − low within one period. */
+          intraRange: finite(p.high) && finite(p.low) ? round4(Number(p.high) - Number(p.low)) : null
+        });
       }
     }
-    last = p.y;
+    last = y;
+    lastT = p.t;
   }
   return jumps;
+}
+
+/* Chart markers in the shape assets/js/ui.js `lineChart` expects:
+ * [{ t, y, dir, delta }]. `y` is the post-jump price (the dot position) and
+ * `dir` is "up" | "down" (the line colour). Passing raw jumps (which carry
+ * `to`, not `y`) drew the vertical line but never the dot. */
+export function jumpMarkers(jumps) {
+  return (jumps || []).map(j => ({
+    t: j.t,
+    y: j.to,
+    dir: j.dir || j.direction || (j.delta > 0 ? "up" : "down"),
+    delta: j.delta
+  }));
 }
 
 /* ---------------- the tradeability screen ----------------

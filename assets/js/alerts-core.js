@@ -7,7 +7,8 @@
  * Nothing is predicted. The "High-ROI watch" is a transparent rule set that
  * stands in for a model; it is not a model, and no return is forecast.
  *
- * Kept free of imports so it runs unchanged in the browser and in Node tests.
+ * Imports only TRADE_SCREEN from config.js (no DOM, no network), so it runs
+ * unchanged in the browser and in Node tests.
  */
 
 /* A sudden swing is a change of at least this many dollars per contract

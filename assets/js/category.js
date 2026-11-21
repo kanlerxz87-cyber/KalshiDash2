@@ -8,7 +8,8 @@ import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineC
 import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE, ALERT } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
-  bucketCandles, LiveSampler, Watchlist, detectJumps, getEvent, eventContext
+  bucketCandles, LiveSampler, Watchlist, getEvent, eventContext,
+  detectJumps, jumpMarkers
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
 
@@ -226,11 +227,14 @@ async function drawWindow() {
       if (interval === 1 && bucket > 60) pts = bucketCandles(pts, bucket);
       state.candles = res;
       // ≥ $0.10 swings inside the official candle series, marked on the chart.
-      const jumps = detectJumps(pts, ALERT.defaultThreshold);
+      // jumpMarkers() converts to the {t, y, dir} shape ui.js lineChart draws;
+      // passing the raw jumps (which carry `to`, not `y`) drew the vertical
+      // line but never the dot.
+      const jumps = detectJumps(pts, { threshold: ALERT.defaultThreshold });
       state.jumps = jumps;
       renderChart([
         { key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: pts }
-      ], win, res, { markers: jumps });
+      ], win, res, { markers: jumpMarkers(jumps) });
       const traded = pts.filter(p => p.y !== null).length;
       pill($("#chart-status"), "live", `${traded} priced periods`);
       $("#chart-src").innerHTML = `
@@ -418,7 +422,7 @@ function drawWindowDebounced() {
   resizeT = setTimeout(() => {
     if (state.candles) {
       renderChart([{ key: "close", label: "Trade close price", color: "#0a6b45", kind: "candle", points: state.candles.points }],
-        currentWindow(), state.candles, { markers: state.jumps || [] });
+        currentWindow(), state.candles, { markers: jumpMarkers(state.jumps || []) });
     }
   }, 150);
 }

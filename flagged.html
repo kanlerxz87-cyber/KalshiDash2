@@ -597,14 +597,19 @@
         <code>detectJumps</code> in <code>assets/js/market.js</code> (identical threshold), used by
         <code>category.js</code>. The file is a leftover from a duplicate implementation that was dropped in a
         merge (see R2).</p>
-      <p><strong>Why it is not deleted here:</strong> removing another session's file is a content decision,
-        and the file is inert — it is never served to a page. Left here so the owner can delete it knowingly.</p>
-      <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps.js"</code> over the repository returns
-        no importers; <code>assets/js/market.js</code> defines <code>detectJumps</code>.</p>
       <p><strong>Resolution (2026-11-21, session <code>9d7b4124</code>):</strong> the file was deleted after
         re-running the grep (the only remaining references were this flag's own text) and confirming
-        <code>node tools/verify/page-runtime-check.mjs</code> still passes 17/17 pages without it. The
-        canonical jump logic in <code>assets/js/market.js</code> is unchanged.</p>
+        <code>node tools/verify/page-runtime-check.mjs</code> still passes 17/17 pages without it.</p>
+      <p><strong>Follow-up (session <code>75490e0f</code>, 2026-11-21):</strong> the jump logic the chart
+        needs (inclusive float-safe $0.10 threshold, candle <code>prev</code> as the comparison, null-y
+        gaps crossed) now lives as <code>detectJumps</code> / <code>jumpMarkers</code> in
+        <code>assets/js/market.js</code> — the same module the deleted file pointed at — and
+        <code>category.js</code> imports them from there. The marker shape is returned as
+        <code>{t, y, dir, delta}</code> so the chart dot draws; see Y13. Covered by
+        <code>tests/jumps.test.mjs</code> (6 tests) in CI.</p>
+      <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps.js"</code> returns no importer;
+        <code>assets/js/market.js</code> exports <code>detectJumps</code>, <code>jumpMarkers</code>,
+        <code>JUMP_THRESHOLD</code>.</p>
     </div>
 
     <div class="irregularity" id="Y10">
@@ -659,6 +664,71 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/live-engine-check.md" target="_blank" rel="noopener noreferrer">live-engine-check.md ↗</a>
       </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1c · Defects fixed by session <code>75490e0f</code> (2026-11-21)</h2>
+    <p class="sub">Found by re-reading every published page and JS module against the official API reference
+      (fetched 2026-11-21). Each item names the source that proves it.</p>
+
+    <div class="irregularity" id="Y12">
+      <h3>Y12 — Strategies page filed fills with its own taxonomy, missing <code>Culture</code> and gas exclusions <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>strategies.html</code> <code>topicForTicker</code> hand-rolled
+        regexes: <code>Entertainment|Social</code> for culture (missing the literal <code>Culture</code>
+        category), and <code>/gas price|gasoline|aaa gas/i</code> for gas with no exclusions — so a
+        natural-gas, WTI, diesel or Las Vegas fill would be filed as gas, contradicting the dashboard's
+        own classifier (F8).</p>
+      <p><strong>Fix shipped:</strong> the page now imports <code>classifyEvent</code> from
+        <code>assets/js/market.js</code> and files every fill through the one canonical taxonomy.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y13">
+      <h3>Y13 — Chart jump markers drew the line but never the dot <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/ui.js</code> <code>lineChart</code> draws a marker dot
+        at <code>mk.y</code> and colours the line by <code>mk.dir</code>. <code>assets/js/category.js</code>
+        passed the raw <code>detectJumps</code> output (<code>{t, from, to, delta, dir}</code> — no
+        <code>y</code>), so the <code>if (mk.y …)</code> guard never fired and the dot never drew.
+        The <code>jumpMarkers</code> helper that existed in the (then-unused)
+        <code>assets/js/jumps.js</code> returned <code>{t, y, up}</code> — also mismatched
+        (<code>up</code> vs <code>dir</code>). That file has since been deleted (Y9); the helper now lives in
+        <code>assets/js/market.js</code>.</p>
+      <p><strong>Fix shipped:</strong> <code>jumpMarkers</code> in <code>assets/js/market.js</code> returns
+        <code>{t, y, dir, delta}</code> and <code>category.js</code> passes
+        <code>jumpMarkers(jumps)</code> (including on resize).</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y14">
+      <h3>Y14 — Truncated scans could be mis-labelled (and the claim said 6 pages when the page reads 12) <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/alerts.js</code> set
+        <code>capped: events.length &gt;= 12*200</code> — false when the last page returned fewer than 200
+        rows. <code>assets/js/market.js</code> <code>discoverTopic</code> set
+        <code>capped = pages &gt;= maxPages</code> — true even when the final page exactly filled the budget
+        with an empty cursor. Separately, <code>assets/js/claims.js</code> claimed "at most 6 pages" while
+        the Live alerts page reads 12 (the 6-page budget is the paper engine's).</p>
+      <p><strong>Fix shipped:</strong> both call sites now use <code>getAll()</code>'s
+        <code>__capped</code> flag (set only when the budget ran out with a cursor outstanding), and the
+        claim names both budgets and both call sites.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="Y15">
+      <h3>Y15 — <code>moneyTraded</code> defaulted a missing volume to 0, reporting $0.00 <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/market.js</code> <code>moneyTraded</code> used
+        <code>num(m.volume_fp ?? m.volume ?? 0)</code> — a market that returned no volume field scored
+        <code>0 × price = $0.00</code> with <code>derivable: true</code>, violating the site's own rule
+        that a missing value renders as <code>n/a</code>, never <code>$0.00</code>.</p>
+      <p><strong>Fix shipped:</strong> a missing volume (or price) now returns
+        <code>{value: null, derivable: false}</code> and the row is counted as missing-price.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a></p>
     </div>
   </div>
 

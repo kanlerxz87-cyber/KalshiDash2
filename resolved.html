@@ -161,8 +161,8 @@ async function loadRecent() {
         catch { ev = null; }
         evCache.set(m.event_ticker, ev);
       }
-      const isCombo = Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0
-        || m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || "");
+      const isCombo = (Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0)
+        || (m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || ""));
       if (isCombo) { combos.push({ m, ev }); continue; }
       rows.push({ m, ev, topic: ev ? classifyEvent(ev) : null });
       if (rows.length >= 400) break;
