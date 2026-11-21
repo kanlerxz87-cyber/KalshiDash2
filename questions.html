@@ -196,13 +196,13 @@ const Q = [
     sources: [`${D}/api-reference/portfolio/get-fills`, `${D}/api-reference/portfolio/get-positions`]
   },
   {
-    id: "Q10", cat: "data", confidence: "not answerable yet",
+    id: "Q10", cat: "data", confidence: "partly answered",
     q: "Can price updates stream instead of polling?",
-    know: "A WebSocket API exists at wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2 and requires signed handshake headers covering timestamp + GET + /trade-api/ws/v2.",
-    dontknow: "Whether a browser can supply those headers on the WebSocket upgrade, since the standard WebSocket constructor cannot set custom headers.",
-    answer: "Unconfirmed, so the site polls every 2 seconds and labels the source of every point. Streaming is recorded as F10.",
-    action: "Test an authenticated handshake from a browser, or add a minimal relay if headers cannot be set.",
-    sources: [`${D}/getting_started/quick_start_websockets`, `${D}/getting_started/rate_limits`]
+    know: "Kalshi documents an authenticated demo WebSocket handshake using signed KALSHI-ACCESS headers, even for public ticker data. The ticker channel combines changes and flushes them about once a second.",
+    dontknow: "An authenticated demo handshake was not tested in this session. On GitHub Pages the relay is not running, and intermediate changes between ticker flushes can be missed.",
+    answer: "The alerts page includes an optional same-origin relay for ticker streaming; without it the page uses REST polling (15 seconds by default). Browsers cannot set the required custom WebSocket handshake headers. The chart has its own polling interval.",
+    action: "See the Alerts page and README for relay setup and the Flagged page W1–W4 for streaming limitations.",
+    sources: [`${D}/getting_started/quick_start_websockets`, `${D}/websockets/market-ticker`, `${D}/getting_started/rate_limits`]
   },
   {
     id: "Q11", cat: "data", confidence: "partly answered",
