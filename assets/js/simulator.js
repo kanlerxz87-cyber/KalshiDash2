@@ -127,13 +127,58 @@ export function fillFeeDollars({
  * ----------------------------------------------------------------------- */
 
 /* Collect finalized markets, resolve their series and topic, and keep only
- * the ones that can actually be scored (a result and a settlement value). */
+ * the ones that can actually be scored (a result and a settlement value).
+ *
+ * Two official tiers feed the list, because a settled market can live in either
+ * one (https://docs.kalshi.com/getting_started/historical_data, fetched
+ * 2026-11-21): "Markets and their candlesticks that settled before
+ * [market_settled_ts] are only available via `GET /historical/markets`".
+ *   live tier       GET /markets?status=settled
+ *   historical tier GET /historical/markets        (archived settled markets)
+ * Rows are de-duplicated by ticker, live tier first, and each row records the
+ * tier it came from (`_tier`) so the page can say where a backtest's market
+ * list actually came from. */
+export const HISTORICAL_UNIVERSE = Object.freeze({ limit: 100, maxPages: 2 });
+
+/* De-duplicate the two tiers by ticker, keeping the live-tier record when a
+ * market appears in both (the live record is the one still being served by
+ * /markets, and its fields are the ones the rest of the page already reads). */
+export function mergeTiers(live, historical) {
+  const byTicker = new Map();
+  for (const m of historical || []) {
+    if (m && m.ticker) byTicker.set(m.ticker, { ...m, _tier: m._tier || "historical" });
+  }
+  for (const m of live || []) {
+    if (m && m.ticker) byTicker.set(m.ticker, { ...m, _tier: "live" });
+  }
+  return [...byTicker.values()];
+}
+
 export async function loadSettledUniverse({ limit = 25, maxPages = 2, onProgress = () => {} } = {}) {
-  const settled = await getAll("/markets?status=settled", {
+  const live = await getAll("/markets?status=settled", {
     key: "markets",
     maxPages,
     limit: 200
   });
+  live.forEach(m => { m._tier = "live"; });
+
+  /* The archived tier is optional: if the endpoint refuses (key scope, rate
+   * limit, outage) the tester still runs on the live tier, and the run report
+   * says the archived tier was not read. */
+  let archived = [];
+  let archivedError = null;
+  try {
+    archived = await getAll(`/historical/markets?limit=${HISTORICAL_UNIVERSE.limit}`, {
+      key: "markets",
+      maxPages: HISTORICAL_UNIVERSE.maxPages,
+      limit: HISTORICAL_UNIVERSE.limit
+    });
+    archived.forEach(m => { m._tier = "historical"; });
+  } catch (e) {
+    archivedError = e.message;
+  }
+
+  const settled = mergeTiers(live, archived);
 
   const eventCache = new Map();
   const rows = [];
@@ -172,6 +217,15 @@ export async function loadSettledUniverse({ limit = 25, maxPages = 2, onProgress
     rows.push(enriched);
     onProgress(rows.length, settled.length);
   }
+  /* Non-enumerable diagnostics: how many rows came from the archived tier, and
+   * the refusal message when that tier could not be read at all. */
+  Object.defineProperty(rows, "__archived", {
+    value: rows.filter(r => r._tier === "historical").length, enumerable: false
+  });
+  Object.defineProperty(rows, "__archivedError", { value: archivedError, enumerable: false });
+  Object.defineProperty(rows, "__tiers", {
+    value: { live: live.length, historical: archived.length }, enumerable: false
+  });
   return rows;
 }
 
@@ -193,9 +247,16 @@ export async function loadHistory(market, { minutes = 1440, interval = 1 } = {})
       { ticker: market.ticker, event_ticker: market.event_ticker, series_ticker: market.series_ticker },
       { seconds: end - start, interval, endTs: end }
     );
-    return { points: res.points, rawCount: res.rawCount, error: null, source: res.source };
+    return {
+      points: res.points,
+      rawCount: res.rawCount,
+      error: null,
+      source: res.source,
+      via: res.via || "live",
+      historicalError: res.historicalError || null
+    };
   } catch (e) {
-    return { points: [], rawCount: 0, error: e.message, source: null };
+    return { points: [], rawCount: 0, error: e.message, source: null, via: null };
   }
 }
 

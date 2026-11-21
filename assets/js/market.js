@@ -20,10 +20,13 @@ export const api = new KalshiClient();
  *   rows.__capped  true when `maxPages` ran out while the API still had a
  *                  cursor — the list is incomplete and callers must say so
  *                  rather than present a partial scan as the whole exchange.
- * The documented page limit for GET /markets and GET /events is 200
- * (https://docs.kalshi.com/api-reference/market/get-markets,
- *  https://docs.kalshi.com/api-reference/events/get-events), so a single page
- * is never assumed to be the full set. */
+ * Page-size limits differ by endpoint, so `limit` is never assumed to be the
+ * whole set and every caller here follows the cursor instead:
+ *   GET /markets  limit defaults to 100, maximum 1000
+ *     (https://docs.kalshi.com/api-reference/market/get-markets)
+ *   GET /events   limit defaults to 200, maximum 200
+ *     (https://docs.kalshi.com/api-reference/events/get-events)
+ * The default below (200) is valid for both endpoints. */
 export async function getAll(path, { key, maxPages = 20, limit = 200, onPage } = {}) {
   const out = [];
   let cursor = "";
@@ -96,9 +99,95 @@ export async function classifyMultivariate(ev, legEventLookup) {
   return { topic: counts[0].topic, mixed: counts.length > 1, bases, counts };
 }
 
-export function classifyEvent(ev) {
+/* ---------------- series-level categories ----------------
+ *
+ * The official Get Events schema marks the *event* object's `category` field
+ * `deprecated: true` — "Event category (deprecated, use series-level category
+ * instead)" (https://docs.kalshi.com/api-reference/events/get-events). The
+ * series-level equivalents are documented on Get Series / Get Series List:
+ * `category` (primary) and `categories` (the discovery list, which is what the
+ * `category` query filter matches).
+ *   https://docs.kalshi.com/api-reference/market/get-series
+ *   https://docs.kalshi.com/api-reference/market/get-series-list
+ *
+ * So the taxonomy prefers the series record and keeps the deprecated event
+ * field only as a labelled fallback. Series are fetched at most once each per
+ * page life and capped per scan, because public reads are rate-limited and a
+ * series lookup is one extra request per distinct series.
+ */
+const SERIES_CATEGORIES = new Map(); // series_ticker -> { cats, primary, failed }
+
+/* Seed the cache (also used by tests and by callers that already hold a series
+ * record, so a page never re-requests what it has). */
+export function primeSeriesCategories(entries) {
+  for (const [ticker, value] of Object.entries(entries || {})) {
+    if (!ticker) continue;
+    const cats = Array.isArray(value) ? value : (value && value.cats) || [];
+    const primary = Array.isArray(value) ? null : (value && value.primary) || null;
+    SERIES_CATEGORIES.set(String(ticker), {
+      cats: [...new Set([...cats, primary].filter(Boolean))],
+      primary,
+      failed: false
+    });
+  }
+}
+
+export function clearSeriesCategoryCache() { SERIES_CATEGORIES.clear(); }
+
+/* Resolve the series-level categories for a set of series tickers.
+ * Returns { requested, fetched, cached, failed, capped } so the caller can
+ * disclose how many events were classified from the series record versus the
+ * deprecated event field, instead of implying full coverage. */
+export async function fetchSeriesCategories(tickers, { cap = 40, fetcher } = {}) {
+  const unique = [...new Set((tickers || []).filter(Boolean).map(String))];
+  const get = fetcher || ((path) => api.get(path));
+  let cached = 0, fetched = 0, failed = 0, capped = 0;
+  for (const ticker of unique) {
+    if (SERIES_CATEGORIES.has(ticker)) { cached += 1; continue; }
+    if (fetched + failed >= cap) { capped += 1; continue; }
+    try {
+      const json = await get(`/series/${encodeURIComponent(ticker)}`);
+      const series = (json && json.series) || json || {};
+      const cats = Array.isArray(series.categories) ? series.categories : [];
+      const primary = series.category || null;
+      SERIES_CATEGORIES.set(ticker, {
+        cats: [...new Set([...cats, primary].filter(Boolean))],
+        primary,
+        failed: false
+      });
+      fetched += 1;
+    } catch {
+      /* A failed lookup is not a category. Leave the event to the documented
+       * fallback rather than guessing. */
+      SERIES_CATEGORIES.set(ticker, { cats: [], primary: null, failed: true });
+      failed += 1;
+    }
+  }
+  return { requested: unique.length, fetched, cached, failed, capped };
+}
+
+export function seriesCategoriesFor(ticker) {
+  return ticker ? SERIES_CATEGORIES.get(String(ticker)) || null : null;
+}
+
+/* Classify an event and report WHICH field decided it, so the UI can say
+ * "series category" or "event category (deprecated field)". */
+export function classifyEventWithBasis(ev) {
+  if (!ev) return { topic: null, basis: "none", categories: [] };
+  const series = seriesCategoriesFor(ev.series_ticker);
+  const useSeries = !!(series && series.cats && series.cats.length);
+  const cats = useSeries ? series.cats : [ev.category].filter(Boolean);
+  return {
+    topic: classifyEvent(ev, useSeries ? cats : null),
+    basis: useSeries ? "series" : (cats.length ? "event" : "none"),
+    categories: cats
+  };
+}
+
+export function classifyEvent(ev, seriesCats) {
   if (!ev) return null;
-  const cats = [ev.category].filter(Boolean);
+  const resolved = seriesCats || seriesCategoriesFor(ev.series_ticker)?.cats;
+  const cats = (resolved && resolved.length ? resolved : [ev.category]).filter(Boolean);
   const titles = [ev.title, ev.sub_title].filter(Boolean);
   const series = [ev.series_ticker].filter(Boolean);
 
@@ -215,7 +304,27 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
     }
   }
 
-  const matched = events.filter(e => (e._combo ? e._mve?.topic === topicKey : classifyEvent(e) === topicKey));
+  /* Prefer the series-level category (the field Get Events tells clients to
+   * use) over the deprecated event `category`. One lookup per distinct series,
+   * cached for the life of the page and capped per scan; anything not resolved
+   * keeps the documented fallback and is counted, never assumed. */
+  const seriesTickers = events.filter(e => !e._combo).map(e => e.series_ticker);
+  const seriesCoverage = await fetchSeriesCategories(seriesTickers, { cap: 60 });
+
+  const matched = events.filter(e => {
+    if (e._combo) return e._mve?.topic === topicKey;
+    const verdict = classifyEventWithBasis(e);
+    e._topic = verdict.topic;
+    e._categoryBasis = verdict.basis;
+    e._categories = verdict.categories;
+    return verdict.topic === topicKey;
+  });
+  const basisTally = { series: 0, event: 0, none: 0 };
+  for (const e of events) {
+    if (e._combo) continue;
+    const b = e._categoryBasis || classifyEventWithBasis(e).basis;
+    basisTally[b] = (basisTally[b] || 0) + 1;
+  }
   const markets = [];
   for (const ev of matched) {
     for (const m of ev.markets || []) {
@@ -224,6 +333,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
         _event_ticker: ev.event_ticker,
         _event_title: ev.title,
         _category: ev.category,
+        _categories: ev._categories || null,
+        _categoryBasis: ev._categoryBasis || null,
         _series_ticker: ev.series_ticker,
         _source: `${DEMO.rest}/events?status=${ev._status}&with_nested_markets=true`
       });
@@ -234,6 +345,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
     events: matched,
     markets,
     scanned: events.length,
+    categoryBasis: basisTally,
+    seriesCoverage,
     perStatus: { ...perStatus, multivariate: mveScanned },
     capped: { ...capped, multivariate: mveCapped },
     source: `${DEMO.rest}/events?with_nested_markets=true`
@@ -285,7 +398,6 @@ export function rankEvents(events, mode = "money") {
       volume, oi, money, missingPrice,
       result: dominantResult(ms),
       closeTime: earliest(ms.map(m => m.close_time)),
-      seriesUrl: ev.series_ticker ? `${DEMO.rest}/events/${ev.event_ticker}` : `${DEMO.rest}/events/${ev.event_ticker}`,
       source: `${DEMO.rest}/events/${ev.event_ticker}`,
       markets: ms
     };
@@ -337,6 +449,64 @@ export async function resolveSeries(market) {
 
 /* ---------------- candlesticks ---------------- */
 
+/* ---- one parser for both candy tiers -------------------------------------
+ *
+ * Kalshi partitions exchange data into a live tier and a historical tier
+ * (https://docs.kalshi.com/getting_started/historical_data, fetched 2026-11-21):
+ *
+ *   "Markets and their candlesticks that settled before [market_settled_ts]
+ *    are only available via `GET /historical/markets`" — and the candlesticks
+ *    for those markets only via `GET /historical/markets/{ticker}/candlesticks`.
+ *
+ * The two endpoints return the SAME numbers under DIFFERENT field names:
+ *
+ *   live       GET /series/{series}/markets/{ticker}/candlesticks
+ *              price.close_dollars, price.previous_dollars, volume_fp, ...
+ *   historical GET /historical/markets/{ticker}/candlesticks
+ *              price.close,         price.previous,         volume, ...
+ *
+ * (Both schemas fetched 2026-11-21 from
+ *  https://docs.kalshi.com/api-reference/market/get-market-candlesticks and
+ *  https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks.)
+ *
+ * `parseCandle` accepts either shape and never substitutes a value that the
+ * response did not carry: a missing field stays null, which the UI renders as
+ * a gap rather than a price.
+ * ------------------------------------------------------------------------- */
+export function parseCandle(c) {
+  const dollars = o => num(o?.close_dollars ?? o?.close);
+  return {
+    t: Number(c?.end_period_ts) * 1000,
+    y: dollars(c?.price),
+    open: num(c?.price?.open_dollars ?? c?.price?.open),
+    high: num(c?.price?.high_dollars ?? c?.price?.high),
+    low: num(c?.price?.low_dollars ?? c?.price?.low),
+    mean: num(c?.price?.mean_dollars ?? c?.price?.mean),
+    prev: num(c?.price?.previous_dollars ?? c?.price?.previous),
+    yesBid: num(c?.yes_bid?.close_dollars ?? c?.yes_bid?.close),
+    yesAsk: num(c?.yes_ask?.close_dollars ?? c?.yes_ask?.close),
+    volume: num(c?.volume_fp ?? c?.volume),
+    openInterest: num(c?.open_interest_fp ?? c?.open_interest)
+  };
+}
+
+/* A market is treated as settled-tier eligible only when the exchange's own
+ * fields say so: it carries a `result`, or its status is one of the terminal
+ * lifecycle states, or its published close time has already passed.
+ * (https://docs.kalshi.com/getting_started/market_lifecycle,
+ *  https://docs.kalshi.com/api-reference/market/get-market) */
+const SETTLED_STATUSES = ["settled", "closed", "finalized", "determined"];
+
+export function isSettledMarket(market, nowMs = Date.now()) {
+  if (!market) return false;
+  const result = String(market.result || "").toLowerCase();
+  if (result === "yes" || result === "no") return true;
+  const status = String(market.status || "").toLowerCase();
+  if (SETTLED_STATUSES.includes(status)) return true;
+  const close = Date.parse(market.close_time || "");
+  return Number.isFinite(close) && close < nowMs;
+}
+
 /* Fetch candles, splitting the range so a request never exceeds the documented
  * 5,000-period cap. Returns points in the chart's {t, y} shape, where y is the
  * trade close price for the period and is null when the period had no trades. */
@@ -346,9 +516,16 @@ export async function resolveSeries(market) {
  * current clock would request a window that ends after settlement and miss the
  * trading history entirely. (GET /series/{series}/markets/{ticker}/candlesticks
  * takes required `start_ts` and `end_ts` — no "now" default is documented.)
- * https://docs.kalshi.com/api-reference/market/get-market-candlesticks */
-export async function fetchCandles(market, { seconds, interval, endTs }) {
-  const series = await resolveSeries(market);
+ * https://docs.kalshi.com/api-reference/market/get-market-candlesticks
+ *
+ * Historical tier: when the live tier returns no candles at all AND the market
+ * is settled, the same window is requested from
+ * GET /historical/markets/{ticker}/candlesticks, which the docs say is the only
+ * place archived settled markets live. The result records which tier answered
+ * (`via`) and links that exact request (`source`), so a chart or a backtest can
+ * never imply it read the live tier when it did not.
+ * https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks */
+export async function fetchCandles(market, { seconds, interval, endTs, allowHistorical = true } = {}) {
   const periodSeconds = interval * 60;
   const maxSpan = CANDLE.maxPeriodsPerRequest * periodSeconds;
   const end = Number.isFinite(endTs) ? Math.floor(endTs) : Math.floor(Date.now() / 1000);
@@ -357,39 +534,80 @@ export async function fetchCandles(market, { seconds, interval, endTs }) {
   const chunks = [];
   for (let s = start; s < end; s += maxSpan) chunks.push([s, Math.min(s + maxSpan, end)]);
 
-  const points = [];
-  let rawCount = 0;
-  for (const [s, e] of chunks) {
-    const url = `/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(market.ticker)}` +
-      `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
-    const j = await api.get(url);
-    const candles = j.candlesticks || [];
-    rawCount += candles.length;
-    for (const c of candles) {
-      points.push({
-        t: c.end_period_ts * 1000,
-        y: num(c.price?.close_dollars),
-        open: num(c.price?.open_dollars),
-        high: num(c.price?.high_dollars),
-        low: num(c.price?.low_dollars),
-        mean: num(c.price?.mean_dollars),
-        prev: num(c.price?.previous_dollars),
-        yesBid: num(c.yes_bid?.close_dollars),
-        yesAsk: num(c.yes_ask?.close_dollars),
-        volume: num(c.volume_fp),
-        openInterest: num(c.open_interest_fp)
-      });
+  const readChunks = async (pathFor) => {
+    const points = [];
+    let rawCount = 0;
+    for (const [s, e] of chunks) {
+      const j = await api.get(pathFor(s, e));
+      const candles = j.candlesticks || [];
+      rawCount += candles.length;
+      for (const c of candles) points.push(parseCandle(c));
     }
-  }
-  points.sort((a, b) => a.t - b.t);
-  return {
-    points,
-    interval,
-    seconds,
-    series,
-    rawCount,
-    source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    points.sort((a, b) => a.t - b.t);
+    return { points, rawCount };
   };
+
+  const liveUrl = (series, s, e) =>
+    `/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(market.ticker)}` +
+    `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
+  const histUrl = (s, e) =>
+    `/historical/markets/${encodeURIComponent(market.ticker)}` +
+    `/candlesticks?start_ts=${s}&end_ts=${e}&period_interval=${interval}`;
+
+  /* A market whose series cannot be resolved can still have archived candles:
+   * the historical route needs only the ticker. So the resolve failure is kept
+   * instead of thrown, and the fallback decides whether it matters. */
+  let series = market.series_ticker || null;
+  let liveError = null;
+  let live = { points: [], rawCount: 0 };
+  try {
+    series = await resolveSeries(market);
+    live = await readChunks((s, e) => liveUrl(series, s, e));
+  } catch (e) {
+    liveError = e;
+  }
+
+  if ((live.points.length > 0 || !allowHistorical || !isSettledMarket(market))) {
+    if (!live.points.length && liveError) throw liveError;
+    return {
+      points: live.points,
+      interval,
+      seconds,
+      series,
+      rawCount: live.rawCount,
+      via: "live",
+      historicalError: null,
+      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    };
+  }
+
+  /* Live tier returned nothing for a settled market: ask the historical tier. */
+  try {
+    const hist = await readChunks(histUrl);
+    if (!hist.points.length && liveError) throw liveError;
+    return {
+      points: hist.points,
+      interval,
+      seconds,
+      series,
+      rawCount: hist.rawCount,
+      via: "historical",
+      historicalError: null,
+      source: `${DEMO.rest}/historical/markets/${market.ticker}/candlesticks`
+    };
+  } catch (e) {
+    if (liveError) throw liveError;
+    return {
+      points: live.points,
+      interval,
+      seconds,
+      series,
+      rawCount: live.rawCount,
+      via: "live",
+      historicalError: e.message,
+      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+    };
+  }
 }
 
 /* Aggregate 1-minute candles into a coarser bucket when a window would need too
@@ -555,7 +773,12 @@ export function analyseFills(fills, { topicResolver } = {}) {
     const side = f.outcome_side || f.side || null;
     const price = side === "no" ? noPrice : yesPrice;
     const cost = count !== null && price !== null ? count * price : null;
-    const notional = count !== null ? count * 1 : null;   // $1 per contract at settlement
+    /* No `notional` field is derived here. Kalshi defines notional_value_dollars
+     * as the settlement value of ONE contract, and it is not always $1 (scalar
+     * markets settle on a value range), nor is it returned on a fill. The
+     * previous `count × 1` guess was unused by every page and has been removed
+     * rather than left as a plausible-looking wrong number.
+     * (https://docs.kalshi.com/api-reference/market/get-market) */
     return {
       fill_id: f.fill_id || f.trade_id || "",
       order_id: f.order_id || "",
@@ -563,7 +786,6 @@ export function analyseFills(fills, { topicResolver } = {}) {
       side,
       book_side: f.book_side || null,
       count, price, cost, fee,
-      notional,
       is_taker: f.is_taker ?? null,
       ts: f.created_time ? Date.parse(f.created_time) : (f.ts ? f.ts * 1000 : null),
       topic: topicResolver ? topicResolver(f.ticker || f.market_ticker) : null,

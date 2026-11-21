@@ -86,11 +86,10 @@
         </p>
       </div>
       <div class="callout warn" style="margin:0">
-        <h3>S8 — Resolve the multi-session overlap</h3>
+        <h3>S8 — Resolve the multi-session overlap ✓ done</h3>
         <p style="margin:0" class="small">
-          Seven branches wrote to this repository concurrently. Until one owner performs the integration,
-          any page may be replaced by another session's work. This is an operational risk to everything else
-          on this list.
+          Resolved 2026-11-21: PR #88 merged to <code>main</code>, Pages built, no open PRs.
+          Shared outputs now land only through the integration branch.
         </p>
       </div>
     </div>
@@ -183,11 +182,11 @@ const S = [
   },
   {
     id: "S8", cat: "ops", rec: "yes",
-    status: "open",
+    status: "built",
     title: "Name a single integration owner for shared outputs",
     decision: "Whose version of the site is the site?",
-    evidence: "Seven arena/* branches exist and main advanced during this session; the brief reserves shared outputs for a final integration session.",
-    missing: "The maintainer's choice of owner — Q14.",
+    evidence: "Done 2026-11-21: PR #88 merged to main (merge commit cc9112b), GitHub Pages built from main:/, no open PRs at verification time. Shared outputs are merged only via the integration branch.",
+    missing: "None — closed by PR #88.",
     cost: "Low",
     risk: "None, other than requiring one decision",
     sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]
@@ -279,6 +278,17 @@ const S = [
     cost: "Low",
     risk: "None material",
     sources: [`${D}/api-reference/market/get-markets`]
+  },
+  {
+    id: "S17", cat: "insight", rec: "maybe",
+    status: "open",
+    title: "Rank the live boards by the exchange's own whole-dollar notional",
+    decision: "Can I sort by dollars actually traded instead of a contract-volume proxy?",
+    evidence: "The WebSocket `ticker` payload documents integer `dollar_volume` (\"signed whole-dollar cumulative traded notional\") and `dollar_open_interest` next to `volume_fp` and `open_interest_fp`. REST market objects do NOT carry either dollar field (Get Market / Get Markets), and `notional_value_dollars` is one contract's settlement value — which is why the boards still rank by the volume × price proxy (Flag A11).",
+    missing: "The WebSocket feed is only available through scripts/relay.py, so this ranking would exist only while the relay runs; the sign convention of `dollar_volume` is documented as \"signed\" but has not been observed live here, so its behaviour needs one captured session before it is labelled as cash turnover.",
+    cost: "Medium — carry two more fields through live-core.js and add a ranking mode that exists only when the WS source is live",
+    risk: "A dollar figure that is netted or cumulative could be misread as 24-hour turnover; the label would have to quote the schema verbatim",
+    sources: [`${D}/websockets/market-ticker`, `${D}/api-reference/market/get-markets`]
   }
 ];
 
@@ -314,9 +324,9 @@ function render() {
 $("#filter").addEventListener("change", render);
 
 $("#counts").innerHTML = [
-  { k: "Suggestions", v: int(S.length), m: "none implemented" },
+  { k: "Suggestions", v: int(S.length), m: "each with its current status" },
   { k: "Recommended", v: int(S.filter(s => s.rec === "yes").length), m: "highest decision value per effort" },
-  { k: "Optional", v: int(S.filter(s => s.rec === "maybe").length), m: "worth it once trust items close" },
+  { k: "Already on the site", v: int(S.filter(s => s.status === "built").length), m: "status \"built\" in the table" },
   { k: "Later", v: int(S.filter(s => s.rec === "no").length), m: "cosmetic, competes for effort" }
 ].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
 

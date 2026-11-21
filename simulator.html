@@ -67,12 +67,18 @@
       <span id="status" class="pill idle">idle</span>
     </div>
     <p class="small muted" style="margin:8px 0 0" id="progress-note">
-      The universe comes from <code>GET /markets?status=settled</code>; each market's series and category
+      The universe comes from <code>GET /markets?status=settled</code> plus the archived tier
+      <code>GET /historical/markets</code>; each market's series and category
       come from <code>GET /events/{event_ticker}</code>; the price history comes from
       <code>GET /series/{series}/markets/{ticker}/candlesticks</code> at
-      <code>period_interval=1</code> (one minute). A 1,440-minute window always fits inside the documented
-      5,000-period cap, so each market costs one history request.
+      <code>period_interval=1</code> (one minute), and from
+      <code>GET /historical/markets/{ticker}/candlesticks</code> when the live tier returns nothing for a
+      settled market. A 1,440-minute window always fits inside the documented
+      5,000-period cap, so each market costs one history request per tier.
+      Every row links the tier that answered.
+      <a href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">Live vs archived tiers ↗</a>
       <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlestick docs ↗</a>
+      <a href="https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks" target="_blank" rel="noopener noreferrer">Archived candlestick docs ↗</a>
     </p>
   </div>
 
@@ -178,18 +184,25 @@
       <table>
         <thead><tr><th>Quantity</th><th>Official source</th><th>Field</th></tr></thead>
         <tbody>
-          <tr><td>Universe of finalized markets</td>
+          <tr><td>Universe of finalized markets (live tier)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">GET /markets ↗</a></td>
             <td class="mono small">status=settled</td></tr>
+          <tr><td>Universe of finalized markets (archived tier)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-markets" target="_blank" rel="noopener noreferrer">GET /historical/markets ↗</a>
+              · <a class="src-link" href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">partition docs ↗</a></td>
+            <td class="mono small">settled before market_settled_ts; result, settlement_value_dollars</td></tr>
           <tr><td>Yes/no outcome and settlement value</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a></td>
             <td class="mono small">result, settlement_value_dollars</td></tr>
           <tr><td>Series ticker and category</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a></td>
             <td class="mono small">series_ticker, category</td></tr>
-          <tr><td>Price history</td>
+          <tr><td>Price history (live tier)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">GET candlesticks ↗</a></td>
             <td class="mono small">price.close_dollars, price.previous_dollars, volume_fp</td></tr>
+          <tr><td>Price history (archived tier, used only when the live tier returns no candles for a settled market)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks" target="_blank" rel="noopener noreferrer">GET historical candlesticks ↗</a></td>
+            <td class="mono small">price.close, price.previous, volume</td></tr>
           <tr><td>NO-leg complementary price relationship</td>
             <td><a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">orderbook pricing ↗</a></td>
             <td class="mono small">NO ask = $1.00 − YES bid; see reciprocal relationship</td></tr>
@@ -220,6 +233,15 @@ import { AlertEngine, topicLabel } from "./assets/js/alert-engine.js";
 mountChrome({ page: "simulator.html", title: "Strategy tester" });
 
 let lastRun = null;
+/* One-line summary of which official data tier supplied the market list. */
+let tierNote = "";
+
+/* The live-tier candlestick request for a market, used only when a trade has no
+ * recorded candle source (e.g. a run started before the source was stamped). */
+function liveCandleUrl(t) {
+  return `https://external-api.demo.kalshi.co/trade-api/v2/series/${encodeURIComponent(t.seriesTicker || "")}` +
+    `/markets/${encodeURIComponent(t.ticker)}/candlesticks`;
+}
 
 /* ---------------------------------------------------------------- backtest */
 
@@ -242,14 +264,24 @@ $("#run").addEventListener("click", async () => {
       onProgress: (n, total) => pill($("#status"), "warn", `universe ${n} markets…`)
     });
     const scoped = topic === "all" ? universe : universe.filter(m => m.topic === topic);
+    /* Which official tier each market came from. GET /markets stops returning a
+     * settled market once it archives, and archived settled markets are only
+     * listed by GET /historical/markets
+     * (https://docs.kalshi.com/getting_started/historical_data), so the run
+     * states both counts instead of implying one complete scan. */
+    const tiers = universe.__tiers || { live: 0, historical: 0 };
+    tierNote = ` Live tier ${int(tiers.live)} market(s); archived tier ${int(tiers.historical)}` +
+      (universe.__archivedError
+        ? ` (archived tier not read: ${esc(universe.__archivedError)})`
+        : "") + ".";
     $("#progress-note").innerHTML =
       `Universe: <strong>${scoped.length}</strong> finalized market(s) from ${universe.length} loaded` +
-      (topic === "all" ? "" : ` (topic: ${topic})`) +
-      `. History window: ${minutes} one-minute periods before settlement.`;
+      (topic === "all" ? "" : ` (topic: ${topic})`) + "." + tierNote +
+      ` History window: ${minutes} one-minute periods before settlement.`;
     pill($("#status"), "warn", `reading history for ${scoped.length} markets…`);
 
     const trades = [];
-    let historyRequests = 0, withHistory = 0, errors = 0;
+    let historyRequests = 0, withHistory = 0, errors = 0, archivedHistories = 0;
     for (let i = 0; i < scoped.length; i++) {
       const m = scoped[i];
       pill($("#status"), "warn", `history ${i + 1}/${scoped.length}…`);
@@ -259,12 +291,21 @@ $("#run").addEventListener("click", async () => {
       const series = toSeries(hist.points);
       if (!series.length) continue;
       withHistory++;
+      if (hist.via === "historical") archivedHistories++;
+      /* Every trade keeps the exact request its candles came from, so each row
+       * can link the tier that actually answered (live or historical). */
+      const first = trades.length;
       trades.push(...replayAll(STRATEGIES, series, m));
       const baseline = replayRandomControl(series, m);
       if (baseline) trades.push(baseline);
+      for (let k = first; k < trades.length; k++) {
+        trades[k].candleSource = hist.source;
+        trades[k].candleVia = hist.via;
+      }
     }
 
-    lastRun = { trades, universe: scoped.length, withHistory, errors, minutes, topic, historyRequests };
+    lastRun = { trades, universe: scoped.length, withHistory, errors, minutes, topic, historyRequests,
+      archivedHistories, tiers };
     $("#export-csv").disabled = false;
     renderScoreboard();
     renderBreakdowns();
@@ -341,14 +382,15 @@ function renderScoreboard() {
       <td class="num">${g.roiNet === null ? `<span class="unv">n/a</span>` : (g.roiNet * 100).toFixed(1) + "%"}</td>
       <td class="small">
         <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(g.trades[0].ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
-        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/${encodeURIComponent(g.trades[0].seriesTicker || "")}/markets/${encodeURIComponent(g.trades[0].ticker)}/candlesticks" target="_blank" rel="noopener noreferrer">candles ↗</a>
+        <a class="src-link" href="${esc(g.trades[0].candleSource || liveCandleUrl(g.trades[0]))}" target="_blank" rel="noopener noreferrer">candles${g.trades[0].candleVia === "historical" ? " (archived)" : ""} ↗</a>
       </td>
     </tr>`);
   }
   $("#scoreboard").innerHTML = rows.join("");
   $("#score-note").innerHTML =
     `Run: ${int(lastRun.universe)} finalized market(s), ${int(lastRun.withHistory)} with price history, ` +
-    `${int(lastRun.historyRequests)} candlestick request(s), ${int(lastRun.minutes)}-minute window. ` +
+    `${int(lastRun.historyRequests)} candlestick request(s), ${int(lastRun.minutes)}-minute window, ` +
+    `${int(lastRun.archivedHistories || 0)} market(s) served from the archived tier. ` +
     `P&amp;L per contract = payout − entry price; fees follow the official schedule (entry taker fee, plus an exit taker fee on round trips; no settlement fee). ` +
     `ROI = total P&amp;L after fees ÷ total capital deployed. No spread, no slippage. ` +
     `The seeded random control is a reproducible comparison baseline, not a statistical test or a prediction. ` +
@@ -375,7 +417,7 @@ function renderBreakdowns() {
         `<a class="src-link" href="${esc(marketSourceUrl(t.ticker))}" target="_blank" rel="noopener noreferrer">${esc(t.ticker)} market ↗</a> ` +
         `<a class="src-link" href="${esc(eventSourceUrl(t.eventTicker))}" target="_blank" rel="noopener noreferrer">event ↗</a>`
       ).join("<br>")}</div></details>
-        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">candlestick docs ↗</a></td>
+        <a class="src-link" href="${sources.some(t => t.candleVia === "historical") ? "https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks" : "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"}" target="_blank" rel="noopener noreferrer">candlestick docs ↗</a></td>
     </tr>`;
   }).join("");
 }

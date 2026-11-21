@@ -50,18 +50,25 @@ page [Market Ticker](https://docs.kalshi.com/websockets/market-ticker), both fet
 | C8 | [`GET /events?series_ticker=KXGAS&limit=200`](https://external-api.demo.kalshi.co/trade-api/v2/events?series_ticker=KXGAS&limit=200) | `events: []` | `KXGAS` currently has **no events of any status**; the Gas page's open markets come from the `KXAAAGAS*` AAA series |
 | C9 | [`GET /events?series_ticker=GAS&limit=200`](https://external-api.demo.kalshi.co/trade-api/v2/events?series_ticker=GAS&limit=200) | 2023 weekly events only (`GAS-23SEP18`, `GAS-23SEP11`, … , EIA settlement source) | `GAS` is the legacy-prefix history; nothing open |
 
-## D. Register / documentation drift found and corrected in this session
+## D. Register / documentation drift found — and what happened to it
 
-| Item | Was | Now | Evidence |
-|---|---|---|---|
-| Flagged **F4** | "The demo environment has no open gas-price markets" — `open` | **superseded** with today's live evidence (C1, C2) and session `29749918`'s five open gas events | C1, C2, `reports/gas-coverage-29749918.md` |
-| Flagged **F10** | "WebSocket streaming is documented but not wired in … polling is used instead" — `open` | **superseded** by W1–W3: `scripts/relay.py` + `assets/js/live-feed.js` ship the opt-in `ticker` stream with the REST poll as fallback and the source named in the status pill | repo files read; B1–B3 |
-| Flagged **E1** / `QUESTIONS.md` Q9 / `questions.html` Q1 | "API gives contracts, not dollars" | REST market object: contract counts + `notional_value_dollars` (one contract at settlement); WebSocket ticker: integer `dollar_volume` ("Signed whole-dollar cumulative traded notional") and `dollar_open_interest` — official definitions quoted, path limitation stated | B4 |
-| Flagged **E3** / `VERIFICATION.md` | header "Checked 2026-11-20 … `docs/sources.html`", closing pointer to `docs/flagged.html` F1–F7 | re-dated, repointed to the root `flagged.html` register; CORS row now cites the committed runner capture instead of "unverified"; the stale `docs/` F4 reference removed | `reports/verify-facts-v3.md` (CORS table), this report |
-| Flagged **SB4** | "cannot reach the API to ask again" | live answer recorded (C6–C9): two distinct records, no alias observed at 23:09Z; the `scripts/collect.py` comment asserting the alias is logged as a request to the collector owner | C6–C9 |
-| `questions.html` Q10 | "don't know … whether the ticker channel can deliver every intermediate price change" | answered from the official source: it does not; `trade` / `orderbook_delta` are the per-change channels | B1 |
-| `flagged.html` markup | a stray `</div>` after F10 closed the "Unverified" section early, so F13–F16 rendered outside their card and the section's real closing tag was dropped by the browser (present in the base commit) | removed; `div` nesting balanced (Flagged **K3**) | `html.parser` tag-balance pass before/after |
-| `index.html` | an unused `rows` array (a byte-for-byte duplicate of the `sorted` board render) was rebuilt on every 60-second refresh and never read | removed; no rendered output depends on it (Flagged **K2**) | `git diff` of `index.html`; page-runtime check 17/17 |
+While this branch was open (23:08Z–23:24Z), eight parallel sessions merged PRs #89–#103 into `main`. Several reached the same
+conclusions independently. The table records, per item, who closed it and what this session contributed; nothing of theirs was
+discarded in the merge (the board conflict was union-resolved with `tools/resolve_board_conflict.py`, `flagged.html` kept their
+card text with this session's live re-reads appended, and `VERIFICATION.md` / `index.html` were taken from `main`).
+
+| Item | Was | Now | Closed by | This session's contribution |
+|---|---|---|---|---|
+| Flagged **F4** | "The demo environment has no open gas-price markets" — `open` | mitigated: a point-in-time observation about 2026-11-20 | session `c33971c1`, PR #91 | addendum: nested-market `status: "active"`, the five open gas events from `29749918`, re-runnable live links (C1, C2) |
+| Flagged **F10** | "WebSocket streaming is documented but not wired in" — `open` | mitigated: relay + SSE + REST fallback, residuals W1/W4 | session `c33971c1`, PR #91 | verified the same files (`scripts/relay.py`, `assets/js/live-feed.js`) and the official ticker page (B1–B3); their text kept |
+| Flagged **E1** / `QUESTIONS.md` Q9 / `questions.html` Q1 | "API gives contracts, not dollars" — `open` | fixed: REST contract counts + `notional_value_dollars`; WebSocket ticker's integer `dollar_volume` / `dollar_open_interest` quoted from the official source; path limitation stated | **this session** | B4 |
+| `questions.html` Q10 | "don't know … whether the ticker channel can deliver every intermediate price change" | answered from the official page: it does not; `trade` / `orderbook_delta` are the per-change channels | **this session** | B1 |
+| Flagged **E3** / `VERIFICATION.md` | 2026-11-20 header, `docs/` pointers, CORS "unverified" | fixed: file rewritten (36 rows, re-dated, root register pointer, CORS verified, new rows 14/15/32 on dollar fields and `KXGAS` ≠ `GAS`) | session `c33971c1`, PR #91 | this session's own edit of the file was superseded and dropped in favour of `main`'s rewrite; every row of the rewrite was re-read against sections A–C of this report and none contradicts them |
+| Flagged **SB4** | "cannot reach the API to ask again" — `unverified` | mitigated: two distinct series records; alias inference withdrawn | session `c33971c1`, PR #91 | addendum: `KXGAS` has no events of any status, `GAS` has 2023 events only, `last_updated_ts` values, `contract_url` hosts (C6–C9); the `scripts/collect.py` comment is logged for the collector owner |
+| Flagged **A11** | proxy ranking, `open` | mitigated: on-demand official traded-dollar measurement from `GET /markets/trades` on every category page | session `135bc17e`, PR #98 | K1 records the third, exchange-aggregated figure (`dollar_volume`) that lives only on the WebSocket path |
+| `index.html` dead `rows` array | rebuilt on every refresh, never read, already drifted from the live template | removed | session `02091230`, PR #94 (commit `40e81d6`) — identical removal made here independently | Flagged **K2** records it (it had no card) |
+| `flagged.html` markup | a stray `</div>` after F10 closed the "Unverified" section early, so F13–F16 rendered outside their card; still present on `main` @ `a24db0a` | removed; `div` nesting balanced on all 36 pages | **this session** | Flagged **K3**; `html.parser` tag-balance pass before/after |
+| Flagged **K1** (new, open) | — | the Market Ticker payload's `dollar_volume` / `dollar_open_interest` are the exchange's own whole-dollar aggregates; WebSocket-only; not read by the relay mapper; owner decision whether to surface or cross-check | **this session** | B4 |
 
 ## E. Not verified in this session (left as is)
 
@@ -75,6 +82,11 @@ page [Market Ticker](https://docs.kalshi.com/websockets/market-ticker), both fet
   `last_updated_ts` (21:52:45Z, after the snapshot) is *consistent with* the record having changed in between, but that is
   an inference and is recorded only as such.
 
-## F. Checks run on the edited tree
+## F. Checks run on the merged tree (this branch + `main` @ `a24db0a`)
 
-Recorded in `COORDINATION.md` (session `0acc711d`, K3) with the exact counts.
+`node --test tests/*.test.mjs tests/dom/*.test.mjs` **148/148** · `python3 -m unittest discover -s tools` **OK** ·
+`python3 -m unittest discover -s tests` **OK (3 skipped)** · `tools/check_site_links.py .` **36 pages / 0 broken** ·
+`tools/verify/page-runtime-check.mjs` **18/18** · `evidence/auth-sign-test.mjs` **6/6** · `tests/dom` **21/21**, summary DOM
+(claim counts 86/98 verified · 9 partial · 3 unverified; flag counts 36 open · 44 mitigated · 80, all DOM-derived) ·
+HTML tag-balance pass (`div/main/ul/p/h2/h3`) over all 36 pages: clean. The PR record with the Pages result is in
+`COORDINATION.md` (session `0acc711d`, final record).

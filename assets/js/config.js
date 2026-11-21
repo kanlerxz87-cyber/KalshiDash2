@@ -33,6 +33,12 @@ export const SOURCES = {
   orderbook:      "https://docs.kalshi.com/getting_started/orderbook_responses",
   candles:        "https://docs.kalshi.com/api-reference/market/get-market-candlesticks",
   markets:        "https://docs.kalshi.com/api-reference/market/get-markets",
+  getMarket:      "https://docs.kalshi.com/api-reference/market/get-market",
+  trades:         "https://docs.kalshi.com/api-reference/market/get-trades",
+  batchCandles:   "https://docs.kalshi.com/api-reference/market/batch-get-market-candlesticks",
+  getEvent:       "https://docs.kalshi.com/api-reference/events/get-event",
+  multivariate:   "https://docs.kalshi.com/api-reference/events/get-multivariate-events",
+  settlements:    "https://docs.kalshi.com/api-reference/portfolio/get-settlements",
   events:         "https://docs.kalshi.com/api-reference/events/get-events",
   series:         "https://docs.kalshi.com/api-reference/market/get-series-list",
   getSeries:      "https://docs.kalshi.com/api-reference/market/get-series",
@@ -48,6 +54,14 @@ export const SOURCES = {
   marketSettlement: "https://docs.kalshi.com/getting_started/market_settlement",
   lifecycle:      "https://docs.kalshi.com/getting_started/market_lifecycle",
   historical:     "https://docs.kalshi.com/getting_started/historical_data",
+  /* Live/historical partition (fetched 2026-11-21):
+   * https://docs.kalshi.com/getting_started/historical_data — "markets and their
+   * candlesticks that settled before [market_settled_ts] are only available via
+   * GET /historical/markets"; each data type has its own cutoff, published by
+   * GET /historical/cutoff. The two tiers use DIFFERENT response field names for
+   * candles, so assets/js/market.js `parseCandle` reads both shapes. */
+  historicalMarkets:  "https://docs.kalshi.com/api-reference/historical/get-historical-markets",
+  historicalCandles:  "https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks",
   sharding:       "https://docs.kalshi.com/getting_started/exchange_sharding",
   feeRounding:    "https://docs.kalshi.com/getting_started/fee_rounding",
   terms:          "https://docs.kalshi.com/getting_started/terms"

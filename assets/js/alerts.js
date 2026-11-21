@@ -16,11 +16,11 @@
  */
 import { mountChrome, esc, $, pill, int, src, emptyRow } from "./ui.js";
 import { TOPICS, DEMO } from "./config.js";
-import { api, getAll, classifyEvent } from "./market.js";
+import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategories, Watchlist } from "./market.js";
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
   watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
-  screenMarket
+  screenMarket, marketRefFromAlert
 } from "./alerts-core.js";
 import { LiveFeed, FEED_STATE, probeRelay } from "./live-feed.js";
 
@@ -29,6 +29,10 @@ const SIM_CAP = 500;
 const FEED_CAP = 300;
 const BATCH = 25;
 const PER_TOPIC = 30;
+/* One series lookup per distinct series, cached for the page's life. 60 keeps the
+ * extra read cost bounded on top of the event scan (public reads are rate-limited
+ * and Kalshi publishes no numeric budget for unauthenticated traffic — flag A8). */
+const SERIES_LOOKUP_CAP = 60;
 const UNIVERSE_TTL_MS = 10 * 60 * 1000;
 const MAX_BACKOFF_S = 300;
 const LIVE_STATUSES = ["active", "open"];
@@ -63,7 +67,10 @@ const S = {
   feedStarted: false,       // the relay probe has already run
   feedState: FEED_STATE.POLL,
   feedDetail: "polling the REST API",
-  feedFrames: 0
+  feedFrames: 0,
+  /* Markets already on the resolution watch list. Seeded from localStorage so
+   * a re-render shows "tracked" instead of offering the button again. */
+  tracked: new Set(Watchlist.all().map(w => w.ticker))
 };
 
 const TOPIC_LABEL = Object.fromEntries(TOPICS.map(t => [t.key, t.label]));
@@ -120,11 +127,19 @@ async function loadUniverse(onProgress) {
     key: "events", maxPages: 12, limit: 200,
     onPage: n => onProgress && onProgress(n)
   });
+  /* Topic comes from the series-level category where it can be resolved; the
+   * event-level `category` is a deprecated field and is only the fallback.
+   * See the note above classifyEvent in market.js for the official source. */
+  const seriesCoverage = await fetchSeriesCategories(
+    events.map(e => e.series_ticker), { cap: SERIES_LOOKUP_CAP });
   const markets = [];
   let matched = 0;
+  const basis = { series: 0, event: 0, none: 0 };
   S.meta = new Map();
   for (const ev of events) {
-    const topic = classifyEvent(ev);
+    const verdict = classifyEventWithBasis(ev);
+    basis[verdict.basis] = (basis[verdict.basis] || 0) + 1;
+    const topic = verdict.topic;
     if (!topic) continue;
     matched++;
     for (const m of ev.markets || []) {
@@ -135,6 +150,7 @@ async function loadUniverse(onProgress) {
         _event_ticker: ev.event_ticker,
         _event_title: ev.title,
         _category: ev.category,
+        _categories: verdict.categories,
         _series_ticker: ev.series_ticker
       });
     }
@@ -149,6 +165,8 @@ async function loadUniverse(onProgress) {
     scanned: events.length,
     matchedEvents: matched,
     liveMarkets: markets.length,
+    categoryBasis: basis,
+    seriesCoverage,
     /* getAll() sets __capped when it stopped at its page budget with a
      * cursor still outstanding. A length check (events.length >= 12*200)
      * misses the case where the last page returned fewer than 200 rows. */
@@ -522,6 +540,15 @@ function msgHTML(a, watchFeed) {
         · bid / ask ${px(q.yesBid)} / ${px(q.yesAsk)}${spread}${vol}
       </div>
       ${ruleLine}
+      <div class="actions">
+        ${S.tracked.has(a.ticker)
+          ? `<span class="tag yes">tracked to resolution</span>`
+          : `<button class="secondary tiny" data-track="${esc(a.ticker)}">Track to resolution</button>`}
+        ${a.eventTicker
+          ? `<a class="src-link" href="event.html?ticker=${encodeURIComponent(a.eventTicker)}">event detail ↗</a>`
+          : ""}
+        <span class="small muted">limits, depth and the resolution page</span>
+      </div>
       <div class="links">
         ${src(`${DEMO.rest}/markets/${a.ticker}`, "GET /markets/" + a.ticker)}
         · <a href="${esc(eventPageUrl())}" target="_blank" rel="noopener noreferrer">Kalshi demo site ↗</a>
@@ -594,8 +621,14 @@ function renderUniverseNote() {
   if (!el) return;
   if (!u) { el.textContent = "Scanning open events…"; return; }
   const per = TOPICS.map(t => `${t.label} ${u.perTopic[t.key] || 0}`).join(" · ");
+  const b = u.categoryBasis || { series: 0, event: 0 };
+  const basisNote = ` Topic came from the series record for ${int(b.series)} event(s)` +
+    (b.event ? `, and from the deprecated event \u0060category\u0060 field for ${int(b.event)}` : "") +
+    (u.seriesCoverage && u.seriesCoverage.capped
+      ? ` (${int(u.seriesCoverage.capped)} series not looked up in this scan: per-scan cap)`
+      : "") + ".";
   el.innerHTML = `Scanned ${int(u.scanned)} open events (${int(u.matchedEvents)} in the five topics; ${int(u.liveMarkets)} live markets). ` +
-    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}`;
+    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}${basisNote}`;
 }
 
 /* The same swings as the feeds, as a table. Every row links the official API
@@ -690,6 +723,27 @@ function renderAll() {
   renderSim();
   renderTrades();
 }
+
+/* ------------------------------------------------------- resolution watch */
+
+/* Put an alerted market on the watch list that resolved.html polls until the
+ * exchange reports yes or no. The entry is built from the alert's own values
+ * (see marketRefFromAlert); no price or date is invented. */
+function trackAlert(ticker) {
+  if (!ticker || S.tracked.has(ticker)) return;
+  const a = [...S.alerts].reverse().find(x => x.ticker === ticker);
+  const ref = a ? marketRefFromAlert(a) : null;
+  if (!ref) return;
+  Watchlist.add(ref, a.topic, a.title);
+  S.tracked.add(ticker);
+  renderFeeds();
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-track]");
+  if (!b) return;
+  trackAlert(b.getAttribute("data-track"));
+});
 
 /* ---------------------------------------------------------------- controls */
 

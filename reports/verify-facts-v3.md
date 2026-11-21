@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-21T06:55:15Z |
+| Captured (UTC) | 2026-11-21T23:19:43Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `5dbf5d7a68d5e8f5c6fb870cb50bca9cfac37161` |
+| Commit | `be1a4b5bc31506636fcc1d327933a300b7cc0b56` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -15,13 +15,13 @@
 | `GET /events?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /series?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXDEMOFUTHOURLY-26NOV22H00-UP` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXDEMOFUTHOURLY-26NOV22H00-UP/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /events/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW/candlesticks?start_ts=1795157718&end_ts=1795244118&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /events/KXDEMOFUTHOURLY-26NOV22H00` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV22H00-UP/candlesticks?start_ts=1795216784&end_ts=1795303184&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
-**Resolved ids used above:** market `KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW` → event `KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V` → series `KXMVECROSSCATEGORY`
+**Resolved ids used above:** market `KXDEMOFUTHOURLY-26NOV22H00-UP` → event `KXDEMOFUTHOURLY-26NOV22H00` → series `KXDEMOFUTHOURLY`
 
 ## B. Market → event → series lookup path (needed for candlesticks)
 
@@ -32,16 +32,12 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "can_close_early",
   "close_time",
   "created_time",
-  "custom_strike",
   "event_ticker",
   "exchange_index",
-  "expected_expiration_time",
   "expiration_value",
   "last_price_dollars",
   "latest_expiration_time",
   "market_type",
-  "mve_collection_ticker",
-  "mve_selected_legs",
   "no_ask_dollars",
   "no_bid_dollars",
   "no_sub_title",
@@ -59,7 +55,6 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "settlement_bounds_type",
   "settlement_timer_seconds",
   "status",
-  "strike_type",
   "ticker",
   "title",
   "updated_time",
@@ -72,7 +67,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "yes_sub_title"
  ],
  "series_ticker": null,
- "event_ticker": "KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V"
+ "event_ticker": "KXDEMOFUTHOURLY-26NOV22H00"
 }
 ```
 
@@ -92,8 +87,8 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
   "sub_title",
   "title"
  ],
- "series_ticker": "KXMVECROSSCATEGORY",
- "category": "Exotics"
+ "series_ticker": "KXDEMOFUTHOURLY",
+ "category": "Test"
 }
 ```
 
@@ -101,17 +96,17 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
 
 `period_interval=1` (minutes), last 24h:
 ```json
-{"candlesticks":[{"end_period_ts":1795243380,"open_interest_fp":"115.00","price":{"close_dollars":"0.4500","high_dollars":"0.4500","low_dollars":"0.4500","mean_dollars":"0.4500","open_dollars":"0.4500"},"volume_fp":"115.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"1.0000","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.4500","low_dollars":"0.0000","open_dollars":"0.4500"}}],"ticker":"KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW"}
+{"candlesticks":[{"end_period_ts":1795302060,"open_interest_fp":"45.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5648","open_dollars":"0.5500"},"volume_fp":"135.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"0.4500","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.6500","low_dollars":"0.0000","open_dollars":"0.5500"}},{"end_period_ts":1795302120,"open_interest_fp":"25.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5500",
 ```
 
 `period_interval=60` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW"}
+{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV22H00-UP"}
 ```
 
 `period_interval=1440` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026EPD5LCUEZZDNJZ5V-TJ75KRZSW"}
+{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV22H00-UP"}
 ```
 
 Unsupported `period_interval=5`:
@@ -122,7 +117,7 @@ HTTP 400
 
 ## D. Orderbook — resting bid depth (liquidity)
 ```json
-{"orderbook_fp":{"no_dollars":[],"yes_dollars":[]}}
+{"orderbook_fp":{"no_dollars":[["0.0100","1.00"]],"yes_dollars":[["0.0100","11.00"]]}}
 ```
 
 ## E. Order write routes (unauthenticated: route existence only)

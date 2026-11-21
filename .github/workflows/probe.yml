@@ -84,7 +84,15 @@ jobs:
           )
           out["websocket"] = {"host": ws_host, "status": st, "upgrade": hd.get("Upgrade")}
 
-          # official category + tag vocabulary
+          # Official category + tag vocabulary.
+          #
+          # The response size is RECORDED, not assumed. GET /series publishes no
+          # `limit` or `cursor` parameter, so whether one response is the whole
+          # catalogue is an observation about a single call, not a documented
+          # guarantee (Flagged F5). The previous version of this step turned that
+          # observation into the field name `series_count`, which invited the site
+          # to publish it as the catalogue size; the committed file recorded 16,653
+          # while the site published 16,643, and no test could see the difference.
           st, hd, body = get(BASES[0] + "/series?include_volume=true")
           series = json.loads(body)["series"]
           cats, tags = {}, {}
@@ -95,7 +103,7 @@ jobs:
                   tags[t] = tags.get(t, 0) + 1
               for c in (s.get("categories") or []):
                   cats[c] = cats.get(c, 0) + 1
-          out["series_count"] = len(series)
+          out["series_rows_in_single_response"] = len(series)
           out["categories"] = dict(sorted(cats.items(), key=lambda kv: -kv[1]))
           out["tags"] = dict(sorted(tags.items(), key=lambda kv: -kv[1]))
 
@@ -107,7 +115,7 @@ jobs:
           for b, v in out["cors"].items():
               print(" ", b, v)
           print("WS:", out["websocket"])
-          print("series:", out["series_count"])
+          print("series rows in this single response:", out["series_rows_in_single_response"])
           print("categories:", list(out["categories"].keys()))
           print("tags(gas/golf/culture/election):", [t for t in out["tags"] if any(k in t.lower() for k in ("gas", "golf", "cultur", "elect"))])
           PY

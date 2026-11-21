@@ -132,6 +132,11 @@ export const CLAIMS = [
     source: `${D}/api-reference/market/get-market`,
     ev: "The two input fields and notional_value_dollars definition were checked in the official Get Market schema; the ranking formula is a project convention. See Flag A11.",
     status: "partially verified", flag: "A11" },
+  { cat: "data", claim: "Official traded dollar volume is computable per market and window",
+    detail: "GET /markets/trades returns completed trades with count_fp (contracts) and yes_price_dollars / no_price_dollars, filterable by ticker, min_ts and max_ts (Unix seconds), page limit 1-1000 with a cursor; the dollars of a trade are count_fp x the price of the side the taker bought",
+    source: `${D}/api-reference/market/get-trades`,
+    ev: "Documented: read in the official Get Trades reference and OpenAPI schema (fetched 2026-11-21). The arithmetic is covered offline by tests/dollar-volume.test.mjs; no live response was captured for this claim, and the build sandbox cannot open TLS to kalshi.co, so the live call runs in the visitor's browser.",
+    status: "verified" },
 
   // ---- auth ----
   { cat: "auth", claim: "Required auth headers",
@@ -153,10 +158,17 @@ export const CLAIMS = [
     detail: "Ed25519 keys sign the message directly",
     source: `${D}/getting_started/api_keys`,
     ev: "Documented; self-test passes in Node 22 WebCrypto", status: "verified" },
-  { cat: "auth", claim: "Private key PEM is PKCS#8",
-    detail: "PEM header does not identify the algorithm",
+  /* The API-keys page documents PKCS#8 for the Kalshi-GENERATED Ed25519 key and
+   * PKCS#1 for the Kalshi-generated RSA key, then states that the PEM header
+   * "does not identify the key type" because PKCS#8 RSA keys also begin with
+   * `-----BEGIN PRIVATE KEY-----`. A blanket "the PEM is PKCS#8" was wrong for
+   * the RSA key Kalshi emits; corrected 2026-11-21 by session 0ecc28c2
+   * (reports/session-review-0ecc28c2.md F1). The signing self-test already
+   * detected the type from the parsed key, so only the published claim was loose. */
+  { cat: "auth", claim: "The PEM header does not identify the key type",
+    detail: "Kalshi generates a PKCS#8 private key for Ed25519 (-----BEGIN PRIVATE KEY-----) and a PKCS#1 key for RSA (-----BEGIN RSA PRIVATE KEY-----); because a PKCS#8 RSA key also begins with 'BEGIN PRIVATE KEY', the type must be read from the parsed key, not the header",
     source: `${D}/getting_started/api_keys`,
-    ev: "Documented; self-test shows spki import of a private key fails", status: "verified" },
+    ev: "Documented in the Key types table and the paragraph after it; self-test shows an spki import of a private key fails, so type is detected from the parsed key", status: "verified" },
   { cat: "auth", claim: "Timestamp tolerance is 30 seconds",
     detail: "Outside the window returns 401 header_timestamp_expired",
     source: `${D}/getting_started/api_keys`, ev: "Documented", status: "verified" },
@@ -218,30 +230,37 @@ export const CLAIMS = [
     ev: "Documented qualitatively only", status: "partially verified", flag: "F3" },
 
   // ---- topic mapping ----
+  /* The Glossary explains what a category IS and uses gas as its worked
+   * example; it does not enumerate Elections, Crypto or Sports. The pages that
+   * do carry this evidence are Get Series List (the `category` field, and the
+   * page the captured vocabulary was read from) and Get Tags for Series
+   * Categories (the official category -> tag map). Corrected 2026-11-21 by
+   * session 0ecc28c2; see reports/session-review-0ecc28c2.md F2. */
   { cat: "topic", claim: "Elections is a category",
     detail: "Kalshi category value 'Elections'",
-    source: `${D}/getting_started/terms`,
-    ev: "Live capture 2026-11-20: 740 of 1,000 scanned events (reports/verify-facts-v3.md §G); undated counts are never presented as current", status: "verified" },
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live capture 2026-11-20: 740 of 1,000 scanned events (reports/verify-facts-v3.md §G); undated counts are never presented as current. Category vocabulary captured in data/probe/api_surface.json ('Elections': 5420 series)", status: "verified" },
   { cat: "topic", claim: "Crypto is a category",
     detail: "Kalshi category value 'Crypto'",
-    source: `${D}/getting_started/terms`,
-    ev: "Live: 2 of 1,000 scanned events", status: "verified" },
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live: 2 of 1,000 scanned events; data/probe/api_surface.json ('Crypto': 642 series)", status: "verified" },
   { cat: "topic", claim: "Culture maps to Culture + Entertainment + Social",
     detail: "A category named 'Culture' exists in the live demo vocabulary (4 series) in addition to Entertainment and Social; the matcher covers all three (fixed 2026-11-20 by session 2345e0dd — the earlier claim 'No category is named Culture' was contradicted by the probe capture)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Live vocabulary capture data/probe/api_surface.json: 'Culture': 4 series; per 1,000 events: Entertainment 28, Social 1", status: "verified" },
   { cat: "topic", claim: "Golf lives inside Sports",
-    detail: "No golf category; matched on golf series/titles",
-    source: `${D}/getting_started/terms`,
-    ev: "Live: 3 golf events in the Sports sample", status: "verified" },
+    detail: "No golf category; matched on golf series/titles inside the broad Sports category",
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Live: 3 golf events in the Sports sample; the category vocabulary captured in data/probe/api_surface.json lists 'Sports' (8486 series) and no Golf value. The Glossary is not cited here because it names neither Sports nor golf", status: "verified" },
   { cat: "topic", claim: "No gas-price category",
     detail: "No category in the captured demo vocabulary is named Gas or Gasoline; gas-price series sit under Economics/Commodities (KXGAS carries no tag and is fetched directly by series ticker) and are matched on the KXAAAGAS*/AAAGAS*/KXGAS series families and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded (the old /GAS/i pattern matched KXNBALASVEGAS and KXNATGASW)",
     source: `${D}/api-reference/market/get-series-list`,
     ev: "Evidence: data/probe/api_surface.json category vocabulary (no Gas/Gasoline value) and reports/verify-facts-v3.md §G; 15/15 classification cases pass incl. Vegas/natgas/WTI/diesel → null. An earlier 'zero gas events' evidence line was contradicted by the live KXAAAGASW-26NOV23 event and is no longer asserted", status: "verified", flag: "F4" },
-  { cat: "topic", claim: "Complete series catalogue",
-    detail: "The full list of series (16,643 returned on one page)",
+  { cat: "topic", claim: "Series list response size (not a catalogue total)",
+    detail: "Two committed captures of one GET /series response record 16,643 rows (evidence/evidence-cors-taxonomy.md, 2026-11-20T11:08Z) and 16,653 rows (data/probe/api_surface.json, later probe run). The endpoint documents no `limit` or `cursor` parameter, so each figure is a point-in-time row count for one response, not a documented catalogue total; the register previously presented 16,643 as 'the complete series catalogue'.",
     source: `${D}/api-reference/market/get-series-list`,
-    ev: "Live: single page returned 16,643 series", status: "partially verified", flag: "F5" },
+    ev: "Both committed captures cited above; the difference between them is why neither is asserted as the catalogue size",
+    status: "partially verified", flag: "F5" },
 
   // ---- repo ----
   { cat: "repo", claim: "Repository baseline",
@@ -272,6 +291,11 @@ export const CLAIMS = [
     detail: "price.previous_dollars is the price before the period, so historical jumps are read, not inferred",
     source: `${D}/api-reference/market/get-market-candlesticks`,
     ev: "Live: price.previous_dollars present in every candle returned", status: "verified" },
+  { cat: "data", claim: "Settled markets move to an archived data tier",
+    detail: "Kalshi partitions exchange data into live and historical tiers. Cutoffs are published by GET /historical/cutoff, and \"markets and their candlesticks that settled before [market_settled_ts] are only available via GET /historical/markets\". The archived candlestick endpoint returns the same numbers under plain field names (price.close / price.previous / volume) instead of the live names (price.close_dollars / price.previous_dollars / volume_fp), so the chart and the strategy tester read both shapes and label which tier answered; a settled market is retried on the archived tier only when the live tier returns no candles",
+    source: `${D}/getting_started/historical_data`,
+    ev: "Both official pages read 2026-11-21 (historical_data; get-historical-market-candlesticks schema and get-historical-markets schema). Parsing of both shapes and the fallback routing are asserted offline in tests/historical-tier.test.mjs; the archived tier itself could not be called from the build sandbox (no TLS to *.kalshi.co), so it is marked partially verified",
+    status: "partially verified" },
   { cat: "data", claim: "Events publish settlement_sources",
     detail: "name + url of the official sources Kalshi lists for determining that event's outcome",
     source: `${D}/api-reference/events/get-events`,
@@ -351,6 +375,28 @@ export const CLAIMS = [
     ev: "Live: node tools/verify/page-runtime-check.mjs runs alerts.html and simulator.html clean",
     status: "verified" },
 
+  // ---- claims added by session c33971c1 (2026-11-21, live fetch from the demo API) ----
+  { cat: "api", claim: "The event object's category field is deprecated",
+    detail: "The Get Events schema annotates `category` with deprecated: true and the description \"Event category (deprecated, use series-level category instead)\", so the site classifies topics from the series record first and treats this field as a labelled fallback",
+    source: `${D}/api-reference/events/get-events`,
+    ev: "Documented schema (fetched 2026-11-21); assets/js/market.js#classifyEventWithBasis reports which basis decided each event and alerts.html prints the tally",
+    status: "verified" },
+  { cat: "api", claim: "The series record is the documented category authority",
+    detail: "Series carry `category` (primary) and `categories[]` (the discovery list); the `category` filter on Get Series List matches any entry in `categories`, so a client that reads only the primary value can miss a membership",
+    source: `${D}/api-reference/market/get-series-list`,
+    ev: "Documented parameter and schema (fetched 2026-11-21); live GET /series/KXDIESELMONAK returns categories [\"Economics\"] with a primary category",
+    status: "verified" },
+  { cat: "api", claim: "KXGAS and GAS are two distinct series records",
+    detail: "GET /series/KXGAS returns a series whose own ticker field is KXGAS, and GET /series/GAS returns one whose ticker is GAS; both are titled \"Gas weekly\" and both point at the same contract terms (GAS.pdf). Whether KXGAS is a rename of GAS is not stated anywhere official, so the site does not claim it",
+    source: `${D}/api-reference/market/get-series`,
+    ev: "Live 2026-11-21: GET /series/KXGAS -> ticker KXGAS, title \"Gas weekly\", terms .../GAS.pdf; GET /series/GAS -> ticker GAS, same title and terms",
+    status: "verified" },
+  { cat: "api", claim: "A REST market object has no dollar-volume field",
+    detail: "The market object returned by GET /markets carries volume_fp, volume_24h_fp, open_interest_fp and notional_value_dollars, but no dollar_volume; a dollar figure for traded volume exists only in the WebSocket ticker payload",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Live 2026-11-21: GET /markets?limit=3&status=open returned exactly those fields and no dollar_volume",
+    status: "verified" },
+
   // ---- claims added by session 816988dd (re-review, 2026-11-20 evening) ----
   { cat: "api", claim: "Cancelling an order requires the market ticker to auto-route",
     detail: "market_ticker is a documented cancel query parameter and is 'required for auto-routing'; without it the request defaults to shard 0 and can miss an order resting on another shard",
@@ -406,5 +452,22 @@ export const CLAIMS = [
     detail: "The board reads at most 10 pages of 200 open events; the API reports no total, so the share scanned is not knowable from the response",
     source: `${D}/api-reference/events/get-events`,
     ev: "The page now labels a page-budget-limited scan as partial; the uncovered share is unmeasured (X8)",
-    status: "unverified", flag: "Y8" }
+    status: "unverified", flag: "Y8" },
+
+  // ---- per-endpoint verification pass, session 02091230 (2026-11-21) ----
+  { cat: "limits", claim: "Page-size limits are per endpoint, not one shared number",
+    detail: "GET /markets: limit defaults to 100, maximum 1000. GET /events: limit defaults to 200, maximum 200. The shared client therefore follows the returned cursor instead of assuming one page is the whole set, and its default of 200 is valid on both.",
+    source: `${D}/api-reference/market/get-markets`,
+    ev: "Both OpenAPI parameter definitions fetched 2026-11-21 (Get Markets MarketLimitQuery: 'Defaults to 100. Maximum value is 1000.'; Get Events EventLimitQuery: maximum 200). A stale code comment claiming 200 for both was corrected.",
+    status: "verified" },
+  { cat: "trading", claim: "Ten series carry a zero maker and taker fee multiplier",
+    detail: "KXBTCY, KXETHY, KXCITRINI, KXDOED, KXELECTIRAN, KXGAMBLINGREPEAL, KXGREENLAND, KXIRANDEMOCRACY, KXLAYOFFSYINFO, KXPAHLAVIHEAD. Every other row of the Non-Standard Fees table has multiplier 1, and a series absent from the table uses the general default.",
+    source: "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+    ev: "PDF ('effective July 7, 2026') transcribed row by row on 2026-11-21 and compared with ZERO_TAKER_FEE_SERIES in assets/js/simulator.js — the same ten tickers, no more and no fewer. The general formula (roundup(M × 0.07 × C × P × (1−P))), maker 0.0175, 'no settlement fee' and the 21-row fee table also match.",
+    status: "verified" },
+  { cat: "api", claim: "Order book returns fixed-point dollar levels under orderbook_fp",
+    detail: "The 200 body is {orderbook_fp: {yes_dollars: [[price, count], …], no_dollars: […]}}; `depth` accepts 0–100 and 0 means all levels. Quotes are derived as documented: a NO bid at y implies a YES ask at 1 − y.",
+    source: `${D}/api-reference/market/get-market-orderbook`,
+    ev: "Response schema and depth range fetched 2026-11-21; assets/js/kalshi.js deriveQuote reads orderbook_fp.yes_dollars / no_dollars and the pages request depth=20.",
+    status: "verified" }
 ];
