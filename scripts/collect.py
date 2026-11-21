@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -80,7 +81,13 @@ DERIVATION_NOTES = {
         "events/markets sorted by volume_24h_fp desc, then volume_fp desc "
         "(contract volume, not dollar volume)."
     ),
-    "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching.",
+    "topic_rules": (
+        "Discovery uses only official Kalshi `category` / `tags` filters. Where no "
+        "category covers a topic (retail gasoline), the same explicit series-family "
+        "+ title rule and exclusions as the dashboard (assets/js/config.js) are "
+        "applied locally; they can only narrow the official candidate list, never "
+        "add to it."
+    ),
 }
 
 
@@ -109,9 +116,39 @@ def non_negative_int(value: str) -> int:
 TOPICS = {
     "gas": {
         "label": "Gas Prices",
-        # Official Kalshi tag for gasoline / oil-and-gas markets.
-        "series_filter": {"tags": ["Gas", "Oil & Gas", "Oil and energy"]},
-        "note": "Selected by the official Kalshi tag(s) Gas / Oil & Gas / Oil and energy.",
+        # No Kalshi category covers retail gasoline, so the official category
+        # filter is used only to discover candidates (Economics/Commodities) and
+        # the SAME explicit rule as the dashboard's config.js is then applied:
+        # the AAA retail-gas series family (KXAAAGAS* / AAAGAS*) or a gas-price
+        # title, never crude / natural gas / diesel / Vegas rows. The previous
+        # tag-only rule (Gas, Oil & Gas, Oil and energy) pulled WTI, Brent,
+        # natural gas, diesel and ERCOT power into a topic labelled "Gas Prices".
+        "series_filter": {"categories": ["Economics", "Commodities"]},
+        # Local narrowing only (never sent to the API): identical to the
+        # dashboard rule in assets/js/config.js.
+        # GET /series/{ticker} (documented) is used for the one retail-gasoline
+        # series that carries no tag and is not guaranteed to appear under a
+        # discovery category: KXGAS, "Gas weekly", settlement source EIA weekly
+        # US retail gasoline (verified 2026-11-21 by session 32b15793 and now
+        # also matched by the dashboard's config.js).
+        "direct_series": ["KXGAS"],
+        "local_rule": {
+            "series_patterns": [r"^(?:KX)?A{3}GAS", r"^KXGAS$"],
+            "title_patterns": [
+                r"gas(oline)? (price|average)", r"\bAAA gas", r"^gas (weekly|price)$",
+            ],
+            "exclude_patterns": [
+                r"natural\s*gas", r"\bNATGAS\b", r"\bWTI\b", r"\bBRENT\b",
+                r"crude", r"diesel", r"\bVEGAS\b", r"\bbarrels?\b", r"\boil\b",
+            ],
+        },
+        "note": (
+            "Selected from the official categories Economics / Commodities plus the "
+            "directly fetched KXGAS series, then restricted to the retail-gasoline "
+            "series families (KXAAAGAS*, AAAGAS*, KXGAS) and gas-price titles, with "
+            "crude / natural-gas / diesel / Vegas rows excluded - the same rule the "
+            "dashboard applies."
+        ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "elections": {
@@ -123,8 +160,14 @@ TOPICS = {
     },
     "culture": {
         "label": "Culture",
-        "series_filter": {"category": "Culture"},
-        "note": "Selected by the official Kalshi category 'Culture'.",
+        # The dashboard maps Culture to three official categories (Culture,
+        # Entertainment, Social); matching only 'Culture' left the topic empty
+        # in the 2026-11-21 snapshot (2 series, 0 open events).
+        "series_filter": {"categories": ["Culture", "Social", "Entertainment"]},
+        "note": (
+            "Selected by the official Kalshi categories 'Culture', 'Social' and "
+            "'Entertainment' - the same three categories the dashboard maps to Culture."
+        ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
     "crypto": {
@@ -325,18 +368,26 @@ def aggregate_yes_price_weighted_trade_sample(trades: list[dict]) -> dict[str, d
 
 
 def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[str]]:
-    """Fetch the series that belong to a topic using official server-side filters."""
+    """Fetch the series that belong to a topic.
+
+    Discovery uses only official server-side filters. ``GET /series`` documents
+    ``category``, ``tags``, ``include_product_metadata``, ``include_volume`` and
+    ``min_updated_ts`` (https://docs.kalshi.com/api-reference/market/get-series-list);
+    there is no ticker-prefix parameter, so any series-family rule is applied
+    locally after the official query. The local rule is the same one the
+    dashboard applies in ``assets/js/config.js``, so the snapshot and the live
+    pages classify a topic identically.
+    """
     flt = spec["series_filter"]
     got: dict[str, dict] = {}
     urls: list[str] = []
-    cats = flt.get("category")
+    single = flt.get("category")
+    categories = list(flt.get("categories") or ([single] if single else []))
     tags = flt.get("tags") or []
-    # The official filters are `category` (exact, case-sensitive) and `tags`.
-    queries: list[dict] = []
-    if cats:
-        queries.append({"category": cats})
-    for t in tags:
-        queries.append({"tags": t})
+    # The official filters are `category` (exact, case-sensitive, matches any
+    # entry in a series' `categories` list) and `tags`.
+    queries: list[dict] = [{"category": c} for c in categories]
+    queries += [{"tags": t} for t in tags]
     for q in queries:
         series, u = client.paginate("/series", "series", {**q, "include_volume": True}, max_pages=5)
         urls += u
@@ -346,11 +397,37 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
     # and reproducible (the API `tags` filter is exact + case-sensitive).
     if tags:
         want = {t.lower() for t in tags}
-        if not cats:
+        if not categories:
             got = {
                 k: v for k, v in got.items()
                 if want & {str(t).lower() for t in (v.get("tags") or [])}
             }
+
+    # Direct series lookups (GET /series/{series_ticker}, documented). Used only
+    # for series that the official discovery filters cannot reliably return.
+    for ticker in spec.get("direct_series") or []:
+        url, data = client.get(f"/series/{urllib.parse.quote(ticker)}",
+                               {"include_volume": True})
+        urls.append(url)
+        row = (data or {}).get("series") or {}
+        if row.get("ticker"):
+            got.setdefault(row["ticker"], row)
+
+    # Documented series-family / title rule, applied after discovery. This never
+    # adds rows: it can only narrow the officially selected candidates.
+    rule = spec.get("local_rule") or {}
+    series_pats = [re.compile(p, re.I) for p in rule.get("series_patterns") or []]
+    title_pats = [re.compile(p, re.I) for p in rule.get("title_patterns") or []]
+    excl_pats = [re.compile(p, re.I) for p in rule.get("exclude_patterns") or []]
+    if series_pats or title_pats:
+        def keep(row: dict) -> bool:
+            ticker = str(row.get("ticker") or "")
+            title = str(row.get("title") or "")
+            if any(p.search(ticker) or p.search(title) for p in excl_pats):
+                return False
+            return any(p.search(ticker) for p in series_pats) or \
+                any(p.search(title) for p in title_pats)
+        got = {k: v for k, v in got.items() if keep(v)}
     return list(got.values()), urls
 
 

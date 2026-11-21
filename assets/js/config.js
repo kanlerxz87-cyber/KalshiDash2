@@ -108,7 +108,10 @@ export const TOPICS = [
     categoryPatterns: [/^Elections$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi category `Elections` (740 of 1,000 live events scanned).",
+    /* No count is hard-coded: the observed share changes with every scan. The
+     * 2026-11-20 capture (740 of 1,000 events) is recorded in reports/verify-facts-v3.md
+     * §G and in claims.js with its date, not presented here as current. */
+    note: "Matched on Kalshi category `Elections`.",
     verifiedCategory: "Elections",
     sources: ["events"]
   },
@@ -132,7 +135,10 @@ export const TOPICS = [
     categoryPatterns: [/^Crypto$/i],
     seriesPatterns: [],
     titlePatterns: [],
-    note: "Matched on Kalshi category `Crypto` (only 2 live events in the demo scan).",
+    /* Same rule as Elections: the live event count changes and is not
+     * hard-coded (the 2026-11-21 snapshot holds 86 crypto events from a
+     * 40-series cap, so any fixed number would mislead). */
+    note: "Matched on Kalshi category `Crypto`.",
     verifiedCategory: "Crypto",
     sources: ["events"]
   },
