@@ -117,11 +117,11 @@ const Q = [
   {
     id: "Q1", cat: "scope", confidence: "answered",
     q: "Which live events count as \"highest dollar amount\"?",
-    know: "The API exposes volume_fp (contracts), open_interest_fp (contracts) and last_price_dollars (dollars) per market. There is no single \"dollars traded\" field.",
+    know: "REST market objects expose volume_fp (contracts), open_interest_fp (contracts), last_price_dollars (dollars) and notional_value_dollars (one contract's settlement value) per market — no traded-dollar field on the REST path. The WebSocket ticker payload additionally carries integer dollar_volume (\"Signed whole-dollar cumulative traded notional\") and dollar_open_interest, but that stream needs a demo key and the relay (Flagged W1), so the public page cannot read it.",
     dontknow: "Whether \"dollars\" means money changing hands, open exposure, or contract count — the three rank markets differently.",
-    answer: "No single reading is provable from these fields as exact traded dollars. The dashboard ranks by the volume × last YES-price proxy, open interest, and contract volume, and states each formula. The volume-price proxy is computed by this site; it is not presented as exchange-reported traded-dollar volume.",
+    answer: "No single REST reading is provable as exact traded dollars. The dashboard ranks by the volume × last YES-price proxy, open interest, and contract volume, and states each formula. The volume-price proxy is computed by this site; it is not presented as exchange-reported traded-dollar volume. The exchange-reported figure (dollar_volume) exists only on the authenticated WebSocket path — Flagged A11, E1, K1.",
     action: "Decide which definition is the business metric; the site already lets the ranking switch without code changes.",
-    sources: [`${D}/api-reference/market/get-markets`, `${D}/api-reference/events/get-events`]
+    sources: [`${D}/api-reference/market/get-markets`, `${D}/api-reference/events/get-events`, `${D}/websockets/market-ticker`]
   },
   {
     id: "Q2", cat: "scope", confidence: "answered",
@@ -199,7 +199,7 @@ const Q = [
     id: "Q10", cat: "data", confidence: "partly answered",
     q: "Can price updates stream instead of polling?",
     know: "Kalshi documents an authenticated demo WebSocket at wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2. The Market Ticker page states that an API key is required at the handshake and that the channel needs no extra channel-level authentication beyond that authenticated connection, so even public price data needs signed KALSHI-ACCESS-* handshake headers.",
-    dontknow: "Whether an authenticated handshake can be made from a browser on this deployment, and whether the ticker channel can deliver every intermediate price change between updates. The standard WebSocket constructor cannot set custom headers. No authenticated demo handshake was executed in this session.",
+    dontknow: "Whether an authenticated handshake can be made from a browser on this deployment. The standard WebSocket constructor cannot set custom headers. No authenticated demo handshake was executed from this sandbox. (Answered from the official page on 2026-11-21: the ticker channel does not deliver every intermediate change — updates are combined on a flush scheduled every second, one message per changed market, so intermediate values are not sent; the trade and orderbook_delta channels are the per-change feeds — Flagged W3.)",
     answer: "The alerts page includes an optional same-origin relay for ticker streaming; without it the page uses REST polling (15 seconds by default) and labels the source of every point. The relay signs in the server process, which conflicts with the browser-only signing rule (Flagged W4). Every pane states which path is in use.",
     action: "See the Alerts page for the streaming switch and the Flagged page W1-W4 for the limitation. A compliant streaming deployment would need a hosted signer the visitor does not control, which is an owner decision.",
     sources: [`${D}/getting_started/quick_start_websockets`, `${D}/websockets/market-ticker`, `${D}/getting_started/rate_limits`]
