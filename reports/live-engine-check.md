@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-21T06:28:15.678Z
+- Run at: 2026-11-21T06:33:47.409Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -8,20 +8,18 @@
 
 - Events scanned: 1200
 - Markets in the five topics: 2760
-- Swings of $0.10 or more detected: 3
+- Swings of $0.10 or more detected: 2
 
 | Topic | Market | From | To | Δ | Basis | Screen |
 | --- | --- | --- | --- | --- | --- | --- |
-| elections | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 | exchange previous_price_dollars | 50/100 |
 | culture | `KXGTA6SONGS-30-MOB` | 0.01 | 0.63 | +0.62 | exchange previous_price_dollars | 81/100 |
 | elections | `KXNEWPOPE-70-LANT` | 0.98 | 0.12 | -0.86 | exchange previous_price_dollars | 76/100 |
 
 - Markets with a readable previous price: 2781
-- Largest single move against the exchange's previous price: +0.98 on `KXECCOMPACT-30`
+- Largest single move against the exchange's previous price: -0.86 on `KXNEWPOPE-70-LANT`
 
 | Market | previous_price_dollars | last_price_dollars | Δ |
 | --- | --- | --- | --- |
-| `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 |
 | `KXNEWPOPE-70-LANT` | 0.98 | 0.12 | -0.86 |
 | `KXGTA6SONGS-30-MOB` | 0.01 | 0.63 | +0.62 |
 | `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
@@ -31,6 +29,7 @@
 | `KXNEXTNATOSECGEN-99-BWAL` | 0.11 | 0.11 | 0.00 |
 | `KXNEXTNATOSECGEN-99-MFRE` | 0.50 | 0.50 | 0.00 |
 | `KXNEXTNATOSECGEN-99-ULEY` | 0.01 | 0.01 | 0.00 |
+| `KXNEXTNATOSECGEN-99-PPAV` | 0.15 | 0.15 | 0.00 |
 
 ## 2 · Strategy tester
 
@@ -38,7 +37,7 @@
 - With a yes/no result and a settlement value: 12
 
 - Markets with usable one-minute history: 4
-- History requests that failed: 0
+- History requests that failed: 1
 - Simulated trades produced: 0
 
 _No strategy fired in this universe._
