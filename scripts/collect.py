@@ -179,7 +179,11 @@ TOPICS = {
     "golf": {
         "label": "Golf",
         "series_filter": {"tags": ["Golf"]},
-        "note": "Selected by the official Kalshi tag 'Golf'.",
+        "note": (
+            "Selected with the server-side `tags` parameter (Golf). The Get Series "
+            "List spec does not describe how `tags` matching works, so this is the "
+            "filter the request applied, not a documented taxonomy."
+        ),
         "source": f"{DOCS}/api-reference/market/get-series-list",
     },
 }

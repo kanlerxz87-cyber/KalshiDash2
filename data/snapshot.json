@@ -42326,7 +42326,7 @@
   },
   "golf": {
    "label": "Golf",
-   "rule": "Selected by the official Kalshi tag 'Golf'.",
+   "rule": "Selected with the server-side `tags` parameter (Golf). The Get Series List spec does not describe how `tags` matching works, so this is the filter the request applied, not a documented taxonomy.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
    "series_count": 134,
    "series": [
