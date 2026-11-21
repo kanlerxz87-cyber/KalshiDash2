@@ -2562,3 +2562,40 @@ traded in a window are Σ(`count_fp` × `yes_price_dollars`) — an **official**
 control with the request count stated, never on every poll. If any page of trades is unreachable the figure
 renders as `n/a` and is flagged, never as `$0.00`.
 >>>>>>> 6ad3650 (coord: claim session 135bc17e — traded-dollar volume (A11) + Sources page)
+
+---
+
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
+
+---
+
+## Session `d074f64f` — data-path code audit + requirements traceability (2026-11-21)
+
+Branch: `arena/d074f64f-kalshidash2`, branched from `main` at `cc9112b` (PR #88 merged).
+Overlap check at claim time: session `117dc8d6` holds F1–F3 (published-claims verification against
+docs, full local suite, liveness/interactivity audit) with scope `COORDINATION.md` (its section) and
+`reports/verify-117dc8d6.md`. It has F4 (integration) unclaimed. This session therefore does **not**
+re-do page-claim verification and does **not** claim final integration; it audits the client code
+that produces the numbers (a different question: is the *code* right, not is the *page text* right)
+and maps every line of the brief to the code/UI that implements it. No site file is edited at claim
+time.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|---|---|---|---|---|---|---|
+| R1 | Line-by-line audit of the client data path — `kalshi.js` (signing, order book, V2 orders), `market.js` (pagination, taxonomy, ranking, candles, jumps), `category.js` (chart windows, liquidity), `alerts-core.js` / `live-core.js` (threshold, swings, screens) — against the official Kalshi docs | in progress | `d074f64f` | `COORDINATION.md` (this section), `reports/review-d074f64f.md` (new) | docs.kalshi.com pages fetched this session, each quoted with its URL; local unit tests | Read-only on site code. A proven defect is logged here with file:line before any edit, and its file is added to this scope only if no other session claims it |
+| R2 | Requirements traceability: every requirement in the brief → the file/page/function implementing it, with the evidence that it works (test, workflow run, or code path), gaps called out | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | this repo; GitHub workflow run IDs | Gaps are listed, not papered over |
+| R3 | Full local suite on this branch, exact counts recorded; `git diff --check`; workflow YAML parse | in progress | `d074f64f` | `reports/review-d074f64f.md` (new) | local runs | — |
+| R4 | Log any request for another session's file in this section instead of editing it; hand the report to the integration owner (`117dc8d6` F4) | unclaimed | `d074f64f` | `COORDINATION.md` (this section) | — | — |
+
+**Claim commit:** this section is committed and pushed immediately, before any other work.
