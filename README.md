@@ -40,8 +40,8 @@ fetched in the browser and never transcribed into the repo.
 
 ## What it does
 
-- **Overview** — every live event in the five topics, ranked by money traded, open interest or
-  contract volume, with the formula for each shown inline, plus the biggest $0.10+ swings in
+- **Overview** — every live event in the five topics, ranked by a clearly labelled volume × last YES-price proxy, open interest or
+  contract volume, with the formula for each shown inline. The volume-price figure is not actual dollars traded; the dashboard flags this limitation. It also shows the biggest $0.10+ swings in
   the current scan.
 - **Live alerts** — two scrolling chats: every contract-price swing of **$0.10 or more in either
   direction**, and a **High-ROI watch** of the moves that pass a transparent rule set (a

@@ -64,8 +64,9 @@ export function quoteOf(m) {
   };
 }
 
-/* Money traded, as the site defines it everywhere: volume × last price. */
-export function moneyTraded(m) {
+/* Project-defined volume-price proxy: cumulative contract volume × current last YES price.
+ * This is not the sum of actual trade consideration (nor an exchange-provided dollar-volume field). */
+export function volumePriceProxy(m) {
   const v = num(m?.volume_fp);
   const p = priceOf(m);
   return v === null || p === null ? null : v * p;
@@ -315,7 +316,7 @@ export function summarize(trades) {
 /* -------------------------------------------------------------- universe */
 
 /* Choose which open markets to poll: the top `perTopic` markets per topic by
- * money traded, plus any ticker in `keep` (open positions keep being tracked
+ * the volume × last YES-price proxy, plus any ticker in `keep` (open positions keep being tracked
  * until they resolve). */
 export function pickUniverse(markets, { perTopic = 30, keep = [] } = {}) {
   const byTopic = new Map();
@@ -326,7 +327,7 @@ export function pickUniverse(markets, { perTopic = 30, keep = [] } = {}) {
   }
   const out = new Map();
   for (const list of byTopic.values()) {
-    list.sort((a, b) => (moneyTraded(b) ?? -1) - (moneyTraded(a) ?? -1));
+    list.sort((a, b) => (volumePriceProxy(b) ?? -1) - (volumePriceProxy(a) ?? -1));
     for (const m of list.slice(0, perTopic)) out.set(m.ticker, m);
   }
   const keepSet = new Set(keep);

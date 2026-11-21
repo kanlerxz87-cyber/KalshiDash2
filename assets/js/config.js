@@ -172,8 +172,8 @@ export const CANDLE = {
 };
 
 export const RANKING_MODES = [
-  { key: "money", label: "Most money traded (volume × price)",
-    formula: "Σ over markets of volume_fp × last_price_dollars" },
+  { key: "money", label: "Highest volume × last YES price proxy",
+    formula: "Σ over markets of volume_fp (contracts) × last_price_dollars (last YES trade); proxy only, not traded-dollar volume" },
   { key: "oi", label: "Most open interest (contracts)",
     formula: "Σ over markets of open_interest_fp" },
   { key: "volume", label: "Most contracts traded",

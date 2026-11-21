@@ -85,7 +85,7 @@ function renderStats(res) {
    * (https://docs.kalshi.com/api-reference/market/get-market) */
   const touch = open.reduce((a, m) => a + (num(m.yes_bid_size_fp) || 0) + (num(m.yes_ask_size_fp) || 0), 0);
   $("#cat-stats").innerHTML = [
-    { k: "Money traded", v: money(totalMoney), m: "Σ volume × last price" },
+    { k: "Volume × price proxy", v: money(totalMoney), m: "Σ contracts × last YES price (proxy)" },
     { k: "Open events", v: int(res.events.length), m: "matching this topic" },
     { k: "Open interest", v: int(oi), m: "contracts across markets" },
     { k: "Resting size at touch", v: int(touch), m: "Σ yes_bid_size_fp + yes_ask_size_fp" }
@@ -246,7 +246,7 @@ async function drawWindow() {
         /* A market can legitimately have candles with no trade price (no trade
          * in the window). Rather than leave an empty chart, look for another
          * market in this topic that does have a priced candle series and offer
-         * it — the board already ranks markets by money traded, so the reader
+         * it — the board already ranks markets by volume × last YES-price proxy, so the reader
          * is pointed at one that is actually trading. */
         const alt = await pricedAlternative(market, state.markets);
         $("#chart-empty").innerHTML = `<div class="callout warn" style="margin:12px 0 0">

@@ -183,7 +183,7 @@
       <dt>Price used for alerts</dt><dd>Last traded price, <code>last_price_dollars</code> (Get Markets). Compared between two consecutive polls, and against the exchange's own <code>previous_price_dollars</code> (Get Market).</dd>
       <dt>Tradeability score</dt><dd>Six documented fields — open interest, spread, depth at the touch, price band, time to close, 24-hour volume — summed to 100. A ranking aid, not a probability and not a forecast.</dd>
       <dt>Alert threshold</dt><dd>|change| ≥ $0.10 (the brief's threshold). Moves that happen inside one poll interval are combined into one change.</dd>
-      <dt>Universe</dt><dd>Top 30 open markets per topic by money traded (volume × last price), refreshed every 10 minutes. Coverage is partial by design.</dd>
+      <dt>Universe</dt><dd>Top 30 open markets per topic by volume × last YES price proxy, refreshed every 10 minutes. This is a ranking proxy, not actual dollars traded; coverage is partial by design. See <a href="flagged.html#A11">Flag A11</a>.</dd>
       <dt>Batch reads</dt><dd>Comma-separated <code>tickers</code> on <code>GET /markets</code>, 25 tickers per request.</dd>
       <dt>Settlement sources</dt><dd>Listed on the event record (<code>settlement_sources</code>) from <code>GET /events/{event_ticker}</code>.</dd>
       <dt>Rate limits</dt><dd>On HTTP 429 the poll interval doubles (capped at 5 minutes) until the API accepts requests again.</dd>

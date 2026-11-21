@@ -19,7 +19,7 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 
 ## What is implemented
 
-- **Overview and topic pages:** live event discovery for gas, elections, culture, crypto, and golf; ranking controls; a derived money-traded metric (`volume_fp × last_price_dollars`) alongside contract volume and open interest; event detail and official per-row source links.
+- **Overview and topic pages:** live event discovery for gas, elections, culture, crypto, and golf; ranking controls; a derived volume × current last YES-price proxy (`volume_fp × last_price_dollars`) alongside contract volume and open interest. This proxy is not actual dollars traded; the exact-dollar metric remains unimplemented and is published for review as [A11](flagged.html#A11). Event detail and official per-row source links are included.
 - **Charts and liquidity:** time-versus-price charts with short live samples and longer official candlesticks; order-book depth shows contracts at each resting price level. Kalshi's candlestick API does not provide seconds-resolution history: short windows are samples accumulated while the tab is open. See [candlestick docs](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) and [orderbook response docs](https://docs.kalshi.com/getting_started/orderbook_responses).
 - **Resolution:** tracked and recently settled markets show the API's `result` field (`yes` or `no`); the dashboard does not infer outcomes from price.
 - **Live alerts:** [Live alerts](https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html) compares `last_price_dollars` between polls and against the exchange's own `previous_price_dollars`, and generates an alert for an absolute change of at least $0.10 in either direction. Every message states which comparison produced it, and a table view of the same events links the official API response behind each price. It has an **All alerts** feed and a **High-ROI watch** filtered by explicit spread, price-band, quote-availability, and open-interest rules. The label is not a claim of predicted or measured ROI.
@@ -30,7 +30,7 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 
 ## Coverage and limitations (not assumptions)
 
-- Alerts poll only while the browser page is open. The current universe is deliberately partial: at most 12 pages of 200 open events are scanned, then the top 30 open markets per topic by the configured money-traded ranking are watched. Markets outside that set can move without an alert. See Flagged items A2 and A6.
+- Alerts poll only while the browser page is open. The current universe is deliberately partial: at most 12 pages of 200 open events are scanned, then the top 30 open markets per topic by the configured volume × last YES-price proxy are watched. Markets outside that set can move without an alert. See Flagged items A2, A6, and A11.
 - A price alert observes the last traded price between polls. Quote-only movements and moves that occur and reverse inside one poll are not detected (A3). Event `settlement_sources` are context links, **not verified causes** of price jumps (A4).
 - The High-ROI watch is a rule set, not a validated model (A1). Paper P&L is optimistic because fees, slippage, and queue position are not modeled (A5).
 - The gas-price page may be empty when no matching open demo events are found; the 2026-11-20 scan recorded zero in its 1,000-event sample (F4). This is not evidence that the production exchange has no gas markets.
