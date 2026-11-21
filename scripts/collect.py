@@ -371,6 +371,18 @@ def aggregate_yes_price_weighted_trade_sample(trades: list[dict]) -> dict[str, d
     }
 
 
+def order_series(rows: list[dict]) -> list[dict]:
+    """Order series for the per-topic cap.
+
+    Descending by the official ``volume_fp`` (a contract count, used only for
+    selection), except that explicitly pinned series — those fetched by ticker
+    because normal discovery cannot return them — always come first, so the cap
+    cannot truncate them away.
+    """
+    ordered = sorted(rows, key=lambda s: float(s.get("volume_fp") or 0), reverse=True)
+    return [s for s in ordered if s.get("_pinned")] + [s for s in ordered if not s.get("_pinned")]
+
+
 def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[str]]:
     """Fetch the series that belong to a topic.
 
@@ -415,6 +427,10 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
         urls.append(url)
         row = (data or {}).get("series") or {}
         if row.get("ticker"):
+            row = dict(row)
+            # Pinned: kept ahead of the volume-ordered cap, otherwise a
+            # low-volume series fetched on purpose can be truncated away again.
+            row["_pinned"] = True
             got.setdefault(row["ticker"], row)
 
     # Documented series-family / title rule, applied after discovery. This never
@@ -459,7 +475,7 @@ def main() -> int:
         # preliminary series selection; it is not traded-dollar volume. The
         # live dashboard's separate volume × current-price ranking is itself a
         # proxy, not an exchange-reported notional (see flagged.html#A11).
-        raw.sort(key=lambda s: float(s.get("volume_fp") or 0), reverse=True)
+        raw = order_series(raw)
         series_by_topic[key] = raw
         topics[key] = {
             "label": spec["label"],

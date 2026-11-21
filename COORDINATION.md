@@ -2172,3 +2172,30 @@ is visible in CI instead of silent. No change to what is collected.
 `collect.collect_series` over the committed series rows keeps exactly the 17 gasoline series and
 drops the 23 oil/nat-gas/diesel/power/barrels rows; Culture issues the three documented category
 queries. Covered by `tools/test_collect.py::TopicTaxonomyTests` (3 tests).
+
+### V5 result — session `5a9b44b9`
+
+**Repair R8 published and verified.** `collect.yml` fix merged as PR #82. Re-dispatch
+[44947676174](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947676174) **succeeded and
+pushed** `7042d8d chore(data): refresh Kalshi demo snapshot [skip ci]` — the first snapshot refresh to
+land since `bbdc3a0`.
+
+Before / after on `data/snapshot.json`:
+
+| Topic | Before (19:29Z) | After (20:43Z) |
+|---|---|---|
+| Culture | 2 series · **0 events** · **0 markets** | **40 series · 37 events · 200 markets** |
+| Gas | 40 series including `KXWTI`, `KXBRENTW`, `KXNATGASW`, `KXDIESELMON`, `KXTXERCOTPEAK`, `KXSOLAR`, `KXBARRELS` | 40 series, all retail-gasoline (`KXAAAGAS*`, `AAAGAS*`, `GAS` "Gas weekly"); `KXWTI`/`KXBRENTW`/`KXNATGASW`/`KXDIESEL*`/`KXTXERCOTPEAK`/`KXSOLAR`/`KXBARRELS` gone |
+| Elections / Crypto / Golf | 40 series each | unchanged (40 series each) |
+
+Gas events are all gas-price questions (`KXAAAGASW-26NOV23` "US gas prices this week",
+`KXAAAGASD-26NOV22` "US gas prices tomorrow", regional max/min markets, …). No WTI/Brent/nat-gas/diesel
+event remains.
+
+**Residual finding (R9, open):** `KXGAS` itself is still absent from the snapshot. The documented
+`GET /series/KXGAS` lookup did run, but the per-topic `--top-series 40` cap is applied **after**
+volume sorting, and `KXGAS` has lower volume than 40 other gasoline series, so it was truncated away
+again. Repair in this branch: `order_series()` pins directly-fetched series ahead of the volume order,
+so the cap cannot drop them; new test `test_pinned_series_survive_the_volume_cap`. Note that the
+dashboard is unaffected — it discovers markets through `/events`, so `KXGAS` markets already reach the
+Gas page. This fixes the snapshot's completeness only.
