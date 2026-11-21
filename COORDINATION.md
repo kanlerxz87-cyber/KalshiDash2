@@ -2459,3 +2459,16 @@ No other session had an open PR or an in-progress claim at claim time (verified 
 | F4 | PR → main, merge, Pages confirm | in progress | `117dc8d6` | same | `gh`, Pages API | — |
 
 Full detail: `reports/verify-117dc8d6.md`.
+
+### Session `117dc8d6` — F4 final record (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#89 — verify: session 117dc8d6 final verification + S8 status fix](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/89), branch `arena/117dc8d6-kalshidash2` → `main` |
+| Merge | `gh pr merge 89 --merge` → **MERGED** 2026-11-21T23:08:28Z, merge commit [`70744d5`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/70744d5a802e238f6e0d8742a9abebfc1158dd5a) |
+| Checks on merged SHA | `Static site link check` **success** (run 44960300785) · `verify-live-site` **success** (run 44960300855) |
+| Pages deploy | Pages API `status: built`, source `main:/`, URL https://kanlerxz87-cyber.github.io/KalshiDash2/ |
+| Live site | Fetched via fetch tool: reachable, "Connected to the Kalshi demo API", trading active |
+| Local suite | Node 78/78 · Python 42/42 · links 35/0 · runtime 17/17 · signing 6/6 |
+
+Session `117dc8d6` is complete: F1–F4 **done**. Flagged items (F10, A11, W2/W3, F15/A5, R9) remain published on `flagged.html` and do not block anything.
