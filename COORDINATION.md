@@ -1937,3 +1937,23 @@ Session `29749918`: GC1 **done**. Requests GC-I1–GC-I6 are open for their owne
 
 ---
 
+
+### Hosted-run finding: the first version of the exit-2 fix was itself over-eager (2026-11-21)
+
+`live-site-render` run [`44947212468`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44947212468)
+on head `34c0fbf` completed **success** but carried the annotation *"The Kalshi demo API refused or was
+unreachable, so content assertions could not be made. This run is not a pass."* — i.e. the new exit-2 path
+worked, but it fired on a healthy site. Cause: `refusalReason()` contained a bare `/socket/` pattern and was
+applied to whole-page text, so the word **WebSocket** in `index.html`'s own copy matched; `alerts.html` also
+contains "429" in static prose. That would have suppressed real verdicts.
+
+Corrected in the same session: the classifier accepts only explicit failure phrases
+(`failed to fetch`, `fetch failed`, `econn*`, `getaddrinfo`, `socket disconnected`, `secure tls`, …), callers
+pass **error surfaces only** (status pill, error row, request-failure note — never a whole page), and an error
+state that is not a refusal is now `error` → **exit 1** instead of being downgraded to inconclusive. Four
+regression tests cover both directions (static prose must not classify; explicit failures must; a non-refusal
+error pill must fail; an unexplained empty board must fail). 14/14 helper tests pass, and both stubbed
+simulations still behave (429 → exit 2; 2,468-event fixture → exit 0).
+
+For comparison, `main`'s own render runs before this branch — `5515a7c6` and `461aab9e` — carry **no**
+inconclusive annotation, so the live check does genuinely pass against the demo API when the site is healthy.

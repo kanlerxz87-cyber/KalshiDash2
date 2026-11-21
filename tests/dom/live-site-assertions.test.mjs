@@ -68,6 +68,35 @@ test("a refused request is not reported as a content regression", () => {
   assert.equal(r.reason, "HTTP 429");
 });
 
+
+test("static page prose is never mistaken for a transport failure", () => {
+  // Regression: a bare /socket/ pattern matched the page's own "WebSocket" copy,
+  // which marked a healthy page as refused and turned a real run inconclusive.
+  const prose = "Build. REST base external-api.demo.kalshi.co/trade-api/v2 WebSocket "
+    + "external-api-ws.demo.kalshi.co Exchange status check in progress. Rate limits apply. "
+    + "The scanner waits a timeout before refreshing.";
+  assert.equal(refusalReason(prose), null);
+});
+
+test("explicit transport failures still classify", () => {
+  assert.equal(refusalReason("TypeError: Failed to fetch"), "transport");
+  assert.equal(refusalReason("socket disconnected before secure TLS connection"), "transport");
+  assert.equal(refusalReason("getaddrinfo EAI_AGAIN"), "transport");
+});
+
+test("a non-refusal error pill is a failure, not inconclusive", () => {
+  const r = boardOutcome({
+    boardText: "Could not load events: 400 bad_request on /events",
+    statusClass: "pill err", statusText: "400 bad_request on /events"
+  });
+  assert.equal(r.outcome, "error");
+});
+
+test("an error pill with no code at all is still a failure", () => {
+  const r = boardOutcome({ boardText: "", statusClass: "pill err", statusText: "something went wrong" });
+  assert.equal(r.outcome, "error");
+});
+
 test("exit codes keep inconclusive distinct from pass and fail", () => {
   assert.equal(EXIT.PASS, 0);
   assert.equal(EXIT.FAIL, 1);

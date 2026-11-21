@@ -31,7 +31,12 @@ export function formatCount(n) {
 
 /* Classify a message the page shows when a request did not succeed.
  * Returns null when the text is not an exchange/transport refusal, so callers
- * keep treating anything else as a real failure. */
+ * keep treating anything else as a real failure.
+ *
+ * ONLY pass it an error surface — a status pill, an error row, a note the page
+ * writes after a failed request. Never pass a whole page's text: static copy on
+ * alerts.html mentions "429" and index.html mentions "WebSocket", both of which
+ * made healthy pages look refused during development. */
 export function refusalReason(text) {
   const s = String(text || "");
   if (!s) return null;
@@ -43,7 +48,10 @@ export function refusalReason(text) {
     // Any other 4xx is a request the site got wrong: a real failure.
     return null;
   }
-  if (/failed to fetch|fetch failed|networkerror|network error|load failed|econn|eai_again|socket|timed? ?out|rate.?limit/i.test(s)) {
+  /* Only explicit transport-failure strings qualify. A bare /socket/ matched the
+   * word "WebSocket" in the page's own static copy (which made a healthy page
+   * look refused), so the patterns below are failure phrases, not topic words. */
+  if (/failed to fetch|fetch failed|networkerror|network error|load failed|econn[a-z]*|eai_again|getaddrinfo|socket disconnected|secure tls|tls connection/i.test(s)) {
     return "transport";
   }
   return null;
@@ -59,8 +67,8 @@ export function boardOutcome({ boardText = "", caveatText = "", statusText = "",
   const board = String(boardText);
   const caveat = String(caveatText);
   const refused = refusalReason(statusText) || refusalReason(board);
-  const looksLikeError = /(^|\s)err(\s|$)/.test(String(statusClass));
   if (refused) return { outcome: "refused", reason: refused };
+  const looksLikeErrorPill = /(^|\s)err(\s|$)/.test(String(statusClass));
   /* The board's empty state is itself a table row, so "non-empty text" does not
    * imply real data. Recognise the placeholders the page renders. */
   const placeholder =
@@ -71,7 +79,10 @@ export function boardOutcome({ boardText = "", caveatText = "", statusText = "",
   if (/none matched|No .* events in this scan|no matching|returned no .* events in this scan/i.test(`${caveat} ${board}`)) {
     return { outcome: "no-match", reason: "page stated the scan result" };
   }
-  if (looksLikeError) return { outcome: "refused", reason: statusText || "error pill without a status code" };
+  /* An error state that is not a refusal means the site made a request the
+   * exchange rejected, or rendered an error for another reason: that is a
+   * genuine failure and must not be downgraded to "inconclusive". */
+  if (looksLikeErrorPill) return { outcome: "error", reason: statusText || "error pill" };
   return { outcome: "empty", reason: board.slice(0, 120) || "empty board, no caveat" };
 }
 

@@ -987,6 +987,13 @@
         does <em>not</em> treat as a pass. An unexplained empty board, or a non-429 <code>4xx</code>, still exits 1.
         Verified by stubbing the network: a 429 storm gave 3 passed / 0 failed / 4 inconclusive and exit 2; a
         2,468-event fixture gave 9 passed / 0 failed and exit 0; an unexplained empty board still failed.</p>
+      <p><strong>Bug in the first version of this fix (found by a hosted run, then corrected):</strong> the
+        refusal test included a bare <code>/socket/</code> pattern and was applied to whole-page text, so the
+        word "WebSocket" in the page's own copy made a healthy page look refused; <code>alerts.html</code>
+        likewise contains "429" in static prose. A hosted run therefore returned inconclusive instead of a
+        genuine verdict. The classifier now matchs explicit failure phrases only, receives error surfaces only
+        (never a whole page), and an error state that is <em>not</em> a refusal is a failure rather than
+        "inconclusive". Regression tests cover both directions.</p>
       <p class="small"><strong>Files:</strong> <code>tests/dom/live-site.mjs</code> ·
         <code>tests/dom/live-site-assertions.mjs</code> · <code>.github/workflows/live-site-render.yml</code> ·
         <a class="src-link" href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits ↗</a>

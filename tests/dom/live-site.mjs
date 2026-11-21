@@ -103,7 +103,10 @@ async function run(page, { waitUntil, waitMs = 120000 }) {
   const txt = w.document.body.textContent.replace(/\s+/g, " ");
   const note = w.document.querySelector("#board-note")?.textContent.replace(/\s+/g, " ") || "";
   check("index", "connected to the demo API", /Connected to the Kalshi demo API/.test(txt) || /could not reach/.test(txt));
-  const refusal = refusalReason(note) || refusalReason(txt);
+  /* Only error surfaces, never `txt`: the page's own copy mentions "WebSocket"
+   * and alerts.html mentions "429", which would mark a healthy page as refused. */
+  const boardStatus = w.document.querySelector("#board-status")?.textContent.replace(/\s+/g, " ") || "";
+  const refusal = refusalReason(note) || refusalReason(boardStatus);
   if (refusal || /could not reach/i.test(txt)) {
     skip("index", "board content assertions", `exchange unavailable (${refusal || "connection refused"})`);
   } else {
