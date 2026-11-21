@@ -17,9 +17,10 @@
  *
  * Simulation assumptions — stated on the page, never hidden:
  *   - A signal is filled at the trade-close price of the candle that fired it.
- *     No spread, no slippage and no fees are applied. Fees therefore make
- *     every result here look better than a live trade would be; the official
- *     fee schedule is linked from the page.
+ *     No spread and no slippage are applied. Trading fees ARE modelled from
+ *     the official fee schedule and fee-rounding mechanics (see the fee
+ *     section below); spread and slippage still make every result here look
+ *     better than a live trade would be.
  *   - A position held to settlement pays the market's own
  *     `settlement_value_dollars` (1.0000 for YES, 0.0000 for NO).
  *   - Trade prices are represented on the YES leg; an NO contract's entry
@@ -31,6 +32,95 @@ import { STRATEGIES } from "./config.js";
 import { api, getAll, classifyEvent, num, fetchCandles } from "./market.js";
 
 const CLOSE_EPS = 1e-9;
+
+/* --------------------------------------------------------------------------
+ * Fees — official schedule, modelled explicitly
+ * -----------------------------------------------------------------------
+ * Sources (fetched and checked line by line on 2026-11-21):
+ *
+ *   1. Fee Schedule PDF, "Fee Schedule for July 2026 - 7.7.26 Update",
+ *      last updated and effective July 7, 2026
+ *      (https://kalshi.com/docs/kalshi-fee-schedule.pdf):
+ *        taker fee = round up(M × 0.07 × C × P × (1−P))
+ *        maker fee = round up(M × 0.0175 × C × P × (1−P))  (maker M default 0)
+ *      P = contract price in dollars, C = contracts, M = per-contract
+ *      multiplier (default 1 for taker unless the schedule's Non-Standard
+ *      Fees table lists the series). "There is no settlement fee."
+ *      "There is no membership fee."
+ *
+ *   2. Fee Rounding (https://docs.kalshi.com/getting_started/fee_rounding)
+ *      defines what "round up" means on the exchange:
+ *        trade fee      = model fee rounded UP to 6 decimal places
+ *        aligned change = floor(revenue − trade fee) to the member's balance
+ *                         precision grid ($0.0001 direct, $0.01 non-direct)
+ *        rounding fee   = (revenue − trade fee) − aligned change
+ *        net fee        = trade fee + rounding fee − rebate (≥ 0)
+ *      Revenue is negative for buyers. A rebate only returns accumulated
+ *      rounding overpayment across later fills of the same order, so a
+ *      single-fill order's net fee is trade fee + rounding fee.
+ *
+ *   Reconciliation: those mechanics, applied on the non-direct $0.01 grid,
+ *   reproduce every one of the 42 worked values in the PDF's own fee table
+ *   (asserted row by row in tests/simulator-core.test.mjs — e.g. 100
+ *   contracts at $0.45 → model 1.7325 + rounding 0.0075 = $1.74). The PDF's
+ *   "centicent" footnote does not match its own table; the mechanics do.
+ *   This tester follows the mechanics. The footnote discrepancy is published
+ *   on the Flagged page (D4) for review.
+ *
+ *   Per-series multipliers: only the Non-Standard Fees rows read verbatim
+ *   from the PDF are encoded below (the taker-multiplier-0 rows, the only
+ *   ones that change taker behaviour). A series not listed uses the general
+ *   default. The full table is in the PDF.
+ * -------------------------------------------------------------------- */
+
+export const FEE_SCHEDULE = Object.freeze({
+  takerRate: 0.07,
+  makerRate: 0.0175,
+  defaultTakerMultiplier: 1,
+  defaultMakerMultiplier: 0,
+  nonDirectGrid: 0.01,   // non-direct member balance precision
+  directGrid: 0.0001,    // direct member balance precision
+  source: "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+  roundingSource: "https://docs.kalshi.com/getting_started/fee_rounding"
+});
+
+/* Taker multiplier = 0 rows from the schedule's Non-Standard Fees table,
+ * transcribed verbatim (series ticker only; all other series default to 1). */
+export const ZERO_TAKER_FEE_SERIES = Object.freeze([
+  "KXBTCY", "KXETHY", "KXCITRINI", "KXDOED", "KXELECTIRAN",
+  "KXGAMBLINGREPEAL", "KXGREENLAND", "KXIRANDEMOCRACY",
+  "KXLAYOFFSYINFO", "KXPAHLAVIHEAD"
+]);
+
+export function takerFeeMultiplier(seriesTicker) {
+  return ZERO_TAKER_FEE_SERIES.includes(seriesTicker)
+    ? 0
+    : FEE_SCHEDULE.defaultTakerMultiplier;
+}
+
+function round12(x) { return Math.round(x * 1e12) / 1e12; }
+function ceil6(x) { return Math.ceil(round12(x) * 1e6) / 1e6; }
+function floorToGrid(x, grid) { return Math.floor(round12(x / grid)) * grid; }
+
+/* Model fee before rounding: M × rate × C × P × (1−P). */
+export function modelFeeDollars({ price, count = 1, multiplier = 1, side = "taker" }) {
+  const rate = side === "maker" ? FEE_SCHEDULE.makerRate : FEE_SCHEDULE.takerRate;
+  return multiplier * rate * count * price * (1 - price);
+}
+
+/* Net fee for a single fill, following the official rounding mechanics.
+ * `action` is "buy" (signed revenue is negative) or "sell". */
+export function fillFeeDollars({
+  price, count = 1, multiplier = 1, side = "taker", action = "buy",
+  grid = FEE_SCHEDULE.nonDirectGrid
+}) {
+  const modelFee = modelFeeDollars({ price, count, multiplier, side });
+  const tradeFee = ceil6(modelFee);
+  const signedRevenue = action === "sell" ? count * price : -(count * price);
+  const alignedChange = floorToGrid(signedRevenue - tradeFee, grid);
+  const roundingFee = round12((signedRevenue - tradeFee) - alignedChange);
+  return { modelFee, tradeFee, roundingFee, netFee: round12(tradeFee + roundingFee) };
+}
 
 /* --------------------------------------------------------------------------
  * Universe
@@ -200,6 +290,17 @@ export function replayStrategy(strategy, series, market) {
     exitTs = market.settlement_ts ? Date.parse(market.settlement_ts) : null;
   }
 
+  /* Official-schedule fees for a one-contract order: a taker fee on the
+   * entry fill, plus — for a round-trip exit that sells back into the book —
+   * a taker fee on the exit fill. A settlement exit pays no settlement fee
+   * (fee schedule: "There is no settlement fee."). */
+  const mult = takerFeeMultiplier(market.series_ticker);
+  const entryFee = fillFeeDollars({ price: entryPrice, count: 1, multiplier: mult }).netFee;
+  const exitFee = exitPrice !== null
+    ? fillFeeDollars({ price: exitPrice, count: 1, multiplier: mult, action: "sell" }).netFee
+    : 0;
+  const feePerContract = round4(entryFee + exitFee);
+
   return {
     strategyKey: strategy.key,
     strategyName: strategy.name,
@@ -216,6 +317,8 @@ export function replayStrategy(strategy, series, market) {
     exitTs,
     payout,
     pnlPerContract: pnl,
+    pnlNetPerContract: pnl === null ? null : round4(pnl - feePerContract),
+    feePerContract,
     capitalPerContract: entryPrice,
     result: (market.result || "").toLowerCase(),
     settlementValue: settle,
@@ -223,6 +326,8 @@ export function replayStrategy(strategy, series, market) {
     seriesTicker: market.series_ticker
   };
 }
+
+function round4(x) { return Math.round(x * 1e4) / 1e4; }
 
 /* Reproducible random-control trade: one randomly selected candle and side
  * per market, generated from a ticker-seeded PRNG. This is a baseline, not a
@@ -260,6 +365,9 @@ export function replayRandomControl(series, market) {
   const side = random() < 0.5 ? "yes" : "no";
   const entryPrice = side === "yes" ? entry.close : 1 - entry.close;
   const payout = side === "yes" ? settle : 1 - settle;
+  const feePerContract = fillFeeDollars({
+    price: entryPrice, count: 1, multiplier: takerFeeMultiplier(market.series_ticker)
+  }).netFee;
   return {
     strategyKey: RANDOM_CONTROL.key,
     strategyName: RANDOM_CONTROL.name,
@@ -276,6 +384,8 @@ export function replayRandomControl(series, market) {
     exitTs: market.settlement_ts ? Date.parse(market.settlement_ts) : null,
     payout,
     pnlPerContract: payout - entryPrice,
+    pnlNetPerContract: round4((payout - entryPrice) - feePerContract),
+    feePerContract: round4(feePerContract),
     capitalPerContract: entryPrice,
     result: (market.result || "").toLowerCase(),
     settlementValue: settle,
@@ -303,13 +413,15 @@ export function aggregate(trades) {
   for (const t of trades) {
     if (!groups.has(t.strategyKey)) {
       groups.set(t.strategyKey, {
-        key: t.strategyKey, name: t.strategyName, trades: [], pnl: 0, capital: 0, wins: 0, losses: 0, flat: 0
+        key: t.strategyKey, name: t.strategyName, trades: [], pnl: 0, pnlNet: 0, fees: 0, capital: 0, wins: 0, losses: 0, flat: 0
       });
     }
     const g = groups.get(t.strategyKey);
     g.trades.push(t);
     if (t.pnlPerContract !== null) {
       g.pnl += t.pnlPerContract;
+      g.pnlNet += t.pnlNetPerContract !== null && t.pnlNetPerContract !== undefined ? t.pnlNetPerContract : t.pnlPerContract;
+      g.fees += t.feePerContract || 0;
       g.capital += t.capitalPerContract;
       if (t.pnlPerContract > 0) g.wins++;
       else if (t.pnlPerContract < 0) g.losses++;
@@ -326,6 +438,7 @@ export function aggregate(trades) {
       winRate: scored ? g.wins / scored : null,
       avgEntry,
       roi: g.capital > 0 ? g.pnl / g.capital : null,
+      roiNet: g.capital > 0 ? g.pnlNet / g.capital : null,
       avgPnl: n ? g.pnl / n : null
     };
   });
@@ -368,8 +481,13 @@ const CSV_COLUMNS = [
   ["exit_price_per_contract", t => t.exitPrice ?? ""], ["exit_reason", t => t.exitReason],
   ["settlement_result", t => t.result], ["settlement_value", t => t.settlementValue ?? ""],
   ["payout_per_contract", t => t.payout ?? ""], ["pnl_per_contract", t => t.pnlPerContract ?? ""],
+  ["fee_per_contract", t => t.feePerContract ?? ""],
+  ["pnl_net_of_fees_per_contract", t => t.pnlNetPerContract ?? ""],
   ["capital_per_contract", t => t.capitalPerContract ?? ""], ["market_source", t => marketSourceUrl(t.ticker)],
-  ["event_source", t => eventSourceUrl(t.eventTicker)], ["candlestick_docs", () => "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"]
+  ["event_source", t => eventSourceUrl(t.eventTicker)],
+  ["fee_schedule", () => "https://kalshi.com/docs/kalshi-fee-schedule.pdf"],
+  ["fee_rounding_docs", () => "https://docs.kalshi.com/getting_started/fee_rounding"],
+  ["candlestick_docs", () => "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"]
 ];
 
 export function marketSourceUrl(ticker = "") {
