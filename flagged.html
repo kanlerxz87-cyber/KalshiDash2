@@ -1297,6 +1297,40 @@
         <code>reports/review-5a9b44b9.md</code> §3 R9</p>
     </div>
 
+    <h2>9 · Deployment record (session <code>c33971c1</code>, added 2026-11-21)</h2>
+    <p class="sub">Found while confirming that this session's merge actually reached the live site.</p>
+
+    <div class="irregularity" id="Z3">
+      <h3>Z3 — Two Pages build records say "Page build failed" while the matching Actions runs were cancelled <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> three sessions merged to <code>main</code> within about two minutes on
+        2026-11-21 (PRs #89, #90, #92, then #91 at 23:12:03Z). The GitHub Pages builds API records
+        <code>errored — "Page build failed."</code> for commits <code>31e251b</code> (build 23:11:41Z) and
+        <code>0de03ce</code> (23:12:04Z), while the Actions runs for those same SHAs are recorded as
+        <strong>cancelled</strong>: run
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960578087" target="_blank" rel="noopener noreferrer">44960578087</a> and run
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960608269" target="_blank" rel="noopener noreferrer">44960608269</a>.</p>
+      <p><strong>What happened next:</strong> the next push to <code>main</code> (<code>afc2c0b</code>, a bot data
+        commit) ran the same legacy build and <strong>succeeded</strong> — run
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44960633462" target="_blank" rel="noopener noreferrer">44960633462</a>
+        — after which the Pages API reported <code>status: built</code> for source <code>main:/</code>.</p>
+      <p><strong>Impact: none observed.</strong> A legacy Pages build keeps serving the last successful
+        deployment, so the site was never blank and no visitor saw an error page. Verified after the successful
+        build by fetching the published pages and assets directly: <code>flagged.html</code> serves this
+        session's new items and <code>assets/js/market.js</code> serves the series-category code.</p>
+      <p><strong>Why it is flagged rather than dismissed:</strong> "Page build failed" and "cancelled" are two
+        different statements about the same SHA, and only GitHub can say which one is authoritative for a
+        superseded build. It is recorded so that a future reader who sees an <code>errored</code> entry in the
+        builds API does not conclude the site was broken — check whether the run was merely cancelled and
+        whether a later build succeeded before treating it as a defect.</p>
+      <p><strong>What would close it:</strong> a GitHub explanation of how the Pages builds API records a
+        superseded build, or a run log for one of those SHAs showing an actual build error rather than a
+        cancellation.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.github.com/en/rest/pages/pages#list-github-pages-builds" target="_blank" rel="noopener noreferrer">Pages builds API ↗</a>
+        · the build list for this repository (<code>GET /repos/kanlerxz87-cyber/KalshiDash2/pages/builds</code>)
+        · the three Actions runs above.</p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
