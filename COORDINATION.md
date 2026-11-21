@@ -1539,3 +1539,59 @@ Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
 No new irregularities found this session. Pre-existing flags on `flagged.html` carried forward unchanged; none block the merge per instructions.
 
 **Full local suite on the R1 tree:** `node --test` **73/73** · `python -m unittest discover -s tools` **28/28** · `python -m unittest discover -s tests` **18 OK (3 skipped, `cryptography` not installed)** · alerts DOM **16/16** · summary DOM pass (20 requirement areas; 78/89 verified, 8 partial, 3 unverified; 32 open / 23 mitigated / 55 flags; 28 sourced rows) · static links **34 pages / 0 broken** · page-runtime **17/17**. Pages API before PR: `status: built`, source `main:/`. Open PR #60 (`arena/9543cf0d`) touches only `COORDINATION.md` in common with this session (append-only, union-resolvable); no file-scope overlap on `scripts/collect.py` or `data/snapshot.json`.
+
+---
+
+## Session `f2176447` — final integration: live-render fix (I2 takeover), PR #60 merge, Pages confirmation
+
+Work branch: `arena/f2176447-kalshidash2`, branched from `main` at `bbdc3a0`. Claim commit
+`b8e3129` was pushed before any in-scope file was edited.
+
+**Takeover note (60-minute stale-claim rule):** task I2 (`tests/dom/live-site.mjs`, owner
+`3d2e8243`) was claimed 2026-11-21 ~06:4x UTC; that branch's latest commit is `fb96bde`
+(bot report only) and `git diff origin/main..origin/arena/3d2e8243-kalshidash2 --
+tests/dom/live-site.mjs` is empty — the file was never edited. More than 13 h with no
+commits, so this session took over I2's file scope. PR #60 (session `9543cf0d`, last commit
+07:09 UTC, >13 h stale) also blocked its own merge on this check; merged below after the fix
+landed. No session's work was discarded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| F1 | Fix `tests/dom/live-site.mjs`: accept comma-formatted scan counts; accept the app's explicit gas no-match state without masking API failures; bounded 429 retry in the harness fetch | **done** | `f2176447` | `tests/dom/live-site.mjs`, `COORDINATION.md` (this section) | Diagnostic run [44878820720](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44878820720) (recorded on PR #60 in `c9994e0`); [Kalshi rate limits](https://docs.kalshi.com/getting_started/rate_limits); `index.html`, `assets/js/{ui,category}.js` read line-by-line; **live-API proof run [44945820999](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945820999) SUCCESS** | Test-only fix; no site behaviour change. A persistent API failure still fails the check. |
+| F2 | Full local suite on the fixed tree (Node, Python, DOM, page-runtime, link check) | **done** | `f2176447` | `COORDINATION.md` (this section) | Table below | — |
+| F3 | PR from this branch to `main`, merge, confirm `live-site-render` + `verify-live-site` green on `main` | in progress | `f2176447` | `COORDINATION.md` (this section) | [PR #64](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/64); `gh pr merge`, Pages API | Do not merge a broken site. |
+| F4 | Take over stale PR #60 and merge it against a green `main`, then confirm Pages | unclaimed | — | `COORDINATION.md` (this section) | `gh pr merge 60 --merge`, Pages API, `verify-live-site` | PR #60's body blocks on the render check, now green. Session branch rule: this session does not push to another session's branch, so PR #60 is merged as-is once main is green (it does not touch `tests/dom/live-site.mjs`). |
+| F5 | Snapshot-label drift (`contract-count fields`, `not asserted as actual all-side cash turnover` missing from `scripts/collect.py` + `data/snapshot.json`) | **dropped — duplicate** | `f2176447` | none (see note) | `tools/test_collect.py`, `tests/activity-proxy.test.mjs` | Session `0d6f4f1f` found and fixed the identical drift in [PR #63](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/63) (merge `882e074`) while this session was working. Both guards are green on `main`; this session's identical label commit was **dropped during the rebase onto `main`** rather than duplicating or overwriting their work. |
+
+### F1–F2 results (verified in this workspace, 2026-11-21 ~20:20Z)
+
+**Root causes re-derived from source** (the runner log and artifact download from this build
+sandbox fail with `EOF`, so the recorded diagnosis on PR #60 was used as the pointer, not the
+proof): `index.html` renders the scan note through `int()` in `assets/js/ui.js`
+(`toLocaleString`), so a 2,800-event scan reads `Scanned 2,800 events` and the old
+`/Scanned \d+ events/` regex rejected it; `categories/gas.html` (`assets/js/category.js`)
+sets `#board-status` to `err` only on failure, renders `The live API returned no <topic>
+events in this scan.` on the board for a legitimate zero-match scan, and states
+`No <topic> events in this scan` in `#topic-caveat` via `renderCoverage`; the demo API
+returns HTTP 429 under burst load. The harness now retries 429 up to 3 times with backoff
+(honouring `Retry-After`, capped at 15 s), accepts `[\d,]+` scan counts, and accepts a gas
+board that is either a live `KXAAAGAS` event or the page's own explicit no-match text. An
+error board still fails, so a persistent API failure is never masked.
+
+| Check | Command | Result |
+|---|---|---|
+| Harness syntax | `node --check tests/dom/live-site.mjs` | OK |
+| Node unit tests | `node --test tests/{alerts-core,live-core,taxonomy,simulator-core,jumps,activity-proxy}.test.mjs` | **71/71 pass** |
+| Python tool tests | `python -m unittest discover -s tools -p 'test_*.py'` | **28/28 OK** |
+| WebSocket client tests | `python -m unittest discover -s tests -p 'test_*.py'` | 18 run, **OK (3 skip)** |
+| Static links | `python tools/check_site_links.py .` | **34 pages, 0 broken** |
+| Page runtime | `node tools/verify/page-runtime-check.mjs` | **17/17 pages clean**, 34 links |
+| Alerts DOM | `npm test` in `tests/dom` | **16/16** |
+| Summary DOM | `node summary-dom.mjs` | 20 requirement areas, 78/89 claims verified, 32 open / 23 mitigated / 55 flags, 28 sourced rows |
+| **Live render (decisive)** | `gh workflow run live-site-render.yml --ref arena/f2176447-kalshidash2` → run [`44945820999`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945820999) | **SUCCESS in 12 s** against the real demo API — this was `failure` on `main` in run `44878586946` |
+| `verify-alerts` on this branch | run [`44945819226`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945819226) | **success** |
+| Static site link check on this branch | run [`44945819257`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44945819257) vs the earlier `44945690095` | **success** after the fixes; the earlier same-day run failed on the pre-fix tree, so the failure was real and is now closed |
+
+No new irregularities were introduced; F1/F2 added no flags. All pre-existing flags on
+`flagged.html` are unchanged and, per the brief, do not block the merge.
+
