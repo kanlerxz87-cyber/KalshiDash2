@@ -2459,3 +2459,12 @@ header) which were "left for their file owners" — owners who have since closed
 
 **Claim committed and pushed before any file in scope is edited.** Shared outputs (`index.html`, navigation, table data) are not edited
 by this session unless a defect is found and logged here first.
+
+**Scope amendment (2026-11-21T23:3xZ, logged before editing):** K1 found one defect in a shared output — `index.html` line 272
+builds a `rows` array (one HTML string per ranked event) on every 60-second refresh that nothing reads; the board is rendered from
+the separate `sorted` map a few lines below, and the two templates have already drifted (the dead one lacks the "API response ↗"
+source column). K3 scope now includes `index.html` for that dead-code removal only (no rendered output, formula, or label changes).
+Also found while re-verifying: `5a9b44b9`'s R2/R5/R6/R9 **are already published** as SB1–SB4 (section 8 of `flagged.html`) —
+K2's "publish as new cards" item is therefore a status update to SB4 (live `GET /series/KXGAS` vs `GET /series/GAS` answer), not new
+cards; the new section 9 carries only this session's own findings (`K1…`). GC-I6: `updated_time` is not displayed on any page
+(`grep` over `*.html`/`assets/js/*.js` finds no use), so nothing labels it a quote time — satisfied.
