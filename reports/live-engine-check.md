@@ -1,46 +1,57 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-21T20:36:10.269Z
+- Run at: 2026-11-21T23:12:15.913Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
 ## 1 · Alert engine
 
 - Events scanned: 1200
-- Markets in the five topics: 2760
-- Swings of $0.10 or more detected: 2
+- Markets in the five topics: 2836
+- Swings of $0.10 or more detected: 1
 
 | Topic | Market | From | To | Δ | Basis | Screen |
 | --- | --- | --- | --- | --- | --- | --- |
-| elections | `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 | exchange previous_price_dollars | 50/100 |
 | elections | `KXNEWPOPE-70-LANT` | 0.18 | 0.98 | +0.80 | exchange previous_price_dollars | 61/100 |
 
-- Markets with a readable previous price: 2781
-- Largest single move against the exchange's previous price: +0.98 on `KXECCOMPACT-30`
+- Markets with a readable previous price: 2857
+- Largest single move against the exchange's previous price: +0.80 on `KXNEWPOPE-70-LANT`
 
 | Market | previous_price_dollars | last_price_dollars | Δ |
 | --- | --- | --- | --- |
-| `KXECCOMPACT-30` | 0.01 | 0.99 | +0.98 |
 | `KXNEWPOPE-70-LANT` | 0.18 | 0.98 | +0.80 |
 | `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
 | `KXPERFORMBONDSONG-35-ELT` | 0.91 | 0.89 | -0.02 |
-| `KXNEXTNATOSECGEN-99-KIOH` | 0.02 | 0.02 | 0.00 |
-| `KXNEXTNATOSECGEN-99-KKAL` | 0.15 | 0.15 | 0.00 |
-| `KXNEXTNATOSECGEN-99-BWAL` | 0.11 | 0.11 | 0.00 |
-| `KXNEXTNATOSECGEN-99-MFRE` | 0.50 | 0.50 | 0.00 |
-| `KXNEXTNATOSECGEN-99-ULEY` | 0.01 | 0.01 | 0.00 |
-| `KXNEXTNATOSECGEN-99-PPAV` | 0.15 | 0.15 | 0.00 |
+| `KXNEWPOPE-70-PPIZ` | 0.10 | 0.10 | 0.00 |
+| `KXNEWPOPE-70-PPAR` | 0.54 | 0.54 | 0.00 |
+| `KXNEWPOPE-70-FAMB` | 0.11 | 0.11 | 0.00 |
+| `KXNEWPOPE-70-MZUP` | 0.10 | 0.10 | 0.00 |
+| `KXNEWPOPE-70-PERD` | 0.38 | 0.38 | 0.00 |
+| `KXNEWPOPE-70-AARB` | 0.10 | 0.10 | 0.00 |
+| `KXNEWPOPE-70-ZQ01` | 0.00 | 0.00 | 0.00 |
 
 ## 2 · Strategy tester
 
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 11
-- History requests that failed: 1
-- Simulated trades produced: 0
+- Markets with usable one-minute history: 7
+- History requests that failed: 5
+- Simulated trades produced: 3
 
-_No strategy fired in this universe._
+| Strategy | Trades | Wins | Losses | Hit rate | Avg entry price | P&L / contract | ROI |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Momentum continuation | 1 | 0 | 1 | 0.0% | $0.65 | -0.65 | -100.0% |
+| Buy the dip | 1 | 0 | 1 | 0.0% | $0.35 | -0.35 | -100.0% |
+| Round-trip scalper | 1 | 0 | 1 | 0.0% | $0.65 | -0.65 | -100.0% |
+
+### First simulated trades
+
+| Strategy | Market | Side | Entry | Exit | Result | P&L / contract |
+| --- | --- | --- | --- | --- | --- | --- |
+| Momentum continuation | `KXDEMOFUTHOURLY-26NOV21H23-UP` | yes | 0.65 | held to settlement | no | -0.65 |
+| Buy the dip | `KXDEMOFUTHOURLY-26NOV21H23-UP` | yes | 0.35 | held to settlement | no | -0.35 |
+| Round-trip scalper | `KXDEMOFUTHOURLY-26NOV21H23-UP` | yes | 0.65 | held to settlement | no | -0.65 |
 
 ---
 
