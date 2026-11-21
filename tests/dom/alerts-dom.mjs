@@ -247,6 +247,28 @@ check("evidence links are labelled as checks, not causes", () => {
   assert.ok(!/caused by/i.test(html), "no alert claims a cause for a price move");
 });
 
+check("every alert offers a track-to-resolution action and an event-detail link", () => {
+  const btns = $$("#feed-all [data-track]");
+  assert.ok(btns.length > 0, "the feed renders Track buttons");
+  const trackTicker = btns[0].getAttribute("data-track");
+  assert.ok(trackTicker, "the button names the market it tracks");
+  const html = $("#feed-all").innerHTML;
+  assert.ok(/href="event\.html\?ticker=[^"]+"/.test(html), "alerts link the event detail page");
+});
+check("clicking Track to resolution writes only documented fields to the watch list", () => {
+  const btn = $$("#feed-all [data-track]")[0];
+  const ticker = btn.getAttribute("data-track");
+  btn.click();
+  const saved = JSON.parse(w.localStorage.getItem("kalshiDash.watch.v1") || "[]");
+  const entry = saved.find(x => x.ticker === ticker);
+  assert.ok(entry, "the clicked market is on the watch list");
+  assert.equal(entry.event_ticker.length > 0, true, "the event ticker came from the alert");
+  assert.ok(entry.open_price === null || typeof entry.open_price === "number",
+    "open_price is the alert's own price or null, never a string guess");
+  assert.ok($("#feed-all").innerHTML.includes("tracked to resolution"),
+    "the feed now marks the market as tracked");
+});
+
 for (const [s, n] of results) console.log(s, n);
 const failed = results.filter(r => r[0] === "FAIL").length;
 console.log(`\n${results.length - failed}/${results.length} checks passed`);

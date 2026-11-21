@@ -24,6 +24,15 @@ automated simulated trades, demo trading, trade categorization and performance a
 Trading needs your own demo API key, entered in the browser only (or via `scripts/kalshi_client.py`)
 — never commit keys. Official docs: https://docs.kalshi.com · demo site: https://demo.kalshi.co
 
+**Sources register:** `sources.html` (data in `assets/js/sources.js`, tests in
+`tests/sources-page.test.mjs`) lists every official page the site depends on, what each is used for, and how it was
+checked — read in full, matched against the official <https://docs.kalshi.com/llms.txt> index, or left unverified
+and flagged.
+
+**Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
+(Σ `count_fp` × the price of the side the taker bought) — the real dollar figure, beside the volume × price proxy
+that the ranking column still uses. Logic in `assets/js/dollar-volume.js`, tests in `tests/dollar-volume.test.mjs`.
+
 **Repo-side tools:** `scripts/kalshi_client.py` (verified demo API client: markets, orderbook,
 candlesticks, balance, positions, fills, guarded order placement; supports RSA + Ed25519;
 hard-locked to the demo host), `scripts/analyze_trades.py` (categorize fills by trade
@@ -101,6 +110,7 @@ index.html                overview board            <- published site root (Page
   suggestions.html        decision board
   questions.html          questions, information, answers
   verification.html       claim register with official sources
+  sources.html            source register: every official page, its use and how it was checked
   flagged.html            irregularities + unverified items
   assets/js/*.js          client, market data, chart, alerts, simulator, UI (ES modules)
   assets/css/app.css
@@ -153,11 +163,15 @@ Both scripts are hard-locked to the demo hosts and refuse to talk to production.
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
-node --test tests/alerts-core.test.mjs    # alert engine unit tests (18)
+node --test tests/alerts-core.test.mjs    # alert engine unit tests (19)
 node --test tests/live-core.test.mjs      # live-feed field mapping and $0.10 threshold tests (23)
-node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (10)
+node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (11)
+node --test tests/result-semantics.test.mjs # yes / no / scalar settlement labels (11)
+node --test tests/chart-axis.test.mjs     # X-axis labels for seconds → days windows (10)
 node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests
-(cd tests/dom && npm ci && node alerts-dom.mjs)   # alerts page end-to-end with fixtures
+node --test tests/dollar-volume.test.mjs  # official traded-dollar volume (Get Trades) + incompleteness rules
+node --test tests/sources-page.test.mjs   # Sources register: links, checks, no transcribed values
+(cd tests/dom && npm ci && npm test)      # alerts, summary and category pages end-to-end with fixtures
 python3 tools/check_site_links.py .       # local links and anchors in the published site
 python3 -m unittest discover -s tools     # link-checker tests
 ```

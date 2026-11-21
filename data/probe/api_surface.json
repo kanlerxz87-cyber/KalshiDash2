@@ -31,7 +31,6 @@
     "status": 401,
     "upgrade": null
   },
-  "series_count": 16653,
   "categories": {
     "Sports": 8486,
     "Elections": 5420,
@@ -447,5 +446,6 @@
     "Federal Reserve": 1,
     "Daily Views": 1,
     "Technology": 1
-  }
+  },
+  "series_rows_in_single_response": 16653
 }

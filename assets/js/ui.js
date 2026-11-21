@@ -102,6 +102,7 @@ export const PAGES = [
   { href: "suggestions.html", label: "Suggestions" },
   { href: "questions.html", label: "Questions" },
   { href: "verification.html", label: "Verification" },
+  { href: "sources.html", label: "Sources" },
   { href: "flagged.html", label: "Flagged" }
 ];
 
@@ -156,6 +157,29 @@ export function mountChrome({ page, title, depth = 0 }) {
 }
 
 export const BUILD_DATE = "2026-11-21";
+
+/* X-axis tick label for a chart window.
+ *
+ * Time-of-day alone is ambiguous once the window is longer than half a day: a
+ * 7-day chart would print five different "03:15" labels with no date, and a
+ * 24-hour chart repeats the label at midnight. Windows over 12 hours therefore
+ * carry the calendar date as well as the clock time. Sub-10-minute windows add
+ * seconds, because two minute labels would otherwise describe the whole span.
+ *
+ * Exported so the format is unit-testable without a canvas (tests/chart-axis.test.mjs);
+ * `locale`/`timeZone` default to the viewer's, which is what the page wants.
+ */
+export function timeTickLabel(t, spanMs, { locale, timeZone } = {}) {
+  const d = new Date(t);
+  if (spanMs > 12 * 3600 * 1000) {
+    return d.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone });
+  }
+  return d.toLocaleTimeString(locale, {
+    hour: "2-digit", minute: "2-digit",
+    second: spanMs <= 600000 ? "2-digit" : undefined,
+    timeZone
+  });
+}
 
 /* ---------------- canvas line chart ----------------
  *
@@ -234,7 +258,7 @@ export function lineChart(canvas, series, opts = {}) {
     const t = x0 + ((x1 - x0) * i) / xSteps;
     const x = X(t);
     ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + h); ctx.stroke();
-    const label = new Date(t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: (x1 - x0) <= 600000 ? "2-digit" : undefined });
+    const label = timeTickLabel(t, x1 - x0);
     ctx.fillStyle = "#5d6b7a";
     const tw = ctx.measureText(label).width;
     ctx.fillText(label, Math.max(pad.l, Math.min(x - tw / 2, pad.l + w - tw)), cssH - 12);

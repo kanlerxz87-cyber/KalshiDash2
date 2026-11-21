@@ -12,6 +12,7 @@ import {
   detectJumps, jumpMarkers
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
+import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE } from "./dollar-volume.js";
 
 const topicKey = document.body.dataset.topic;
 const topic = TOPICS.find(t => t.key === topicKey);
@@ -134,9 +135,13 @@ function renderBoard() {
   $("#board-body").innerHTML = rows.map(({ ev, r }) => {
     const top = [...(ev.markets || [])].sort((a, b) => (num(b.volume_fp) || 0) - (num(a.volume_fp) || 0))[0];
     const result = r.result;
+    /* `result` is the exchange's literal value (yes / no / scalar / blank).
+     * A non-binary settlement is shown as itself — never coerced to "no" and
+     * never hidden behind the "open" label. */
     const tag = result === "yes" ? `<span class="tag yes">yes</span>`
       : result === "no" ? `<span class="tag no">no</span>`
       : result === "mixed" ? `<span class="tag warn">mixed</span>`
+      : result ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(result)}</span>`
       : `<span class="muted small">open</span>`;
     /* A multivariate ("combo") event is labelled as one and its topic is shown
      * with the legs it was derived from — the classification basis is not left
@@ -183,6 +188,85 @@ $("#board-mode").addEventListener("click", (e) => {
   $("#board-mode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   renderBoard();
 });
+
+/* ------------------------------------------------- official traded dollars */
+
+/* On-demand measurement of the dollars that actually changed hands, from
+ * GET /markets/trades. Deliberately not part of the poll: it costs one request
+ * per market, so the reader chooses the window and the market budget, and the
+ * page states both the count measured and the count skipped. */
+async function measureTradedDollars() {
+  if (!state.events.length) {
+    pill($("#dollar-status"), "warn", "load the board first");
+    return;
+  }
+  const seconds = Number($("#dollar-window")?.value) || 86400;
+  const maxMarkets = Math.min(40, Math.max(1, Number($("#dollar-markets")?.value) || 12));
+  pill($("#dollar-status"), "warn", "reading trades…");
+  $("#dollar-run").disabled = true;
+  try {
+    const res = await rankByTradedDollars(path => api.get(path), state.events, {
+      seconds,
+      maxMarkets,
+      limit: TRADE_LIMITS.maxLimit,
+      onProgress: p => pill($("#dollar-status"), "warn", `reading trades… ${p.measured + p.failed}/${p.total} markets, ${p.requests} request(s)`)
+    });
+    renderTradedDollars(res);
+    pill($("#dollar-status"), res.failed ? "warn" : "live",
+      `${res.measured} measured · ${res.failed} unreadable · ${res.requests} request(s)`);
+  } catch (e) {
+    pill($("#dollar-status"), "err", e.message);
+    $("#dollar-rows").innerHTML = emptyRow(6, "The trades endpoint could not be read: " + e.message);
+    $("#dollar-kpis").innerHTML = "";
+  } finally {
+    $("#dollar-run").disabled = false;
+  }
+}
+
+function renderTradedDollars(res) {
+  const total = res.rows.reduce((a, r) => a + (r.dollars || 0), 0);
+  const trades = res.rows.reduce((a, r) => a + (r.trades || 0), 0);
+  const contracts = res.rows.reduce((a, r) => a + (r.contracts || 0), 0);
+  const hrs = Math.round(res.window.seconds / 3600);
+  $("#dollar-kpis").innerHTML = [
+    { k: "Traded dollars", v: money(total, { dp: 2 }), m: `Σ across the ${res.measured} market(s) read, last ${hrs}h` },
+    { k: "Trades read", v: int(trades), m: "completed transactions in the window" },
+    { k: "Contracts read", v: int(contracts), m: "Σ count_fp" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+  if (!res.rows.length) {
+    $("#dollar-rows").innerHTML = emptyRow(6, "No open markets were available to measure in this scan.");
+    return;
+  }
+  $("#dollar-rows").innerHTML = res.rows.map(r => {
+    const ev = r.event;
+    const src = `${DEMO.rest}/markets/trades?ticker=${encodeURIComponent((ev.markets?.[0] || {}).ticker || "")}&min_ts=${res.window.min_ts}&max_ts=${res.window.max_ts}`;
+    const dollars = r.complete
+      ? money(r.dollars)
+      : `<span class="unv" title="At least one market's trade pages could not be read">n/a</span>`;
+    return `<tr>
+      <td><a href="../event.html?ticker=${encodeURIComponent(ev.event_ticker)}">${esc(ev.title || ev.event_ticker)}</a>
+        <div class="mono muted small">${esc(ev.event_ticker)}</div></td>
+      <td class="num">${int(r.markets)}</td>
+      <td class="num">${int(r.trades)}</td>
+      <td class="num">${int(r.contracts)}</td>
+      <td class="num">${dollars}</td>
+      <td><a href="${esc(src)}" target="_blank" rel="noopener noreferrer">trades response ↗</a></td>
+    </tr>`;
+  }).join("");
+
+  const skipped = res.skippedMarkets
+    ? ` ${int(res.skippedMarkets)} of ${int(res.totalMarkets)} open markets in this topic were outside the ${res.measured + res.failed}-market budget and are not measured.`
+    : "";
+  const failed = res.failed ? ` ${int(res.failed)} market(s) could not be read and are excluded from their event's total.` : "";
+  $("#dollar-note").innerHTML = `
+    Σ(<code>count_fp</code> × <code>yes_price_dollars</code> for a YES taker, <code>no_price_dollars</code> for a NO taker), from
+    <a href="${esc(TRADES_SOURCE)}" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>,
+    window ${esc(res.window.min_ts)}–${esc(res.window.max_ts)} (Unix seconds).${esc(skipped)}${esc(failed)}
+    If any page of trades cannot be read the event shows <span class="unv">n/a</span>; a partial sum is never presented as a total.`;
+}
+
+$("#dollar-run")?.addEventListener("click", measureTradedDollars);
 
 /* ------------------------------------------------------------------ chart */
 async function selectMarket(market) {
@@ -447,16 +531,25 @@ async function loadBook(ticker) {
     const book = await getOrderbook(ticker, 20);
     const q = deriveQuote(book);
     const orderbookUrl = `${DEMO.rest}/markets/${encodeURIComponent(ticker)}/orderbook?depth=20`;
-    const row = (l, kind) => `<tr><td class="num">${money4(l.p)}</td>
+    /* A NO bid at y is a YES ask at 1 − y (official reciprocal rule), and that
+     * ask is the price at which a buyer can actually take YES liquidity — which
+     * is what the panel heading promises. The implied column is shown next to
+     * the literal NO bid price, never instead of it, and is blank on YES-bid
+     * rows because a YES bid is the other side of the book. */
+    const row = (l, kind) => {
+      const impliedYesAsk = kind === "no" ? Number((1 - l.p).toFixed(4)) : null;
+      return `<tr><td class="num">${money4(l.p)}</td>
       <td class="num">${int(l.c)}</td>
       <td class="num">${money(l.p * l.c)}</td>
+      <td class="num">${impliedYesAsk === null ? `<span class="muted small">—</span>` : money4(impliedYesAsk)}</td>
       <td><span class="tag ${kind === "yes" ? "yes" : "no"}">${kind === "yes" ? "YES bid" : "NO bid"}</span></td>
       <td><a href="${esc(orderbookUrl)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td></tr>`;
+    };
 
     const yesRows = [...q.yes].sort((a, b) => b.p - a.p);
     const noRows = [...q.no].sort((a, b) => b.p - a.p);
-    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(5, "No resting YES bids.");
-    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(5, "No resting NO bids.");
+    $("#yes-book").innerHTML = yesRows.length ? yesRows.map(l => row(l, "yes")).join("") : emptyRow(6, "No resting YES bids.");
+    $("#no-book").innerHTML = noRows.length ? noRows.map(l => row(l, "no")).join("") : emptyRow(6, "No resting NO bids.");
 
     const yesDepth = yesRows.reduce((a, l) => a + l.c, 0);
     const yesNotional = yesRows.reduce((a, l) => a + l.p * l.c, 0);
@@ -469,8 +562,10 @@ async function loadBook(ticker) {
       </div>`;
     pill($("#book-status"), "live", `live · ${yesRows.length + noRows.length} levels`);
     $("#book-src").innerHTML = `Order book returns <strong>bids only</strong>; a NO bid at <em>y</em> implies a
-      YES ask at <em>1 − y</em>. The contract counts above are resting bids to <strong>buy</strong> YES, not offers
-      to sell — a seller of YES trades against those bids. ${src(SOURCES.orderbook, "order-book docs")}`;
+      YES ask at <em>1 − y</em> — the <strong>Implied YES ask</strong> column is that price, so a buyer can read
+      how many contracts are offered at the price they would pay. The contract counts are resting size:
+      YES-bid rows are demand to <strong>buy</strong> YES (sell into them); NO-bid rows are the size a YES buyer
+      can take at the implied ask. ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
     pill($("#book-status"), "err", e.message);
     $("#yes-book").innerHTML = emptyRow(5, "Order book unavailable.");

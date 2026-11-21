@@ -78,3 +78,30 @@ test("the reference comparison is labelled as a day-old baseline", async () => {
     "the alerts table note must state that the reference baseline is a day old");
   assert.match(page, /24-hour/, "the table note must call the move a 24-hour move");
 });
+
+/* ---- chat renderer must have styles (session 02091230) --------------------
+ * The Live alerts page renders <article class="msg"> (with .meta, .ttl,
+ * .body, .rule, .links, .actions) and <div class="feed-empty">. The stylesheet
+ * only carried rules for the older .chat-msg class names, so both feeds
+ * rendered unstyled and the .chat container did not scroll. This guard fails
+ * if a class the renderer emits again loses its rule.
+ * Renderer: assets/js/alerts.js. Stylesheet: assets/css/app.css. */
+test("every class the alert feeds render has a stylesheet rule", () => {
+  const js = read("assets/js/alerts.js");
+  const css = read("assets/css/app.css");
+  for (const cls of ["msg", "meta", "ttl", "body", "rule", "links", "actions"]) {
+    assert.match(js, new RegExp(`class="${cls}\\b|class="msg \\$\\{|\\b${cls}\\b`),
+      `the renderer must still emit .${cls}`);
+    assert.match(css, new RegExp(`\\.${cls}[\\s.,:{]`), `app.css must style .${cls}`);
+  }
+  assert.match(js, /feed-empty/, "the empty state class must still be rendered");
+  assert.match(css, /\.feed-empty[\s.,:{]/, "app.css must style .feed-empty");
+  assert.match(read("alerts.html"), /class="feeds"/, "alerts.html still wraps the two feeds in .feeds");
+  assert.match(css, /\.feeds\s*\{[^}]*grid-template-columns/, ".feeds must lay the two chats out as a grid");
+  // The scroll container: .chat must set a height and allow vertical scrolling,
+  // otherwise 300 messages stretch the page instead of scrolling.
+  const chat = css.slice(css.indexOf("\n.chat {"));
+  const block = chat.slice(0, chat.indexOf("}") + 1);
+  assert.match(block, /height:\s*\d+px/, ".chat needs a fixed height to scroll");
+  assert.match(block, /overflow-y:\s*auto/, ".chat needs overflow-y: auto");
+});
