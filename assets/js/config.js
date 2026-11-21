@@ -7,6 +7,10 @@
  */
 export const DEMO = {
   rest: "https://external-api.demo.kalshi.co/trade-api/v2",
+  /* The demo market site, documented verbatim as https://demo.kalshi.co/ .
+   * Only the root is linked: the demo-environment guide does not document a
+   * per-market URL path, so none is assembled here. */
+  site: "https://demo.kalshi.co/",
   ws: "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2",
   signPath: "/trade-api/v2",            // pre-sign WS text: ts + "GET" + "/trade-api/ws/v2"
   wsSignPath: "/trade-api/ws/v2"
