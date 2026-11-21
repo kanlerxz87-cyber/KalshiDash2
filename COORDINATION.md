@@ -1306,3 +1306,16 @@ the unused W-series.
 
 ---
 
+## Session `df4e0876` — collector semantics and sample-bound verification
+
+Started: 2026-11-21T06:28Z. Work branch: `arena/df4e0876-kalshidash2`, originally based on `main` at `8ea5c85`.
+
+**Takeover note (60-minute stale-claim rule):** the collector-specific portion of task 12 (`210dfcb8`) remains unclosed: a later takeover record (`2345e0dd`) says its taxonomy gap was folded into C4, but the collector itself was not changed. GitHub file history shows its latest code edit at `3ad78cf3`, 2026-11-20T11:09:06Z. The currently open PRs #47, #51, and #52 were checked by file list: none touches `scripts/collect.py`, `data/snapshot.json`, or `tools/test_collect.py` (PR #52 touches the shared board only). This session takes over the collector-only audit; other sessions' work is preserved.
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| T22 | Audit the scheduled collector's ranking/volume semantics and sample limits; remove unsupported dollar-volume claims, make sampled trade metrics explicit, enforce `--max-events-per-series`, and add offline regression tests. Snapshot edits are limited to derived metadata/field labels; no captured market values will be refreshed or invented. | in progress | `df4e0876` | `scripts/collect.py`, `tools/test_collect.py` (existing Python unittest workflow), `data/snapshot.json` (metadata/derived-key labels only), `COORDINATION.md` (this section) | [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) describes series volume; [Get Market](https://docs.kalshi.com/api-reference/market/get-market) defines `notional_value_dollars` as the value of a single contract at settlement and `volume_fp` as contracts; [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) documents trade price, count, timestamp, and cursor fields. | The latest snapshot's `dollar_volume` note asserts every market's notional is exactly $1 and equates contract volume with gross dollars; collector also declares but does not apply `--max-events-per-series`. The live site does not read this snapshot. |
+
+**Claim was committed and pushed before editing T22 files.** This is the final integration/audit session for T22; no other claim holds these collector files.
+
+**Rebase conflict log (2026-11-21):** `git pull --rebase origin main` advanced the branch from `08e593e` to `576c9fa` (PRs #48–#50). The append-only conflict in `COORDINATION.md` is resolved by preserving all incoming session records and appending T22; no other session's content was discarded.
