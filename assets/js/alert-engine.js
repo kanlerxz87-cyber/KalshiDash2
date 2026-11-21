@@ -9,7 +9,9 @@
  * fields that every market carries
  * (https://docs.kalshi.com/api-reference/market/get-market):
  *
- *   previous_price_dollars  — the price before the exchange's last change
+ *   previous_price_dollars  — the exchange's own reference price (the schema
+ *                             describes it as the last traded YES price a day
+ *                             ago; see Flagged Z1)
  *   last_price_dollars      — the most recent trade price
  *
  *   exchange-reported swing : |last_price_dollars − previous_price_dollars|

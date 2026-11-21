@@ -1001,6 +1001,31 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
 
+## Session `7930e2cd` — independent math + live-site verification (branch `arena/7930e2cd-kalshidash2`, 2026-11-21)
+
+Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules). Session `9d7b4124` holds Z1–Z4 (SOURCES re-verification → `reports/verify-facts-v4.md`, Y9 `jumps.js` deletion, Y10 `docs/index.html` redirect, integration PR). This session does **not** touch `assets/js/config.js`, `assets/js/jumps.js`, `flagged.html`, `docs/index.html`, `README.md`, or `reports/verify-facts-v4.md`.
+
+| # | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|---|------|--------|-------|------------|------------------------|------------------------|
+| W1 | Independent line-by-line verification of alert-threshold + simulator P&L math against official docs (Get Market schema, Market settlement, fee schedule) | in progress | `7930e2cd` | `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new) | `fetch_page` on docs.kalshi.com + fee schedule; read `assets/js/alerts-core.js`, `assets/js/simulator.js`, `assets/js/config.js` (read-only) | Read-only on site code; any defect found is logged here as a request, not edited (files owned by other sessions / shared outputs) |
+| W2 | Live-site + snapshot freshness: trigger `verify-live-site` and `collect` workflows on `main`, record run IDs and results | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `gh workflow run`, `gh run view`, Pages API | Workflows commit to `main` directly; no local file edits |
+| W3 | Full local test suite on this branch + record | in progress | `7930e2cd` | `COORDINATION.md` (this section) | `node --test`, page-runtime, link check, python unittest, signing self-test | — |
+
+**Claimed 2026-11-21 by `7930e2cd`.** No other file is touched. If a task requires a file outside this scope, the request is logged here instead of edited.
+
+### Results — session `7930e2cd` (2026-11-21)
+
+| # | Task | Result |
+|---|------|--------|
+| W1 | Math verification | **done** — `reports/verify-math-7930e2cd.md`. Every formula in `alerts-core.js`, `simulator.js`, `market.js` (`fetchCandles`/`detectJumps`/`swingOf`/`eventContext`), `kalshi.js` (`deriveQuote`) and `config.js` constants checked against official docs fetched 2026-11-21 ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market settlement](https://docs.kalshi.com/getting_started/market_settlement), [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) incl. the 5,000-period cap, [Demo environment](https://docs.kalshi.com/getting_started/demo_env), [Orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses) reciprocal rule + spread formula, [Get Events](https://docs.kalshi.com/api-reference/events/get-events), [Fee schedule PDF](https://kalshi.com/docs/kalshi-fee-schedule.pdf), [Rate limits](https://docs.kalshi.com/getting_started/rate_limits)). All correct as written; no hallucinated values, no inferred fields, no silent zeros. One wording/formula alignment request (win-rate denominator excludes flats; scoreboard text says "share of scored trades") logged below for the integration session — **not edited here** (`simulator.js`/`simulator.html` are shared outputs). |
+| W2 | Live-site + snapshot | **done** — `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (all published pages HTTP 200 with the `KalshiDash2` marker). `collect` run [44875599643](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875599643) **success**; `data/snapshot.json` refreshed to `2026-11-21T06:28:13Z`, `errors: []`, committed to `main` as `97b6298`. Snapshot topics: gas 228 series / 59 events, elections 2710 / 23, culture 2 / 0, crypto 321 / 100, golf 134 / 37 (markets capped at 200/topic by the collector). Culture 0 events is the demo environment's state in this scan, not a site defect. |
+| W3 | Local suite | **done** on this branch: `alerts-core` 18/18 · `simulator-core` 5/5 · `taxonomy` 10/10 · signing self-test 6/6 · `check_site_links.py` 34 pages 0 broken · python unittest 18 OK · `page-runtime-check` 17/17 pages + 34 links · `git diff --check` clean. |
+
+**Requests logged for the integration session (not edited here):**
+- R-7930-1: Align the simulator win-rate denominator with the scoreboard wording (flats excluded from `wins/(wins+losses)` in `aggregate`/`aggregateBreakdowns` vs. "share of scored trades" in `simulator.html`). Files: `assets/js/simulator.js`, `simulator.html`. Source: `reports/verify-math-7930e2cd.md`.
+
+**No claims held by `7930e2cd` after this record.** File scope touched: `COORDINATION.md` (this section), `reports/verify-math-7930e2cd.md` (new).
+
 ---
 
 ## Session `f1425e39` — DOM test dependency advisory and integration (2026-11-21)
@@ -1016,6 +1041,21 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 **Task status:** done, subject to PR checks and deployment confirmation below.
 
 **PR and CI:** [PR #46](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/46) opened against `main`. On commit `b7414d5`, GitHub Actions [static site check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875615170) and [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875604181) both succeeded. The latter automatically committed its read-only live API report `reports/alerts-live-check.md` as `71f6013`; the report observes HTTP 200 for its sampled demo requests and explicitly does not establish browser or authenticated trading correctness. Its `[skip ci]` commit caused the PR head to have no checks, so this board update triggers a fresh static check. No other session's work was discarded.
+
+**Final record — session `7930e2cd` (2026-11-21):**
+
+| Item | Result |
+|---|---|
+| PR | [#48 — Session 7930e2cd: independent math verification + live-site/snapshot confirmation (W1-W3)](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/48), branch `arena/7930e2cd-kalshidash2` → `main` |
+| Merge | `gh pr merge 48 --merge` succeeded 2026-11-21T06:30:23Z; merge commit [`7953ba2`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/7953ba2831a8156416135ad7eff09ac0e895b874). Pre-merge `check` run **pass**; `Static site link check` on the merge to `main` **success** |
+| Conflict log (required by the standing rule) | Two collisions, both resolved without discarding anyone's work: (1) `COORDINATION.md` append collision with session `f1425e39`'s PR #46 section — kept **both** sections (commit `33fb99b`); (2) `reports/alerts-live-check.md` — the `verify-alerts` workflow auto-commits a fresh live-check report to both `main` and this branch on every push, so the two auto-generated reports collided twice. Both reports show identical passing results (HTTP 200, 200 events / 2,175 markets, 25/25 batch); kept the newer branch report first, then main's on the final merge. No hand-written content was lost |
+| Pages deploy | GitHub Pages API: `status: built`, `build_type: legacy`, source `main:/`. `pages build and deployment` for the merge chain: run `44875860027` cancelled (superseded by newer pushes), run `44875918473` (PR #49 merge `1a7277a`) **success**, run `44875974440` (PR #50 merge `576c9fa`) **success** |
+| Live-site verification | `verify-live-site` run [44875597471](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875597471) **success** (triggered by this session on `main` before the merge; every published page HTTP 200 with the `KalshiDash2` marker) |
+| Irregularities carried forward | Request R-7930-1 (win-rate denominator vs. wording) remains for the integration session; all F/X/R/A flags remain published on `flagged.html` — none blocked this merge |
+
+**Merge and deployment record:** PR [#46](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/46) merged 2026-11-21 at 06:28:34 UTC, merge commit [`86ba363`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/86ba363d5c40e49ff3f7f61804d7901a102baaf0). On the merged tree, [static checks](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875713149) and [verify-alerts](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875713116) succeeded. [Pages build/deploy](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875712695) succeeded; the subsequent automated report commit `08e593e` also [built and deployed](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875761215) successfully. Pages API reports `built`, source `main:/`; the [live-site check](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875769278) succeeded, though it does not specifically assert the A10 text. One earlier Pages build for an automated snapshot was cancelled by a newer deployment and reported errored; the later deployments above succeeded. The GitHub runner also warned that some actions use deprecated Node 20 runtimes, which GitHub forced onto Node 24; these workflows still passed.
+
+**Conflict log, session `f1425e39`:** rebase onto `main` at `1a7277a` produced an append-only conflict in `COORDINATION.md`; preserved the complete `9d7b4124` section and this session’s deployment record. No content discarded.
 
 ## Session `9d7b4124` — fresh line-by-line re-verification + Y9/Y10 closure (branch `arena/9d7b4124-kalshidash2`, 2026-11-21)
 
@@ -1042,3 +1082,34 @@ Base: `origin/main` at `8ea5c85` (PR #45). Board read before starting (per rules
 **Irregularities found in this pass:** none new. Y9/Y10 closed as above. One observation logged in `reports/verify-facts-v4.md` §4: a second truncated docs URL (`…/orders/`) in `reports/verify-facts-v3.md:130` — same class as X4, no new flag.
 
 **Publication record (Z4):** [PR #49](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/49) was merged to `main` with merge commit `1a7277a80627ad88477e5cd203a0536ceb6100ab` at 2026-11-21T06:31:04Z. GitHub Pages build/deploy runs [44875918473](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875918473) and [44875974440](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875974440) both succeeded. Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. Fetched the deployed root page successfully and fetched `/docs/`; the latter resolved to `/index.html`, confirming the redirect is live. The independent [verify-live-site run 44875818679](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44875818679) succeeded. The resulting documentation-only PR records these deployment facts on `main`.
+
+# Session `3b869340` — line-by-line re-verification + `previous_price_dollars` wording fix + final integration
+
+Started: 2026-11-21T06:27Z. Branch: `arena/3b869340-kalshidash2` (branched from `8ea5c85` on `main`).
+
+**Takeover note (60-minute stale-claim rule):** every prior `in progress` claim on this board is from 2026-11-20 with last commit `8ea5c85` at 20:32Z (>9h ago, no commits since). No other session has an in-flight edit. This session takes over the shared registers (`assets/js/claims.js`, `flagged.html`) as the integration session for the fix below, and records the handoff here. No other session's work is discarded.
+
+**Fresh line-by-line verification performed 2026-11-21 (official docs fetched and read this session):**
+
+| # | Claim checked | Official source (fetched 2026-11-21) | Result |
+|---|---|---|---|
+| V-1 | Demo REST `external-api.demo.kalshi.co/trade-api/v2` recommended; `demo-api.kalshi.co` also supported; WS `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` + `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo environment](https://docs.kalshi.com/getting_started/demo_env) | Correct — matches `assets/js/config.js` `DEMO`/`ALTERNATES` |
+| V-2 | Market fields: `yes_bid/ask_dollars`, `yes_bid/ask_size_fp`, `no_bid/ask_dollars`, `last_price_dollars`, `volume_fp`, `volume_24h_fp`, `result` ∈ yes/no/scalar/"", `open_interest_fp`, `previous_price_dollars`, `settlement_value_dollars`, `price_ranges`, `mve_selected_legs[].event_ticker`; `yes_sub_title` canonical, `no_sub_title` deprecated; NO `no_bid_size_fp`/`no_ask_size_fp` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema) | Correct — confirms Y2 fix (no NO-size field exists) |
+| V-3 | `notional_value_dollars` = "The total value of a single contract at settlement in dollars" | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | Correct — site's "not traded dollar volume" wording is exact |
+| V-4 | Candlesticks `period_interval` ∈ {1, 60, 1440}, `start_ts`/`end_ts` required, `price.close_dollars` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) | Correct — matches `fetchCandles` + `CANDLE` |
+| V-5 | Orderbook `orderbook_fp.yes/no_dollars` = `[price, count]` string pairs, bids only, reciprocal YES/NO, unknown ticker → 200 empty, no auth | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) + [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses) | Correct — matches `deriveQuote` |
+| V-6 | `POST /portfolio/events/orders` V2 body (`ticker`, `side`, `count`, `price`, `time_in_force`, `self_trade_prevention_type`, `client_order_id`) | [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) | Correct — matches `KalshiClient.createOrder` |
+| V-7 | Settlement: YES holders $1, NO holders $1 | [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) | Correct — matches simulator/alert P&L |
+| V-8 | Direction `bid ≡ yes`, `ask ≡ no` | [Order Direction](https://docs.kalshi.com/getting_started/order_direction) | Correct — confirms F7 fix |
+| V-9 | Signing: `KALSHI-ACCESS-KEY/-TIMESTAMP/-SIGNATURE`, pre-sign `timestamp + METHOD + path` without query, RSA-PSS SHA-256 salt=digest, Ed25519 direct, PKCS#8/PKCS#1 PEM | [API Keys](https://docs.kalshi.com/getting_started/api_keys) | Correct — matches `kalshi.js` |
+| V-10 | `GET /events` excludes multivariate events; `settlement_sources[]` = `{name, url}` | [Get Events](https://docs.kalshi.com/api-reference/events/get-events) | Correct — confirms Y4 fix |
+| V-11 | `*_dollars` = dollar strings ≤4dp, `*_fp` = contract quantities ≤2dp, `price_ranges` is source of truth for valid prices | [Fixed-Point](https://docs.kalshi.com/getting_started/fixed_point_migration) | Correct — matches `snapToGrid` |
+| V-12 | Fills: `outcome_side`/`book_side`, `count_fp`, `yes/no_price_dollars`, `is_taker`, `fee_cost` | [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) | Correct — matches `strategies.html` |
+| V-13 | **`previous_price_dollars` semantics** | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (schema) | **IRREGULARITY — see Z1 below.** Docs: "Price for the last traded YES contract on this market a day ago in dollars". Site claims (claims.js, marked `verified`): "the price before the exchange's last change". Wording not supported by docs. |
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|----------------------|------------------------|------------------------|
+| Z1 | Correct `previous_price_dollars` wording: reword claims.js claim to quote docs, downgrade to `partially verified`, fix code comments in `config.js`/`alerts-core.js`/`alert-engine.js`/`market.js`, add Flagged Z1 card, note in `EXECUTIVE_SUMMARY.md` | in progress | `3b869340` | `assets/js/claims.js`, `assets/js/config.js`, `assets/js/alerts-core.js`, `assets/js/alert-engine.js`, `assets/js/market.js` (comments only), `flagged.html` (Z1 card only), `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) schema fetched 2026-11-21 | Behaviour unchanged: alerts still compare `last_price_dollars` vs `previous_price_dollars` and label the basis "exchange previous price" (the field name, accurate). Only the interpretation wording is corrected. Counts derive dynamically, so summary/flagged headlines stay in sync. |
+| Z2 | Full verification suite + PR → `main`, merge, Pages deploy confirmation, records | unclaimed | — | `COORDINATION.md` (this section) | `node --test`, `tools/check_site_links.py .`, `page-runtime-check`, `gh`, Pages API | Flagged items do not block merge per instructions. |
+
+**Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
