@@ -143,8 +143,20 @@ class SnapshotMetadataTests(unittest.TestCase):
     def test_snapshot_labels_contract_counts_and_sampled_trade_value(self):
         meta = self.snapshot["_meta"]
         notes = meta["derivation_notes"]
-        self.assertIn("contract-count fields", notes["contract_volume"])
-        self.assertIn("not asserted as actual all-side cash turnover", notes["sampled_yes_price_times_contracts"])
+        # Assert against the generator (scripts/collect.py), which is the single
+        # source of the disclosure text. A paraphrase copied into this test is
+        # what previously drifted from the committed snapshot.
+        self.assertIn("fixed-point contract counts", collect.DERIVATION_NOTES["contract_volume"])
+        self.assertIn("not traded-dollar volume", collect.DERIVATION_NOTES["contract_volume"])
+        sample_note = collect.DERIVATION_NOTES["sampled_yes_price_times_contracts"]
+        self.assertIn("No min_ts time bound", sample_note)
+        self.assertIn("not actual all-side cash turnover", sample_note)
+        # The note must quote the sample limits it actually used, so it cannot
+        # claim a different sample size than the collector performs.
+        self.assertIn(f"{collect.TRADE_SAMPLE_MAX_PAGES} pages", sample_note)
+        self.assertIn(f"limit {collect.TRADE_SAMPLE_PAGE_LIMIT}", sample_note)
+        # And the committed snapshot must still be the generator's own text.
+        self.assertEqual(notes, collect.DERIVATION_NOTES)
         self.assertNotIn("dollar_volume", notes)
         self.assertNotIn("traded_notional_dollars", notes)
         self.assertIn("sampled", meta["collection_scope"]["coverage"])

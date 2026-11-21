@@ -38,6 +38,35 @@ EVENTS_PAGE_MAX = 200  # Official GET /events maximum: 1 <= limit <= 200.
 TRADE_SAMPLE_PAGE_LIMIT = 1000
 TRADE_SAMPLE_MAX_PAGES = 3
 
+# The disclosure text written into every snapshot. It lives here, once, so the
+# committed snapshot and the tests that guard it cannot drift apart: the numbers
+# below are interpolated from the constants above, so the note can never claim a
+# different sample size than the collector actually used.
+DERIVATION_NOTES = {
+    "contract_volume": (
+        "volume_fp, volume_24h_fp, and open_interest_fp are fixed-point contract "
+        "counts, not traded-dollar volume. notional_value_dollars is the value "
+        "of a single contract at settlement, not cumulative turnover."
+    ),
+    "sampled_yes_price_times_contracts": (
+        "Computed arithmetic: SUM(yes_price_dollars * count_fp) over valid rows "
+        "returned by GET /markets/trades (up to "
+        f"{TRADE_SAMPLE_MAX_PAGES} pages x limit {TRADE_SAMPLE_PAGE_LIMIT}). No min_ts "
+        "time bound is passed; pagination is capped. Missing/invalid prices or "
+        "counts are skipped. This sample product is not actual all-side cash "
+        "turnover, gross cash exchanged, full-history activity, or a complete "
+        "24-hour total; only tickers with valid returned rows receive a value."
+    ),
+    "sampled_trade_contracts_fp": "SUM(count_fp) for valid rows in the market's returned trade sample; not complete volume.",
+    "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
+    "sampled_last_trade_time": "Latest created_time among valid trade rows returned for the market; not necessarily the latest market trade.",
+    "ranking": (
+        "events/markets sorted by volume_24h_fp desc, then volume_fp desc "
+        "(contract volume, not dollar volume)."
+    ),
+    "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching.",
+}
+
 
 def non_negative_int(value: str) -> int:
     try:
@@ -316,7 +345,18 @@ def main() -> int:
     ap.add_argument("--top-book", type=int, default=20)
     ap.add_argument("--sleep", type=float, default=0.25)
     ap.add_argument("--max-events-per-series", type=non_negative_int, default=10)
+    ap.add_argument(
+        "--print-notes",
+        action="store_true",
+        help="Print the snapshot's derivation_notes as JSON and exit. No network access.",
+    )
     args = ap.parse_args()
+
+    if args.print_notes:
+        # Single source of truth for the disclosure text: tests compare this
+        # output with the committed snapshot so wording can never drift silently.
+        print(json.dumps(DERIVATION_NOTES, indent=2, sort_keys=True))
+        return 0
 
     client = Client(sleep=args.sleep)
     started = datetime.now(timezone.utc)
@@ -489,29 +529,7 @@ def main() -> int:
             "environment": "Kalshi DEMO (mock funds)",
             "api_calls": client.calls,
             "errors": client.errors[:20],
-            "derivation_notes": {
-                "contract_volume": (
-                    "volume_fp, volume_24h_fp, and open_interest_fp are fixed-point contract "
-                    "counts, not traded-dollar volume. notional_value_dollars is the value "
-                    "of a single contract at settlement, not cumulative turnover."
-                ),
-                "sampled_yes_price_times_contracts": (
-                    "Computed arithmetic: SUM(yes_price_dollars * count_fp) over valid rows "
-                    "returned by GET /markets/trades (up to 3 pages x limit 1000). No min_ts "
-                    "time bound is passed; pagination is capped. Missing/invalid prices or "
-                    "counts are skipped. This sample product is not actual all-side cash "
-                    "turnover, gross cash exchanged, full-history activity, or a complete "
-                    "24-hour total; only tickers with valid returned rows receive a value."
-                ),
-                "sampled_trade_contracts_fp": "SUM(count_fp) for valid rows in the market's returned trade sample; not complete volume.",
-                "sampled_trade_count": "Number of valid returned trade records for the market; not contract quantity or complete history.",
-                "sampled_last_trade_time": "Latest created_time among valid trade rows returned for the market; not necessarily the latest market trade.",
-                "ranking": (
-                    "events/markets sorted by volume_24h_fp desc, then volume_fp desc "
-                    "(contract volume, not dollar volume)."
-                ),
-                "topic_rules": "Official Kalshi `category` / `tags` values, never free-text matching.",
-            },
+            "derivation_notes": DERIVATION_NOTES,
             "collection_scope": {
                 "coverage": "sampled; no full-exchange completeness claim",
                 "max_series_per_topic": args.top_series,

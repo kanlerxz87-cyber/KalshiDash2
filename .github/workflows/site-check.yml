@@ -38,5 +38,10 @@ jobs:
         run: node --test tests/simulator-core.test.mjs
       - name: Chart jump-detection unit tests
         run: node --test tests/jumps.test.mjs
+      # Compares data/snapshot.json with the disclosure text emitted by
+      # scripts/collect.py (python3 is on the runner). This test previously ran
+      # in no workflow, which is how its assertions drifted out of date.
+      - name: Snapshot disclosure / activity-proxy tests
+        run: node --test tests/activity-proxy.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
