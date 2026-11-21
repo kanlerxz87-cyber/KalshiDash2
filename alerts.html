@@ -52,6 +52,16 @@
       <li><strong>Two comparisons produce a swing.</strong> One is between two consecutive polls of this page;
         the other is against the exchange's own <code>previous_price_dollars</code>, which is available on the first
         poll and is the exchange's reference rather than this page's. Every message says which one produced it.</li>
+      <li><strong>There are two possible sources, and the status pill says which is running.</strong>
+        With <code>scripts/relay.py</code> running on the same origin, the page reads the Kalshi
+        <strong>WebSocket <code>ticker</code> channel</strong>, which the exchange flushes about once a second, and a
+        $0.10 move can appear in roughly a second instead of a poll interval. Without the relay the page falls back to
+        the REST poll and says so. Nothing is ever presented as live when it is not.</li>
+      <li><strong>A page cannot open a Kalshi WebSocket by itself.</strong> The handshake requires the three
+        <code>KALSHI-ACCESS-*</code> headers, and a browser's <code>WebSocket</code> constructor cannot set custom
+        headers — it takes only a URL and an optional subprotocol list. That is why the relay exists: it opens the
+        socket and republishes the frames.
+        <a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start ↗</a></li>
       <li><strong>Polling only runs while this page is open.</strong> A move that happens while the tab is closed is not recorded.</li>
       <li><strong>The score ranks tradability, not expected return.</strong> It adds points for liquidity, spread,
         depth at the touch, price band, time to close and recent volume. It is not a probability model and it
@@ -180,9 +190,22 @@
   <div class="card">
     <h2>Rules, parameters and official sources</h2>
     <dl class="kv">
-      <dt>Price used for alerts</dt><dd>Last traded price, <code>last_price_dollars</code> (Get Markets). Compared between two consecutive polls, and against the exchange's own <code>previous_price_dollars</code> (Get Market).</dd>
+      <dt>Price used for alerts</dt><dd>Last traded price. From REST it is <code>last_price_dollars</code>
+        (<a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>);
+        from the WebSocket it is <code>price_dollars</code>
+        (<a href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker ↗</a>).
+        Both are compared between two consecutive readings, and against the exchange's own
+        <code>previous_price_dollars</code> (Get Market).</dd>
       <dt>Tradeability score</dt><dd>Six documented fields — open interest, spread, depth at the touch, price band, time to close, 24-hour volume — summed to 100. A ranking aid, not a probability and not a forecast.</dd>
       <dt>Alert threshold</dt><dd>|change| ≥ $0.10 (the brief's threshold). Moves that happen inside one poll interval are combined into one change.</dd>
+      <dt>Live source</dt><dd>The Kalshi demo WebSocket <code>ticker</code> channel. The exchange "combines" changes and
+        "sends one message per changed market" on a flush scheduled every second, so a swing can be seen within about a
+        second of the trade. Reached through <code>scripts/relay.py</code>, which opens the socket (a page cannot) and
+        republishes the frames as Server-Sent Events on <code>/live/stream</code>.</dd>
+      <dt>WebSocket authentication</dt><dd>Handshake headers <code>KALSHI-ACCESS-KEY</code>,
+        <code>KALSHI-ACCESS-TIMESTAMP</code>, <code>KALSHI-ACCESS-SIGNATURE</code>, signed over
+        <code>timestamp + "GET" + "/trade-api/ws/v2"</code> — the WebSocket path, not the REST prefix.
+        <a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">Quick start ↗</a></dd>
       <dt>Universe</dt><dd>Top 30 open markets per topic by volume × last YES price proxy, refreshed every 10 minutes. This is a ranking proxy, not actual dollars traded; coverage is partial by design. See <a href="flagged.html#A11">Flag A11</a>.</dd>
       <dt>Batch reads</dt><dd>Comma-separated <code>tickers</code> on <code>GET /markets</code>, 25 tickers per request.</dd>
       <dt>Settlement sources</dt><dd>Listed on the event record (<code>settlement_sources</code>) from <code>GET /events/{event_ticker}</code>.</dd>
@@ -191,6 +214,8 @@
     <p class="small muted" style="margin:10px 0 0">
       Sources:
       <a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> ·
+      <a href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a> ·
+      <a href="https://docs.kalshi.com/websockets/websocket-connection" target="_blank" rel="noopener noreferrer">WebSocket connection ↗</a> ·
       <a href="https://docs.kalshi.com/api-reference/events/get-event" target="_blank" rel="noopener noreferrer">Get Event ↗</a> ·
       <a href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a> ·
       <a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Market settlement ↗</a> ·
