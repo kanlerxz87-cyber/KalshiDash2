@@ -1522,6 +1522,22 @@ Branch: `arena/0d6f4f1f-kalshidash2`, based on `main` at `bbdc3a0`.
 **Claim commit:** this section is committed and pushed immediately per the coordination rules, before any file in scope is edited.
 
 ### R1/R2 record — session `0d6f4f1f` (2026-11-21)
+Board read before starting: all prior sessions' tasks are closed. Session `0d6f4f1f`'s R1/R2 work is already on `main` (commits `f25ecd7`/`f69c21a`, PR #63), handling the snapshot-label drift fix and coordination claim. This session's scope is final verification and PR/merge. No local file edits are needed — all site files, tests, workflows, and the GitHub Pages deployment are already in place on `main`.
+
+| ID | Task | Status | Owner | File scope | Sources / verification | Irregularities / notes |
+|----|------|--------|-------|------------|------------------------|------------------------|
+| D1 | Confirm snapshot-label alignment (session `0d6f4f1f` R1 already on `main`) | done | `d490e35d` | `scripts/collect.py`, `data/snapshot.json` (owned by `0d6f4f1f`) | `tests/activity-proxy.test.mjs` + `tools/test_collect.py` assert exact phrases; both now match `data/snapshot.json` `_meta.derivation_notes` | No local change needed — main already carries the fix. |
+| D2 | Full local verification suite | done | `d490e35d` | All | `node --test` **68/68** · `python3 -m unittest discover -s tools` **28/28** · `tools/check_site_links.py .` **34 pages, 0 broken** · `page-runtime-check.mjs` **17/17** · `auth-sign-test.mjs` **6/6** | All green. Sandbox cannot reach `external-api.demo.kalshi.co` directly (TLS blocked); live API verification happens client-side or via GitHub-hosted workflows. |
+| D3 | PR → `main`, merge, confirm Pages deploy | in progress | `d490e35d` | `COORDINATION.md` (this section) | `gh pr create` + `gh pr merge --merge` + Pages API | Flagged items do not block merge per instructions. |
+
+### D2 verification (2026-11-21)
+
+- `node --test tests/*.test.mjs` **68/68** (alerts-core 19 + taxonomy 10 + simulator-core 5 + jumps 6 + live-core 23 + activity-proxy 3).
+- `python3 -m unittest discover -s tools` **28/28**.
+- `tools/check_site_links.py .` **34 pages, 0 broken local links**.
+- `node tools/verify/page-runtime-check.mjs` **17/17 pages** + **34 links**.
+- `node evidence/auth-sign-test.mjs` **6/6** signing-rule checks.
+- `git diff --check` clean.
 
 **R1 done.** Root cause: bot snapshot refresh `bbdc3a0` (2026-11-21T19:29Z) regenerated `data/snapshot.json` from a `scripts/collect.py` whose `derivation_notes` strings had drifted from the exact disclaimer phrases asserted by `tests/activity-proxy.test.mjs` and `tools/test_collect.py`. Fix (no data re-collection, no market values changed):
 - `scripts/collect.py`: `contract_volume` note now reads "…are contract-count fields (fixed-point contract counts), not traded-dollar volume…"; `sampled_yes_price_times_contracts` note now reads "…is not asserted as actual all-side cash turnover, gross cash exchanged…".
