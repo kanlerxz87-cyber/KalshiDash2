@@ -237,10 +237,21 @@ async function drawWindow() {
       ], win, res, { markers: jumpMarkers(jumps) });
       const traded = pts.filter(p => p.y !== null).length;
       pill($("#chart-status"), "live", `${traded} priced periods`);
+      /* Which official tier answered. The historical endpoint is the only place
+       * archived settled markets publish candles, and it returns the same numbers
+       * under different field names
+       * (https://docs.kalshi.com/getting_started/historical_data). */
+      const archived = res.via === "historical";
       $("#chart-src").innerHTML = `
-        Official candlesticks · <code>period_interval=${interval}</code> minute(s) ·
-        ${int(res.rawCount)} raw periods returned · series <code>${esc(res.series)}</code> ·
-        ${src(res.source, "GET candlesticks")} ${src(SOURCES.candles, "endpoint docs")}`;
+        Official candlesticks${archived ? " <strong>(archived tier)</strong>" : ""} ·
+        <code>period_interval=${interval}</code> minute(s) ·
+        ${int(res.rawCount)} raw periods returned` +
+        (res.series ? ` · series <code>${esc(res.series)}</code>` : "") + ` ·
+        ${src(res.source, archived ? "GET historical candlesticks" : "GET candlesticks")} ` +
+        `${src(archived ? SOURCES.historicalCandles : SOURCES.candles, "endpoint docs")}` +
+        (res.historicalError
+          ? ` <span class="unv">archived tier not read: ${esc(res.historicalError)}</span>`
+          : "");
       renderJumps(market, jumps, res);
       if (!traded) {
         /* A market can legitimately have candles with no trade price (no trade
@@ -264,7 +275,8 @@ async function drawWindow() {
       }
     } catch (e) {
       pill($("#chart-status"), "err", e.message);
-      $("#chart-src").innerHTML = `Candlestick request failed: ${esc(e.message)}. ${src(SOURCES.candles, "docs")}`;
+      $("#chart-src").innerHTML = `Candlestick request failed: ${esc(e.message)}. ` +
+        `${src(SOURCES.candles, "live-tier docs")} ${src(SOURCES.historicalCandles, "archived-tier docs")}`;
     }
   }
 }
