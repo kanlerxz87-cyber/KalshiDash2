@@ -1406,3 +1406,9 @@ activity-proxy 3/3 · simulator-core 10/10 · taxonomy 10/10 · `tests/test_kals
 alerts DOM 16/16 · summary DOM 20 requirement areas, 78/89 claims (8 partial, 3 unverified),
 32 open / 23 mitigated / 55 flags, 28 sourced rows · page-runtime 17/17 + 34 links ·
 static links 34 pages 0 broken · python tools OK.
+
+**Rebase note (2026-11-21):** the standing "git pull --rebase before every push" rule is unsafe
+after a merge commit: `git pull --rebase` began linearizing the merge and replaying `main`'s
+commits (`e0096d6` conflicted). Aborted with `git rebase --abort` exactly as session `ae228af4`
+did — nothing discarded; the branch ref and the remote both hold the merge commit `5dbf5d7`.
+When a branch carries a merge of `main`, push directly (remote is an ancestor) instead of rebasing.
