@@ -2732,3 +2732,39 @@ at `31e251b6` / `0de03ce4` (each followed by a successful build of a descendant 
 adds that market to the Resolved page…", "**event detail** opens every market in the event", "fixed-height log
 that scrolls"). No content was changed to work around it; the failure is a Pages build-queue race under rapid
 successive pushes, not a broken tree — every local check and the deployed page agree.
+
+### C1–C3 final record — session `135bc17e`
+
+| Item | Result |
+|---|---|
+| PR | [#98 — feat: official traded-dollar volume (Get Trades) + the missing Sources page](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/98), branch `arena/135bc17e-kalshidash2` → `main` |
+| Merge | `gh pr merge 98 --merge` succeeded 2026-11-21T23:16:46Z; merge commit [`3c03717`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/3c03717b4d85a51638098100e27d510e3ac3bfa8) |
+| Checks on the PR branch | `Static site link check` **success** (run 44960837807) · `verify-alerts` **success** · `verify-facts` **success** · `live-site-render` **success** · `verify-live-site` **success** on the merge commit |
+| Pages deploy | Pages API `status: built`, source `main:/`, <https://kanlerxz87-cyber.github.io/KalshiDash2/>. One `errored`/`cancelled` build was visible during the merge window and resolved to `built` on the next push — the concurrency-group cancellation pattern recorded by earlier sessions |
+| Live verification | <https://kanlerxz87-cyber.github.io/KalshiDash2/sources.html> served with the full register (46 sources: 43 Kalshi, 3 third-party; 3 read in full, 45 matched to `llms.txt`, 1 unverified). The page is new, so its presence proves the deployment is current |
+| Local suite on the merged work | Node **126/126** across 10 files (93 before; +25 `dollar-volume`, +8 `sources-page`) · Python tools **42/42** · `tests/` Python 20 (3 skipped, `cryptography` absent here) · links **36 pages / 0 broken** · page-runtime **18/18** · alerts DOM **19/19** · summary DOM 20 areas, 83/94 verified, **35 open / 38 mitigated / 73 flags** · signing self-test 6/6 · `git diff --check` clean |
+
+**What this session changed:** `assets/js/dollar-volume.js` + `tests/dollar-volume.test.mjs` (official traded-dollar
+volume from `GET /markets/trades`), the *Dollars actually traded* panel on all five category pages and a pointer on
+the Overview, `sources.html` + `assets/js/sources.js` + `tests/sources-page.test.mjs` (the Sources page the README and
+executive summary already promised), flag **A11** mitigated, flag **C1** published (missing Sources page + the
+16,643/16,653 series-count discrepancy, both captures cited), the probe workflow field renamed
+`series_count` → `series_rows_in_single_response`, `VERIFICATION.md` rows 35–36, and both new suites wired into
+`site-check.yml`.
+
+**Own correction, recorded because it matters:** this session first wrote that the published 16,643 series figure
+"matched no capture". That was wrong — `evidence/evidence-cors-taxonomy.md` and `reports/verify-facts-raw.md` both
+record 16,643 rows at 2026-11-20T11:08Z, and the probe file is a *later* capture of the same call. The published text
+was corrected before merge to state both captures with their timestamps. The lesson is on the page itself: a number
+is only checkable against the capture it came from, and the capture has to be named.
+
+**Conflict log (required):** `COORDINATION.md` conflicted on both rebases. `tools/resolve_board_conflict.py` was tried
+first and **dropped a legitimate second `## Session 8d0568c3` section**, so it was abandoned for this board: the
+section was restored from `origin/main` and this session's section appended, preserving all 32 sections on `main`
+(33 after the append). `VERIFICATION.md` conflicted because session `c33971c1` had rewritten it in full; **their
+version was kept** and the two new rows were appended as #35/#36 with the numbering taken from the file's own last
+row. Nothing from any session was discarded. Own-branch pushes after rebase used `--force-with-lease`.
+
+**Open items a reviewer should look at first:** A11's *ranking column* is still the proxy (deliberate — the official
+figure sits beside it, never merged); F5 (`GET /series` paging) is unchanged and no site figure depends on it; the
+fee-schedule PDF remains **unverified** on the Sources page because the build sandbox cannot read it.
