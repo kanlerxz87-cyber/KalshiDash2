@@ -2536,6 +2536,81 @@ never silently rewritten.
 
 ---
 
+### Session `0ecc28c2` — FINAL RECORD: PR merged, Pages incident found and recovered (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#95 — verification: independent line-by-line re-verification + two citation fixes](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/95), branch `arena/0ecc28c2-kalshidash2` → `main` |
+| Merge | `gh pr merge 95 --merge` succeeded **2026-11-21T23:17:49Z**; merge commit [`ee09f43`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/ee09f4395e1b2fbb9b220d6bf9e6dcd0e7a7173b) |
+| Report | [`reports/session-review-0ecc28c2.md`](reports/session-review-0ecc28c2.md) — 41 claims checked with the official URL for each |
+| Checks on `ee09f43` | `Static site link check` **success** · `live-site-render` **success** · `verify-live-site` **success** · `verify-alerts` **success** |
+| Suite on the merged tree | Node **97/97** · tools Python **42/42** · `tests/` Python OK (3 skipped, `cryptography` absent locally) · links **35 pages / 0 broken** · page-runtime **17/17** · alerts DOM **19/19** · summary DOM passed (94 claims… see below) |
+
+#### What this session changed on `main`
+
+1. **F2 — three claim rows cited a page that does not contain the claim.** *Elections is a
+   category*, *Crypto is a category* and *Golf lives inside Sports* linked the **Kalshi
+   Glossary**, which explains what a category is (worked example: gas) but does not
+   enumerate `Elections`, `Crypto` or `Sports` and says nothing about golf. Re-sourced to
+   [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) and
+   [Get Tags for Series Categories](https://docs.kalshi.com/api-reference/search/get-tags-for-series-categories).
+   Values unchanged; they come from the committed capture `data/probe/api_surface.json`
+   (Elections 5,420 · Crypto 642 · Sports 8,486 series).
+2. **F1 — "Private key PEM is PKCS#8" was wrong for the RSA key Kalshi generates.**
+   [API Keys](https://docs.kalshi.com/getting_started/api_keys) documents PKCS#8 for the
+   generated **Ed25519** key and **PKCS#1** for the generated RSA key, then states the
+   header "does not identify the key type". Re-titled to the page's own statement. The
+   signing code already detected the type from the parsed key; only the published claim
+   was loose. Confirmed live on the deployed `verification.html` after this merge.
+3. **Published `AC1` and `AC2`** on the Flagged page (below).
+
+#### Flags this session published
+
+| ID | Status | What it says |
+|---|---|---|
+| `AC1` | open | The landing page's exchange-status strip does not repeat the documented caveat that a `500/503/504` body can carry `trading_active: false` **and that this does not mean the exchange is paused** ([Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status)). The reader is in `assets/js/ui.js`, outside this session's scope, so it is flagged rather than edited. |
+| `AC2` | fixed | The citation defect (F2) above, recorded with its sources and the observation that the link checker proves a link resolves, not that the linked page says what the row claims. |
+
+#### Concurrency
+
+`main` advanced **eight** times while this branch was open (PRs #89–#93, #99, #100, #103
+plus bot report commits). Each advance was merged forward and the suite re-run before
+pushing. Conflicts and how they were resolved:
+
+| Conflict | Resolution |
+|---|---|
+| `COORDINATION.md` (add/add, twice) | `tools/resolve_board_conflict.py` — 1 block each time, **0 session sections dropped, 0 orphaned markers**, all 33 sections intact on both sides. Verified by counting `^## Session` before and after. |
+| `reports/alerts-live-check.md` (bot capture) | Kept the **fresher** capture (`23:13:37Z`), per the board's standing precedent. Only the timestamp table differed. |
+| `assets/js/claims.js`, `flagged.html` | Auto-merged. Re-verified after merging that this session's F1/F2 fixes and `AC1`/`AC2` cards all survive alongside the other sessions' work. |
+| `AB3` (deprecated `category` field) | Session `190f6069`/`f468e69b` closed it independently in the same window by reading the series record first. Their implementation was **reviewed and exercised here**, not taken on trust: seeding a series record yields `basis: "series"` and the series category decides the topic; an unknown series falls back to the deprecated event field with `basis: "event"`. That matches Get Events (`category` deprecated) and Get Series List (`category` + `categories[]`). |
+
+#### Pages incident — three consecutive failed builds, recovered
+
+**Recorded because it was a real outage risk, not a cosmetic warning.**
+
+| Observation | Detail |
+|---|---|
+| Symptom | After the merge burst (#94, #99, #100, #103), the Pages API reported `status: errored`. Build history showed **three consecutive** `Page build failed` entries (`68cd5e0`, `e847448`, `519de08`), with each `pages-build-deployment` **workflow run** reporting success — the legacy builder, not the workflow, was failing. |
+| Impact | The published site kept serving the last good build, so no page was broken. It was simply stale: content from the later merges was not being published. |
+| What was ruled out | Not a link error (`tools/check_site_links.py .` → 35 pages, 0 broken), not a size error (no file near the limit), not a syntax error in any workflow (all parse). The site tree itself is valid. |
+| Recovery | `gh workflow run pages.yml --ref main` — the manual `workflow_dispatch` deployer this repository keeps precisely for this. Run [44961769167](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961769167) **success** (23 s); the Pages API then returned **`status: built`**. |
+| Verification after recovery | `flagged.html` and `verification.html` fetched from the published origin. The **PKCS#8 fix is live** (row now titled "The PEM header does not identify the key type"). The Flagged page renders and reports its own counts. `live-site-render` run [44961672740](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44961672740) on `main` is **success**. |
+| Standing recommendation for the next session | When `pages` reports `errored` more than **once in a row** after a merge burst, do not assume it is the transient pattern recorded in session `32b15793`'s IV3 note. Check `GET /repos/{owner}/{repo}/pages/builds` — if two or more consecutive builds failed while their workflow runs succeeded, run `gh workflow run pages.yml --ref main` and re-check the API for `built`. |
+
+#### Open items this session did not fix
+
+- **`AC1`** — exchange-status 5xx handling, owner `assets/js/ui.js`.
+- **`F3`/`AB3` follow-up** — the series-category lookup is capped (60 per scan in
+  `discoverTopic`, 40 default in `fetchSeriesCategories`). Events past the cap fall back to
+  the deprecated event field. The page discloses the tally, which is the right behaviour,
+  but a reviewer should confirm the cap is high enough for the five topics.
+- **Container limitation (recorded, not hidden):** this sandbox cannot open TLS to
+  `*.kalshi.co`, `docs.kalshi.com` or the Pages host (`curl` → HTTP `000`,
+  `SSL_ERROR_SYSCALL`). Official documentation and the published site were read through a
+  page-fetch tool; live API behaviour is covered by the GitHub-hosted workflows cited above.
+
+---
+
 ## Session `135bc17e` — official traded-dollar volume (A11) + missing Sources page (branch `arena/135bc17e-kalshidash2`, 2026-11-21)
 
 **Claimed 2026-11-21 ~23:20Z.** Branch base: `cc9112b` (merge of PR #88). Active sessions checked before
@@ -2676,7 +2751,7 @@ State at claim time (verified, not assumed): `gh pr list --state open` → **no 
 | U2 | Fix U-I1 and remove two pieces of dead/unsafe code found in the same pass | unclaimed → **in progress** | `02091230` | `assets/js/market.js`, `index.html` | Local Node + page-runtime suite after the edit | **U-I2**: `rankEvents()` emits a `seriesUrl` that is an *event* URL and whose ternary has identical branches; nothing reads it. **U-I3**: `analyseFills()` computes `notional = count × 1` ("$1 per contract at settlement") although the documented `notional_value_dollars` need not be $1 for scalar markets; nothing renders it. |
 | U3 | Alert feed: let a trader track an alerted market to resolution and open the event detail page, without leaving the feed | **in progress** | `02091230` | `assets/js/alerts.js`, `alerts.html`, `assets/css/app.css`, `tests/alerts-core.test.mjs` | Alerts DOM test + page runtime + a new unit test for the helper that builds the watch entry | Uses only documented fields already on the alert (`ticker`, `to`, quotes, OI). No new inference. |
 | U4 | Publish two newly verified facts (fee-table parity; WS whole-dollar notional exists) in the registers, with sources | **in progress** | `02091230` | `assets/js/claims.js`, `suggestions.html` | Claim register renders; suggestions page link check | `dollar_volume` / `dollar_open_interest` are documented **only** on the WS ticker payload, not on REST market objects; the suggestion says so explicitly. |
-| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | unclaimed | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
+| U5 | Final integration: re-run every suite, PR → `main`, merge, confirm Pages | **done** | `02091230` | `COORDINATION.md` | Full local suite, `gh pr checks`, Pages API + a live fetch | — |
 
 **Claim committed and pushed before any edit to the files above.**
 
@@ -2815,3 +2890,90 @@ name the basis and the fallback count, matching what the alerts page already dis
 (`reports/alerts-live-check.md`, `reports/verify-facts-v3.md`). Every resolution kept both sides:
 the board via `tools/resolve_board_conflict.py`; CI keeps the `historical-tier` suite **and** the two
 new suites; generated reports take the newest runner output. Nothing from another session was dropped.
+
+---
+
+### Conflict log #4 — integrating `main` @ `b892d80` (PR #98) — session `02091230`
+
+PR [#98](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/98) (web-sourced dollar-volume ranking,
+`assets/js/dollar-volume.js`, new `sources.html`) and the bot report commit `6a4f99b` landed while PR #94 sat
+`CLEAN` but unmerged. Rebased onto `b892d80`.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `COORDINATION.md` | add/add — `#98` appended its own session section at end of file while this branch appended conflict logs #1–#3 | Deleted **only** the three marker lines; both sides kept verbatim (this session's logs #1–#3 + the `#98` section). No board content discarded. |
+| `reports/alerts-live-check.md` | bot rewrites it on every branch push | Auto-merged by keeping the capture with the newer `Started (UTC)`; the older bot commit was dropped by the rebase, its observations being identical. |
+| everything else (`assets/js/market.js`, `assets/js/claims.js`, `flagged.html`, `suggestions.html`, `alerts.html`, `assets/css/app.css`) | no textual overlap with `#98` | untouched; `git diff origin/main -- assets/js/market.js` still shows exactly this session's three hunks. |
+
+### Conflict log #5 — integrating `main` @ `ee09f43` (PR #95) — session `02091230`
+
+PR [#95](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/95) (verification session `0ecc28c2`) merged
+minutes later and touched `assets/js/claims.js`, `flagged.html`, `COORDINATION.md`. Rebased onto `ee09f43`:
+**no conflicts** — git auto-merged `claims.js` and `flagged.html` because #95 and this session added different
+claim ids and different flags. Verified afterwards that this session's content survived:
+`grep -c 'id="SC1"\|id="SC2"' flagged.html` → 2, `grep -c 'Page-size limits are per endpoint' assets/js/claims.js`
+→ 1, `grep -c 'S17' suggestions.html` → 1, `grep -c '\.msg {' assets/css/app.css` → 1.
+
+### U5 — final integration, merge and Pages deploy — session `02091230`
+
+| Step | Result |
+|---|---|
+| Integration PR | [#94](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/94) — "re-verify API contracts, fix unstyled/non-scrolling alert chats, track-to-resolution from the feed" |
+| Merge | merged **without approval** on 2026-11-21T23:19:17Z, `--merge`, state `MERGED`, `mergeable MERGEABLE` / `mergeStateStatus CLEAN` at merge time, **0 commits behind** `main` |
+| Merge commit | `6a437a54119bda00f10a79870bf7c02edd3b3e2e` |
+| Suite on the merged tree | Node **133/133** · Python tools **42 OK** · Python tests **20 OK** (3 skipped) · page runtime **18/18** · static link check **36 pages / 0 broken** · alerts DOM **21/21** · summary DOM pass · signing **6/6** |
+| Pages | source `main:/`, `build_type: legacy`, `https_enforced: true`, status **built** |
+
+**Irregularity recorded (not a site defect).** The first two Pages builds after the merge reported
+`Page build failed.` — build `6a437a54` (merge commit, 23:19:19Z) and `3b422d21` (a later merge, 23:19:58Z).
+Both failed in ~3 s while a third push arrived within 30 s, the same signature as the earlier transient failures
+at `31e251b6` / `0de03ce4` (each followed by a successful build of a descendant commit). The next build,
+`a24db0ae` (23:22:03Z, a descendant of the merge), is **`built`**, and the live page fetched from
+`https://kanlerxz87-cyber.github.io/KalshiDash2/alerts.html` shows this session's work ("**Track to resolution**
+adds that market to the Resolved page…", "**event detail** opens every market in the event", "fixed-height log
+that scrolls"). No content was changed to work around it; the failure is a Pages build-queue race under rapid
+successive pushes, not a broken tree — every local check and the deployed page agree.
+
+### C1–C3 final record — session `135bc17e`
+
+| Item | Result |
+|---|---|
+| PR | [#98 — feat: official traded-dollar volume (Get Trades) + the missing Sources page](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/98), branch `arena/135bc17e-kalshidash2` → `main` |
+| Merge | `gh pr merge 98 --merge` succeeded 2026-11-21T23:16:46Z; merge commit [`3c03717`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/3c03717b4d85a51638098100e27d510e3ac3bfa8) |
+| Checks on the PR branch | `Static site link check` **success** (run 44960837807) · `verify-alerts` **success** · `verify-facts` **success** · `live-site-render` **success** · `verify-live-site` **success** on the merge commit |
+| Pages deploy | Pages API `status: built`, source `main:/`, <https://kanlerxz87-cyber.github.io/KalshiDash2/>. One `errored`/`cancelled` build was visible during the merge window and resolved to `built` on the next push — the concurrency-group cancellation pattern recorded by earlier sessions |
+| Live verification | <https://kanlerxz87-cyber.github.io/KalshiDash2/sources.html> served with the full register (46 sources: 43 Kalshi, 3 third-party; 3 read in full, 45 matched to `llms.txt`, 1 unverified). The page is new, so its presence proves the deployment is current |
+| Local suite on the merged work | Node **126/126** across 10 files (93 before; +25 `dollar-volume`, +8 `sources-page`) · Python tools **42/42** · `tests/` Python 20 (3 skipped, `cryptography` absent here) · links **36 pages / 0 broken** · page-runtime **18/18** · alerts DOM **19/19** · summary DOM 20 areas, 83/94 verified, **35 open / 38 mitigated / 73 flags** · signing self-test 6/6 · `git diff --check` clean |
+
+**What this session changed:** `assets/js/dollar-volume.js` + `tests/dollar-volume.test.mjs` (official traded-dollar
+volume from `GET /markets/trades`), the *Dollars actually traded* panel on all five category pages and a pointer on
+the Overview, `sources.html` + `assets/js/sources.js` + `tests/sources-page.test.mjs` (the Sources page the README and
+executive summary already promised), flag **A11** mitigated, flag **C1** published (missing Sources page + the
+16,643/16,653 series-count discrepancy, both captures cited), the probe workflow field renamed
+`series_count` → `series_rows_in_single_response`, `VERIFICATION.md` rows 35–36, and both new suites wired into
+`site-check.yml`.
+
+**Own correction, recorded because it matters:** this session first wrote that the published 16,643 series figure
+"matched no capture". That was wrong — `evidence/evidence-cors-taxonomy.md` and `reports/verify-facts-raw.md` both
+record 16,643 rows at 2026-11-20T11:08Z, and the probe file is a *later* capture of the same call. The published text
+was corrected before merge to state both captures with their timestamps. The lesson is on the page itself: a number
+is only checkable against the capture it came from, and the capture has to be named.
+
+**Conflict log (required):** `COORDINATION.md` conflicted on both rebases. `tools/resolve_board_conflict.py` was tried
+first and **dropped a legitimate second `## Session 8d0568c3` section**, so it was abandoned for this board: the
+section was restored from `origin/main` and this session's section appended, preserving all 32 sections on `main`
+(33 after the append). `VERIFICATION.md` conflicted because session `c33971c1` had rewritten it in full; **their
+version was kept** and the two new rows were appended as #35/#36 with the numbering taken from the file's own last
+row. Nothing from any session was discarded. Own-branch pushes after rebase used `--force-with-lease`.
+
+**Open items a reviewer should look at first:** A11's *ranking column* is still the proxy (deliberate — the official
+figure sits beside it, never merged); F5 (`GET /series` paging) is unchanged and no site figure depends on it; the
+fee-schedule PDF remains **unverified** on the Sources page because the build sandbox cannot read it.
+
+**Board record itself.** This section was committed on the session branch and merged in its own small PR
+([#103](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/103), `MERGED` 2026-11-21T23:23:25Z, merge commit
+`68cd5e0fe3a0fb8c7e44157861eb7675aedfff93`), because `main` accepts `COORDINATION.md` edits only through a PR.
+Final Pages state after that merge: build `519de080` (a descendant of the board record) is **`built`**, so the
+published site is generated from a tree that contains both PR #94 and this record. Builds `68cd5e0`, `e8474483`,
+`519de080` (first attempt) and `dfd79661` reported `Page build failed.` within seconds of a neighbouring push —
+the same race described above; the retry of `519de080` built in 52.6 s and is what the site serves.
