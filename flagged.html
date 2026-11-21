@@ -639,6 +639,32 @@
         it from the control. That is research work, not a documentation check, and inventing a number here
         would be exactly the kind of fabrication this site refuses.</p>
     </div>
+
+    <div class="irregularity" id="Z1">
+      <h3>Z1 — <code>previous_price_dollars</code> wording: docs say "a day ago", the site said "before the last change" <span class="tag warn">open</span></h3>
+      <p><strong>What was found (session <code>3b869340</code>, 2026-11-21):</strong> the verification register
+        claimed <code>previous_price_dollars</code> is "the price before the exchange's last change" and
+        marked it <em>verified</em> with evidence "Documented response schema". The official Get Market
+        schema actually describes the field as <em>"Price for the last traded YES contract on this market
+        a day ago in dollars"</em> — a different meaning. The site's alert engine compares
+        <code>last_price_dollars</code> against <code>previous_price_dollars</code> and labels that
+        comparison "exchange previous price", which is accurate as a field name, but the interpretation
+        wording in the register and code comments was not supported by the documentation.</p>
+      <p><strong>What changed:</strong> the register claim now quotes the documentation, is marked
+        <em>partially verified</em>, and points here; the code comments in
+        <code>config.js</code>, <code>alerts-core.js</code>, <code>alert-engine.js</code> and
+        <code>market.js</code> now quote the schema. No alert behaviour changed: the between-polls
+        comparison remains the true sudden-swing test, and the reference comparison is still labelled
+        with the comparison that produced it.</p>
+      <p><strong>What would close it:</strong> confirmation from Kalshi (or a live observation that
+        distinguishes the two meanings — e.g. a market whose last trade is minutes old, where "a day ago"
+        and "previous trade" give different values). Until then the field is used only as the exchange's
+        own reference price, never as a claim about what happened before the last change.</p>
+      <p class="small"><strong>Source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/live-engine-check.md" target="_blank" rel="noopener noreferrer">live-engine-check.md ↗</a>
+      </p>
+    </div>
   </div>
 
   <div class="card">

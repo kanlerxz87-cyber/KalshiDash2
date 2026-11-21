@@ -1,6 +1,6 @@
 # Executive Summary — KalshiDash2
 
-**As of:** 2026-11-21 (UTC)
+**As of:** 2026-11-21 (UTC) · **Re-verified:** 2026-11-21 (UTC) by session `3b869340` — official docs re-fetched and re-read (demo env, Get Market, candlesticks, orderbook, Create Order V2, settlement, order direction, API keys, Get Events, Get Markets, fixed-point, Get Fills). One wording irregularity found and corrected: the register's `previous_price_dollars` interpretation now quotes the schema ("a day ago") and is flagged as Z1 on the Flagged page. No alert behaviour changed. Session `75490e0f` re-verified the same sources plus [orderbook responses](https://docs.kalshi.com/getting_started/orderbook_responses) and [order direction](https://docs.kalshi.com/getting_started/order_direction), and fixed five published defects (Y12–Y15, marker shape) — see the Flagged page.
 
 **Purpose:** a no-build, read-only-by-default dashboard for the Kalshi **demo** exchange. It organizes currently discovered events in five requested topics—gas prices, elections, culture, crypto, and golf—tracks exchange-reported yes/no resolution, displays price/liquidity, and provides a separate browser-only paper-trading experiment.
 

@@ -277,10 +277,11 @@ export const CLAIMS = [
     status: "partially verified", flag: "A9" },
 
   // ---- swing detection, tradeability screen and the merged alerts page ----
-  { cat: "api", claim: "previous_price_dollars is the price before the exchange's last change",
-    detail: "Get Market returns previous_price_dollars next to last_price_dollars, so a swing can be measured against the exchange's own reference",
+  { cat: "api", claim: "previous_price_dollars is the exchange's own reference price next to last_price_dollars",
+    detail: "Get Market returns previous_price_dollars next to last_price_dollars, so a swing can be measured against the exchange's own reference. The schema describes it as 'the last traded YES contract on this market a day ago'; the site uses it as a reference price and labels that comparison 'exchange previous price' — see Flagged Z1",
     source: `${D}/api-reference/market/get-market`,
-    ev: "Documented response schema (fetched 2026-11-20)", status: "verified" },
+    ev: "Documented response schema (fetched 2026-11-20, re-checked 2026-11-21); live values captured in reports/live-engine-check.md §1",
+    status: "partially verified", flag: "Z1" },
   { cat: "api", claim: "A swing is measured two ways and labelled with the comparison that produced it",
     detail: "Between two consecutive polls of the page, and against the exchange's own previous_price_dollars; identical (ticker, from, to) pairs are de-duplicated",
     source: `${D}/api-reference/market/get-market`,

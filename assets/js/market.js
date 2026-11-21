@@ -601,7 +601,9 @@ function groupBy(rows, key) {
  *
  * Kalshi publishes no "swing" field. Two documented fields let one be
  * derived honestly:
- *   previous_price_dollars — the price before the exchange's last change
+ *   previous_price_dollars — the exchange's own reference price (the schema
+ *                            describes it as the last traded YES price a day
+ *                            ago; see Flagged Z1)
  *   last_price_dollars     — the most recent trade price
  * (https://docs.kalshi.com/api-reference/market/get-market)
  *
