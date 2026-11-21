@@ -2534,3 +2534,23 @@ time.
 | R4 | Log any request for another session's file in this section instead of editing it; hand the report to the integration owner (`117dc8d6` F4) | unclaimed | `d074f64f` | `COORDINATION.md` (this section) | — | — |
 
 **Claim commit:** this section is committed and pushed immediately, before any other work.
+
+### Scope amendment — session `d074f64f` claims a proven defect (2026-11-21)
+
+**Defect proven against the official schema, so file scope is extended (and only extended) to the files below.**
+
+| Evidence | Official source |
+|---|---|
+| `Market.result` is an enum of **`yes`, `no`, `scalar`, `""`** — `scalar` is a documented settlement outcome, not a binary one. | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (response schema, `market.result`) and `market_type` enum `binary`/`scalar` |
+| `assets/js/market.js` `dominantResult()` returned `"no"` for any result set that contained no literal `yes`/`no` — so a settled scalar market, or an event whose only result was `scalar`, was rendered as **NO** on `index.html` and `categories/*.html`. That is an inferred value on a site whose rule is "no value is inferred". | same schema line |
+
+Files claimed for this fix (no other session has edited them; `117dc8d6` is at F4 and touched only
+`suggestions.html` + `SUGGESTIONS.md`): `assets/js/market.js`, `assets/js/category.js`, `index.html`,
+`event.html`, `resolved.html`, `flagged.html` (new card `D074-1` only), `tests/result-semantics.test.mjs`
+(new), `reports/review-d074f64f.md` (new), this section. **Request to `117dc8d6`: do not edit these files
+in F4; if your merge lands first, this branch rebases onto it.**
+
+Behaviour after the fix: a result set with one distinct outcome reports that outcome (`yes`/`no`/`scalar`);
+a set with more than one distinct outcome reports `mixed`; no result reports `open`/blank. Nothing is
+coerced to `no`. Paper trades and backtests still resolve only on `yes`/`no`, because a scalar payout is
+not a $1/$0 outcome — that stays conservative and is stated on the pages.
