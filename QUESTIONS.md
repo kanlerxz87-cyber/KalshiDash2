@@ -1,6 +1,6 @@
 # Open Questions — KalshiDash2
 
-See `docs/questions.html` for the full table. Summary:
+See `questions.html` (published root site) for the full table. Summary:
 
 | # | Question | How to find out |
 |---|----------|-----------------|
@@ -13,6 +13,6 @@ See `docs/questions.html` for the full table. Summary:
 | Q7 | How is realized P&L per strategy computed? | Join fills to settlements (S4); verify vs `/portfolio/positions` |
 | Q8 | Should this ever touch production (real money)? | Explicit decision required; never put production keys on this site |
 
-| Q9 | What does “highest dollar amount” mean for ranking? | API gives contracts (`*_fp`), not dollars; notional = one contract's settlement value ([source](https://docs.kalshi.com/getting_started/fixed_point_migration)) | Which definition you want | Pick one of the four dashboard rankings (est. dollar volume / volume / 24h volume / open interest) |
+| Q9 | What does “highest dollar amount” mean for ranking? | REST market objects report contract counts (`volume_fp`, `open_interest_fp`) plus `notional_value_dollars` (one contract's settlement value) — no traded-dollar field on the REST path ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [fixed-point migration](https://docs.kalshi.com/getting_started/fixed_point_migration)). The WebSocket `ticker` payload additionally carries integer `dollar_volume` ("Signed whole-dollar cumulative traded notional") and `dollar_open_interest` ([Market Ticker](https://docs.kalshi.com/websockets/market-ticker)), but that path needs a demo key and the relay (Flagged W1). The site's REST ranking is therefore a labelled proxy — Flagged A11, E1, K1 |
 
 No decision should be made until its missing information is found.
