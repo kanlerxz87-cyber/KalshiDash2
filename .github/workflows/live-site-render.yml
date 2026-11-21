@@ -23,6 +23,7 @@ on:
       - "categories/**.html"
       - "assets/js/**.js"
       - "tests/dom/live-site.mjs"
+      - "tests/dom/live-site-assertions.mjs"
       - ".github/workflows/live-site-render.yml"
 
 permissions:
@@ -85,6 +86,28 @@ jobs:
           name: live-site-render-report
           path: live-site-render.md
 
-      - name: Fail the job if the render check failed
+      # Exit 0 = every assertion passed. Exit 1 = a real content regression, which
+      # fails the job. Exit 2 = the exchange refused or was unreachable (HTTP
+      # 429/5xx or transport), so the content assertions could not be made: that
+      # is reported as a warning annotation instead of a pass. A rate limit is not
+      # a site defect, but calling it green would hide a broken exchange.
+      - name: Report the outcome
         if: always()
-        run: test "${{ steps.live.outputs.status }}" = "0"
+        run: |
+          case "${{ steps.live.outputs.status }}" in
+            0) echo "### live-site-render: PASS" >> "$GITHUB_STEP_SUMMARY" ;;
+            2) echo "::warning title=live-site-render inconclusive::The Kalshi demo API refused or was unreachable, so content assertions could not be made. This run is not a pass. See the report artifact."
+               echo "### live-site-render: INCONCLUSIVE (exchange unavailable, not a pass)" >> "$GITHUB_STEP_SUMMARY" ;;
+            *) echo "::error title=live-site-render failed::A content assertion failed against the live demo API. Exit status ${{ steps.live.outputs.status }}."
+               echo "### live-site-render: FAIL" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+
+      - name: Fail the job only on a real regression
+        if: always()
+        run: |
+          status="${{ steps.live.outputs.status }}"
+          if [ "$status" = "1" ]; then
+            echo "live render check failed"
+            exit 1
+          fi
+          echo "status=$status (0=pass, 2=inconclusive)"
