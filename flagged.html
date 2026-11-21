@@ -962,10 +962,13 @@
         <code>/gas/i</code> catch-all remains banned. <code>tests/taxonomy.test.mjs</code> gained a regression case
         that asserts <code>KXGAS</code> → gas while <code>KXNATGAS</code>, <code>KXVEGASGP</code> and
         <code>"Something oil related"</code> still classify to nothing (11/11 taxonomy tests pass).</p>
-      <p><strong>Residual:</strong> <code>KXGAS</code> had <strong>no open events</strong> when checked
-        (<code>GET /events?series_ticker=KXGAS</code> → <code>[]</code>), so no live row appears today; the fix
-        matters when a KXGAS event opens. The collector's tag-only filter is unchanged — that is request
-        <strong>GC-I3</strong> on the board, owned by the collector's session.</p>
+      <p><strong>Residual (updated 2026-11-21):</strong> <code>KXGAS</code> had <strong>no open events</strong>
+        when checked (<code>GET /events?series_ticker=KXGAS</code> → <code>[]</code>), so no live row appears
+        today; the fix matters when a KXGAS event opens. The collector's tag-only filter has since been
+        replaced (session <code>5a9b44b9</code>: documented category discovery plus a direct
+        <code>GET /series/KXGAS</code> lookup, pinned ahead of the volume cap). See <strong>SB4</strong> for the
+        unverified part: the live response's own ticker is <code>GAS</code>, and the alias relationship is not
+        confirmed by an official source.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS" target="_blank" rel="noopener noreferrer">live GET /series/KXGAS ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series schema ↗</a>
@@ -1181,6 +1184,76 @@
   </div>
 
   <div class="card">
+    <h2>8 · Independent verification (session <code>5a9b44b9</code>, added 2026-11-21)</h2>
+
+    <div class="irregularity" id="SB1">
+      <h3>SB1 — A natural-gas series carries the primary category <code>Entertainment</code> <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> in the captured demo data, series <code>KXNATGASD</code> —
+        title <em>"Natural Gas Daily"</em>, tags <code>["Oil &amp; Gas"]</code> — reports
+        <code>"category": "Entertainment"</code>. The Culture topic accepts the official categories
+        <code>Culture</code>, <code>Entertainment</code> and <code>Social</code> (correctly: most Entertainment
+        series are film, TV, music and awards), so a demo market about natural gas can appear on the Culture
+        page.</p>
+      <p><strong>Why it is not patched:</strong> the category genuinely says <code>Entertainment</code>. Hiding
+        titles inside that category would be an undocumented heuristic, which the verification rules forbid.
+        This is demo-vocabulary noise and is published for a product decision (accept it, or add an explicit
+        exclusion rule with its own flag).</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List — <code>category</code> is the primary category, <code>categories</code> the discovery list ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series ↗</a>
+        · captured row: <code>data/snapshot.json</code> series <code>KXNATGASD</code></p>
+    </div>
+
+    <div class="irregularity" id="SB2">
+      <h3>SB2 — The collect workflow header described a site fallback that does not exist <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>.github/workflows/collect.yml</code> stated that the snapshot
+        "backs the repo's verification tables and the site's offline fallback". No published page reads
+        <code>data/snapshot.json</code>: searching <code>assets/js/*.js</code> and the HTML pages finds only
+        prose mentions on this page and on Suggestions. The snapshot is a repository evidence artifact, not a
+        live fallback.</p>
+      <p><strong>Status:</strong> documentation wording only — no published value depends on it. Left for the
+        owner of that workflow to correct, so the comment and the code cannot drift further.</p>
+      <p class="small"><strong>Evidence:</strong> <code>grep -rn "snapshot" assets/js/*.js *.html</code> finds no
+        fetch of the file; <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/.github/workflows/collect.yml" target="_blank" rel="noopener noreferrer">collect.yml on GitHub ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="SB3">
+      <h3>SB3 — Topic series lists are sampled, not the true top by volume <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>collect_series()</code> requests at most five pages of
+        <code>GET /series</code> per category. The captured vocabulary holds 5,255 <code>Entertainment</code>
+        series and 5,420 <code>Elections</code> series, so a large share is never requested. The returned page
+        order is not documented as volume-ordered, which means "top 40 series by volume" is really "top 40 by
+        volume among the pages returned".</p>
+      <p><strong>Why it is not patched:</strong> raising the cap multiplies the runtime of every scheduled run
+        (the collector is already 248 calls and about two minutes), and the snapshot is explicitly labelled
+        <em>sampled</em> in <code>_meta.collection_scope</code>. The limitation is published so the "top by
+        volume" wording is not over-read.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List — no ordering guarantee documented ↗</a>
+        · counts: <code>data/probe/api_surface.json</code></p>
+    </div>
+
+    <div class="irregularity" id="SB4">
+      <h3>SB4 — <code>KXGAS</code> and <code>GAS</code> appear to be the same series; not officially confirmed <span class="tag warn">unverified</span></h3>
+      <p><strong>What was found:</strong> session <code>32b15793</code> verified that
+        <code>GET /series/KXGAS</code> returns title <em>"Gas weekly"</em> with the EIA weekly retail-gasoline
+        settlement source. The collector then requested that endpoint by ticker, and the snapshot gained a
+        <em>"Gas weekly"</em> row whose own <code>ticker</code> is <strong><code>GAS</code></strong>
+        (category <code>Economics</code>, <code>contract_terms_url …/GAS.pdf</code>). No row with ticker
+        <code>KXGAS</code> exists in the snapshot, and <code>KXGAS</code> never appeared in any snapshot before
+        the direct lookup was added.</p>
+      <p><strong>Why it is flagged rather than stated:</strong> the alias relationship is <em>inferred</em> from
+        those observations. Neither the Get Series reference nor any other official page read for this review
+        says that <code>KXGAS</code> resolves to <code>GAS</code>, and this sandbox cannot reach the API to ask
+        again. The site therefore does not claim it. What <em>is</em> confirmed: the EIA "Gas weekly" series is
+        now present in the snapshot and matched by the Gas topic.</p>
+      <p class="small"><strong>Official sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        · evidence: <code>data/snapshot.json</code> (<code>generated_at 2026-11-21T20:46:46Z</code>),
+        <code>reports/review-5a9b44b9.md</code> §3 R9</p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
