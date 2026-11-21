@@ -1000,3 +1000,11 @@ Base: `origin/main` at `6f688ef` (PR #31). Board read before starting (per rules
 | Prior-run note | The `verify-live-site` push run immediately after PR #32 **failed** (`44800460526`); the run after PR #34 **succeeded** (`44801171862`). Current state on `main` is green (dispatch `44803202339`). Left as history, not reopened. |
 | K1/K2 closure | K1 absorbed (PR #34, verified 5/5 above); K2 closed (PR #28 superseded by PR #32 and closed; conflict-resolution commit `6d1c135` preserved on the PR #28 branch) |
 | Irregularities carried forward | `assets/js/jumps.js` dead-file note (this section, top); all F/X/R flags remain published on `flagged.html` with sources — none blocked this merge |
+
+---
+
+## Session `f1425e39` — DOM test dependency advisory and integration (2026-11-21)
+
+| Task | Status | Owner | Exclusive file scope | Notes |
+| --- | --- | --- | --- | --- |
+| Review and remediate the test-only esbuild advisory A10, if feasible; run regression and integration checks, update the published flag with evidence | in progress | `f1425e39` | `tests/dom/package.json`, `tests/dom/package-lock.json`, `flagged.html`, `COORDINATION.md` (this section) | Prior session flagged the advisory; this session will not touch other sessions' scopes. Arena's fixed branch name takes precedence over the requested session branch convention. |
