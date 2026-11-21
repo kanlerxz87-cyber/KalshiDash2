@@ -1600,3 +1600,28 @@ Limitations: single point in time (2026-11-21 UTC); a sample of series families,
 - **Rebase conflict on `COORDINATION.md`:** `origin/main` advanced to `882e074` (PR #63, session `0d6f4f1f`, R1 snapshot-note fix). My claim commit conflicted (add/add on the append-only board). Resolved with `tools/resolve_board_conflict.py`: 1 block unioned, 0 duplicate sections dropped, 0 markers left, all 19 `main` session sections present. Nothing from `main` discarded.
 - **Overlap check with R1:** R1 changes only derivation-note strings in `scripts/collect.py` and `data/snapshot.json`. My GC-I2/GC-I3 concern the gas tag filter (`TOPICS["gas"]`), a different line. No substantive overlap.
 - **Own-branch history rewrite:** a chained `git pull --rebase; git push` ran while the rebase was still paused and pushed my pre-rebase GC1 commit `8c7e8f2` to `arena/29749918-kalshidash2`. The rebased branch was then rejected as non-fast-forward. Replaced **only my own** superseded commits with `git push --force-with-lease=arena/29749918-kalshidash2:8c7e8f2` (lease pinned to that exact SHA). No other session's commits are on this branch.
+
+---
+
+## Session `e2718295` — snapshot-metadata drift fix + independent line-by-line verification
+
+Started: 2026-11-21T20:20Z. Work branch: `arena/e2718295-kalshidash2`, branched from `main` at `bbdc3a0` (clean tree, zero diff at claim time).
+
+**Why this scope:** a full local run on `main` at `bbdc3a0` fails **2 checks that no open claim covers**:
+
+| Check | Failure on `main` @ `bbdc3a0` | Root cause |
+|---|---|---|
+| `python3 -m unittest discover -s tools` | 1 of 28 fails — `SnapshotMetadataTests.test_snapshot_labels_contract_counts_and_sampled_trade_value` expects `"contract-count fields"` in `_meta.derivation_notes.contract_volume` | Scheduled collector rewrote the note wording |
+| `node --test tests/*.test.mjs` | 1 of 71 fails — `tests/activity-proxy.test.mjs` expects `"not asserted as actual all-side cash turnover"` | Same regeneration |
+
+The `Collect demo snapshot` workflow (`.github/workflows/collect.yml`, cron `23 */6 * * *`) regenerates `data/snapshot.json` from `scripts/collect.py` and commits with `[skip ci]`, so the drift lands on `main` without any test running. Confirmed at `bbdc3a0` (bot commit, 2026-11-21T19:29Z).
+
+| ID | Task | Status | Owner | Exclusive file scope | Official sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| E1 | Make the collector's disclosure strings and the two test suites agree on one canonical, officially-sourced wording; update the two affected snapshot note strings (metadata only, no captured values touched); add a generator↔snapshot drift regression test; run the metadata suite in the collect workflow before it commits | in progress | `e2718295` | `scripts/collect.py`, `tools/test_collect.py`, `tests/activity-proxy.test.mjs`, `data/snapshot.json` (`_meta.derivation_notes` only), `.github/workflows/collect.yml` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`volume_fp` "market volume in contracts", `open_interest_fp` "number of contracts bought on this market disconsidering netting", `notional_value_dollars` "The total value of a single contract at settlement in dollars"); [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) (paginated, limit 1–1000, `min_ts`/`max_ts` in seconds) | Repeated red builds on `main`; no data value is changed by this fix |
+| E2 | Independent line-by-line verification of the claims the site makes about the demo REST/WS surface, market fields, orderbook, candlesticks, auth signing, rate limits and fees, against official Kalshi docs; publish the checklist in `reports/` | unclaimed | — | `reports/verify-facts-e2718295.md` (new), `COORDINATION.md` (this section) | docs.kalshi.com pages, each quoted with its URL | Any claim that cannot be confirmed is recorded as unverified, never filled in |
+| E3 | Run the full local suite, open a PR to `main`, merge it, confirm the Pages deployment and the live-site verifier on the merged SHA | unclaimed | — | `COORDINATION.md` (this section) | `gh pr merge`, Pages API, `verify-live-site` | Do not merge a broken site |
+
+**Claim was committed and pushed before editing E1 files.**
+
+**Non-overlap check at claim time:** session `f2176447` claims `tests/dom/live-site.mjs` + the PR #60 takeover (its section above); open PR [#60](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/60) touches `.github/workflows/site-check.yml`, `404.html`, `VERIFICATION.md`, `assets/js/live-feed.js`, `docs/sources.html`, `docs/verification.html`, `flagged.html`, `questions.html`, `reports/alerts-live-check.md`, `scripts/relay.py`, `tests/live-feed-state.test.mjs`, `tests/test_relay_state.py`. **No E1 file is in either scope.**
