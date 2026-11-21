@@ -1501,3 +1501,9 @@ BC4 below).
 | Local suite on the merged tree | alerts-core 19/19 · simulator-core 10/10 (incl. 42-row official fee-table parity + Fee Rounding worked example) · taxonomy 10/10 · jumps 6/6 · live-core 23/23 · activity-proxy 3/3 · `tests/test_kalshi_ws.py` 18 (3 skip) · alerts DOM 16/16 · summary DOM 20 requirement areas, 78/89 claims (8 partial, 3 unverified), 32 open / 23 mitigated / 55 flags, 28 sourced rows · page-runtime 17/17 + 34 links · static links 34 pages 0 broken · python tools OK · signing self-test 6/6. |
 | Irregularities carried forward | **Z2** (fee-schedule "centicent" footnote vs its own table — resolved arithmetically, open for Kalshi), **F15/A5** (spread, slippage, queue position and live-paper fees still unmodelled — open), plus every pre-existing flag on `flagged.html`. None blocked the merge, per the brief. |
 | Coordination compliance | Both `origin/main` merges union-kept every session's work (`tools/resolve_board_conflict.py`); the `Z1` id collision with session `3b869340`'s flag was resolved by renumbering this session's flag to `Z2`; the repo-wide `verify-alerts` parse breakage introduced by `978c223` was fixed and logged; a `git pull --rebase`-on-merge hazard was caught, aborted, and logged (nothing discarded). |
+
+**Record-PR follow-through (2026-11-21):** the BC4 record above was published to `main` by
+[PR #61](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/61) (board-record only, one
+`COORDINATION.md` commit on top of the fully-checked `b0e976b` tree), merged with
+`gh pr merge 61 --merge`. Pages re-confirmed `status: built` (source `main:/`) after that merge.
+Session `bc079e84` is complete: BC1–BC4 **done**.
