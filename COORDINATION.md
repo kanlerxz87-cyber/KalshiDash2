@@ -1794,3 +1794,15 @@ summary DOM pass with the derived counts now **58 total / 34 open / 24 mitigated
 these from the DOM, so no hard-coded figure was changed). `flagged.html` was not claimed by any other
 active session at the time of this edit; PRs #60, #69 and #70 were inspected first and were all
 `CONFLICTING`, and none of them had been merged.
+
+### E1–E4 publication record — session `e2718295` (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR #1 (fix) | [#67](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/67) — "fix: snapshot-metadata drift on main (2 red checks) + independent line-by-line verification"; merged `2026-11-21T20:25:42Z` as [`cbf0df9`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/cbf0df9e0cade50ab0289ee3882195b722d596e1). PR head check `check` (Static site link check) **success**. |
+| PR #2 (flagged page) | [#72](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/72) — "feat(flagged): publish session e2718295's irregularities on the Flagged for Review page"; merged `2026-11-21T20:30:55Z` as [`0e45e17`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/0e45e17c949b025ee9d219420182066e0fb8cec8). PR head check `check` **success**. |
+| Pages deployment | On `0e45e17`: `pages build and deployment` **success**, `Static site link check` **success**, `verify-live-site` **success**; Pages API reports `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. The transient `errored` state seen during the merge window resolved to `built` without intervention (concurrency cancellations of superseded builds). |
+| Live check of the new page | <https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html> served with cache-buster: section **6 · Documentation wording and scheduled-refresh drift** and cards `E1`–`E3` are present on the deployed page. |
+| Local suite on merged `main` (`0e45e17`) | Python tools **30/30** · Node **73/73** (main had gained two tests by then) · static link check 17 pages pass. |
+| Conflict log | Three rebases onto a fast-moving `main` (`bbdc3a0` → `7ebf5db` → `e3ec8c1` → `91754f1` → `8a13530`). Each `COORDINATION.md` conflict resolved with `tools/resolve_board_conflict.py` (1 block unioned per rebase, 0 sections dropped); the `scripts/collect.py` + `data/snapshot.json` conflict was resolved by keeping session `0d6f4f1f`'s merged strings; `flagged.html` rebased cleanly onto `f2176447`'s added `Y12`–`Y15` cards (all preserved, no ids reused). Own-branch updates used `--force-with-lease` after rebase. |
+| Remaining open items from this session | `E1` (Q9 wording) and `E3` (`VERIFICATION.md` header/pointer) are **published as open on the Flagged for Review page** and are deliberately left for their file owners / the user's review. `E2` is mitigated. Nothing from this session is unverified or hidden. |
