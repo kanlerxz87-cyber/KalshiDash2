@@ -591,7 +591,7 @@
     </div>
 
     <div class="irregularity" id="Y9">
-      <h3>Y9 — Dead file: <code>assets/js/jumps.js</code> claimed to be in use but is imported nowhere <span class="tag warn">open</span></h3>
+      <h3>Y9 — Dead file: <code>assets/js/jumps.js</code> claimed to be in use but is imported nowhere <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> its header says "Used by the category charts to mark every move of at
         least $0.10", but no page or module imports it. The live jump logic is
         <code>detectJumps</code> in <code>assets/js/market.js</code> (identical threshold), used by
@@ -601,10 +601,14 @@
         and the file is inert — it is never served to a page. Left here so the owner can delete it knowingly.</p>
       <p class="small"><strong>Evidence:</strong> <code>grep -r "jumps.js"</code> over the repository returns
         no importers; <code>assets/js/market.js</code> defines <code>detectJumps</code>.</p>
+      <p><strong>Resolution (2026-11-21, session <code>9d7b4124</code>):</strong> the file was deleted after
+        re-running the grep (the only remaining references were this flag's own text) and confirming
+        <code>node tools/verify/page-runtime-check.mjs</code> still passes 17/17 pages without it. The
+        canonical jump logic in <code>assets/js/market.js</code> is unchanged.</p>
     </div>
 
     <div class="irregularity" id="Y10">
-      <h3>Y10 — Duplicate site generation still published at <code>/docs/</code> <span class="tag warn">open</span></h3>
+      <h3>Y10 — Duplicate site generation still published at <code>/docs/</code> <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> because Pages serves <code>main:/</code>, the older <code>docs/</code>
         generation is still reachable at <code>/docs/</code>. It carries the defects F6–F8 that the root site
         fixed, so a visitor who lands there sees the uncorrected version. Nothing links to it from the root
@@ -612,6 +616,12 @@
       <p><strong>Decision needed:</strong> delete <code>docs/</code>, or add a redirect from
         <code>/docs/</code> to the root. Deleting is out of scope for this session (it is another session's
         output and the brief says not to discard other sessions' work).</p>
+      <p><strong>Mitigation (2026-11-21, session <code>9d7b4124</code>):</strong> the redirect option was
+        taken — <code>docs/index.html</code> now redirects to the root site, so a visitor who lands on
+        <code>/docs/</code> no longer sees the defective generation presented as the dashboard. The
+        <code>docs/</code> subpages remain reachable directly for historical reference (nothing was
+        deleted), and the root site still links nowhere under <code>/docs/</code>. Marked
+        <em>mitigated</em>, not <em>fixed</em>, because the duplicate generation itself still exists.</p>
     </div>
 
     <div class="irregularity" id="Y11">
