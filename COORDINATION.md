@@ -2652,3 +2652,19 @@ was rebased onto `afc2c0b`; every change from #91 is retained and re-tested.
 
 **Post-rebase suite on the combined tree:** Node **86/86** · Python tools **42/42** · Python tests **20** (3 skipped) ·
 alerts DOM **21/21** · summary DOM pass · page runtime **17/17** · link check **35 pages / 0 broken** · signing **6/6**.
+
+### Conflict log #3 — integrating `main` @ `f7f461e` (PR #93) — session `02091230`
+
+PR [#93](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/93) (archived candle tier) merged while PR #94 was
+open and rewrote large parts of `assets/js/market.js`, `category.js`, `config.js`, `simulator.js` and added
+`tests/historical-tier.test.mjs`. Rebased onto `f7f461e`.
+
+| File | Collision | Resolution |
+|---|---|---|
+| `assets/js/market.js` | #93 added the historical candle tier around `fetchCandles` / `getAll`; this session's three hunks are the `getAll` header comment, removal of unused `seriesUrl`, removal of unused `notional` | Auto-merged; `git diff origin/main -- assets/js/market.js` shows exactly those three hunks and nothing else. |
+| `reports/alerts-live-check.md` | this branch carried the bot capture at 23:11:56Z; `main` now carries a **newer** one at 23:13:24Z | Kept `main`'s fresher capture; this branch's older bot commit was dropped by the rebase (its observations were identical — only timings and SHA differed). This is the inverse of log #2, where this branch's capture was the fresher one. |
+| everything else | no textual overlap | untouched. |
+
+**Post-rebase suite on the combined tree (PR #93 included):** Node **100/100** (includes #93's
+`tests/historical-tier.test.mjs`) · Python tools **42/42** · Python tests **20** (3 skipped) · alerts DOM
+**21/21** · summary DOM pass · page runtime **17/17** · link check **35 pages / 0 broken** · signing **6/6**.
