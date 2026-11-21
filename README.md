@@ -14,7 +14,9 @@ automated simulated trades, demo trading, trade categorization and performance a
 >   build publishes the whole repository. Its separate deploy workflow
 >   (`.github/workflows/pages.yml`) has been manual-only since PR #17 ended the two-deployer race
 >   (see `COORDINATION.md`, task P1), so nothing under `docs/` is auto-deployed any more. Nothing
->   in it was deleted or edited by the merge that brought the rebuild in.
+>   in it was deleted or edited by the merge that brought the rebuild in. Since 2026-11-21 its
+>   landing page (`docs/index.html`) redirects to the root site (Flagged Y10, mitigated), so
+>   visitors no longer land on the defective generation; subpages remain for historical reference.
 >
 > `COORDINATION.md` records which session owns what.
 
