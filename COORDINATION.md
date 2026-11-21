@@ -2390,3 +2390,45 @@ Because a requested ticker can resolve to an already-discovered series, the pinn
 
 ---
 
+
+---
+
+## Session `8d0568c3` — FINAL RECORD: merged to `main`, Pages deployed (2026-11-21)
+
+| Item | Result |
+|---|---|
+| PR | [#79 — integration: session 8d0568c3](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/79), branch `arena/8d0568c3-kalshidash2` → `main` |
+| Merge | `gh pr merge 79 --merge` succeeded 2026-11-21T20:55:13Z; merge commit [`f990d20`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/f990d20) |
+| Checks on `f990d20` | `Static site link check` **success** · `verify-alerts` **success** · `live-site-render` **success with no inconclusive annotation → genuine pass** · `verify-live-site` **success** (run [44948795080](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/44948795080), probes every published page) |
+| Pages deploy | GitHub Pages API: `status: built`, source `main:/`, URL <https://kanlerxz87-cyber.github.io/KalshiDash2/>. `pages build and deployment` **success** (a concurrent duplicate run was cancelled by the concurrency group; the surviving run and the Pages API both report built). |
+| Live content spot-check | The deployed `flagged.html` serves content newer than the branch base (W6/Y12 sections), so the deployment is current, and main carries this session's `V1`–`V3`/`D1` items inside the register. |
+| Final local suite on the merged tree | Node **93/93** · Python tools **42/42** · Python `tests/` 20 (3 skipped, `cryptography` absent here; CI installs it) · links **35 pages / 0 broken** · page runtime **17/17** · workflows parse · stubbed-network checks: 429 → exit 2, 2,468-event fixture → exit 0, unexplained empty board → exit 1 |
+
+### What this session actually contributed to `main`
+
+1. **`tests/dom/live-site-assertions.mjs` + 8 offline tests** — comma-tolerant scan count and the
+   refusal classifier, so the live probe's parsing can be reviewed without network access.
+2. **Exit-code contract for `live-site-render`** — a refusal that survives the retries exits **2**
+   (warning annotation, *never* green); error pills that are not refusals and unexplained empty boards
+   exit **1**. `main`'s own gas rule (`gas-assertion.mjs`) and comma fix are kept underneath it.
+3. **`scripts/collect.py --print-notes`** — the Node test reads the generator's canonical disclosure
+   text instead of restating it; a snapshot/generator equality guard now fails on drift.
+4. **`tools/check_site_links.py`** — defaults to the published root (35 pages) instead of the legacy
+   `docs/` tree, skips vendored trees; 2 new tests.
+5. **Flagged items `V1`, `V2`, `V3` (mitigated) and `D1` (open)**, plus the A9 correction quoting all
+   three official readings of the market-status vocabulary.
+
+### Open items a reviewer should look at first
+
+- **D1 (needs the owner):** repository history is a single squashed commit `bbdc3a0`; earlier commit
+  citations cannot be re-verified. Nothing on the live site depends on it.
+- **A9:** the Get Markets page contradicts itself about `paused`; no request depends on the answer.
+- **Z2, A11, F15/A5, W2/W3, W4** and the rest of the 72-item register remain as published.
+
+### Coordination compliance
+
+Two merges of `main` were performed while other sessions merged #64–#87 concurrently; every conflict was
+resolved by keeping `main`'s already-merged work (board union tool, fresher bot capture, `gas-assertion.mjs`)
+and re-landing only this session's unique contributions. This session deleted its own duplicate
+`boardOutcome()` rather than ship a second definition of an honest board. No other session's work was
+removed.
