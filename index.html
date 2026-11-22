@@ -73,7 +73,9 @@
     </div>
     <p class="sub small" style="margin:10px 0 0">
       Source: <a href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>.
-      A market whose pages cannot all be read is shown as n/a; a partial sum is never presented as a total.
+      A market whose pages cannot all be read is shown as n/a; a partial sum is never presented as a total. A trade whose
+      recorded taker side is absent, or whose price on that side is missing, is excluded and counted — never valued by
+      assumption — and every market measured has its own response link on the category page.
     </p>
   </div>
 
