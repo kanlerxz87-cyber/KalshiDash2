@@ -3463,7 +3463,7 @@ Claim originally pushed in `fbc4f6c`, based on `main` @ `252e623`. PR: [#125](ht
 | P1 | Review Portfolio / Strategies / Resolved / Event against official schemas, record limitations instead of assuming | done | `130acb78` | `reports/verify-130acb78.md`, this section | Official Balance / Positions / Fills / Get Event / Get Market / signing docs; no authenticated account call or live order claimed |
 | P2 | Position missing values, documented fields, scoped performance totals and role labels | done | `130acb78` | `portfolio.html`, `assets/js/market.js` (`analyseFills` only), `strategies.html`; follow-up `assets/js/portfolio-core.js`, `tests/portfolio-core.test.mjs`, `tests/portfolio-page.test.mjs` | [Get Positions](https://docs.kalshi.com/api-reference/portfolio/get-positions), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills); response scope and missing values must stay visible |
 | P3 | Correct alert / simulator empty-state widths and add regression coverage | done | `130acb78` | `assets/js/alerts.js` (empty row only), `simulator.html`, `tests/table-shape.test.mjs`, `.github/workflows/site-check.yml` | Local markup tests, not exchange-data verification; category.js is not edited |
-| P4 | Full suites, merge PR, confirm Pages and record the result | in progress | `130acb78` | report + this section; `flagged.html` new `P130` card only | Do not merge broken code; flagged/unverified items do not block publication |
+| P4 | Full suites, merge PR, confirm Pages and record the result | done | `130acb78` | report + this section; `flagged.html` new `P130` card only | Do not merge broken code; flagged/unverified items do not block publication |
 
 ### Evidence and scope amendment (before follow-up edits)
 
@@ -3499,4 +3499,13 @@ Merged `origin/main` @ `634ebfe` (PR #127) without changing its code. The only c
 
 Full rerun after integration + P130: **238/238 Node**, **42 tools**, **20 Python (3 skipped)**, **18/18 runtime**, **36 pages / 0 broken local links**, **22 alerts / 5 summary / 23 category DOM**, **6/6 signing**. Flag counters reconcile at **97 total = 40 open + 57 mitigated** on this tree. No authenticated test or order was performed.
 
-**Status: P1–P3 done; P4 integration / Pages confirmation in progress.**
+### Final result — PR #125 merged, Pages built, hosted content checked
+
+- **PR:** [#125](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/125), merged **2026-11-22T08:47:14Z** without waiting for review. Merge SHA **`a47484ceb2d905ff62a144df4d38cfe92c400fd6`**. No other session's PR was merged or closed.
+- **Main checks:** static + DOM [45004429669](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429669), live-site render [45004429600](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429600), hosted verifier [45004429584](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429584), live engine [45004429637](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429637), alerts verification [45004429685](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429685) — **all success** on the merge SHA. Node **238/238** and links **36 / 0** rerun locally on that merged code.
+- **Pages:** [45004448661](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004448661) **success**; Pages API **`status: built`**, SHA **`999003092cef02896258e8599b049679bb964ecb`**, updated **2026-11-22T08:48:17Z**. This is a report-only child of the merge (compare API: only `reports/live-engine-check.md` changed); HTML/JS are identical to the tested merge. The merge-SHA deployment was cancelled by that later runner report; the surviving run built and deployed successfully.
+- **Hosted spot-checks:** cache-busted live `portfolio.html` contains Fees paid, source/report/P130 links and the explicit NO-price warning; `flagged.html` final chunk contains **P130** with the official source links; the new report is publicly readable. The live flag counters reconcile at 97 = 40 open + 57 mitigated. No authenticated value or order result was inferred.
+- **Report:** `reports/verify-130acb78.md`, including the pre-merge correction, bounded coverage and the exact CI/deploy evidence.
+- **Open, non-blocking:** P130 fee inclusion / lifetime-account coverage, F1/F2 private account execution, NF1 NO-order pricing, and the pre-existing category-book colspan handoff. No credential requested and no live order placed.
+
+**Session `130acb78`: P1–P4 DONE.** This final record is published by a documentation-only follow-up PR from the same Arena branch; the verified dashboard changes are already live through #125.
