@@ -145,6 +145,32 @@ Local pre-integration checks (2026-11-22):
 - Signing self-test (`tools/verify/auth-sign-test.mjs`): **6/6**.
 - `git diff --check`: clean.
 
-CI runs the new portfolio and table suites. The final combined-tree result, PR
-merge SHA and Pages deployment will be appended after integration; the above
-numbers are explicitly dated local results, not a claim about a later commit.
+CI runs the new portfolio and table suites. Node **238/238** and the 36-page link
+check were rerun on the actual merged code (`a47484c`) and passed.
+
+## 6. Merge and live deployment confirmed
+
+- **PR [#125](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/125) merged**
+  without waiting for review at **2026-11-22T08:47:14Z**. Merge SHA:
+  `a47484ceb2d905ff62a144df4d38cfe92c400fd6`.
+- Main's [static/DOM CI](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429669),
+  [live-site render](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429600),
+  [hosted live verifier](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429584),
+  [live engine](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429637),
+  and [alerts verification](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004429685)
+  all completed **successfully** on the merge SHA.
+- **Pages `status: built`**, confirmed at **2026-11-22T08:48:17Z**, for
+  `999003092cef02896258e8599b049679bb964ecb` ([successful deployment](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45004448661)).
+  This is one commit after the merge; the compare API reports **only**
+  `reports/live-engine-check.md` changed. No HTML or JavaScript differs from the
+  tested merge. The original merge-SHA deployment was cancelled when that runner
+  report arrived; the surviving deployment succeeded, not an ignored build error.
+- Cache-busted fetches of the **live** Portfolio page, `flagged.html` (including
+  P130 in its final chunk) and this report returned the new content. Portfolio
+  has the Fees paid column and coverage/report links, retains the visible NF1
+  warning, and shows no invented account values before authentication.
+- Live site: [KalshiDash2](https://kanlerxz87-cyber.github.io/KalshiDash2/).
+  Review: [P130](https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html#P130).
+
+**P1–P4 complete.** The open limitations in §4 remain open; a successful deploy is
+not represented as verification of private account data or NO-order pricing.
