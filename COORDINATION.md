@@ -3142,3 +3142,11 @@ only difference between the tested branch tip and `96e685c` was #105's 26 board 
 | Correct unsupported probability wording in suggestion S4; verify its source and add regression coverage | in progress | `0d535383` | `suggestions.html`, `tests/official-wording.test.mjs`, `COORDINATION.md` |
 
 Independent review found S4 asserts that a price is the market's probability and cites the orderbook guide; the cited guide documents bid/ask complementarity, not a verified probability. Source: <https://docs.kalshi.com/getting_started/orderbook_responses>. Scope is limited to this accuracy issue and its tests; no other session's claimed files are taken over.
+
+### `0d535383` task result
+
+- **Done:** replaced S4's unsupported equation of quoted price and true probability with the verified scope of the cited orderbook documentation, and marked a probability method unverified. Added a regression test. The related limitation is already published at [Flag F13](flagged.html#F13); no new numerical value or probability was invented.
+- **Official source checked:** <https://docs.kalshi.com/getting_started/orderbook_responses> documents complementary YES/NO bids and asks; it does not substantiate the former probability assertion.
+- **Checks:** 156 Node unit tests, 15 DOM-helper tests, 42 Python tool tests, 20 Python tests (3 skipped), 18/18 page-runtime checks, and 36 HTML pages with zero broken local links.
+- **Limits / review:** this is a targeted correction, not a new line-by-line audit of the whole repository. Authenticated demo trading and account data remain unverified without a demo key; the published F1 and F13 flags remain open. A historical PR #97 is open and conflicting on another session's branch, and is not taken over here. Pages status before this change was `built`.
+- **Coordination:** first pull before publishing the claim could not find the new branch on origin; rebased on `origin/main` and then created the current branch remotely. No merge conflict occurred.
