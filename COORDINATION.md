@@ -3232,3 +3232,33 @@ After the fixes (2026-11-22T08:3xZ): Node **162/162** · DOM alerts **22/22**, c
 pass (87/100 claims verified, 39 open / 47 mitigated / 85 flags) · Python `tools` **42 OK** · links 36 / 0 ·
 runtime 18/18 · signing 6/6 · `npm audit` 0 vulnerabilities · `git diff --check` clean.
 Full write-up with one official source per row: `reports/verify-33a37458.md`.
+
+### `33a37458` — defects proven in V1–V3 (logged before any edit, as the board requires)
+
+**A1 (new, code defect, published site).** `assets/js/alerts.js:417` builds the "official contract
+filing" link from `[rec.contract_url, rec.contract_terms_url]` and uses `urls[0]` — i.e. it prefers
+`contract_url`. In the committed demo capture that field points at
+`kalshi-public-docs-staging.s3.us-east-1.amazonaws.com`, which is exactly the host **Flag X1** records as
+returning HTTP 403 to a public runner. Counting the JSON (not grep) in `data/snapshot.json`
+(generated 2026-11-22T07:05:27Z): 200 `contract_url` occurrences, 90 unique, of which **169 occurrences
+(80 unique) are on the staging bucket** and 31 are on `assets.kalshi.com`. So the alerts page publishes a
+link to a 403 URL as the official filing. Official schema, fetched this session
+([Get Series](https://docs.kalshi.com/api-reference/market/get-series)): `contract_url` = "a direct link
+to the original filing of the contract which underlies the series"; `contract_terms_url` = "the URL to the
+current terms of the contract underlying the series" — two different documents, both required, neither
+documented as staging. Live this session: `GET /series/KXGAS` and `/series/GAS` return
+`contract_url … staging …/GAS.pdf` + `contract_terms_url https://assets.kalshi.com/contract_terms/GAS.pdf`;
+the assets host serves a readable PDF, the staging host does not answer.
+**Also false as published:** Flag X1 and `tools/audit_external_links.py` both assert "no published page
+links them". That was true when written; `alerts.js` now does. Fix: prefer the terms URL, never render a
+staging-host link, label the two documents distinctly, and correct both statements.
+
+**A2 (new, stale published counts).** Three counts restated in the docs no longer match the suites:
+`README.md:166` says alerts-core has 19 tests (it has **21**), `README.md:169` says taxonomy has 11
+(it has **17**), and `EXECUTIVE_SUMMARY.md:49` says "18 alert-core tests, 5 simulator-core tests, 16
+alerts-page DOM checks" (measured this session: **21 / 10 / 21**). Fix: state the measured numbers and
+record the measurement date.
+
+**A3 (minor, tool note).** `tools/audit_external_links.py` hard-codes "Staging bucket (66 URLs)" in a
+review note, while the same script's own table today renders 80 — the note does not follow the data.
+Fix: derive the count in the note from the scan.
