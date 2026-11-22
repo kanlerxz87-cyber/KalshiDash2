@@ -167,9 +167,9 @@ Both scripts are hard-locked to the demo hosts and refuse to talk to production.
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
-node --test tests/alerts-core.test.mjs    # alert engine unit tests (19)
+node --test tests/alerts-core.test.mjs    # alert engine + contract-link rules (28)
 node --test tests/live-core.test.mjs      # live-feed field mapping and $0.10 threshold tests (23)
-node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (11)
+node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (17)
 node --test tests/result-semantics.test.mjs # yes / no / scalar settlement labels (11)
 node --test tests/chart-axis.test.mjs     # X-axis labels for seconds → days windows (10)
 node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests

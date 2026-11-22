@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import {
   detectMoves, watchCheck, planTrades, updateTrade, summarize,
   pickUniverse, chunk, quoteOf, volumePriceProxy, THRESHOLD, WATCH_RULES,
-  marketRefFromAlert
+  marketRefFromAlert, seriesContractLinks, isNonPublicHost, CONTRACT_FIELDS,
+  NON_PUBLIC_CONTRACT_HOSTS
 } from "../assets/js/alerts-core.js";
 
 const mk = (over = {}) => ({
@@ -232,4 +233,84 @@ test("marketRefFromAlert keeps a missing quote side null and rejects a tickerles
   assert.equal(ref.yes_ask_dollars, null);
   assert.equal(marketRefFromAlert(null), null);
   assert.equal(marketRefFromAlert({ to: 0.5 }), null);
+});
+
+/* ---------------------------------------------------- series contract links
+ *
+ * Field semantics: https://docs.kalshi.com/api-reference/market/get-series
+ *   contract_url        = "a direct link to the original filing of the contract"
+ *   contract_terms_url  = "the URL to the current terms of the contract"
+ * The staging host is the one Flagged X1 records as refusing public requests.
+ */
+
+// Exactly the values a live demo GET /series/KXGAS returned on 2026-11-22.
+const KXGAS_SERIES = {
+  ticker: "KXGAS",
+  contract_url: "https://kalshi-public-docs-staging.s3.us-east-1.amazonaws.com/regulatory/product-certifications/GAS.pdf",
+  contract_terms_url: "https://assets.kalshi.com/contract_terms/GAS.pdf"
+};
+
+test("a staging-host contract_url is withheld, never rendered", () => {
+  const { links, withheld } = seriesContractLinks(KXGAS_SERIES);
+  assert.deepEqual(links.map(l => l.url), ["https://assets.kalshi.com/contract_terms/GAS.pdf"]);
+  assert.equal(withheld.length, 1);
+  assert.equal(withheld[0].field, "contract_url");
+  assert.equal(withheld[0].host, "kalshi-public-docs-staging.s3.us-east-1.amazonaws.com");
+  assert.match(withheld[0].reason, /public requests/);
+});
+
+test("both documented documents are offered when both hosts are public", () => {
+  const { links, withheld } = seriesContractLinks({
+    contract_url: "https://kalshi.com/filings/A.pdf",
+    contract_terms_url: "https://kalshi.com/terms/A.pdf"
+  });
+  assert.deepEqual(links.map(l => l.field), ["contract_terms_url", "contract_url"]);
+  assert.deepEqual(links.map(l => l.label), ["current contract terms", "original contract filing"]);
+  assert.deepEqual(withheld, []);
+});
+
+test("the terms document is preferred regardless of the field order in the response", () => {
+  const a = seriesContractLinks({
+    contract_url: "https://kalshi.com/filings/A.pdf",
+    contract_terms_url: "https://kalshi.com/terms/A.pdf"
+  });
+  const b = seriesContractLinks({
+    contract_terms_url: "https://kalshi.com/terms/A.pdf",
+    contract_url: "https://kalshi.com/filings/A.pdf"
+  });
+  assert.deepEqual(a.links, b.links);
+  assert.equal(CONTRACT_FIELDS[0].field, "contract_terms_url");
+});
+
+test("only when a series publishes neither document does the page get no link", () => {
+  assert.deepEqual(seriesContractLinks({}), { links: [], withheld: [] });
+  assert.deepEqual(seriesContractLinks(null), { links: [], withheld: [] });
+  assert.deepEqual(seriesContractLinks({ contract_url: "", contract_terms_url: null }),
+    { links: [], withheld: [] });
+});
+
+test("a documented URL that is not absolute https is withheld with its reason, not repaired", () => {
+  const { links, withheld } = seriesContractLinks({
+    contract_url: "http://kalshi.com/filings/A.pdf",
+    contract_terms_url: "/terms/A.pdf"
+  });
+  assert.deepEqual(links, []);
+  assert.equal(withheld.length, 2);
+  assert.ok(withheld.every(w => w.reason === "not an absolute https URL"));
+});
+
+test("the non-public host list is explicit and matched on host boundaries only", () => {
+  assert.deepEqual([...NON_PUBLIC_CONTRACT_HOSTS],
+    ["kalshi-public-docs-staging.s3.us-east-1.amazonaws.com"]);
+  assert.equal(isNonPublicHost(KXGAS_SERIES.contract_url), true);
+  assert.equal(isNonPublicHost("https://assets.kalshi.com/contract_terms/GAS.pdf"), false);
+  // A host that merely contains the string is not the listed host.
+  assert.equal(isNonPublicHost("https://example.org/?u=kalshi-public-docs-staging.s3.us-east-1.amazonaws.com"), false);
+  assert.equal(isNonPublicHost("not a url"), false);
+});
+
+test("the series record may arrive wrapped, as GET /series returns it", () => {
+  const { links } = seriesContractLinks({ series: KXGAS_SERIES });
+  assert.equal(links.length, 1);
+  assert.equal(links[0].url, "https://assets.kalshi.com/contract_terms/GAS.pdf");
 });

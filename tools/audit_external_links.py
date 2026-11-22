@@ -260,6 +260,13 @@ def render(found: dict[str, Found], checks: dict[str, str], checked: bool) -> st
         if flags:
             flagged.append((url, "; ".join(flags), note))
     api_total = sum(api_hosts.values())
+    # Count of URLs on the staging host, derived from this scan rather than
+    # hard-coded: an earlier version of this note said "66 URLs" while its own
+    # table listed a different number as the capture grew.
+    staging_count = sum(
+        1 for url in found
+        if urlsplit(url).hostname == "kalshi-public-docs-staging.s3.us-east-1.amazonaws.com"
+    )
     n_pages = len(found) - api_total
     lines = [
         "# External link audit",
@@ -291,7 +298,7 @@ def render(found: dict[str, Found], checks: dict[str, str], checked: bool) -> st
         "",
         "## Review notes (what each flag means)",
         "",
-        "1. **Staging bucket (66 URLs).** Every one is a `contract_url` value on a series object in `data/snapshot.json`, a raw capture from the demo API. No published page links them (grep of `*.html` / `*.js` finds none). The official [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) schema names `contract_url` and `contract_terms_url`; the page does not say which host is correct. Action for review: confirm with Kalshi whether `contract_url` should point to the staging bucket.",
+        f"1. **Staging bucket ({staging_count} URLs, counted by this run).** Every one is a `contract_url` value on a series object in `data/snapshot.json`, a raw capture from the demo API. The official [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) schema names `contract_url` and `contract_terms_url`; the page does not say which host is correct. Action for review: confirm with Kalshi whether `contract_url` should point to the staging bucket. The site itself no longer renders such a URL: `seriesContractLinks()` in `assets/js/alerts-core.js` withholds hosts on its explicit non-public list and shows the reason instead (Flagged X1, session `33a37458`).",
         "2. **Truncated URL `https://www.politi`.** Found in `evidence/evidence-routes-settled.md` and `reports/verify-facts-v2.md` (both at line 81). These are excerpts cut mid-string by the capture tool, not links a reader can use. The full `settlement_sources[]` values come from the [Get Event](https://docs.kalshi.com/api-reference/events/get-event) response.",
         "3. **Kalshi-named settlement sources (news and sports).** These are the outlets an event's `settlement_sources[]` names. Their presence confirms only what the event declares. The site does not verify any news claim against them.",
         "4. **Lockfile and test fixtures** (`tests/dom/package-lock.json`, `example.com`/`example.org` in test files) are excluded or classed as fixtures; they are not cited sources.",
