@@ -3175,3 +3175,10 @@ session is discarded.
 taxonomy owners), `data/snapshot.json`, `scripts/collect.py`, or any other page. The AC1 reader lives inline in
 `index.html` (the card's "outside this session's scope" note is stale — the reader is not in `assets/js/ui.js`).
 Findings that require a change in another owner's files are logged as requests on this board, never silently rewritten.
+## Session `e7931fe7` — integration verification (2026-11-22 08:03 UTC)
+
+| Task | Status | Owner | File scope |
+|---|---|---|---|
+| I1: independently audit current integration, source attribution and build; document confirmed issues and limitations | in progress | `e7931fe7` | `COORDINATION.md`, `reports/audit-e7931fe7.md`, and, only if necessary for integration, `flagged.html` and related shared site files |
+
+Earlier 2026-11-20/21 in-progress claims with no recent commits are stale under the 60-minute rule; no other session's work is being replaced. The fixed Arena branch `arena/e7931fe7-kalshidash2` is used for this session.
