@@ -364,19 +364,16 @@ $("#place").onclick = async () => {
 
   // Final confirmation, because this places a real order on the demo book.
   const verb = outcomeSide === "yes" ? "BUY YES" : "BUY NO";
-  /* The V2 endpoint quotes the YES leg only: `bid` is long YES, `ask` is short
-     YES. For a NO order the number typed is the NO price; the number sent is
-     the YES-leg price, 1 − that, on the ask side (buy NO ≡ sell YES).
-     (create-order-v2, order_direction, quick_start_create_order) */
-  const yesPrice = outcomeSide === "yes" ? price : 1 - price;
-  if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?` +
-      (outcomeSide === "no" ? `\nYES-leg price sent: $${yesPrice.toFixed(4)}` : "") +
-      `\n\nThis submits a demo order.`)) return;
+  // The NO-price documentation conflict remains unresolved (Flagged NF1).
+  // Preserve the existing request price; do not invent a price conversion.
+  if (!confirm(`${verb} ${count} contract(s) with request price $${price.toFixed(4)} on ${ticker}?` +
+      (outcomeSide === "no" ? "\nNO-order price scale is unverified; see Flagged NF1." : "") +
+      "\n\nThis submits a demo order.")) return;
 
   pill($("#order-status"), "warn", "submitting…");
   $("#order-result").innerHTML = "";
   try {
-    const r = await api.createOrder({ ticker, outcomeSide, action: "buy", priceDollars: price, count });
+    const r = await api.createOrder({ ticker, outcomeSide, priceDollars: price, count });
     pill($("#order-status"), "live", "order accepted");
     $("#order-result").innerHTML = `<div class="callout ok">
       <h3>Order accepted${r.order_id ? " · " + esc(r.order_id.slice(0, 8)) + "…" : ""}</h3>
