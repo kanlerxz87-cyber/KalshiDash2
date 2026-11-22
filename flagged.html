@@ -609,14 +609,15 @@
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
         · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
-      <p><strong>Reproduced on the live exchange (session <code>8f3c331c</code>, 2026-11-22):</strong> this is
-        not an artefact of the committed snapshot. <code>GET /series/KXGAS</code> answers today with
-        <code>contract_url</code> on <code>kalshi-public-docs-staging.s3.us-east-1.amazonaws.com</code> and
-        <code>contract_terms_url</code> on <code>assets.kalshi.com</code>; the other record carrying the same
-        title, <code>GET /series/GAS</code>, has <code>assets.kalshi.com</code> for <em>both</em>. The capture is
-        in <a href="evidence/live-2026-11-22-8f3c331c.md">evidence/live-2026-11-22-8f3c331c.md</a> §E7 with its
-        re-runnable URL, so the staging host can be re-checked at any time rather than taken on trust. The card
-        stays open because the question — is a public staging URL intended? — is Kalshi's to answer.</p>
+      <p><strong>One more comparison, from the same live read (session <code>8f3c331c</code>, 2026-11-22):</strong>
+        the asymmetry is per-record, not per-host. The other series that carries the title &quot;Gas weekly&quot;,
+        <code>GET /series/GAS</code>, returns <code>assets.kalshi.com</code> for <em>both</em>
+        <code>contract_url</code> and <code>contract_terms_url</code> — so the same underlying filing is
+        published from the production host on one record and from staging on the other. Capture and re-runnable
+        URL: <a href="evidence/live-2026-11-22-8f3c331c.md">evidence/live-2026-11-22-8f3c331c.md</a> §E7. This
+        is also the reason the collector's <code>KXGAS → GAS</code> comment could be corrected rather than
+        guessed at (SB4). The card stays open because the question — is a public staging URL intended? — is
+        Kalshi's to answer.</p>
     </div>
 
     <div class="irregularity" id="X2">

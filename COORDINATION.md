@@ -3471,7 +3471,7 @@ URL. Nothing was transcribed into the site as a static fact — the pages still 
   records that the staging-bucket `contract_url` reproduces on the live exchange today (not only in
   `data/snapshot.json`); **A7** narrowed to `mitigated` by the documented "tickers-only → one complete response"
   guarantee; **Z1** corroborated by two minute-old markets reporting `previous_price_dollars "0.0000"`; **SB2**
-  closed. Card count 86 → 88, and the counts strip still reconciles (35 open + 53 mitigated = 88).
+  closed. Cards on this branch went 86 → 88; after the final rebase onto `main` (which had taken PR #119/#121/#123) the page holds **98 cards, 37 open + 61 mitigated**, reconciled by `tests/dom/summary-dom.mjs`, and no card is nested.
 
 **Irregularities left open on purpose:** F5 (the series endpoint still documents no paging, so 16,643/16,653
 remain two point-in-time row counts), F1/F2 and W1/W4 (no demo API key exists in this repository and no
@@ -3479,16 +3479,25 @@ authenticated call was made), F3 (needs a published Kalshi number), K1 (needs a 
 **Not requested, not done:** the `docs/` retirement, and any change to `sources.html`/`verification.html`
 markup — both belong to other owners' scopes.
 
-**Scope extension, recorded rather than assumed (2026-11-22T08:4xZ).** V2's outcome made the source register
-incomplete in a way only this session could see: its new claims cite
-`/api-reference/historical/get-historical-markets` and `/api-reference/historical/get-historical-market-candlesticks`,
-and `assets/js/sources.js` opens by promising "one place that records WHERE every factual claim on this site comes
-from". No session held an active claim on that file (the last section touching it, `sources.html` +
-`tests/sources-page.test.mjs`, belongs to a completed session), so two rows were added there and the `Get Markets`
-row's `verified` moved from `index` to `fetched` with the paging sentences quoted. Additive only: no existing row
-was reworded or removed, and `tests/sources-page.test.mjs` (8 checks) plus the runtime harness both pass. If any
-session disagrees, reverting this file alone costs nothing — the claims and the report stand on their own.
+**Register collision, resolved by *not* editing (2026-11-22T08:5xZ).** V2's new claims cite
+`/api-reference/historical/get-historical-markets` and `…/get-historical-market-candlesticks`, pages
+`assets/js/sources.js` — "one place that records WHERE every factual claim on this site comes from" — did not
+carry when this branch was cut. Two rows were drafted here; the final rebase found **PR #123 (session
+`faf9fe08`) had already landed the same three historical endpoints** (`get-historical-markets`,
+`get-historical-market-candlesticks`, `get-historical-cutoff-timestamps`) with `verified: "fetched"` and live
+confirmation, and had corrected the `Get Markets` row to the accurate page size (`limit` 1–1000, default 100 —
+the text on this branch still said "the 200-row page limit"). Their rows are better and more recent, so
+`assets/js/sources.js` is **untouched by this branch**: keeping my draft would have duplicated three URLs and
+re-introduced a superseded number. Caught by the rebase, not by a test — worth remembering that the register is
+a shared file, and that an additive edit to it is not automatically safe.
 
-**Suite state at hand-off:** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
+**Request filed to whoever next owns `assets/js/sources.js`** (not edited here, so the two sessions' shapes do
+not collide): the `Get Historical Markets` row could carry the sentence that keeps this site's archived calls
+safe — that endpoint's own description reads *"Filters are mutually exclusive"*, and the reason the site never
+trips it is that it asks for archived candles by ticker and the archived universe by page size only, never a
+filter combination. Set out in `reports/verify-8f3c331c.md` §11; a one-clause addition to that row's `note`
+would save the next reader the same check.
+
+**Suite state on the final rebased tree (branch `611c0fc`..rebased):** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
 `tests/dom` 23/23 · page-runtime 18/18 · `check_site_links.py` 36 pages / 0 broken · all 12 workflows parse.
 

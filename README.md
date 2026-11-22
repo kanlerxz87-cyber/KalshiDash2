@@ -132,9 +132,10 @@ every push to `main` and publishes the **repository root**, which is why `docs/`
 `COORDINATION.md` are reachable on the live host as well as the pages themselves.
 
 `.github/workflows/pages.yml` is a **manual fallback for the same tree**: it has no push trigger (PR #17
-ended the two-deployer race) and since PR from session `8f3c331c` it uploads `path: .` — the repository
+ended the two-deployer race) and since PR #126 it uploads `path: .` — the repository
 root — instead of the old `path: docs`, which would have published the superseded generation. The flag
-that recorded the mismatch is [Flagged AC3](flagged.html#AC3).
+that recorded the mismatch is [Flagged AC3](flagged.html#AC3); the workflow is kept so there is still a
+manual path that publishes the right tree.
 
 If Pages' source is ever switched from "deploy from a branch" to "GitHub Actions", `pages.yml` becomes
 the deployer; nothing else needs changing, and the push-triggered legacy build must be turned off so the
