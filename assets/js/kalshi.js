@@ -188,24 +188,54 @@ export class KalshiClient {
 
   /* ---------------- trading (V2) ---------------- */
 
-  /* Purchase a YES position at a price (side must be "bid") or a NO position
-   * (side must be "ask"). `side` is book vocabulary: bid ≡ yes, ask ≡ no.
-   * (https://docs.kalshi.com/api-reference/orders/create-order-v2 — the
-   * documented body carries `side`, `count`, `price` as fixed-point strings.)
+  /* Submit an order for the YES or NO outcome at a chosen price.
+   *
+   * The V2 order endpoint is SINGLE-BOOK and quotes the YES leg only. Its `side`
+   * is defined as: "For event markets, this refers to the YES leg only: `bid`
+   * means buy YES, `ask` means sell YES." `price` is a fixed-point dollar price
+   * on that same YES leg. There is no outcome field.
+   * (https://docs.kalshi.com/api-reference/orders/create-order-v2)
+   *
+   * The order-direction guide states the bit the endpoint needs:
+   *   bid ≡ yes, ask ≡ no   (always)
+   * and gives the legacy equivalence table: buy YES ≡ bid, sell YES ≡ ask,
+   * buy NO ≡ ask, sell NO ≡ bid. The public trade/fill fields carry BOTH
+   * vocabularies for the same bit, so a NO fill reports outcome_side "no" and
+   * book_side "ask". (https://docs.kalshi.com/getting_started/order_direction)
+   *
+   * So `priceDollars` is the price of the outcome the caller named, and the
+   * `price` sent is always the YES-leg price:
+   *   buy YES at p  → side "bid", price p
+   *   sell YES at p → side "ask", price p
+   *   buy NO at p   → side "ask", price 1 − p
+   *   sell NO at p  → side "bid", price 1 − p
+   * Example: buy NO at $0.63 is buying the 63¢ NO outcome, which is SELLING the
+   * YES outcome at 37¢ → `side:"ask", price:"0.3700"`. Sending `bid` at 0.63
+   * would buy YES at 63¢ — the opposite position. The quick-start guide places
+   * its example the same way: "buy 1 YES contract for 1 cent" →
+   * `side:"bid", price:"0.0100"`.
+   * (https://docs.kalshi.com/getting_started/quick_start_create_order)
    *
    * `exchangeIndex` is optional. Per the sharding doc, an order write that
    * omits `exchange_index` and supplies a ticker auto-routes by ticker, so the
    * market's own `exchange_index` is NOT sent unless the caller asks for it —
    * sending a stale/guessed shard would be worse than letting Kalshi route. */
-  createOrder({ ticker, outcomeSide, priceDollars, count, timeInForce = "good_till_canceled", clientOrderId, exchangeIndex }) {
+  createOrder({ ticker, outcomeSide, action = "buy", priceDollars, count, timeInForce = "good_till_canceled", clientOrderId, exchangeIndex }) {
     if (outcomeSide !== "yes" && outcomeSide !== "no") {
       throw new Error('outcomeSide must be "yes" or "no".');
     }
+    if (action !== "buy" && action !== "sell") {
+      throw new Error('action must be "buy" or "sell".');
+    }
+    /* `side` is the caller's own bid/ask on the named outcome (buy = bid); the
+     * endpoint then maps bid ≡ YES, ask ≡ NO, so the price is that outcome's
+     * own price when the caller named YES and its complement when they named NO. */
+    const price = Number(priceDollars);
     const body = {
       ticker,
-      side: outcomeSide === "yes" ? "bid" : "ask",
+      side: action === "buy" ? "bid" : "ask",
       count: Number(count).toFixed(2),
-      price: Number(priceDollars).toFixed(4),
+      price: (outcomeSide === "yes" ? price : 1 - price).toFixed(4),
       time_in_force: timeInForce,
       self_trade_prevention_type: "taker_at_cross",
       client_order_id: clientOrderId || crypto.randomUUID()

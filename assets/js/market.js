@@ -861,7 +861,12 @@ export function analyseFills(fills, { topicResolver } = {}) {
   totals.netPremium = totals.premium + totals.fees;
 
   const by = key => groupBy(rows, key);
-  return { rows, totals, byTopic: by("topic"), bySide: by("side"), byTaker: by("is_taker") };
+  /* `is_taker` is a boolean; String(true) would render as the bucket "true".
+   * The documented meaning is taker = crossed the spread, maker = rested, so
+   * label it with those words (null stays "unclassified").
+   * (https://docs.kalshi.com/api-reference/portfolio/get-fills) */
+  const byRole = groupBy(rows.map(r => ({ ...r, role: r.is_taker === true ? "taker" : r.is_taker === false ? "maker" : "unclassified" })), "role");
+  return { rows, totals, byTopic: by("topic"), bySide: by("side"), byRole };
 }
 
 function sum(xs) { return xs.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0); }
