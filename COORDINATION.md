@@ -3305,3 +3305,11 @@ record the measurement date.
 **A3 (minor, tool note).** `tools/audit_external_links.py` hard-codes "Staging bucket (66 URLs)" in a
 review note, while the same script's own table today renders 80 — the note does not follow the data.
 Fix: derive the count in the note from the scan.
+
+---
+
+### `e7931fe7` — addendum: the Flagged page's own item count (Z8, 2026-11-22T08:2xZ)
+
+Found while reading the deployed summary page: it reported **87 items · 50 mitigated** against **38 open**, i.e. 88 statuses for 87 items. Cause: the card for **Z3** was never closed, so **SC1**, **SC2** and everything after it rendered *inside* Z3. Both counters (this repository's `flagged.html` script and the "Open flags" figure on `summary.html`, which reads the same rule from the page) therefore counted Z3 as one open card and its two nested mitigated neighbours as extra states of the same card, and the nesting also hid those two headings from a reader scanning the section.
+
+Fixed: the missing `</div>` was added (`.irregularity .irregularity` now matches nothing), both counters read the status from the card's own `<h3>`, the defect is published as **Z8** on the page, and `tests/dom/summary-dom.mjs` now fails if a card nests another, if a card has no heading status tag, or if open + mitigated ≠ item count. Counts after the fix: **88 items · 38 open · 50 mitigated** (was 87/38/50 with the double count). Delivered in PR #120 with the same suite green (Node 165, DOM alerts 21/21, category 23/23, summary pass, links 36/0, page runtime 18/18).
