@@ -3193,3 +3193,16 @@ Findings that require a change in another owner's files are logged as requests o
 Earlier 2026-11-20/21 in-progress claims with no recent commits are stale under the 60-minute rule; no other session's work is being replaced. The fixed Arena branch `arena/e7931fe7-kalshidash2` is used for this session.
 
 **I1 scope extension / integration finding (2026-11-22 08:05 UTC):** the trade-dollar panel can treat a missing taker side or required price as a usable partial amount, can label a sampled event as a total, and may link the wrong market's trade response. Claimed additionally for the integration fix: `assets/js/dollar-volume.js`, `assets/js/category.js`, `tests/dollar-volume.test.mjs`, `tests/dom/category-dom.mjs`, `flagged.html`. Sources: [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades); malformed/incomplete data must remain unverified. The earlier claim is stale (session `135bc17e`, completed PR #98 and final board record), so this is a recorded handoff rather than simultaneous ownership.
+---
+
+## Session `3bc35c29` — rendered-table source-link audit (branch `arena/3bc35c29-kalshidash2`, 2026-11-22)
+
+Branch `arena/3bc35c29-kalshidash2`, branched from `main` @ `252e623`. `gh pr list --state open` at claim time: one open PR (#97, `arena/f468e69b-kalshidash2`, docs-only record) — not touched by this session.
+
+Brief requirement under test: "Every table row must have a source link to an official site. If a value can't be confirmed from an official source, leave it blank and flag it as unverified."
+
+| ID | Task | Status | Owner | Exclusive files | Verification planned | Irregularities |
+|---|---|---|---|---|---|---|
+| L1 | Run the existing page-runtime harness and the full local suite on `main` @ `252e623`; record exact counts | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md` (new), this section | `node tools/verify/page-runtime-check.mjs`, `node --test tests/*.test.mjs`, `python3 -m unittest`, `tools/check_site_links.py .` | — |
+| L2 | Audit every rendered table data row on every published page: does it carry at least one link to an official host, or is it explicitly flagged? Fix only stale or unlinked **factual** rows found | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md`, `questions.html` (scope added: only the Missing-information table) | DOM capture from the runtime harness; host classification against `reports/external-links-audit.md` | F-1 stale gas row (contradicted by live API 2026-11-22) removed; F-2 stale WebSocket row reworded to match Q10; F-3 process row removed; F-4 link added. Legend rows in `sources.html`/`verification.html`/`summary.html` left as-is and logged |
+| L3 | Final integration: PR → `main`, merge without waiting, confirm Pages deploy; record PR link + result here | **in progress** | `3bc35c29` | this section | `gh pr create`, `gh pr merge --merge`, Pages API | Do not merge a broken site. |
