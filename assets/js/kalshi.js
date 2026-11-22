@@ -227,13 +227,14 @@ export class KalshiClient {
     if (action !== "buy" && action !== "sell") {
       throw new Error('action must be "buy" or "sell".');
     }
-    /* `side` is the caller's own bid/ask on the named outcome (buy = bid); the
-     * endpoint then maps bid ≡ YES, ask ≡ NO, so the price is that outcome's
-     * own price when the caller named YES and its complement when they named NO. */
+    /* `side` is the position direction on the YES leg: long YES (buy YES, sell
+     * NO) is a bid; short YES (sell YES, buy NO) is an ask. The price is the
+     * YES-leg price, so a NO price is complemented. */
+    const longYes = (action === "buy") === (outcomeSide === "yes");
     const price = Number(priceDollars);
     const body = {
       ticker,
-      side: action === "buy" ? "bid" : "ask",
+      side: longYes ? "bid" : "ask",
       count: Number(count).toFixed(2),
       price: (outcomeSide === "yes" ? price : 1 - price).toFixed(4),
       time_in_force: timeInForce,

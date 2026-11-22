@@ -364,9 +364,9 @@ $("#place").onclick = async () => {
 
   // Final confirmation, because this places a real order on the demo book.
   const verb = outcomeSide === "yes" ? "BUY YES" : "BUY NO";
-  /* The V2 endpoint quotes the YES leg only, and `side` describes the caller's
-     own intent (buy = bid). For a NO order the number typed is the NO price;
-     the number sent is the YES-leg price, 1 − that.
+  /* The V2 endpoint quotes the YES leg only: `bid` is long YES, `ask` is short
+     YES. For a NO order the number typed is the NO price; the number sent is
+     the YES-leg price, 1 − that, on the ask side (buy NO ≡ sell YES).
      (create-order-v2, order_direction, quick_start_create_order) */
   const yesPrice = outcomeSide === "yes" ? price : 1 - price;
   if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?` +

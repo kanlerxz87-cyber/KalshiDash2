@@ -3411,7 +3411,8 @@ Branched from `main` @ `252e623` (clean tree; Pages `builds/latest` on that exac
 
 - **Report:** `reports/verify-130acb78.md` — 5 sections, one official link per row, 4 defects fixed, 5 unverified items flagged (none blocking).
 - **Defects fixed:** (1) `portfolio.html` missing dollar fields rendered `$0.00` → `n/a`, plus documented performance totals and a "Fees paid" column; (2) `kalshi.js createOrder` NO-price translation to the YES leg (was sending the NO price on a YES-leg-only endpoint) — pinned by `tests/order-leg.test.mjs`; (3) `market.js analyseFills` role buckets "true"/"false" → `taker`/`maker`, and `strategies.html` labels the side vs role vocabularies; (4) positions "Status" column removed (reads two undocumented fields; `settlement_status` is a query param, not a response field); (5) empty-state colspans in `alerts.js` and `simulator.html`, now held by `tests/table-shape.test.mjs`.
-- **Suite on branch tip:** Node **202/202** (baseline 172/172) · Python tools **42 OK** · static links **36 pages / 0 broken** · page-runtime **18/18**. Both new suites are wired into `.github/workflows/site-check.yml`.
+- **Suite on branch tip:** Node **216/216** (baseline 172/172) · Python tools **42 OK** · static links **36 pages / 0 broken** · page-runtime **18/18**. Both new suites are wired into `.github/workflows/site-check.yml`.
+- **Correction (2026-11-22):** the first attempt at the §6.2 fix mapped `side` from buy/sell instead of from the position direction, which would have placed a YES bid for a NO purchase. It was caught by main's `tests/order-contract.test.mjs` (PR #123) on the rebased tree and corrected before merge; the final mapping is buy YES → `bid`, sell YES → `ask`, buy NO → `ask` at 1−q, sell NO → `bid` at 1−q, and is pinned by both test files. The report §6.2 documents the correction.
 
 ### Conflict log (rebase onto `main` @ `0708788`, PR #122)
 

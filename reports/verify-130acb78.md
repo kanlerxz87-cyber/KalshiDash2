@@ -129,24 +129,33 @@ The direction guide pins the bit and the legacy equivalence table:
 > "`bid ≡ yes`, `ask ≡ no`, always." — buy YES ≡ bid, sell YES ≡ ask, buy NO ≡ ask, sell NO ≡ bid.
 > — [order_direction](https://docs.kalshi.com/getting_started/order_direction)
 
-The old `createOrder` mapped `outcomeSide === "no"` to `side: "ask"` but passed the
-**NO price unchanged**. `ask` at price *p* is a sell-YES at *p*, so a "BUY NO at
-$0.63" was submitted as a sell-YES at $0.63 — the wrong price (and, for a resting
-order, the wrong side of the book). The correct translation, with `priceDollars`
-being the price of the outcome the caller named:
+The old `createOrder` mapped `outcomeSide === "no"` to `side: "ask"` (correct) but
+passed the **NO price unchanged**. `ask` at price *p* is a sell-YES at *p*, so a
+"BUY NO at $0.63" was submitted as a sell-YES at $0.63 — i.e. a purchase of NO at
+$0.37, the wrong price. The correct translation, with `priceDollars` being the
+price of the outcome the caller named (`side` follows the position direction on
+the YES leg: long YES → `bid`, short YES → `ask`):
 
 | Caller intent | `side` sent | `price` sent |
 |---|---|---|
 | buy YES at *p* | `bid` | *p* |
 | sell YES at *p* | `ask` | *p* |
-| buy NO at *p* | `bid` | 1 − *p* |
-| sell NO at *p* | `ask` | 1 − *p* |
+| buy NO at *q* | `ask` | 1 − *q* |
+| sell NO at *q* | `bid` | 1 − *q* |
 
 This matches the official traded-dollar rule (`count_fp × p` for a YES taker,
 `count_fp × (1 − p)` for a NO taker) and the quick-start example ("buy 1 YES
 contract for 1 cent" → `side:"bid", price:"0.0100"`). `price` is now sent as a
 fixed-point **string** (`"0.3700"`), as documented. Pinned by
-`tests/order-leg.test.mjs` (7 tests, offline).
+`tests/order-leg.test.mjs` (7 tests, offline) and cross-checked against
+`tests/order-contract.test.mjs` (merged from main, PR #123), which pins the same
+mapping through a real signed request.
+
+**Correction note.** The first attempt at this fix mapped `side` from buy/sell
+(buy → `bid`) instead of from the position direction, which would have placed a
+YES bid for a NO purchase — the opposite position. It was caught by
+`tests/order-contract.test.mjs` on the rebased tree and corrected before merge;
+the table above is the final, tested mapping.
 
 Sources: [create-order-v2](https://docs.kalshi.com/api-reference/orders/create-order-v2) ·
 [order_direction](https://docs.kalshi.com/getting_started/order_direction) ·
@@ -203,7 +212,7 @@ page with its source link.
 
 | Suite | Result |
 |---|---|
-| `node --test` (all) | **202/202** (includes new `tests/table-shape.test.mjs` 2/2 and `tests/order-leg.test.mjs` 7/7) |
+| `node --test` (all) | **216/216** (includes new `tests/table-shape.test.mjs` 2/2, `tests/order-leg.test.mjs` 7/7, and main's `tests/order-contract.test.mjs` 9/9) |
 | `python3 -m unittest discover -s tools` | 42 OK |
 | `python3 tools/check_site_links.py` | 36 pages, 0 broken |
 | `node tools/verify/page-runtime-check.mjs` | 18/18 pages clean |

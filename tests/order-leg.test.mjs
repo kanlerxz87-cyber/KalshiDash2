@@ -9,20 +9,21 @@
  *   bid ≡ yes, ask ≡ no; buy YES ≡ bid, sell YES ≡ ask, buy NO ≡ ask, sell NO ≡ bid
  *   (https://docs.kalshi.com/getting_started/order_direction)
  *
- * Therefore, with `priceDollars` = price of the outcome the caller named:
+ * So `side` follows the POSITION DIRECTION on the YES leg (long YES → bid,
+ * short YES → ask), and `price` is always the YES-leg price. With
+ * `priceDollars` = price of the outcome the caller named:
  *   buy YES at p  → side "bid",  price p
  *   sell YES at p → side "ask", price p
- *   buy NO at p   → side "bid",  price 1 − p
- *   sell NO at p  → side "ask", price 1 − p
- * `side` is the caller's own bid/ask on the outcome they named (buy = bid,
- * sell = ask), and `price` is always the YES-leg price. A NO order MUST have
- * its price complemented: buying NO at 63¢ means paying 63¢ for the NO
- * outcome, i.e. the YES leg is priced at 37¢. Sending 0.6300 with a bid buys
- * YES at 63¢ — the opposite position. This is also the rule the official
- * traded-dollar code applies: `count_fp × p` for a YES taker, `count_fp ×
- * (1 − p)` for a NO taker (assets/js/dollar-volume.js).
+ *   buy NO at q   → side "ask", price 1 − q
+ *   sell NO at q  → side "bid",  price 1 − q
+ * Buying NO at 63¢ is selling YES at 37¢. Sending `bid` at 0.37 would buy YES
+ * at 37¢ — the opposite position. This matches the official traded-dollar rule
+ * (`count_fp × p` for a YES taker, `count_fp × (1 − p)` for a NO taker) and the
+ * quick-start example ("buy 1 YES contract for 1 cent" → `bid`, `0.0100`).
  *
  * Runs offline: `request` (the network boundary) is replaced with a recorder.
+ * Complements tests/order-contract.test.mjs, which pins the same mapping
+ * through a real signed request.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -59,26 +60,26 @@ test("buy YES at 0.42 → bid, price 0.4200", async () => {
   assert.equal(c.calls[0].body.price, "0.4200");
 });
 
-test("buy NO at 0.63 → bid, price 0.3700 (the YES-leg complement)", async () => {
+test("buy NO at 0.63 → ask, price 0.3700 (buy NO ≡ sell YES)", async () => {
   const c = recorder();
   await c.createOrder({ ticker: "KXTEST-1", outcomeSide: "no", action: "buy", priceDollars: 0.63, count: 10 });
-  assert.equal(c.calls[0].body.side, "bid", "a buy is a bid; the side is the caller's own");
+  assert.equal(c.calls[0].body.side, "ask", "buy NO ≡ sell YES ≡ ask");
   assert.equal(c.calls[0].body.price, "0.3700", "NO price 0.63 is YES price 0.37");
   assert.equal(c.calls[0].body.count, "10.00");
   assert.equal(c.calls[0].body.ticker, "KXTEST-1");
 });
 
-test("sell YES at 0.42 → ask, price 0.4200; sell NO at 0.63 → ask, price 0.3700", async () => {
+test("sell YES at 0.42 → ask, price 0.4200; sell NO at 0.63 → bid, price 0.3700", async () => {
   const c = recorder();
   await c.createOrder({ ticker: "KXTEST-1", outcomeSide: "yes", action: "sell", priceDollars: 0.42, count: 5 });
   assert.equal(c.calls[0].body.side, "ask");
   assert.equal(c.calls[0].body.price, "0.4200");
   await c.createOrder({ ticker: "KXTEST-1", outcomeSide: "no", action: "sell", priceDollars: 0.63, count: 5 });
-  assert.equal(c.calls[1].body.side, "ask");
+  assert.equal(c.calls[1].body.side, "bid", "sell NO ≡ buy YES ≡ bid");
   assert.equal(c.calls[1].body.price, "0.3700");
   /* A 0.42 YES ask and a 0.63 NO ask are different YES-leg prices (0.42 vs
-     0.37) but the same side, because `side` describes the caller's intent. */
-  assert.equal(c.calls[0].body.side, c.calls[1].body.side);
+     0.37) but the same side, because `side` describes the position direction. */
+  assert.equal(c.calls[0].body.side, c.calls[1].body.side === "bid" ? "ask" : null);
   assert.notEqual(c.calls[0].body.price, c.calls[1].body.price);
 });
 
@@ -90,8 +91,8 @@ test("the round trip: the YES-leg price is always the complement of the NO price
   /* Every order carries its YES-leg price: a 0.10 YES order and a 0.90 NO
      order are the same YES-leg price with opposite sides. */
   const sent = c.calls.map(k => `${k.body.side} ${k.body.price}`);
-  assert.deepEqual(sent, ["bid 0.1000", "bid 0.1000", "ask 0.2500", "ask 0.2500"],
-    "buy YES 0.10 and buy NO 0.90 are both a 0.10 YES-leg bid; sell YES 0.25 and sell NO 0.75 are both a 0.25 YES-leg ask");
+  assert.deepEqual(sent, ["bid 0.1000", "ask 0.1000", "ask 0.2500", "bid 0.2500"],
+    "buy YES 0.10 and buy NO 0.90 are both a 0.10 YES-leg price with opposite sides; sell YES 0.25 and sell NO 0.75 likewise");
 });
 
 test("the order body carries only documented fields", async () => {
