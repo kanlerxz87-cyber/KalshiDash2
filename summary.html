@@ -227,9 +227,11 @@ try {
   if (!res.ok) throw new Error(`Flagged page returned HTTP ${res.status}`);
   const flagDoc = new DOMParser().parseFromString(await res.text(), "text/html");
   const cards = [...flagDoc.querySelectorAll(".irregularity")];
+  /* A card's status is the tag in its own heading. Counting any tag anywhere in
+   * the card double-counted a nested card (Z8 on the Flagged page). */
   FLAG_COUNTS = {
-    open: cards.filter(card => card.querySelector(".tag.warn")).length,
-    mitigated: cards.filter(card => card.querySelector(".tag.yes")).length,
+    open: cards.filter(card => card.querySelector("h3 .tag.warn")).length,
+    mitigated: cards.filter(card => card.querySelector("h3 .tag.yes")).length,
     total: cards.length
   };
 } catch { /* the summary still renders when the cross-page count is unavailable */ }
