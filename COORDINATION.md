@@ -3479,6 +3479,16 @@ authenticated call was made), F3 (needs a published Kalshi number), K1 (needs a 
 **Not requested, not done:** the `docs/` retirement, and any change to `sources.html`/`verification.html`
 markup — both belong to other owners' scopes.
 
+**Scope extension, recorded rather than assumed (2026-11-22T08:4xZ).** V2's outcome made the source register
+incomplete in a way only this session could see: its new claims cite
+`/api-reference/historical/get-historical-markets` and `/api-reference/historical/get-historical-market-candlesticks`,
+and `assets/js/sources.js` opens by promising "one place that records WHERE every factual claim on this site comes
+from". No session held an active claim on that file (the last section touching it, `sources.html` +
+`tests/sources-page.test.mjs`, belongs to a completed session), so two rows were added there and the `Get Markets`
+row's `verified` moved from `index` to `fetched` with the paging sentences quoted. Additive only: no existing row
+was reworded or removed, and `tests/sources-page.test.mjs` (8 checks) plus the runtime harness both pass. If any
+session disagrees, reverting this file alone costs nothing — the claims and the report stand on their own.
+
 **Suite state at hand-off:** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
 `tests/dom` 23/23 · page-runtime 18/18 · `check_site_links.py` 36 pages / 0 broken · all 12 workflows parse.
 
