@@ -3166,7 +3166,7 @@ session is discarded.
 
 | ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
 |----|------|--------|-------|----------------------------|------------------------|----------------|
-| AC1 | Read `GET /exchange/status` flags only from an HTTP 200 response; render "status unavailable" for any other code, per the reference. Update the AC1 card to `fixed`. | **in progress** | `8191667f` | `index.html` (exchange-status block only), `flagged.html` (AC1 card only), `tests/exchange-status.test.mjs` (new), this section | [Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status); `node --test`, `tools/check_site_links.py .`, page-runtime check | — |
+| AC1 | Read `GET /exchange/status` flags only from an HTTP 200 response; render "status unavailable" for any other code, per the reference. Update the AC1 card to `fixed`. | **in progress** | `8191667f` | `index.html` (exchange-status block only), `flagged.html` (AC1 card only), `tests/exchange-status.test.mjs` (new), `.github/workflows/site-check.yml` (test step only), this section | [Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status); `node --test`, `tools/check_site_links.py .`, page-runtime check | — |
 | Z5 | Final integration for this branch: PR → `main`, merge, confirm Pages deploy of the merged SHA, record PR link + merge result | **in progress** | `8191667f` | this section | `gh pr create` / `gh pr merge --merge`, Pages API | Do not merge a broken site. |
 
 **File scope note:** this session deliberately does **not** edit `assets/js/**` (owned by the relay/feed and
