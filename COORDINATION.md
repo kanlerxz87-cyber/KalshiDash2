@@ -3175,3 +3175,10 @@ session is discarded.
 taxonomy owners), `data/snapshot.json`, `scripts/collect.py`, or any other page. The AC1 reader lives inline in
 `index.html` (the card's "outside this session's scope" note is stale — the reader is not in `assets/js/ui.js`).
 Findings that require a change in another owner's files are logged as requests on this board, never silently rewritten.
+### `0d535383` merge and deployment record
+
+- PR [#111](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/111) merged without waiting for review at merge commit `7bfd402d96aa75a6d7a863337355233420a90116`; PR link check passed.
+- The first Pages deployment run [45001195351](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45001195351) was cancelled as a newer bot report commit triggered another deployment. The succeeding [45001241131](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/45001241131) built and deployed successfully; Pages API reported `built` at `4069a2023ef5f47e07d749d21e1cdb7b62df236c`, a descendant of the merge. Site: <https://kanlerxz87-cyber.github.io/KalshiDash2/>.
+
+- **Conflict log:** rebasing the deployment-record commit onto `main` after PR #113 produced an append-only conflict in `COORDINATION.md`; both sessions’ complete sections were preserved.
+- A subsequent rebase also conflicted in the generated alerts report after both `main` and this branch's verification bot produced captures. Kept the existing main capture intact (branch capture remains in commit `fbac8b1`) rather than replacing a shared generated output; both requests reported HTTP 200. No other session's board entry was removed.
