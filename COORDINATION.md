@@ -3246,3 +3246,32 @@ Brief requirement under test: "Every table row must have a source link to an off
 **PR #97 closed (not merged).** It was another session's docs-only record of the PR #92 merge; every fact in it is already on `main`, it had been `CONFLICTING` since 2026-11-21, and later board sections record the same deployments. Closing it does not discard anything: the branch is retained and `reports/audit-f468e69b.md` is on `main`. Comment posted on the PR.
 
 **Still open, unchanged:** no demo API key in the repo (no account performance, fill, or end-to-end order claimed); alerts poll only while the tab is open; the scan universe is capped (12 × 200 events, top 30 open markets per topic); last-traded-price only; WS ticker path detects consecutive-reading swings only and needs the relay; simulated fills optimistic (F15); High-ROI watch is a rule set (A1); ranking still the labelled proxy (A11, mitigated); a topic total can be smaller than the truth because unreadable markets are excluded, and the page says how many.
+
+---
+
+---
+
+## Session `33a37458` — independent line-by-line re-verification of the published site (branch `arena/33a37458-kalshidash2`, started 2026-11-22)
+
+Branched from `main` @ `252e623` (the bot's 07:05Z snapshot refresh), clean tree, Pages `builds/latest`
+on that exact SHA = `built`. Every claim below is re-read from the files in this checkout and, where it
+is a factual statement about Kalshi, re-checked against an official page or a live demo response in this
+session — not against another session's prose.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| V1 | Line-by-line requirement traceability of the brief against the published site, with the file:line and the live evidence for each requirement | **done** | `33a37458` | `reports/verify-33a37458.md` (new), this section | local files + live demo API responses fetched this session | Logged below |
+| V2 | Re-verify the site's official-source claims (endpoints, fields, field semantics, demo env, WS channels) against docs.kalshi.com | **done** | `33a37458` | `reports/verify-33a37458.md` | https://docs.kalshi.com pages fetched this session | — |
+| V3 | Run every local suite on this base and record exact counts | **done** | `33a37458` | `reports/verify-33a37458.md` | `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tools`, `tools/check_site_links.py`, `tools/verify/page-runtime-check.mjs`, `evidence/auth-sign-test.mjs` | — |
+| V4 | Fix only defects proven in V1–V3; log each before editing | **done** | `33a37458` | `assets/js/alerts-core.js`, `assets/js/alerts.js`, `flagged.html` (X1 + new X5), `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/claims.js`, `tools/audit_external_links.py`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | defects A1–A3 logged in this section before any edit | A1 non-public contract link (fixed), A2 stale counts (fixed), A3 hard-coded audit note (fixed) |
+| V5 | PR → `main`, merge without waiting, confirm Pages deploy on the merged SHA, record the result | **in progress** | `33a37458` | this section | `gh`, Pages API | Flagged items do not block; a broken site does |
+
+Baseline run on this branch tip before any change (2026-11-22T08:0xZ): Node **155/155** across 13 test files
+(the "16" in an earlier draft of this line counted the `tests/` directory's 13 `*.test.mjs` files plus three
+non-test scripts; corrected here) · Python `tools` **42 OK** · static links **36 pages / 0 broken** · page
+runtime **18/18** · signing self-test **6/6** · `git diff --check` clean.
+
+After the fixes (2026-11-22T08:3xZ): Node **162/162** · DOM alerts **22/22**, category **18/18**, summary
+pass (87/100 claims verified, 39 open / 47 mitigated / 85 flags) · Python `tools` **42 OK** · links 36 / 0 ·
+runtime 18/18 · signing 6/6 · `npm audit` 0 vulnerabilities · `git diff --check` clean.
+Full write-up with one official source per row: `reports/verify-33a37458.md`.
