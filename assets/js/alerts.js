@@ -652,7 +652,7 @@ function renderAlertTable() {
   if (!body) return;
   const list = [...S.alerts].reverse().slice(0, 120);
   if (!list.length) {
-    body.innerHTML = emptyRow(9, "No swing of $0.10 or more recorded yet.");
+    body.innerHTML = emptyRow(10, "No swing of $0.10 or more recorded yet.");
     $("#alert-count").textContent = "0 rows";
     return;
   }

@@ -3451,3 +3451,52 @@ itemised in `reports/verify-faf9fe08.md` §D.
 WebSocket consumption (W1–W4) — the fetch tool sends no custom headers, which is why the relay exists;
 non-2xx response bodies for the two rejected `limit` probes, where only the rejection itself was observable.
 Full list in `reports/verify-faf9fe08.md` §E.
+
+---
+
+## Session `130acb78` — portfolio correctness and verification (branch `arena/130acb78-kalshidash2`, 2026-11-22)
+
+Claim originally pushed in `fbc4f6c`, based on `main` @ `252e623`. PR: [#125](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/125). The Arena branch name is fixed; all work stays on this branch.
+
+| ID | Task | Status | Owner | File scope | Evidence / limits |
+|---|---|---|---|---|---|
+| P1 | Review Portfolio / Strategies / Resolved / Event against official schemas, record limitations instead of assuming | done | `130acb78` | `reports/verify-130acb78.md`, this section | Official Balance / Positions / Fills / Get Event / Get Market / signing docs; no authenticated account call or live order claimed |
+| P2 | Position missing values, documented fields, scoped performance totals and role labels | done | `130acb78` | `portfolio.html`, `assets/js/market.js` (`analyseFills` only), `strategies.html`; follow-up `assets/js/portfolio-core.js`, `tests/portfolio-core.test.mjs`, `tests/portfolio-page.test.mjs` | [Get Positions](https://docs.kalshi.com/api-reference/portfolio/get-positions), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills); response scope and missing values must stay visible |
+| P3 | Correct alert / simulator empty-state widths and add regression coverage | done | `130acb78` | `assets/js/alerts.js` (empty row only), `simulator.html`, `tests/table-shape.test.mjs`, `.github/workflows/site-check.yml` | Local markup tests, not exchange-data verification; category.js is not edited |
+| P4 | Full suites, merge PR, confirm Pages and record the result | in progress | `130acb78` | report + this section; `flagged.html` new `P130` card only | Do not merge broken code; flagged/unverified items do not block publication |
+
+### Evidence and scope amendment (before follow-up edits)
+
+- Baseline `portfolio.html` used `p.market_exposure_dollars ?? (num(p.market_exposure) / 100)`. If both fields are absent, `null / 100` is zero; that displayed an unreported `$0.00`. The same applied to realized P&L. Missing values must remain unavailable. The prior report incorrectly described this as dividing the documented dollar field; corrected in the report.
+- `market_title`, `status`, and `settlement_status` are absent from the current market-position response schema. Remove these row references, not infer their values. `settlement_status` is a query parameter.
+- The positions call passes `"?limit=200"` to `api.positions()`, which already inserts `?`, producing `??limit=200`. Fix the caller and pin the actual request. Failed position requests must not display “0 positions” / “no open positions”, and partial/missing-field totals must not look complete. Extend P2 to the new portfolio helper + tests named above; use only documented fields and explicitly disclose the unsettled-position response scope.
+- `is_taker` grouping rendered `"true"` / `"false"`. Role labels are now taker / maker / unclassified, separate from side labels; add a focused regression test.
+- Alerts empty state was 9 vs 10 columns; simulator scoreboard 10 vs 12. Existing HTML shape coverage will be tightened so ternary-rendered empty states are checked too.
+
+### Important correction — attempted NO-price conversion withdrawn before merge
+
+The earlier revision claimed a verified NO-price fix based only on the endpoint's YES-leg sentence. Main's PR #123 already records **NF1**, the disagreement with the direction guide. Re-fetched both official pages: [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), [Order direction](https://docs.kalshi.com/getting_started/order_direction). No authenticated evidence resolves the issue. The price conversion, added sell interface, and assumption-based `tests/order-leg.test.mjs` are withdrawn. The client remains main's implementation; the existing NF1 warning is preserved. No live execution is claimed and no guessed price scale is labelled verified. Earlier branch commits that asserted otherwise are superseded by this record.
+
+### Integration / conflict log
+
+- Rebased onto main repeatedly as PRs #122, #124 and #123 landed. `COORDINATION.md` EOF conflicts retained all session sections manually (no board resolver). `strategies.html` retained main's `renderFillsList` refactor with the role label change applied inside it.
+- An accidental rebase onto the older remote branch began replaying main commits; **aborted**, preserving the local work. Then merged the own-branch runner history (merge `0162257`) so future pushes do not discard bot ancestry. Incoming board headings were a subset of the local board. For `reports/alerts-live-check.md`, retained main's newer 08:32:59Z capture rather than incoming 08:30:48Z. Own source/report/test conflicts retained the current local versions, then the unsupported order change was explicitly withdrawn as above.
+- Main's signing/order-contract and candle tests are retained, not rewritten to make an assumption pass.
+
+### Cross-owner request (not edited)
+
+`assets/js/category.js` owner `e7931fe7`: book-table error rows use `emptyRow(5)` for six columns. Please correct the two error-state paths and pin them in the category DOM test. No takeover by this session.
+
+### Verified follow-up and integration claim
+
+- Portfolio core + actual controller regression checks pass: documented dollar fields only, totals withheld for any missing input or an incomplete scan, correctly encoded position paging, honest error states, retained fractional quantities, and no late account repaint after forgetting a key. The new role test separates side from liquidity role. NO-price conversion remains withdrawn.
+- Local suites: **238/238 Node**, **42 tools**, **20 Python client/relay (3 skipped)**, **18/18 runtime**, **36 HTML pages / 0 broken local links**, **22 alerts / 5 summary / 23 category DOM**, **6/6 signing**. The attempted `auth-sign-check.mjs` invocation was a nonexistent path; corrected to the existing `tools/verify/auth-sign-test.mjs` and all six checks passed.
+- **P4 file-scope addition before editing:** add one new `flagged.html#P130` card for unsettled-position coverage / unverified fee inclusion and the mitigations in this pass. This is a new card only; all existing owners' cards, especially active session `8f3c331c`'s PG1/PG2 and X1 edits, remain untouched. Its V1–V7 record says its own card changes are done; V8 integration remains that session's task. Do not close or merge PR #126 from here.
+
+### Pre-merge integration result (2026-11-22T08:45Z)
+
+Merged `origin/main` @ `634ebfe` (PR #127) without changing its code. The only conflict was the board append: preserved the entire main board byte-for-byte as a prefix, followed by this session's section; all **46 session headings** retained. `flagged.html#P130` now publishes account-coverage / fee-inclusion limits, links the official Positions / Balance / Fills docs and this report, and records that the attempted NO conversion was withdrawn. Existing cards are untouched. Portfolio links P130 and the report even before an account is loaded.
+
+Full rerun after integration + P130: **238/238 Node**, **42 tools**, **20 Python (3 skipped)**, **18/18 runtime**, **36 pages / 0 broken local links**, **22 alerts / 5 summary / 23 category DOM**, **6/6 signing**. Flag counters reconcile at **97 total = 40 open + 57 mitigated** on this tree. No authenticated test or order was performed.
+
+**Status: P1–P3 done; P4 integration / Pages confirmation in progress.**

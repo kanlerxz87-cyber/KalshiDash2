@@ -2014,6 +2014,33 @@
     </div>
 
 
+    <h2>Portfolio scope review (2026-11-22)</h2>
+    <div class="irregularity" id="P130">
+      <h3>P130 — Account return history and fee inclusion remain unverified <span class="tag warn">open</span></h3>
+      <p><strong>What is known:</strong> Get Positions documents per-market
+        <code>realized_pnl_dollars</code>, <code>fees_paid_dollars</code>,
+        <code>total_traded_dollars</code> and <code>market_exposure_dollars</code>.
+        Its unsettled tier includes closed markets awaiting settlement; it is not lifetime account
+        performance or a list of only tradeable markets.</p>
+      <p><strong>What is not verified:</strong> the cited schema does not state whether realized P&amp;L
+        already includes fees. This session made no authenticated account request. It derives no extra
+        fee subtraction, ROI or lifetime return figure, and publishes no fixture as account data.</p>
+      <p><strong>Mitigations:</strong> <a href="portfolio.html">Portfolio</a> labels its aggregates as
+        unsettled-row figures. A missing dollar field stays <code>n/a</code> instead of becoming
+        <code>$0.00</code>; one missing input withholds that aggregate. A capped cursor scan withholds all
+        totals, a failed request is not shown as an empty account, and fractional quantities are retained.
+        The query and actual page controller are covered by offline regression tests.</p>
+      <p><strong>Correction recorded:</strong> this session's attempted NO-order price conversion was
+        withdrawn before merge because it did not resolve the documentation ambiguity in
+        <a href="#NF1">NF1</a>. The existing request semantics and visible warning are retained.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">Get Positions ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">Get Balance ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a>
+        <a class="src-link" href="reports/verify-130acb78.md">field review, corrections and tests ↗</a>
+      </p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">

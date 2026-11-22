@@ -253,9 +253,9 @@ $("#run").addEventListener("click", async () => {
   $("#export-csv").disabled = true;
 
   pill($("#status"), "warn", "loading universe…");
-  $("#scoreboard").innerHTML = emptyRow(10, "Loading finalized markets…");
+  $("#scoreboard").innerHTML = emptyRow(12, "Loading finalized markets…");
   $("#breakdowns").innerHTML = emptyRow(9, "Loading…");
-  $("#ledger").innerHTML = emptyRow(10, "Loading…");
+  $("#ledger").innerHTML = emptyRow(12, "Loading…");
 
   try {
     const universe = await loadSettledUniverse({
@@ -315,7 +315,7 @@ $("#run").addEventListener("click", async () => {
       `${trades.length} simulated trades · ${withHistory}/${scoped.length} markets had price history`);
   } catch (e) {
     pill($("#status"), "err", e.message);
-    $("#scoreboard").innerHTML = emptyRow(10, "Backtest failed: " + e.message);
+    $("#scoreboard").innerHTML = emptyRow(12, "Backtest failed: " + e.message);
   }
 });
 
