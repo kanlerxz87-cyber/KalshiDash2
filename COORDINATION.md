@@ -3417,13 +3417,13 @@ ports and closes — see V8).
 
 | ID | Task | Status | Owner | Exclusive files | Sources / verification | Irregularities |
 |----|------|--------|-------|-----------------|------------------------|----------------|
-| V1 | Live verification round against the demo exchange, published as a report + evidence captures with re-runnable URLs: `GET /historical/markets`, `GET /historical/cutoff`, `GET /historical/markets/{ticker}/candlesticks`, live `GET /series/{s}/markets/{t}/candlesticks`, `GET /markets/{t}/orderbook?depth=20`, `GET /markets/trades`, `GET /events?series_ticker=KXGAS&status=open`, `GET /series/KXGAS` | **in progress** | `8f3c331c` | `reports/verify-8f3c331c.md` (new), `evidence/live-2026-11-22-8f3c331c.md` (new) | Live demo API (this session), `docs.kalshi.com` pages quoted with URL | Anything not reproducible is recorded as unverified, never filled in |
-| V2 | Act on V1: upgrade the archived-tier claim from `partially verified` to `verified` and add the claims V1 establishes (cutoff fields, `period_interval` in minutes on both tiers, only periods with activity are returned, empty-book shape, trade field set, series record also carries `settlement_sources`) | unclaimed | `8f3c331c` | `assets/js/claims.js` | Same captures as V1 | — |
-| V3 | **AC3**: retire the `docs/`-publishing Pages workflow so the repo has exactly one deployer (Pages = legacy `main:/`), and record which deployer is authoritative in `README.md` | unclaimed | `8f3c331c` | `.github/workflows/pages.yml`, `README.md` (one paragraph) | [What is GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages), `gh api repos/.../pages` | — |
-| V4 | **SB2** + the request filed by session `0acc711d`: correct the `collect.yml` header (no site fallback exists) and the `scripts/collect.py` comment asserting `GET /series/KXGAS` returns `GAS` — reworded as a dated past observation, since V1 shows the live call returns `ticker: "KXGAS"` | unclaimed | `8f3c331c` | `.github/workflows/collect.yml` (comment), `scripts/collect.py` (comment), `tools/test_collect.py` if it asserts the wording | V1 captures + `grep -rn snapshot assets/js/*.js *.html` | Comment-only; no collector behaviour changes |
-| V5 | Category-page taxonomy disclosure (the change request session `d074f64f` filed to the owner of `assets/js/category.js`): print the classification basis and the fallback count the same way `alerts.html` already does, using the `categoryBasis` tally `discoverTopic()` already returns | unclaimed | `8f3c331c` | `assets/js/category.js`, `tests/taxonomy.test.mjs`, `tests/dom/category-dom.mjs` | `GET /events` (deprecated `category`) vs `GET /series/{ticker}` (`category` + `categories[]`) | — |
-| V6 | Surface the series record's own `settlement_sources` (e.g. the EIA gasoline series for `KXGAS`) in the topic note, labelled as where the underlying number is published — never as a cause of a move (F14/A4 stay true) | unclaimed | `8f3c331c` | `assets/js/market.js` (`fetchSeriesCategories` keeps the field), `assets/js/category.js`, `tests/taxonomy.test.mjs` | Live `GET /series/KXGAS` (this session) + [Get Series](https://docs.kalshi.com/api-reference/market/get-series) | — |
-| V7 | Publish what V1 leaves open on the Flagged page: **X1 upgraded** (staging-bucket `contract_url` reproduced live today, not only in the snapshot) and one new card for the empty-`orderbook_fp`-levels behaviour V1 observed | unclaimed | `8f3c331c` | `flagged.html` (own cards only) | V1 | Non-blocking by rule |
+| V1 | Live verification round against the demo exchange, published as a report + evidence captures with re-runnable URLs: `GET /historical/markets`, `GET /historical/cutoff`, `GET /historical/markets/{ticker}/candlesticks`, live `GET /series/{s}/markets/{t}/candlesticks`, `GET /markets/{t}/orderbook?depth=20`, `GET /markets/trades`, `GET /events?series_ticker=KXGAS&status=open`, `GET /series/KXGAS` | **done** (report + 10 evidence captures, E1–E10) | `8f3c331c` | `reports/verify-8f3c331c.md` (new), `evidence/live-2026-11-22-8f3c331c.md` (new) | Live demo API (this session), `docs.kalshi.com` pages quoted with URL | Anything not reproducible is recorded as unverified, never filled in |
+| V2 | Act on V1: upgrade the archived-tier claim from `partially verified` to `verified` and add the claims V1 establishes (cutoff fields, `period_interval` in minutes on both tiers, only periods with activity are returned, empty-book shape, trade field set, series record also carries `settlement_sources`) | **done** | `8f3c331c` | `assets/js/claims.js` | Same captures as V1 | — |
+| V3 | **AC3**: retire the `docs/`-publishing Pages workflow so the repo has exactly one deployer (Pages = legacy `main:/`), and record which deployer is authoritative in `README.md` | **done** | `8f3c331c` | `.github/workflows/pages.yml`, `README.md` (one paragraph) | [What is GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages), `gh api repos/.../pages` | — |
+| V4 | **SB2** + the request filed by session `0acc711d`: correct the `collect.yml` header (no site fallback exists) and the `scripts/collect.py` comment asserting `GET /series/KXGAS` returns `GAS` — reworded as a dated past observation, since V1 shows the live call returns `ticker: "KXGAS"` | **done** | `8f3c331c` | `.github/workflows/collect.yml` (comment), `scripts/collect.py` (comment), `tools/test_collect.py` if it asserts the wording | V1 captures + `grep -rn snapshot assets/js/*.js *.html` | Comment-only; no collector behaviour changes |
+| V5 | Category-page taxonomy disclosure (the change request session `d074f64f` filed to the owner of `assets/js/category.js`): print the classification basis and the fallback count the same way `alerts.html` already does, using the `categoryBasis` tally `discoverTopic()` already returns | **done** | `8f3c331c` | `assets/js/category.js`, `tests/taxonomy.test.mjs`, `tests/dom/category-dom.mjs` | `GET /events` (deprecated `category`) vs `GET /series/{ticker}` (`category` + `categories[]`) | — |
+| V6 | Surface the series record's own `settlement_sources` (e.g. the EIA gasoline series for `KXGAS`) in the topic note, labelled as where the underlying number is published — never as a cause of a move (F14/A4 stay true) | **done** | `8f3c331c` | `assets/js/market.js` (`fetchSeriesCategories` keeps the field), `assets/js/category.js`, `tests/taxonomy.test.mjs` | Live `GET /series/KXGAS` (this session) + [Get Series](https://docs.kalshi.com/api-reference/market/get-series) | — |
+| V7 | Publish what V1 leaves open on the Flagged page: **X1 upgraded** (staging-bucket `contract_url` reproduced live today, not only in the snapshot) and one new card for the empty-`orderbook_fp`-levels behaviour V1 observed | **done** | `8f3c331c` | `flagged.html` (own cards only) | V1 | Non-blocking by rule |
 | V8 | Final integration: port session `f468e69b`'s board record from stale PR #97 (conflicting, its author's branch not touched), close #97 with a note, run every suite + link check + page runtime, open a PR to `main`, merge, confirm Pages `built` and spot-check the deployed pages | unclaimed | `8f3c331c` | `COORDINATION.md` (this section + the ported record) | `gh`, Pages API, full local suite | Do not merge a broken site |
 
 **Concurrent sessions seen while claiming (both respected).** Session `0d535383` (suggestions.html S4 wording) and
@@ -3438,3 +3438,47 @@ verbatim) and edits **no** file they touched except `flagged.html`, where this s
 claim time): `node --test tests/*.test.mjs` 155/155 · `python3 -m unittest discover -s tools` 42/42 ·
 `python3 -m unittest discover -s tests` 20 (3 skipped) · `python3 tools/check_site_links.py .` 36 pages / 0 broken ·
 `node tools/verify/page-runtime-check.mjs` 18/18 · `tests/dom` DOM suites · `node evidence/auth-sign-test.mjs` 6/6.
+
+**V1–V7 record (2026-11-22, commits `53c7a40`..`905392d`).** Method stated on every capture: the sandbox's
+`curl` still fails at the TLS handshake, so reads were made through the agent's HTTP reader against
+`https://external-api.demo.kalshi.co/trade-api/v2` between 08:05Z and 08:25Z; each item carries its re-runnable
+URL. Nothing was transcribed into the site as a static fact — the pages still fetch live.
+
+- **V1/V2 — the gap every prior session left open is closed.** `GET /historical/cutoff` answered
+  `market_settled_ts 2026-09-23T00:00:00Z`; `GET /historical/markets?limit=2` returned two `finalized` markets
+  settled before it with a non-empty cursor; the archived candlesticks endpoint answered in the plain field
+  names (`price.close` / `volume` / `open_interest`) while the live tier used `_dollars` / `_fp` — so
+  `parseCandle`'s dual-shape reading is now verified against both tiers, and that row in `assets/js/claims.js`
+  moved from `partially verified` to `verified` with the capture cited. Also established: `period_interval` is
+  **minutes on both tiers** (the live tier's enum spelling `cycle=1h` returned no body on the archived one); a
+  bucket with no trades carries **`null` prices, not zeros**; a 24-hour hourly request legitimately returns **one
+  candle** when the market's life covers one bucket. Nine new claims added from this round.
+- **V3 — AC3 fixed by retargeting, not deleting.** `pages.yml` now uploads `path: .` (the tree `main:/`
+  publishes) instead of `path: docs`, and `README.md` gained a "Deployment — which deployer is authoritative"
+  section naming the legacy `main:/` builder as the deployer. `docs/` and the Y10 redirect stub untouched.
+- **V4 — the two drift items closed**, including the load-bearing re-check session `0acc711d` asked for:
+  `GET /series/KXGAS` answers `ticker: "KXGAS"` live today, so the `KXGAS → GAS` alias comment was reworded to
+  a dated observation rather than deleted, and both tickers stay in the gas series patterns.
+- **V5/V6 shipped with a fix the docs suggested.** Read from the official Get Markets page: an **undecodable
+  cursor restarts the listing with no error**, and a row can be "returned twice — deduplicate by `ticker`". So
+  `assets/js/paging.js` guards every cursor walk in `market.js`, `dollar-volume.js` and `scripts/collect.py`:
+  repeated rows folded by their own key (a row with no documented key is always kept), a repeated cursor marks
+  the scan capped, and the traded-dollar total prints n/a with a named reason instead of a doubled figure.
+  Category pages now disclose the classification basis and the series `settlement_sources`, labelled "not a
+  claimed cause of a price move".
+- **V7 — published, not buried.** New Flagged cards **PG1** (the double-count hazard, `fixed` with its tests)
+  and **PG2** (`KXGAS` vs `GAS`, `open` — a question for Kalshi, nothing displayed depends on it); **X1** now
+  records that the staging-bucket `contract_url` reproduces on the live exchange today (not only in
+  `data/snapshot.json`); **A7** narrowed to `mitigated` by the documented "tickers-only → one complete response"
+  guarantee; **Z1** corroborated by two minute-old markets reporting `previous_price_dollars "0.0000"`; **SB2**
+  closed. Card count 86 → 88, and the counts strip still reconciles (35 open + 53 mitigated = 88).
+
+**Irregularities left open on purpose:** F5 (the series endpoint still documents no paging, so 16,643/16,653
+remain two point-in-time row counts), F1/F2 and W1/W4 (no demo API key exists in this repository and no
+authenticated call was made), F3 (needs a published Kalshi number), K1 (needs a key plus the relay), and PG2.
+**Not requested, not done:** the `docs/` retirement, and any change to `sources.html`/`verification.html`
+markup — both belong to other owners' scopes.
+
+**Suite state at hand-off:** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
+`tests/dom` 23/23 · page-runtime 18/18 · `check_site_links.py` 36 pages / 0 broken · all 12 workflows parse.
+

@@ -436,9 +436,17 @@
     </div>
 
     <div class="irregularity" id="A7">
-      <h3>A7 — The batch size of 25 tickers is not a documented limit <span class="tag warn">open</span></h3>
+      <h3>A7 — The batch size of 25 tickers is not a documented limit <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the Get Markets page documents <code>tickers</code> as a comma-separated list, but it publishes no maximum length. The page sends 25 per request. On 2026-11-20 a GitHub-runner read of 25 tickers and of 100 tickers each returned every requested market (<code>reports/alerts-live-check.md</code> §2–3). Those two observations do not establish a maximum.</p>
       <p class="small"><strong>Source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a></p>
+      <p><strong>What the official text does settle (session <code>8f3c331c</code>, 2026-11-22):</strong> the
+        Get Markets paging rules state that when <code>tickers</code> is the <em>only</em> filter, &quot;every
+        matching market is returned in one response, in no guaranteed order. <code>limit</code> is not applied
+        and the returned <code>cursor</code> is empty.&quot; That is exactly the request the alert poll makes, so
+        a response that omits a requested ticker means the exchange has no row for it — which is what the page's
+        &quot;missing: 0&quot; asserts — and not that the response was cut short. The maximum length of the list
+        itself is still undocumented, so the page keeps its own conservative batch of 25: mitigated, not
+        closed. Quoted in <a href="reports/verify-8f3c331c.md">reports/verify-8f3c331c.md</a> §5.</p>
     </div>
 
     <div class="irregularity" id="A8">
@@ -601,6 +609,14 @@
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
         · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
+      <p><strong>Reproduced on the live exchange (session <code>8f3c331c</code>, 2026-11-22):</strong> this is
+        not an artefact of the committed snapshot. <code>GET /series/KXGAS</code> answers today with
+        <code>contract_url</code> on <code>kalshi-public-docs-staging.s3.us-east-1.amazonaws.com</code> and
+        <code>contract_terms_url</code> on <code>assets.kalshi.com</code>; the other record carrying the same
+        title, <code>GET /series/GAS</code>, has <code>assets.kalshi.com</code> for <em>both</em>. The capture is
+        in <a href="evidence/live-2026-11-22-8f3c331c.md">evidence/live-2026-11-22-8f3c331c.md</a> §E7 with its
+        re-runnable URL, so the staging host can be re-checked at any time rather than taken on trust. The card
+        stays open because the question — is a public staging URL intended? — is Kalshi's to answer.</p>
     </div>
 
     <div class="irregularity" id="X2">
@@ -846,6 +862,14 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/reports/live-engine-check.md" target="_blank" rel="noopener noreferrer">live-engine-check.md ↗</a>
       </p>
+      <p><strong>Seen on the live exchange (session <code>8f3c331c</code>, 2026-11-22):</strong> the wording
+        matters more than it looks. Two markets created at <code>2026-11-22T07:56:59Z</code> — minutes old —
+        reported <code>previous_price_dollars: &quot;0.0000&quot;</code> beside
+        <code>last_price_dollars: &quot;0.4500&quot;</code>. A &quot;day ago&quot; that has not happened yet comes
+        back as a <em>zero</em>, not as an absent value, so a difference against it is not a gap in the data but
+        a $0.45 &quot;move&quot; measured against nothing. That is why the exchange-baseline comparison never
+        stands alone in the alert engine and why the between-polls test is the primary one. Capture:
+        <a href="evidence/live-2026-11-22-8f3c331c.md">evidence/live-2026-11-22-8f3c331c.md</a> §E10.</p>
     </div>
 
     <div class="irregularity" id="W1">
@@ -1194,7 +1218,7 @@
     </div>
 
     <div class="irregularity" id="AC3">
-      <h3>AC3 — The manual Pages workflow publishes <code>docs/</code>, but Pages serves the root <span class="tag warn">open</span></h3>
+      <h3>AC3 — The manual Pages workflow published <code>docs/</code>, though Pages serves the root <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> <code>.github/workflows/pages.yml</code> uploads
         <code>path: docs</code> and deploys that artifact, while the live Pages configuration is
         <code>build_type: legacy</code> with source <code>main:/</code> — the repository root. The two
@@ -1217,6 +1241,16 @@
         <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/.github/workflows/pages.yml" target="_blank" rel="noopener noreferrer">pages.yml ↗</a>
         <a class="src-link" href="https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer">GitHub Pages publishing source ↗</a>
         <a class="src-link" href="reports/session-review-0ecc28c2.md" target="_blank" rel="noopener noreferrer">session report ↗</a></p>
+      <p><strong>What closed it (session <code>8f3c331c</code>, 2026-11-22):</strong> the option the card named
+        first was taken. <code>pages.yml</code> now uploads <code>path: .</code> — the repository root, the same
+        tree the <code>main:/</code> legacy builder publishes — so a maintainer who runs the manual workflow
+        repairs the live site instead of replacing it with the retired generation, and the workflow header says
+        so. <code>README.md</code> gained a &quot;Deployment — which deployer is authoritative&quot; section
+        recording that the legacy <code>main:/</code> build is the deployer and this workflow is a manual
+        fallback for the identical tree; the Pages configuration record read on 2026-11-22 is what that sentence
+        rests on. <code>docs/</code> itself was left exactly as it is, redirect stub and all (Y10). The
+        workflow was <em>not</em> deleted, so the manual path still exists — it just now publishes the right
+        tree.</p>
     </div>
 
     <div class="irregularity" id="AC2">
@@ -1453,7 +1487,7 @@
     </div>
 
     <div class="irregularity" id="SB2">
-      <h3>SB2 — The collect workflow header described a site fallback that does not exist <span class="tag warn">open</span></h3>
+      <h3>SB2 — The collect workflow header described a site fallback that does not exist <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> <code>.github/workflows/collect.yml</code> stated that the snapshot
         "backs the repo's verification tables and the site's offline fallback". No published page reads
         <code>data/snapshot.json</code>: searching <code>assets/js/*.js</code> and the HTML pages finds only
@@ -1463,6 +1497,12 @@
         owner of that workflow to correct, so the comment and the code cannot drift further.</p>
       <p class="small"><strong>Evidence:</strong> <code>grep -rn "snapshot" assets/js/*.js *.html</code> finds no
         fetch of the file; <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/.github/workflows/collect.yml" target="_blank" rel="noopener noreferrer">collect.yml on GitHub ↗</a></p>
+      <p><strong>What closed it (session <code>8f3c331c</code>, 2026-11-22):</strong> the header now states what
+        the snapshot is — a repository evidence artifact that <code>tools/test_collect.py</code> compares against
+        the generator — and what it is not: a fallback any page reads. The claim was re-checked rather than
+        assumed: <code>grep -rn &quot;snapshot&quot; assets/js/*.js *.html</code> still finds no page fetching
+        <code>data/snapshot.json</code>. The same edit reworded the collector's stale
+        <code>KXGAS → GAS</code> comment (SB4), because both sentences had drifted from the live API.</p>
     </div>
 
     <div class="irregularity" id="SB3">
@@ -2013,6 +2053,65 @@
       </p>
     </div>
 
+    <h2>11 · Live round against the demo exchange (session <code>8f3c331c</code>, added 2026-11-22)</h2>
+    <p class="sub" style="margin-bottom:8px">This session could reach <code>external-api.demo.kalshi.co</code>
+      from its own HTTP reader, which no earlier session could: <code>curl</code> from the same sandbox still
+      fails at the TLS handshake, so every capture below is labelled with its method and its URL. The full
+      analysis is <a href="reports/verify-8f3c331c.md">reports/verify-8f3c331c.md</a> and the raw bodies are
+      <a href="evidence/live-2026-11-22-8f3c331c.md">evidence/live-2026-11-22-8f3c331c.md</a>. It closed the
+      archived-tier gap session <code>190f6069</code> had to leave open, and it turned up one hazard the site
+      had no defence against.</p>
+
+    <div class="irregularity" id="PG1">
+      <h3>PG1 — A page the exchange re-sent used to be counted twice <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> Kalshi's own paging rules describe a silent failure. On
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
+        (read 2026-11-22): <em>&quot;A <code>cursor</code> that cannot be decoded is ignored and the first page
+        is returned, with no error&quot;</em>, and a market whose close time changes mid-scan
+        <em>&quot;can be skipped or returned twice. Deduplicate by <code>ticker</code>.&quot;</em> Every
+        cursor-following read in this repository appended whatever arrived: the event board
+        (<code>getAll</code>), the traded-dollar measurement (<code>collectTrades</code>) and the collector
+        (<code>Client.paginate</code>).</p>
+      <p><strong>Why it mattered most for dollars:</strong> a repeated page of trades would have doubled the
+        &quot;dollars actually traded&quot; figure while still reporting
+        <code>complete: true</code> — a measurement that looks finished and is wrong, which is the failure mode
+        this site exists to avoid.</p>
+      <p><strong>What closed it:</strong> <code>assets/js/paging.js</code> now guards every walk — rows are
+        folded by the documented identifier the row itself carries
+        (<code>trade_id</code> → <code>event_ticker</code> → <code>ticker</code>), a row with no such key is
+        always kept rather than guessed, and a cursor handed back twice ends the walk and marks the read
+        incomplete. The dollar panel prints n/a with that reason instead of a total. The board, the alerts
+        status line and the collector disclose how many rows were folded away.
+        Tests: <code>tests/paging-guard.test.mjs</code> (9), two new cases in
+        <code>tests/dollar-volume.test.mjs</code>, five in <code>tools/test_collect.py</code>.</p>
+      <p><strong>Not asserted:</strong> that a repeat was ever observed on the demo host. The guard exists
+        because the API documents the possibility and offers no signal to detect it.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets — Paging and ordering ↗</a>
+        · <a href="reports/verify-8f3c331c.md">report §5–§6</a></p>
+    </div>
+
+    <div class="irregularity" id="PG2">
+      <h3>PG2 — The demo lists two series titled &quot;Gas weekly&quot;, and they differ <span class="tag warn">open</span></h3>
+      <p><strong>What was found (2026-11-22, live):</strong> <code>GET /series/KXGAS</code> and
+        <code>GET /series/GAS</code> each return a series called &quot;Gas weekly&quot;, both
+        <code>category: &quot;Economics&quot;</code>, both quadratic-fee, both settled against the same EIA page —
+        but they are separate records with different <code>last_updated_ts</code> (2026-11-22T07:48:49Z versus
+        2026-11-02T23:01:12Z) and different <code>contract_url</code> hosts (see X1). At the same moment
+        <code>KXGAS</code> had no open events while <code>KXAAAGASW</code> had one.</p>
+      <p><strong>Why it is not patched:</strong> nothing displayed depends on choosing between them. The site's
+        gas rule matches <code>/^KXA{3}GAS/i</code> and <code>/^KXGAS$/i</code> and pins both lookups, so all
+        three families are read; the collector merges a pinned row into a discovered one rather than trusting an
+        alias. Guessing which record is &quot;the real one&quot; would be exactly the inference this site
+        refuses.</p>
+      <p><strong>What would close it:</strong> an answer from Kalshi about whether <code>GAS</code> and
+        <code>KXGAS</code> are both intended for retail-gasoline markets on demo, or a documentation page naming
+        one as superseded. The cards <code>SB4</code> and <code>F4</code> are the adjacent closures.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXGAS" target="_blank" rel="noopener noreferrer">GET /series/KXGAS ↗</a>
+        · <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/GAS" target="_blank" rel="noopener noreferrer">GET /series/GAS ↗</a>
+        · <a href="evidence/live-2026-11-22-8f3c331c.md">evidence §E7–E8</a></p>
+    </div>
 
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
@@ -2026,6 +2125,12 @@
         (D074-1).</li>
       <li>Each market publishes its own price grid, so snapping order prices to it is correct rather than
         assuming a one-cent tick.</li>
+      <li>The two candlestick tiers really do use different field names for the same numbers — read live from
+        both on 2026-11-22 — so <code>parseCandle</code> accepting both shapes is not defensive coding but
+        required (report §2).</li>
+      <li>A candle bucket with no trades arrives with <code>null</code> prices rather than <code>0</code>, and a
+        24-hour window can legitimately come back with one bucket in it. The chart plots by returned timestamp
+        on a time-scaled axis, so nothing is invented for the empty hours (report §2, item 4).</li>
     </ul>
   </div>
 </main>
