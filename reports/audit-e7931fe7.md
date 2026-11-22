@@ -83,3 +83,13 @@ prints it beside the requested window.
 `tests/dom/category-dom.mjs`, `flagged.html`, `index.html`, `categories/{gas,elections,culture,crypto,golf}.html`,
 `EXECUTIVE_SUMMARY.md`, `README.md`, `.github/workflows/site-check.yml`, `COORDINATION.md`,
 `reports/audit-e7931fe7.md`.
+
+## 7. Delivery record
+
+| Item | Result |
+|---|---|
+| PR | [#114](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/114) → `main`, merged 2026-11-22T08:11:14Z, merge commit `d10acffac09dac646ad6f319782f846b5bebb2fa` |
+| Checks on the merged SHA | `verify-live-site`, `live-site-render`, `verify-alerts`, `Static site link check` all success; the new `dom` job passed on the PR branch (run 45001334924) |
+| Pages | build for `d10acff` recorded cancelled (Z3 race); `43e5aa2` and `08890f0` built; API `status: built` for `08890f0`, which contains the merge |
+| Live proof | `flagged.html?v=0812` serves §10 with Z5–Z7; `categories/crypto.html` serves the new exclusion rule |
+| Merged-tree suite | Node 165/165 · Python tools 42 · Python tests 20 (3 skipped) · links 36 pages / 0 broken · page runtime 18/18 · signing 6/6 · DOM alerts 21/21, category 23/23, summary pass (39 open / 49 mitigated / 87) |
