@@ -3394,3 +3394,60 @@ and a dated report with re-runnable URLs is committed. That is the only new capa
 (new cards only), and — only after FAF-2's file list is written below — the specific site files a proven defect
 requires. `data/snapshot.json`, `scripts/`, `docs/`, `VERIFICATION.md`, `index.html`, the nav in `assets/js/ui.js`
 and all other sessions' sections are **not** edited here.
+
+### `faf9fe08` — final record (2026-11-22)
+
+**PR #123 — MERGED.** <https://github.com/kanlerxz87-cyber/KalshiDash2/pull/123>, merge commit
+`2b24801` at 2026-11-22T08:32:36Z. Merged without waiting for approval, per the brief; no review
+comments were open and CI was green on the exact merge-base commit `c68c718` before merging.
+
+**GitHub Pages: built and live on the merge commit.** `GET /repos/kanlerxz87-cyber/KalshiDash2/pages/builds/latest`
+→ `status: built`, `commit: 03b9ffe` (the first commit after the merge), build `1392167250`. Verified by
+fetching the published pages, not by trusting the status alone: `flagged.html` renders section 10 and the new
+"Found against the live API — 7" tile (96 items, 39 open, 57 mitigated), `resolved.html` renders the cutoff
+disclosure with a working `#NF3` anchor. A first fetch served a stale copy; a cache-busting query returned the
+deployed one — noted in case a later session sees the same thing and mistakes it for a failed deploy.
+
+**Three syncs of `main` were needed during this session** (PRs #122, #124, then a bot report commit). Conflicts
+were resolved by hand every time; `tools/resolve_board_conflict.py` was **not** used, per the standing warning
+that it drops sections. What conflicted, and how:
+
+| File | Conflict | Resolution |
+|---|---|---|
+| `COORDINATION.md` | Every append-session collides | Main's records kept verbatim, this session's section appended after them |
+| `flagged.html` | Main and this branch both appended a section 10 | **Both kept.** Main's `e7931fe7` section renumbered to 11, content untouched; this session's live re-verification is 10 |
+| `assets/js/sources.js` | Main had independently fixed the same `GET /markets` limit | Took main's fuller wording, appended this session's live probe to its note |
+| `reports/alerts-live-check.md` | Runner-generated report this branch never edited | Took the newer remote version wholesale |
+
+**Defects fixed:** `sources.js` Get Markets page limit (200 → default 100 / max 1000); stale "17 pages / 17/17"
+run count in `claims.js` (now names `DEFAULT_PAGES` and dates the run); missing cutoff disclosure on
+`resolved.html`; `GET /series` ignored-`limit` and `null`-payload behaviours added to the register.
+
+**Defects disclosed rather than fixed:** NF1, the conflict between
+<https://docs.kalshi.com/getting_started/order_direction> ("direction does not change the price") and
+<https://docs.kalshi.com/api-reference/orders/create-order-v2> (`side` is YES-leg-only; `ask` = "buy NO at
+`1 - price`"). Settling it needs one live demo order; there is no demo key in this repository. The order form
+now quotes both pages instead of implying the question is closed. **This also corrects an earlier record:**
+`reports/verify-independent-32b15793.md` row D2 marked this mapping "verified" while quoting only one of the
+two contradictory sentences. That row is left as written and annotated as partial.
+
+**New guards, both wired into `site-check.yml` and observed passing in CI run 45002738119:**
+`tests/order-contract.test.mjs` (9) and `tests/candle-spacing.test.mjs` (5). The order test drives the real
+`KalshiClient` with a generated RSA pair and a stubbed `fetch`, and was verified by breaking `kalshi.js` on
+purpose (a seconds timestamp fails exactly one assertion; restoring it passes 9/9).
+
+**Correction to this session's own note:** the working note claimed the candle endpoint returned a sparse,
+misaligned series (duplicate hour, six-hour hole). Re-reading the same request returned seven candles exactly
+3,600 s apart, and 16 at 60 s apart for the 1-minute window. The note was wrong and is retracted on Flagged NF7.
+The real behaviour is narrower and now has a test: an untraded period carries **only** `previous_dollars`, so the
+close line has a genuine hole that must not be filled forward.
+
+**Suite on the merged tree:** 190 Node tests (16 files), 42 tools, 20 Python tests (3 skipped), 18/18
+page-runtime, 36 pages and 0 broken local links, 21/21 + 18/18 DOM, 6/6 signing, `git diff --check` clean.
+The branch base was 155; the +35 is 14 from this session's two new files and 21 from `main`'s concurrent work,
+itemised in `reports/verify-faf9fe08.md` §D.
+
+**Still open, and honestly unverified (none blocks the merge):** authenticated demo calls (F1/F2) — no key;
+WebSocket consumption (W1–W4) — the fetch tool sends no custom headers, which is why the relay exists;
+non-2xx response bodies for the two rejected `limit` probes, where only the rejection itself was observable.
+Full list in `reports/verify-faf9fe08.md` §E.
