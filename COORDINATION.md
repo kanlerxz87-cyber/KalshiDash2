@@ -3394,3 +3394,47 @@ and a dated report with re-runnable URLs is committed. That is the only new capa
 (new cards only), and — only after FAF-2's file list is written below — the specific site files a proven defect
 requires. `data/snapshot.json`, `scripts/`, `docs/`, `VERIFICATION.md`, `index.html`, the nav in `assets/js/ui.js`
 and all other sessions' sections are **not** edited here.
+
+---
+
+
+---
+
+---
+
+## Session `8f3c331c` — live demo-API verification round + open-flag closure (branch `arena/8f3c331c-kalshidash2`, started 2026-11-22T07:5xZ)
+
+**Why this session exists.** Every prior session recorded the same blocker: the build sandbox cannot open TLS to
+`*.kalshi.co`, so the demo API could only be probed from a GitHub runner, and several claims were left at
+`partially verified` for exactly that reason (the archived/historical tier, F5, X1). This session's platform
+fetcher **can** read `https://external-api.demo.kalshi.co` directly, so it runs the checks nobody has been able
+to run and closes what they close. `curl` from the same sandbox still fails (`SSL_ERROR_SYSCALL`), so the method
+is stated on every capture: fetched through the agent's HTTP reader, with the exact re-runnable URL and timestamp.
+
+**Claimed tasks (file scope exclusive to this session).** No other session holds an active claim on these files
+(`gh pr list --state open` at claim time showed only #97, session `f468e69b`'s board-record PR, which this session
+ports and closes — see V8).
+
+| ID | Task | Status | Owner | Exclusive files | Sources / verification | Irregularities |
+|----|------|--------|-------|-----------------|------------------------|----------------|
+| V1 | Live verification round against the demo exchange, published as a report + evidence captures with re-runnable URLs: `GET /historical/markets`, `GET /historical/cutoff`, `GET /historical/markets/{ticker}/candlesticks`, live `GET /series/{s}/markets/{t}/candlesticks`, `GET /markets/{t}/orderbook?depth=20`, `GET /markets/trades`, `GET /events?series_ticker=KXGAS&status=open`, `GET /series/KXGAS` | **in progress** | `8f3c331c` | `reports/verify-8f3c331c.md` (new), `evidence/live-2026-11-22-8f3c331c.md` (new) | Live demo API (this session), `docs.kalshi.com` pages quoted with URL | Anything not reproducible is recorded as unverified, never filled in |
+| V2 | Act on V1: upgrade the archived-tier claim from `partially verified` to `verified` and add the claims V1 establishes (cutoff fields, `period_interval` in minutes on both tiers, only periods with activity are returned, empty-book shape, trade field set, series record also carries `settlement_sources`) | unclaimed | `8f3c331c` | `assets/js/claims.js` | Same captures as V1 | — |
+| V3 | **AC3**: retire the `docs/`-publishing Pages workflow so the repo has exactly one deployer (Pages = legacy `main:/`), and record which deployer is authoritative in `README.md` | unclaimed | `8f3c331c` | `.github/workflows/pages.yml`, `README.md` (one paragraph) | [What is GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages), `gh api repos/.../pages` | — |
+| V4 | **SB2** + the request filed by session `0acc711d`: correct the `collect.yml` header (no site fallback exists) and the `scripts/collect.py` comment asserting `GET /series/KXGAS` returns `GAS` — reworded as a dated past observation, since V1 shows the live call returns `ticker: "KXGAS"` | unclaimed | `8f3c331c` | `.github/workflows/collect.yml` (comment), `scripts/collect.py` (comment), `tools/test_collect.py` if it asserts the wording | V1 captures + `grep -rn snapshot assets/js/*.js *.html` | Comment-only; no collector behaviour changes |
+| V5 | Category-page taxonomy disclosure (the change request session `d074f64f` filed to the owner of `assets/js/category.js`): print the classification basis and the fallback count the same way `alerts.html` already does, using the `categoryBasis` tally `discoverTopic()` already returns | unclaimed | `8f3c331c` | `assets/js/category.js`, `tests/taxonomy.test.mjs`, `tests/dom/category-dom.mjs` | `GET /events` (deprecated `category`) vs `GET /series/{ticker}` (`category` + `categories[]`) | — |
+| V6 | Surface the series record's own `settlement_sources` (e.g. the EIA gasoline series for `KXGAS`) in the topic note, labelled as where the underlying number is published — never as a cause of a move (F14/A4 stay true) | unclaimed | `8f3c331c` | `assets/js/market.js` (`fetchSeriesCategories` keeps the field), `assets/js/category.js`, `tests/taxonomy.test.mjs` | Live `GET /series/KXGAS` (this session) + [Get Series](https://docs.kalshi.com/api-reference/market/get-series) | — |
+| V7 | Publish what V1 leaves open on the Flagged page: **X1 upgraded** (staging-bucket `contract_url` reproduced live today, not only in the snapshot) and one new card for the empty-`orderbook_fp`-levels behaviour V1 observed | unclaimed | `8f3c331c` | `flagged.html` (own cards only) | V1 | Non-blocking by rule |
+| V8 | Final integration: port session `f468e69b`'s board record from stale PR #97 (conflicting, its author's branch not touched), close #97 with a note, run every suite + link check + page runtime, open a PR to `main`, merge, confirm Pages `built` and spot-check the deployed pages | unclaimed | `8f3c331c` | `COORDINATION.md` (this section + the ported record) | `gh`, Pages API, full local suite | Do not merge a broken site |
+
+**Concurrent sessions seen while claiming (both respected).** Session `0d535383` (suggestions.html S4 wording) and
+session `8191667f` (AC1 exchange-status fix, `index.html` + the AC1 card in `flagged.html` + a new
+`tests/exchange-status.test.mjs` + one step in `site-check.yml`) both landed on `main` while this claim was being
+written; this session rebased onto them (conflict was `COORDINATION.md` only, resolved as a union — both boards kept
+verbatim) and edits **no** file they touched except `flagged.html`, where this session adds only its own new cards
+(X1 upgrade + one new card) and leaves AC1 and every other card as `8191667f` published them. `tests/dom/*` and
+`.github/workflows/site-check.yml` are shared: this session appends steps/tests and never rewrites another's.
+
+**Suites this session will run before opening its PR** (as recorded by prior sessions, all green on `252e623` at
+claim time): `node --test tests/*.test.mjs` 155/155 · `python3 -m unittest discover -s tools` 42/42 ·
+`python3 -m unittest discover -s tests` 20 (3 skipped) · `python3 tools/check_site_links.py .` 36 pages / 0 broken ·
+`node tools/verify/page-runtime-check.mjs` 18/18 · `tests/dom` DOM suites · `node evidence/auth-sign-test.mjs` 6/6.
