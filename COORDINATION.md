@@ -3346,6 +3346,32 @@ Fixed: the missing `</div>` was added (`.irregularity .irregularity` now matches
 
 **Session `f5b58baa` status: F5B-A..F5B-E done.**
 
+### Session `33a37458` — FINAL RECORD: PR #119 merged, Pages built, live site verified (2026-11-22T08:2xZ)
+
+| Item | Result |
+|---|---|
+| Pull request | [#119](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/119) `arena/33a37458-kalshidash2` → `main` — **MERGED** 2026-11-22T08:24:33Z, merge commit `5098ed2` (`gh pr merge 119 --merge`, no approval wait, as instructed) |
+| Checks on the merged head `5e44998` | `Static site link check` **success** (runs every Node suite, the DOM job, both Python suites, the link check and the page-runtime harness) · `verify-alerts` **success**. Earlier heads `2ef3a9a` and `621e60e` also green. |
+| Pages | `builds/latest` **`built`**, `error: null`, commit `0708788` (a descendant of `5098ed2`) at 08:25:53Z |
+| Live verification | Fetched from the published host: `flagged.html` serves the new **X5** card and the corrected **X1** "impact boundary" text; `assets/js/alerts-core.js` serves `NON_PUBLIC_CONTRACT_HOSTS` / `seriesContractLinks` / `CONTRACT_FIELDS`. The deployment therefore carries this session's work, not a stale tree. |
+| Local suite on the merged tree | Node **172/172** (14 files) · DOM alerts **22/22**, summary pass (87/100 claims verified; 38 open / 51 mitigated / 89 flags), category **23/23** · Python `tools` **42 OK** · links **36 pages / 0 broken** · page runtime **18/18** · signing **6/6** · `npm audit` 0 vulnerabilities · `git diff --check` clean |
+
+**Merge/conflict log (required).** `main` moved five times while this branch was open (PRs #112, #117, #118, #120, #121, #122 and three bot captures). Conflicts, each resolved without discarding another session's work:
+
+| Conflict | Resolution |
+|---|---|
+| `COORDINATION.md`, three times | Union every time: the other session's section kept intact and this session's appended. One rebase pass also dropped a stale duplicate "---" pair from my own resolution; the other session's L1–L3 record survived. |
+| `flagged.html` (my X5/X1 edits vs PR #120's Z8 nesting fix) | Auto-merged; verified afterwards that all 89 cards are siblings (no `.irregularity` nested inside another), that X5 and Z8 both render, and that the counters agree (38 open + 51 mitigated = 89). |
+| `reports/alerts-live-check.md`, twice | Generated bot capture vs generated bot capture. Kept `main`'s newer capture both times — same run shape, fresher timings — and never overwrote a shared generated output with a stale copy. |
+
+A bot pushed `[skip ci]` captures to this branch twice; each was **merged in**, never force-pushed over. Own-branch pushes after a rebase used `--force-with-lease` with the exact expected SHA (two were rejected as *stale info* because the bot had pushed in between; both were re-fetched and merged instead of forced).
+
+**Corrections to this session's own published text, recorded because they matter:**
+1. The claim section first said the baseline suite was "155/155 across **16** files". 16 counted three non-test scripts in `tests/`; the correct figure is **13** `*.test.mjs` files (155 checks). Fixed in the section above rather than left standing.
+2. The suite counts first published in `README.md` / `EXECUTIVE_SUMMARY.md` were measured *before* the rebase onto `main`, i.e. 162 Node / 18 category-DOM. After the merge picked up PR #117/#121 the same suites measured **172** and **23**, so both files and the X5 card were updated to the merged-tree numbers. This is the same class of defect X5 exists to describe, found in my own output.
+
+**Open items for a reviewer (none blocks the merge):** X1's *host* question is still Kalshi's to answer — only the site's rendering was fixed; authenticated demo calls (F1/F2) and WebSocket handshakes (W1–W4) remain unexercised here for want of a key and of header support in the fetch tool; `reports/external-links-audit.md` was deliberately **not** regenerated (a local offline run rewrites every row's reachability to "not checked" and picks up fixture URLs; the manual `audit-external-links` workflow is the right place to refresh it from a runner).
+
 ---
 
 ## Session faf9fe08 (branch `arena/faf9fe08-kalshidash2`, from `main` @ `252e623`)
