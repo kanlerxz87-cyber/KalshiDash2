@@ -227,13 +227,14 @@ created at `2026-11-22T07:56:59Z` in which `previous_price_dollars` is `"0.0000"
 `last_price_dollars` is `"0.4500"` — a market only minutes old has no "a day ago" price to report, so the
 field is *zero*, not *absent*: the same value a genuine 0¢ trade would carry.
 
-That is the trap **Flagged Z1** is about. The schema text read during this round, on
-[Get Historical Markets](https://docs.kalshi.com/api-reference/historical/get-historical-markets) — whose
-market row reuses the same field descriptions — reads:
+That is the trap **Flagged Z1** is about. The sentence the flag quotes, from the response schema of
+[Get Market](https://docs.kalshi.com/api-reference/market/get-market) (read on 2026-11-20 and re-checked since):
 
 > `previous_price_dollars`: "Price for the last traded YES contract on this market **a day ago** in dollars"
 
-not "before the last change". The alert engine's two comparisons stay separate and stay labelled, and the
+not "before the last change". The archived-markets schema carries the same field in its 200 example, which is
+why the site's archived-tier rows are labelled with the same baseline rather than a new one.
+The alert engine's two comparisons stay separate and stay labelled, and the
 exchange-vs-exchange comparison is now described with the day-old baseline in the copy — including on the
 Overview, whose mover note reads `Δ = last_price_dollars − previous_price_dollars`. For a market minutes
 old, a $0.10 "swing" against a zero baseline is a listing artefact, not a move — which is exactly why the
@@ -264,12 +265,31 @@ settlement value, not turnover. It is still excluded from the ranking, as `F7` r
 5. **Why the demo carries two "Gas weekly" series** (`KXGAS` and `GAS`). Unanswered; a question for Kalshi,
    not something to infer. `KXGAS` was last updated today, `GAS` on 2026-11-02.
 
+## 11 · One documented rule that does *not* bite this site, checked anyway
+
+The [Get Historical Markets](https://docs.kalshi.com/api-reference/historical/get-historical-markets) page
+carries a second-line warning that is easy to trip over: **"Endpoint for getting markets that have been
+archived to the historical database. Filters are mutually exclusive."** Combined filters on that route are
+therefore not a narrowing AND, the way the live `GET /markets` filters behave.
+
+Checked against every call this repository makes to the archived tier:
+
+| Caller | What it sends | Affected? |
+|---|---|---|
+| `fetchCandles()` in `assets/js/market.js` | `/historical/markets/{ticker}/candlesticks?start_ts&end_ts&period_interval` — one market by ticker, no listing filters | no |
+| the Strategy Tester's archived universe in `assets/js/simulator.js` | `/historical/markets?limit=…` — a page size, not a filter | no |
+| `GET /historical/markets?limit=2` in this round (E2) | likewise `limit` only | no |
+
+So the archived-tier feature this report just verified rests on neither route combining two mutually exclusive
+filters. Recorded here because "we checked and it does not apply" is a different statement from "nobody looked".
+
 ## Sources used in this report
 
 | What it establishes | Link |
 |---|---|
 | Archived-tier rule ("markets that settled before the cutoff are only available via `GET /historical/markets`") and "The archive publishes **cutoff timestamps** through `GET /historical/cutoff`" — the sentences this site relies on, quoted by session `190f6069`'s read of this page | https://docs.kalshi.com/getting_started/historical_data |
-| Archived markets schema and paging | https://docs.kalshi.com/api-reference/historical/get-historical-markets |
+| Archived markets schema and paging, and "Filters are mutually exclusive" | https://docs.kalshi.com/api-reference/historical/get-historical-markets |
+| The `previous_price_dollars` sentence quoted in §9 ("a day ago"), and the field list the alert engine reads | https://docs.kalshi.com/api-reference/market/get-market |
 | Archived candlesticks: `period_interval` in minutes, plain field names | https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks |
 | Live candlesticks: `_dollars` / `_fp` field names | https://docs.kalshi.com/api-reference/market/get-market-candlesticks |
 | Paging and ordering, deduplicate-by-`ticker`, the caching caveat, the `tickers`-only guarantee | https://docs.kalshi.com/api-reference/market/get-markets |
