@@ -3188,7 +3188,7 @@ Findings that require a change in another owner's files are logged as requests o
 
 | Task | Status | Owner | File scope |
 |---|---|---|---|
-| I1: independently audit current integration, source attribution and build; document confirmed issues and limitations | in progress | `e7931fe7` | `COORDINATION.md`, `reports/audit-e7931fe7.md`, and, only if necessary for integration, `flagged.html` and related shared site files |
+| I1: independently audit current integration, source attribution and build; document confirmed issues and limitations | done | `e7931fe7` | `COORDINATION.md`, `reports/audit-e7931fe7.md`, and, only if necessary for integration, `flagged.html` and related shared site files |
 
 Earlier 2026-11-20/21 in-progress claims with no recent commits are stale under the 60-minute rule; no other session's work is being replaced. The fixed Arena branch `arena/e7931fe7-kalshidash2` is used for this session.
 
@@ -3206,3 +3206,32 @@ Brief requirement under test: "Every table row must have a source link to an off
 | L1 | Run the existing page-runtime harness and the full local suite on `main` @ `252e623`; record exact counts | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md` (new), this section | `node tools/verify/page-runtime-check.mjs`, `node --test tests/*.test.mjs`, `python3 -m unittest`, `tools/check_site_links.py .` | — |
 | L2 | Audit every rendered table data row on every published page: does it carry at least one link to an official host, or is it explicitly flagged? Fix only stale or unlinked **factual** rows found | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md`, `questions.html` (scope added: only the Missing-information table) | DOM capture from the runtime harness; host classification against `reports/external-links-audit.md` | F-1 stale gas row (contradicted by live API 2026-11-22) removed; F-2 stale WebSocket row reworded to match Q10; F-3 process row removed; F-4 link added. Legend rows in `sources.html`/`verification.html`/`summary.html` left as-is and logged |
 | L3 | Final integration: PR → `main`, merge without waiting, confirm Pages deploy; record PR link + result here | **in progress** | `3bc35c29` | this section | `gh pr create`, `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+### `e7931fe7` task result — done (2026-11-22T08:1xZ)
+
+**PR / merge / deploy**
+
+| Item | Result |
+|---|---|
+| Pull request | [#114](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/114) `arena/e7931fe7-kalshidash2` → `main` — **merged** 2026-11-22T08:11:14Z, merge commit [`d10acff`](https://github.com/kanlerxz87-cyber/KalshiDash2/commit/d10acffac09dac646ad6f319782f846b5bebb2fa) (`gh pr merge 114 --merge`, no approval wait) |
+| Checks on the merged SHA | `verify-live-site` **success**, `live-site-render` **success**, `verify-alerts` **success**, `Static site link check` **success** (the new `dom` job ran green on the PR branch, run 45001334924) |
+| Pages | `pages build and deployment` for `d10acff` is recorded `cancelled`/`errored` — the same concurrency race as Z3 — and the next builds `43e5aa2` then `08890f0` **succeeded**; API `status: built` for `08890f0`, which contains `d10acff` |
+| Live verification | cache-busted fetch of <https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html?v=0812> serves §*10 · Final integration re-verification* with Z5–Z7, and <https://kanlerxz87-cyber.github.io/KalshiDash2/categories/crypto.html> serves the new panel rule ("the topic total is withheld … excluded and counted instead of being valued by assumption"). An uncached first fetch still returned the previous build, which is why the probe was repeated — the deployment itself is current |
+| Suite on the merged tree | Node **165/165** across 13 files · Python tools **42 OK** · Python tests **20 OK (3 skipped)** · static links **36 pages / 0 broken** · page-runtime **18/18** · signing **6/6** · DOM: alerts **21/21**, category **23/23**, summary pass (flag counts DOM-derived: 39 open / 49 mitigated / 87) |
+
+**Official sources re-read (and what they settled):** [demo environment](https://docs.kalshi.com/getting_started/demo_env) — both REST bases and both WS URLs match the brief verbatim, and demo prices "may not be reflective" of production, which the site repeats; [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) — `orderbook_fp.yes_dollars`/`no_dollars` are `[price, count]` strings and `depth` is bounded 0–100, matching the parser and the `depth=20` request; [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades) — `count_fp`, `yes_price_dollars`, `no_price_dollars`, `taker_outcome_side`, deprecated `taker_side`, `created_time`, `cursor`, `limit` 1–1000, `min_ts`/`max_ts` in seconds, all of which the request and arithmetic use; [docs index](https://docs.kalshi.com/llms.txt) — the cited pages exist. Full detail: [`reports/audit-e7931fe7.md`](reports/audit-e7931fe7.md).
+
+**Defects found and fixed (published as Z5–Z7):**
+
+- **Z5** — `tradeDollars()` valued a trade with no recorded taker side on the YES leg (`priced:true`) and summed that guess into the figure labelled "official", while the module's own header said such rows are `priced:false`. The applicable price depends on the side taken (10 contracts at YES $0.40 are $4.00 for a YES taker, $6.00 for a NO taker). Such rows are now excluded and counted (`unsided`/`missing`) and the page states how many and why.
+- **Z6** — the headline KPI used `r.dollars || 0`, so an unreadable market's `null` became zero and a partial sum was printed as the topic total. Only complete rows are summed now; if any measured market was unreadable the headline is withheld as n/a with the reason.
+- **Z7** — a row aggregated several markets but linked `ev.markets[0].ticker`. `rankByTradedDollars()` now returns the tickers actually measured and the row renders one link per ticker with the same window and limit.
+- Also corrected: `EXECUTIVE_SUMMARY.md` said the panel shows the `created_time` span of the trades it read; it did not. The result now carries that span and the note prints it beside the requested window.
+
+**Tests:** `tests/dollar-volume.test.mjs` 25 → **31** checks; `tests/dom/category-dom.mjs` 18 → **23**; each new test fails without its fix. The three DOM suites were local-only — which is how Z5–Z7 reached `main` — so `site-check.yml` now runs them in a `dom` job.
+
+**Conflict log (required):** `main` moved six times during this session (PRs #112, #113, #115, #116 and bot data commits). Every rebase/merge conflicted in `COORDINATION.md`; each was resolved as a union — the other session's section kept intact, this session's appended, nothing removed or reworded. `reports/alerts-live-check.md` conflicted once after both `main` and this branch received bot captures; the copy already on `main` was kept rather than replacing a shared generated output (the only differences were timings from the same run shape). Own-branch pushes after rebases used `--force-with-lease`, and the bot commits pushed to this branch were merged in, never overwritten.
+
+**PR #97 closed (not merged).** It was another session's docs-only record of the PR #92 merge; every fact in it is already on `main`, it had been `CONFLICTING` since 2026-11-21, and later board sections record the same deployments. Closing it does not discard anything: the branch is retained and `reports/audit-f468e69b.md` is on `main`. Comment posted on the PR.
+
+**Still open, unchanged:** no demo API key in the repo (no account performance, fill, or end-to-end order claimed); alerts poll only while the tab is open; the scan universe is capped (12 × 200 events, top 30 open markets per topic); last-traded-price only; WS ticker path detects consecutive-reading swings only and needs the relay; simulated fills optimistic (F15); High-ROI watch is a rule set (A1); ranking still the labelled proxy (A11, mitigated); a topic total can be smaller than the truth because unreadable markets are excluded, and the page says how many.
