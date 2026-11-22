@@ -73,7 +73,9 @@
     </div>
     <p class="sub small" style="margin:10px 0 0">
       Source: <a href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>.
-      A market whose pages cannot all be read is shown as n/a; a partial sum is never presented as a total.
+      A market whose pages cannot all be read is shown as n/a; a partial sum is never presented as a total. A trade whose
+      recorded taker side is absent, or whose price on that side is missing, is excluded and counted — never valued by
+      assumption — and every market measured has its own response link on the category page.
     </p>
   </div>
 
@@ -186,6 +188,13 @@ mountChrome({ page: "index.html", title: "Overview" });
 const state = { events: [], mode: "money", loadedAt: null };
 
 /* ---- exchange status ---- */
+/* The Get Exchange Status reference warns that when the default index's
+ * status cannot be read the response is 500, 503 or 504, and that "its body
+ * can be an ExchangeStatus with exchange_active and trading_active set to
+ * false, or an error object, and in neither case does it mean the exchange
+ * is paused." The flags are therefore read only from an HTTP 200 response;
+ * any other code renders "status unavailable", never "not trading".
+ * (Flagged AC1; https://docs.kalshi.com/api-reference/exchange/get-exchange-status) */
 (async () => {
   const el = $("#exch-status");
   try {
@@ -201,10 +210,20 @@ const state = { events: [], mode: "money", loadedAt: null };
       <strong>${s.trading_active ? "active" : "inactive"}</strong>.
       ${src(SOURCES.demoEnv, "demo env docs")}</p>`;
   } catch (e) {
-    el.innerHTML = `<span class="tag no">unreachable</span>`;
+    const unavailable = e && Number.isInteger(e.status);
+    el.innerHTML = unavailable
+      ? `<span class="tag warn">status unavailable</span>`
+      : `<span class="tag no">unreachable</span>`;
     const banner = $("#connect-banner");
     banner.className = "callout bad";
-    banner.innerHTML = `<h3>The browser could not reach the Kalshi demo API</h3>
+    banner.innerHTML = unavailable
+      ? `<h3>Exchange status could not be read</h3>
+      <p style="margin:0" class="small">The demo API returned HTTP ${e.status}. This page reads the
+      status flags only from HTTP 200 and does not interpret any non-200 response as a trading halt.
+      The <a href="${SOURCES.exchangeStatus}" target="_blank" rel="noopener noreferrer">Get Exchange Status</a>
+      reference specifically notes that 500/503/504 bodies can contain false status flags without meaning
+      the exchange is paused. No market values are displayed rather than showing stale or invented numbers.</p>`
+      : `<h3>The browser could not reach the Kalshi demo API</h3>
       <p style="margin:0" class="small">${esc(e.message)}. No market values are displayed rather than
       showing stale or invented numbers.</p>`;
   }

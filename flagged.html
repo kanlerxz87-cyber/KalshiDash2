@@ -1130,23 +1130,25 @@
     </div>
 
     <div class="irregularity" id="AC1">
-      <h3>AC1 — The exchange-status strip does not repeat a documented caveat about 5xx bodies <span class="tag warn">open</span></h3>
+      <h3>AC1 — The exchange-status strip did not repeat a documented caveat about 5xx bodies <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> the <em>Get Exchange Status</em> reference warns that when the
         default index's status cannot be read the response is <code>500</code>, <code>503</code> or
         <code>504</code>, and that <em>"its body can be an <code>ExchangeStatus</code> with
         <code>exchange_active</code> and <code>trading_active</code> set to <code>false</code>, or an error
-        object, and in neither case does it mean the exchange is paused."</em> The landing page reads those
+        object, and in neither case does it mean the exchange is paused."</em> The landing page read those
         two flags to render its "trading is active" strip.</p>
-      <p><strong>Why it is flagged rather than changed here:</strong> the reader lives in
-        <code>assets/js/ui.js</code>, which is outside this session's file scope. If a 5xx body were parsed
-        as a normal status object, the strip could read "paused" during a gateway timeout — an
-        outage reported as a trading halt.</p>
-      <p><strong>What would close it:</strong> read the flags only from an HTTP <code>200</code> response,
-        and render "status unavailable" for any other code, exactly as the reference instructs.</p>
-      <p><strong>Not asserted:</strong> that the page currently mis-reports. This session did not observe a
-        5xx from the demo host, and the sandbox cannot reach it (see the container note in
-        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a>). The gap is
-        that the defence is not evidenced either way.</p>
+      <p><strong>Why it was flagged rather than changed here:</strong> the reader was believed to live in
+        <code>assets/js/ui.js</code>, which was outside the flagging session's file scope. It does not —
+        the reader is inline in <code>index.html</code>, so the fix could be made in place.</p>
+      <p><strong>What closed it (session <code>8191667f</code>, 2026-11-22):</strong> the flags are now read
+        only from an HTTP <code>200</code> response. A <code>500</code>/<code>503</code>/<code>504</code>
+        renders "status unavailable" and a banner that states the page does not report a trading halt,
+        citing the reference; a network failure with no HTTP status still renders "unreachable".
+        <code>tests/exchange-status.test.mjs</code> extracts the reader and pins all three behaviours
+        (5xx never renders "not trading"; 200 drives the strip from the flags; no-status failure renders
+        "unreachable").</p>
+      <p><strong>Not asserted:</strong> that the page ever mis-reported. No 5xx from the demo host was
+        observed; the gap was that the defence was not evidenced either way, and now it is.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a></p>
     </div>
@@ -1662,6 +1664,85 @@
         (throttling) or a network error (transport), and — if it is throttling — spacing the five workflows so
         they do not scan simultaneously.</p>
     </div>
+
+  <div class="card">
+    <h2>10 · Final integration re-verification (session <code>e7931fe7</code>, added 2026-11-22)</h2>
+    <p class="sub" style="margin-bottom:8px">A line-by-line pass over the merged site, checked against the official
+      reference pages and the site's own tests. The demo endpoints below were re-read on
+      <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Test In The Demo Environment ↗</a>,
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-orderbook" target="_blank" rel="noopener noreferrer">Get Market Orderbook ↗</a>,
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a> and
+      <a class="src-link" href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">the docs index ↗</a>;
+      the four endpoints, the demo URL pair, the <code>orderbook_fp</code> shape and the
+      <code>trades</code>/<code>cursor</code> shape all match what the site requests and parses. Three defects were found in
+      the traded-dollar panel added in PR #98 and are fixed below. Their numbers were wrong in a way no fixture had covered,
+      which is why each fix ships with a test that fails without it.</p>
+
+    <div class="irregularity" id="Z5">
+      <h3>Z5 — A trade with no recorded taker side was valued on the YES leg and folded into an "official" total <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/dollar-volume.js</code> returned
+        <code>priced: true</code> with <code>dollars = count_fp × yes_price_dollars</code> for a row that had neither
+        <code>taker_outcome_side</code> nor the deprecated <code>taker_side</code>. The module's own header said the
+        opposite ("reported as <code>priced:false</code> rather than guessed"), and the panel's label said the figure was
+        Σ(<code>count_fp</code> × the price of the side the taker bought). With no recorded side, which of the two price
+        fields applies is <em>unknown</em>: 10 contracts at YES $0.40 are $4.00 if the taker bought YES and $6.00 if they
+        bought NO. The old code silently chose the first.</p>
+      <p><strong>Why it matters:</strong> this is the one number on the site labelled "official", and the brief's rule is
+        that a value which cannot be confirmed is left blank and flagged — never inferred. A guessed dollar amount is
+        indistinguishable from a measured one once it is summed into a headline.</p>
+      <p><strong>Fix shipped:</strong> a row with no recorded side — or with no price on the side it did record — is
+        excluded from the total and counted separately (<code>unsided</code> / <code>missing</code>), and the page states
+        how many trades were excluded and why. The counts are carried through <code>rankByTradedDollars</code> so they
+        reach the rendered note instead of being dropped with the row.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — response schema ↗</a>
+        (<code>count_fp</code>, <code>yes_price_dollars</code>, <code>no_price_dollars</code>, <code>taker_outcome_side</code>,
+        <code>taker_side</code>) ·
+        <a class="src-link" href="tests/dollar-volume.test.mjs">tests/dollar-volume.test.mjs</a> —
+        "a row with no recorded taker side is NOT valued" and "a row is valued only on the price field that belongs to its own side" ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a></p>
+    </div>
+
+    <div class="irregularity" id="Z6">
+      <h3>Z6 — The traded-dollar headline could present a partial sum as the topic's total <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the KPI was computed as
+        <code>rows.reduce((a, r) =&gt; a + (r.dollars || 0), 0)</code>. A row whose trade pages could not all be read has
+        <code>dollars: null</code>, so <code>|| 0</code> turned an <em>unknown</em> amount into zero and the headline still
+        printed a dollar figure captioned "Σ across the N market(s) read" — while the table row beside it correctly showed
+        n/a. The page text promised the opposite: "a partial sum is never presented as a total".</p>
+      <p><strong>Fix shipped:</strong> only complete rows are added up, and if any measured market was unreadable the
+        headline is withheld as <span class="unv">n/a</span> with the reason; the trade and contract counts are labelled as
+        covering completed rows only. The note also names how many markets were skipped for budget and how many were
+        unreadable.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — cursor pagination ↗</a>
+        (an unread page means the window is not fully measured) ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a> — "an unreadable market withholds the headline total AND that row's figure"</p>
+    </div>
+
+    <div class="irregularity" id="Z7">
+      <h3>Z7 — Each row's "trades response" link opened only the event's first market, not the markets the row summed <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> an event row aggregates every measured market under that event
+        (<code>row.markets</code>, e.g. 3 markets), but its single source link was built from
+        <code>ev.markets[0].ticker</code> — the event's first market, which may be a different market from the ones
+        measured, and never all of them. Clicking the evidence behind a three-market total showed one market's trades.</p>
+      <p><strong>Fix shipped:</strong> <code>rankByTradedDollars</code> returns the tickers it actually measured per event,
+        and the row renders one link per ticker with the same <code>min_ts</code>/<code>max_ts</code> window and
+        <code>limit</code> the request used; a market whose read was incomplete is marked. Every dollar figure in the table
+        now has a response behind it that can be opened and re-added by hand.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — <code>ticker</code>, <code>min_ts</code>, <code>max_ts</code>, <code>limit</code> ↗</a> ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a> —
+        "the traded-dollar table links every measured market's own trades response"</p>
+    </div>
+
+    <p class="small" style="margin:0"><strong>Re-checked and unchanged:</strong> the
+      <code>orderbook_fp</code> response shape the liquidity tables parse (<code>yes_dollars</code>/<code>no_dollars</code>
+      as <code>[price, count]</code> strings), the documented <code>depth</code> bound of 0–100 with the page's
+      <code>depth=20</code>, the <code>limit</code> ceiling of 1000 used by the trades panel, and <code>min_ts</code>/<code>max_ts</code>
+      being Unix <em>seconds</em>. No displayed value was changed by this pass; the fixes only stop three guessed or partial
+      figures from being shown as measured ones.</p>
+  </div>
 
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
