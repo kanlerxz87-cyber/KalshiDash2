@@ -429,10 +429,11 @@ def collect_series(client: Client, topic: str, spec: dict) -> tuple[list, list[s
         if row.get("ticker"):
             # Pinned: kept ahead of the volume-ordered cap, otherwise a
             # low-volume series fetched on purpose can be truncated away again.
-            # A requested ticker can resolve to a series that discovery already
-            # returned (observed: GET /series/KXGAS returns the "Gas weekly"
-            # series whose ticker is GAS), so pin the existing row instead of
-            # dropping the flag with setdefault().
+            # If discovery already returned `row["ticker"]` (an earlier 2026-11-21
+            # run reported `KXGAS` resolving to `GAS`; live re-checks on
+            # 2026-11-21 and 2026-11-22 return distinct `"ticker": "KXGAS"` and
+            # `"ticker": "GAS"` records — see Flagged SB4), pin the existing row
+            # instead of dropping the flag with setdefault().
             merged = dict(got.get(row["ticker"]) or row)
             merged["_pinned"] = True
             got[row["ticker"]] = merged
