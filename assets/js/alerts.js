@@ -20,7 +20,7 @@ import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategori
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
   watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
-  screenMarket, marketRefFromAlert
+  screenMarket, marketRefFromAlert, seriesContractLinks
 } from "./alerts-core.js";
 import { LiveFeed, FEED_STATE, probeRelay } from "./live-feed.js";
 
@@ -53,7 +53,7 @@ const S = {
   trades: loadTrades(),
   skipped: {},
   eventLinks: {},         // event ticker → { sources, category, seriesTicker, contractUrl } | "loading" | "error"
-  seriesContracts: {},    // series ticker → [contract_url, contract_terms_url]
+  seriesContracts: {},    // series ticker → { links, withheld } from seriesContractLinks()
   intervalS: 15,
   paused: false,
   backoffS: null,
@@ -401,10 +401,17 @@ async function ensureEventLinks(eventTicker) {
   renderFeeds();
 }
 
-/* The series record carries `contract_url` — the official filing behind the
- * contract — and `contract_terms_url`. Fetched once per series and cached, so a
- * trader can check what the contract actually says without leaving the page.
- * (https://docs.kalshi.com/api-reference/market/get-series-list) */
+/* The series record carries two different documents — `contract_terms_url` (the
+ * current terms) and `contract_url` (the original filing) — and the official
+ * schema documents no host for either
+ * (https://docs.kalshi.com/api-reference/market/get-series). Fetched once per
+ * series and cached, so a trader can check what the contract actually says
+ * without leaving the page.
+ *
+ * The selection rules live in `seriesContractLinks()` (alerts-core.js) so they
+ * are unit-tested rather than buried in the page: a documented URL on a host
+ * that does not serve public reads is WITHHELD and its reason shown, never
+ * rendered as a filing the reader can click. See Flagged X1. */
 async function ensureSeriesContract(eventTicker) {
   const ev = S.eventLinks[eventTicker];
   if (!ev || ev === "loading" || ev === "error" || !ev.seriesTicker) return;
@@ -413,13 +420,10 @@ async function ensureSeriesContract(eventTicker) {
   ev.contractUrl = undefined;                     // mark as in flight
   try {
     const j = await api.get(`/series/${encodeURIComponent(seriesTicker)}`);
-    const rec = j.series || j;
-    const urls = [rec.contract_url, rec.contract_terms_url]
-      .filter(u => typeof u === "string" && /^https:\/\//.test(u));
-    S.seriesContracts[seriesTicker] = urls;
-    S.eventLinks[eventTicker].contractUrl = urls[0] || false;
+    S.seriesContracts[seriesTicker] = seriesContractLinks(j.series || j);
+    ev.contractUrl = S.seriesContracts[seriesTicker].links.length ? true : false;
   } catch {
-    S.eventLinks[eventTicker].contractUrl = false;
+    ev.contractUrl = false;
   }
   renderFeeds();
 }
@@ -487,20 +491,28 @@ function eventPageUrl() {
  */
 function evidenceHTML(a, ev) {
   const links = [];
+  const withheld = [];
   if (ev && ev !== "loading" && ev !== "error") {
-    const seriesUrls = ev.seriesTicker ? S.seriesContracts[ev.seriesTicker] || [] : [];
-    const contract = seriesUrls[0];
+    const rec = ev.seriesTicker ? S.seriesContracts[ev.seriesTicker] : null;
     if (a.topic === "gas") {
       // The AAA daily national average — the figure the retail-gas series are
       // settled against (settlement source recorded on the event record).
       links.push(`<a href="https://gasprices.aaa.com/" target="_blank" rel="noopener noreferrer">AAA daily gas price ↗</a>`);
     }
-    if (contract) {
-      links.push(`<a href="${esc(contract)}" target="_blank" rel="noopener noreferrer">official contract filing ↗</a>`);
+    /* Each documented document keeps its own label; nothing is relabelled as
+     * "the filing" when it is the terms page, and a non-public host is withheld
+     * with the reason instead of being offered as a link. */
+    for (const l of (rec?.links || [])) {
+      links.push(`<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>`);
     }
+    for (const w of (rec?.withheld || [])) withheld.push(w);
   }
-  if (!links.length) return "";
-  return `<div class="links"><span class="muted">Check the price against:</span> ${links.join(" · ")}</div>`;
+  const note = withheld.length
+    ? ` <span class="unv" title="${esc(withheld.map(w => `${w.label}: ${w.reason}`).join("; "))}">${withheld.length} contract link(s) withheld — host does not serve public requests</span>`
+    : "";
+  if (!links.length && !note) return "";
+  const inner = links.length ? `${links.join(" · ")}${note}` : note.trim();
+  return `<div class="links"><span class="muted">Check the price against:</span> ${inner}</div>`;
 }
 
 function msgHTML(a, watchFeed) {

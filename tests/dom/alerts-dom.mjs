@@ -235,11 +235,25 @@ check("each alert links the demo site, documented as the root only", () => {
   assert.ok(!/demo\.kalshi\.co\/markets\//.test(html),
     "no per-market demo URL is fabricated; the docs document the root only");
 });
-check("the official contract filing from the series record is rendered", () => {
+check("the series contract documents are rendered with their own documented labels", () => {
   const html = $("#feed-all").innerHTML;
+  // Both documented documents are on a public host in this fixture, so both are
+  // rendered — and each keeps the label the official schema gives it, instead of
+  // every link being called "the filing".
+  assert.ok(html.includes("https://example.org/contract-terms.pdf"),
+    "contract_terms_url from GET /series/{ticker} is linked");
   assert.ok(html.includes("https://example.org/contract-filing.pdf"),
     "contract_url from GET /series/{ticker} is linked");
-  assert.ok(html.includes("official contract filing"));
+  assert.ok(html.includes("current contract terms"));
+  assert.ok(html.includes("original contract filing"));
+});
+
+check("the terms document is offered before the original filing", () => {
+  const html = $("#feed-all").innerHTML;
+  const terms = html.indexOf("https://example.org/contract-terms.pdf");
+  const filing = html.indexOf("https://example.org/contract-filing.pdf");
+  assert.ok(terms >= 0 && filing >= 0 && terms < filing,
+    "preference order comes from CONTRACT_FIELDS, not from response order");
 });
 check("evidence links are labelled as checks, not causes", () => {
   const html = $("#feed-all").innerHTML;
