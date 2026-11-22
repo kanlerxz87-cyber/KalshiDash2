@@ -3134,3 +3134,11 @@ only difference between the tested branch tip and `96e685c` was #105's 26 board 
   `dollar_open_interest` through; today it maps price/bid/ask only (correct for the swing feed).
 
 **Session status: K1–K3 done. PR #102 merged, Pages built on the merged SHA, hosted probes green.**
+
+## Session `0d535383` — source accuracy in suggestions (2026-11-22)
+
+| Task | Status | Owner | Files |
+|---|---|---|---|
+| Correct unsupported probability wording in suggestion S4; verify its source and add regression coverage | in progress | `0d535383` | `suggestions.html`, `tests/official-wording.test.mjs`, `COORDINATION.md` |
+
+Independent review found S4 asserts that a price is the market's probability and cites the orderbook guide; the cited guide documents bid/ask complementarity, not a verified probability. Source: <https://docs.kalshi.com/getting_started/orderbook_responses>. Scope is limited to this accuracy issue and its tests; no other session's claimed files are taken over.
