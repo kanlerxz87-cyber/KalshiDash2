@@ -269,9 +269,15 @@ async function renderFillsList(fills, labelSuffix = "") {
       <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td><td>${src(SOURCES.fills, "fills API docs")}</td></tr>`;
   }).join("") : emptyRow(6, "No data.");
 
-  const sideRows = [...analysis.bySide, ...analysis.byTaker];
+  /* Two vocabularies, kept separate on purpose: `outcome_side` is which outcome
+     the fill is positioned for (yes/no), `is_taker` is the liquidity role
+     (taker/maker). Concatenating the two lists put "yes"/"no" and
+     "taker"/"maker" in one unlabelled column. */
+  const sideRows = [...analysis.bySide.map(g => ({ ...g, kind: "side" })),
+                    ...analysis.byRole.map(g => ({ ...g, kind: "role" }))];
   $("#by-side").innerHTML = sideRows.length ? sideRows.map(g => `<tr>
-    <td>${esc(g.key)}</td><td class="num">${int(g.n)}</td>
+    <td>${g.kind === "side" ? "side" : "role"} <span class="muted small">·</span> ${esc(g.key)}</td>
+    <td class="num">${int(g.n)}</td>
     <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td>
     <td>${src(SOURCES.fills, "fills API docs")}</td></tr>`).join("")
     : emptyRow(5, "No data.");

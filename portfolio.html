@@ -58,6 +58,8 @@
       <span id="acct-status" class="pill idle">idle</span>
     </div>
     <div class="grid cols-4" id="acct-stats" style="margin:12px 0"></div>
+    <div class="grid cols-4" id="perf-stats" style="margin:0 0 6px"></div>
+    <div class="table-note" id="perf-note" style="margin:0 0 10px"></div>
     <div id="acct-error"></div>
   </div>
 
@@ -120,9 +122,9 @@
       <table>
         <thead><tr>
           <th>Market</th><th class="num">Position</th><th class="num">Market exposure</th>
-          <th class="num">Realized P&amp;L</th><th>Status</th><th>Official source</th>
+          <th class="num">Realized P&amp;L</th><th class="num">Fees paid</th><th>Status</th><th>Official source</th>
         </tr></thead>
-        <tbody id="pos-body"><tr><td colspan="6"><div class="empty">No positions loaded.</div></td></tr></tbody>
+        <tbody id="pos-body"><tr><td colspan="7"><div class="empty">No positions loaded.</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>
@@ -139,6 +141,35 @@ import { api, num } from "./assets/js/market.js";
 import { snapToGrid } from "./assets/js/kalshi.js";
 
 mountChrome({ page: "portfolio.html", title: "Portfolio" });
+
+/* Read a documented Get Positions dollar field. The schema names it
+   `*_dollars` (e.g. `market_exposure_dollars`); a cents alternate is only a
+   fallback, and only when the documented field is absent AND the alternate is
+   present. A value the API did not return stays null, so the UI renders n/a —
+   never $0.00. (https://docs.kalshi.com/api-reference/portfolio/get-positions) */
+function positionDollars(p, key, centsKey) {
+  const direct = num(p[key]);
+  if (direct !== null) return direct;
+  const cents = num(p[centsKey]);
+  return cents === null ? null : cents / 100;
+}
+
+/* Sum the documented performance fields over the position list. A field a
+   position did not return is counted in `missing` and excluded from the sum,
+   so a total is only shown when at least one position supplied it. */
+function summarizePositions(positions) {
+  const fields = [["realized", "realized_pnl_dollars"], ["fees", "fees_paid_dollars"],
+    ["traded", "total_traded_dollars"], ["exposure", "market_exposure_dollars"]];
+  const sums = { realized: 0, fees: 0, traded: 0, exposure: 0 };
+  const missing = { realized: 0, fees: 0, traded: 0, exposure: 0 };
+  for (const p of positions || []) {
+    for (const [bucket, key] of fields) {
+      const v = num(p[key]);
+      if (v === null) missing[bucket] += 1; else sums[bucket] += v;
+    }
+  }
+  return { sums, missing, n: (positions || []).length };
+}
 
 /* ------------------------------- key handling ------------------------------ */
 $("#load-key").onclick = () => {
@@ -181,15 +212,39 @@ $("#load-account").onclick = async () => {
       { k: "Updated", v: bal.updated_ts ? new Date(bal.updated_ts * 1000).toLocaleTimeString() : "—", m: "API timestamp" }
     ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 
-    $("#pos-body").innerHTML = positions.length ? positions.map(p => `<tr>
-      <td><strong>${esc(p.ticker || p.market_ticker || "")}</strong>
-        ${p.market_title ? `<div class="small muted">${esc(p.market_title)}</div>` : ""}</td>
+    /* Performance totals from the documented Get Positions fields. A total is
+       n/a when no position returned that field, rather than reading as $0.00. */
+    const perf = summarizePositions(positions);
+    const perfCell = bucket => (perf.n && perf.missing[bucket] === perf.n)
+      ? `<span class="unv">n/a</span>`
+      : money(perf.sums[bucket]);
+    $("#perf-stats").innerHTML = positions.length ? [
+      { k: "Realized P&L", v: perfCell("realized"), m: "Σ realized_pnl_dollars" },
+      { k: "Fees paid", v: perfCell("fees"), m: "Σ fees_paid_dollars" },
+      { k: "Total traded", v: perfCell("traded"), m: "Σ total_traded_dollars" },
+      { k: "Market exposure", v: perfCell("exposure"), m: "Σ market_exposure_dollars" }
+    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("") : "";
+    $("#perf-note").innerHTML = positions.length
+      ? `Summed over ${int(positions.length)} returned position(s) from <a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>. ` +
+        `A field a position did not return is excluded from its total and shown as n/a: ` +
+        `realized P&L ${int(perf.missing.realized)} missing · fees ${int(perf.missing.fees)} · ` +
+        `traded ${int(perf.missing.traded)} · exposure ${int(perf.missing.exposure)}. ` +
+        `The fields are the exchange's own; whether <code>realized_pnl_dollars</code> is net of ` +
+        `<code>fees_paid_dollars</code> is not stated in the schema, so no net figure is derived here.`
+      : "";
+
+    $("#pos-body").innerHTML = positions.length ? positions.map(p => {
+      const ticker = p.ticker || p.market_ticker || "";
+      return `<tr>
+      <td><strong>${esc(ticker)}</strong></td>
       <td class="num">${int(p.position_fp ?? p.position)}</td>
-      <td class="num">${money(p.market_exposure_dollars ?? (num(p.market_exposure) / 100))}</td>
-      <td class="num">${money(p.realized_pnl_dollars ?? (num(p.realized_pnl) / 100))}</td>
+      <td class="num">${money(positionDollars(p, "market_exposure_dollars", "market_exposure"))}</td>
+      <td class="num">${money(positionDollars(p, "realized_pnl_dollars", "realized_pnl"))}</td>
+      <td class="num">${money(positionDollars(p, "fees_paid_dollars", "fees_paid"))}</td>
       <td><span class="pill idle">${esc(p.settlement_status || p.status || "")}</span></td>
       <td><a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
-    </tr>`).join("") : emptyRow(6, "The demo account has no open positions.");
+    </tr>`;
+    }).join("") : emptyRow(7, "The demo account has no open positions.");
 
     pill($("#acct-status"), "live", "account loaded");
     loadFills();
@@ -281,12 +336,19 @@ $("#place").onclick = async () => {
 
   // Final confirmation, because this places a real order on the demo book.
   const verb = outcomeSide === "yes" ? "BUY YES" : "BUY NO";
-  if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?\n\nThis submits a demo order.`)) return;
+  /* The V2 endpoint quotes the YES leg only, and `side` describes the caller's
+     own intent (buy = bid). For a NO order the number typed is the NO price;
+     the number sent is the YES-leg price, 1 − that.
+     (create-order-v2, order_direction, quick_start_create_order) */
+  const yesPrice = outcomeSide === "yes" ? price : 1 - price;
+  if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?` +
+      (outcomeSide === "no" ? `\nYES-leg price sent: $${yesPrice.toFixed(4)}` : "") +
+      `\n\nThis submits a demo order.`)) return;
 
   pill($("#order-status"), "warn", "submitting…");
   $("#order-result").innerHTML = "";
   try {
-    const r = await api.createOrder({ ticker, outcomeSide, priceDollars: price, count });
+    const r = await api.createOrder({ ticker, outcomeSide, action: "buy", priceDollars: price, count });
     pill($("#order-status"), "live", "order accepted");
     $("#order-result").innerHTML = `<div class="callout ok">
       <h3>Order accepted${r.order_id ? " · " + esc(r.order_id.slice(0, 8)) + "…" : ""}</h3>

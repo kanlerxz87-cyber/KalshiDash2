@@ -43,6 +43,12 @@ jobs:
       # presented as a total.
       - name: Traded-dollar volume unit tests
         run: node --test tests/dollar-volume.test.mjs
+      # Every published table's empty-state row must span its full width.
+      - name: Table empty-state shape tests
+        run: node --test tests/table-shape.test.mjs
+      # Order submission must translate to the endpoint's YES-leg vocabulary.
+      - name: Order YES-leg translation tests
+        run: node --test tests/order-leg.test.mjs
       # The Sources page and its register must not drift apart, and no live
       # market value may be transcribed into either.
       - name: Sources register tests
