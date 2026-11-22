@@ -66,7 +66,7 @@
 <script type="module">
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { DEMO, SOURCES } from "./assets/js/config.js";
-import { api, num, classifyEvent, Watchlist } from "./assets/js/market.js";
+import { api, num, classifyEventWithBasis, fetchSeriesCategories, marketResultState, Watchlist } from "./assets/js/market.js";
 import { TOPICS } from "./assets/js/config.js";
 
 mountChrome({ page: "event.html", title: "Event" });
@@ -89,17 +89,25 @@ async function load() {
     const j = await api.get(`/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`);
     const ev = j.event || j;
     const markets = ev.markets || [];
+    if (ev.series_ticker) {
+      await fetchSeriesCategories([ev.series_ticker], { cap: 1 });
+    }
     $("#ev-loading").remove();
     document.title = `${ev.title || eventTicker} — KalshiDash2`;
     $("#ev-title").textContent = ev.title || eventTicker;
-    const topicKey = classifyEvent(ev);
+    const verdict = classifyEventWithBasis(ev);
+    const topicKey = verdict.topic;
     const topic = TOPICS.find(t => t.key === topicKey);
+    const catLabel = verdict.categories.length ? verdict.categories.join(", ") : "not returned";
+    const basisLabel = verdict.basis === "series" ? " (series category)"
+      : verdict.basis === "event" ? " (deprecated event field)"
+      : "";
     $("#ev-meta").innerHTML = `
       <code class="mono">${esc(ev.event_ticker)}</code> ·
-      category <span class="tag">${esc(ev.category || "not returned")}</span> ·
+      category <span class="tag">${esc(catLabel)}</span><span class="small muted">${esc(basisLabel)}</span> ·
       series <code class="mono">${esc(ev.series_ticker || "—")}</code> ·
       ${topic ? `topic <a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : "outside the five tracked topics"}
-      ${src(SOURCES.events, "events API")}`;
+      ${src(SOURCES.getEvent, "event API")} · ${src(SOURCES.getSeries, "series API")}`;
 
     let volume = 0, oi = 0, volumePriceProxy = 0, noPrice = 0;
     for (const m of markets) {
@@ -120,13 +128,14 @@ async function load() {
     $("#ev-markets").innerHTML = markets.length ? markets.map(m => {
       const px = num(m.last_price_dollars), vol = num(m.volume_fp);
       const mt = px === null || vol === null ? null : px * vol;
-      const r = (m.result || "").toLowerCase();
+      const rs = marketResultState(m);
       /* The exchange's literal result; `scalar` is a documented outcome and is
-       * shown as itself rather than being labelled open or NO. */
-      const tag = r === "yes" ? `<span class="tag yes">yes</span>`
-        : r === "no" ? `<span class="tag no">no</span>`
-        : r ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(r)}</span>`
-        : `<span class="muted small">open</span>`;
+       * shown as itself, and a blank `result` on a closed/determined market is
+       * shown as "awaiting result" rather than contradicting `status` as "open". */
+      const tag = rs.label === "yes" ? `<span class="tag yes">yes</span>`
+        : rs.label === "no" ? `<span class="tag no">no</span>`
+        : rs.kind === "settled" ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(rs.label)}</span>`
+        : `<span class="muted small">${esc(rs.label)}</span>`;
       return `<tr>
         <td><strong>${esc(m.yes_sub_title || m.title || m.ticker)}</strong><div class="mono muted small">${esc(m.ticker)}</div></td>
         <td><span class="pill idle">${esc(m.status || "")}</span></td>

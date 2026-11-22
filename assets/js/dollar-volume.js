@@ -30,11 +30,17 @@
  *
  * NOTHING IS INFERRED
  * -------------------
- * A trade whose price field is missing contributes nothing and is counted as
- * `missing`; if any page of results could not be read the caller is told
- * `complete:false`, and the UI must then show n/a instead of a partial total
- * presented as the whole picture. A sum of zero trades is `0` / complete, which
- * is a real answer ("no trades in this window"), not the same thing.
+ * A trade whose price field is missing, or whose recorded taker side is absent,
+ * contributes nothing and is counted as `missing`; if any page of results could
+ * not be read the caller is told `complete:false`, and the UI must then show n/a
+ * instead of a partial total presented as the whole picture. A sum of zero
+ * trades is `0` / complete, which is a real answer ("no trades in this window"),
+ * not the same thing.
+ *
+ * The taker side is what decides which of the two price fields applies, so a
+ * row without it is NOT valued on the YES leg: doing that would invent a dollar
+ * amount for a trade whose recorded side is unknown, which is exactly what the
+ * verification rules forbid. It is counted in `unsided` and disclosed.
  *
  * This file has no DOM and no network access, so it runs unchanged in the
  * browser and under `node --test`.
@@ -94,22 +100,14 @@ export function tradeDollars(t) {
   if (side === "yes") price = yes;
   else if (side === "no") price = no;
 
-  if (price === null && yes !== null) {
-    /* No documented side on this row. The YES price is the one field every
-     * trade in the schema is required to carry, so the row can still be valued
-     * on the YES leg — but the caller is told the side was unknown so it can
-     * disclose that. */
-    return {
-      dollars: round4(contracts * yes),
-      contracts,
-      price: yes,
-      priced: true,
-      side: null,
-      reason: "taker side not returned; valued on yes_price_dollars"
-    };
+  /* No recorded side: which of the two price fields applied is unknown, so the
+   * row gets no dollar amount. Valuing it on the YES leg would manufacture a
+   * number the exchange never recorded. */
+  if (!side) {
+    return { dollars: null, contracts, price: null, priced: false, side: null, reason: "taker side not returned" };
   }
   if (price === null) {
-    return { dollars: null, contracts, price: null, priced: false, side: side || null, reason: "price field missing" };
+    return { dollars: null, contracts, price: null, priced: false, side, reason: `no ${side}_price_dollars on this trade` };
   }
   return { dollars: round4(contracts * price), contracts, price, priced: true, side: side || null, reason: null };
 }
@@ -118,7 +116,7 @@ export function tradeDollars(t) {
 
 /* Fold one page of `GET /markets/trades` into a running total.
  *
- * `state` is { dollars, contracts, trades, missing, unpriced, oldest, newest }.
+ * `state` is { dollars, contracts, trades, missing, unsided, oldest, newest }.
  * It is updated in place and the same object is returned, so pages can be
  * folded in arrival order. `oldest`/`newest` are the earliest and latest
  * `created_time` actually seen (ISO strings compare correctly), which lets the
@@ -133,9 +131,9 @@ export function foldTradesPage(state, page) {
     if (d.priced) {
       acc.dollars += d.dollars;
       acc.contracts += d.contracts;
-      if (d.side === null) acc.unpriced += 1;
     } else {
       acc.missing += 1;
+      if (!d.side) acc.unsided += 1;
     }
     const ts = typeof t?.created_time === "string" ? t.created_time : null;
     if (ts) {
@@ -147,7 +145,25 @@ export function foldTradesPage(state, page) {
 }
 
 export function emptyTally() {
-  return { dollars: 0, contracts: 0, trades: 0, missing: 0, unpriced: 0, oldest: null, newest: null };
+  return { dollars: 0, contracts: 0, trades: 0, missing: 0, unsided: 0, oldest: null, newest: null };
+}
+
+/* The sentence that discloses trades excluded from a total.
+ *
+ * A row can be excluded for two different reasons, and the reader is told which:
+ * no usable price, or no recorded taker side. The second is the one an earlier
+ * version of this module got wrong — it valued those rows on the YES leg and
+ * folded the guess into the total.
+ */
+export function missingNote(t) {
+  const missing = t?.missing || 0;
+  if (!missing) return null;
+  const unsided = t?.unsided || 0;
+  const priced = missing - unsided;
+  const parts = [];
+  if (unsided) parts.push(`${unsided} had no recorded taker side`);
+  if (priced) parts.push(`${priced} carried no usable price`);
+  return `${missing} trade(s) could not be valued (${parts.join("; ")}) and are excluded from the dollar total.`;
 }
 
 /* Present a tally for display.
@@ -163,14 +179,14 @@ export function summariseTally(tally, { complete = true, pagesRead = 0, capped =
     dollars: ok ? round2(t.dollars) : null,
     contracts: t.contracts,
     trades: t.trades,
-    missing: t.missing,
-    unpriced: t.unpriced,
+    missing: t.missing || 0,
+    unsided: t.unsided || 0,
     oldest: t.oldest,
     newest: t.newest,
     pagesRead,
     complete: ok,
     note: ok
-      ? (t.missing ? `${t.missing} trade(s) carried no usable price and are excluded from the dollar total.` : null)
+      ? (t.missing ? missingNote(t) : null)
       : "At least one page of trades could not be read, so no dollar total is shown."
   };
 }
@@ -290,14 +306,28 @@ export async function rankByTradedDollars(get, events, {
   let measured = 0;
   let failed = 0;
   let requests = 0;
+  /* Trades that could not be valued, carried to the page so the exclusion is
+   * disclosed instead of silently shrinking the total. */
+  let missingTrades = 0;
+  let unsidedTrades = 0;
+  const observed = { oldest: null, newest: null };
 
   for (const c of chosen) {
     const res = await collectTrades(get, c.m.ticker, { seconds, nowMs, limit, maxPages: perMarketPages });
     requests += res.perPage.length;
     if (res.summary.complete) measured += 1; else failed += 1;
     const key = c.ev.event_ticker || c.ev.title || c.m.ticker;
-    const row = byEvent.get(key) || { event: c.ev, dollars: 0, trades: 0, contracts: 0, complete: true, markets: 0 };
+    const row = byEvent.get(key) || { event: c.ev, dollars: 0, trades: 0, contracts: 0, complete: true, markets: 0, tickers: [], missing: 0, unsided: 0 };
     row.markets += 1;
+    row.tickers.push({ ticker: c.m.ticker, complete: res.summary.complete, dollars: res.summary.dollars });
+    row.missing += res.summary.missing || 0;
+    row.unsided += res.summary.unsided || 0;
+    missingTrades += res.summary.missing || 0;
+    unsidedTrades += res.summary.unsided || 0;
+    /* The timestamps of the trades actually read, so the page can state the
+     * window it observed instead of only the window it asked for. */
+    if (res.summary.oldest && (!observed.oldest || res.summary.oldest < observed.oldest)) observed.oldest = res.summary.oldest;
+    if (res.summary.newest && (!observed.newest || res.summary.newest > observed.newest)) observed.newest = res.summary.newest;
     if (res.summary.complete) {
       row.dollars += res.summary.dollars || 0;
       row.trades += res.summary.trades;
@@ -319,6 +349,9 @@ export async function rankByTradedDollars(get, events, {
     measured,
     failed,
     requests,
+    missingTrades,
+    unsidedTrades,
+    observed,
     skippedMarkets: Math.max(0, candidates.length - chosen.length),
     totalMarkets: candidates.length,
     window: windowQuery({ seconds, nowMs, limit })

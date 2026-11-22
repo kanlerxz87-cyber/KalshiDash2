@@ -31,7 +31,11 @@ and flagged.
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
 (Σ `count_fp` × the price of the side the taker bought) — the real dollar figure, beside the volume × price proxy
-that the ranking column still uses. Logic in `assets/js/dollar-volume.js`, tests in `tests/dollar-volume.test.mjs`.
+that the ranking column still uses. The taker's own recorded side selects which price applies: a trade with no
+recorded side, or no price on the side taken, is excluded and counted rather than valued by assumption, and a market
+whose pages cannot all be read withholds the topic total instead of contributing zero. Each market measured carries
+its own response link. Logic in `assets/js/dollar-volume.js`, tests in `tests/dollar-volume.test.mjs` and the
+category page suite in `tests/dom/`.
 
 **Repo-side tools:** `scripts/kalshi_client.py` (verified demo API client: markets, orderbook,
 candlesticks, balance, positions, fills, guarded order placement; supports RSA + Ed25519;
@@ -163,9 +167,9 @@ Both scripts are hard-locked to the demo hosts and refuse to talk to production.
 ```bash
 node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
 node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
-node --test tests/alerts-core.test.mjs    # alert engine unit tests (19)
+node --test tests/alerts-core.test.mjs    # alert engine + contract-link rules (28)
 node --test tests/live-core.test.mjs      # live-feed field mapping and $0.10 threshold tests (23)
-node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (11)
+node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (17)
 node --test tests/result-semantics.test.mjs # yes / no / scalar settlement labels (11)
 node --test tests/chart-axis.test.mjs     # X-axis labels for seconds → days windows (10)
 node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests

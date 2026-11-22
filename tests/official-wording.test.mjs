@@ -105,3 +105,15 @@ test("every class the alert feeds render has a stylesheet rule", () => {
   assert.match(block, /height:\s*\d+px/, ".chat needs a fixed height to scroll");
   assert.match(block, /overflow-y:\s*auto/, ".chat needs overflow-y: auto");
 });
+
+// The orderbook guide documents complementary bid/ask prices, not the true
+// probability of an outcome: https://docs.kalshi.com/getting_started/orderbook_responses
+test("probability suggestion does not equate quotes with verified probabilities", () => {
+  const page = read("suggestions.html");
+  const entry = page.match(/id: "S4"[\s\S]*?sources: \[([^\]]*)\]/);
+  assert.ok(entry, "S4 must remain visible for review");
+  assert.match(entry[0], /does not establish/);
+  assert.match(entry[0], /unverified until then/);
+  assert.match(entry[0], /getting_started\/orderbook_responses/);
+  assert.doesNotMatch(entry[0], /price is the market's probability/);
+});

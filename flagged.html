@@ -543,9 +543,34 @@
         claim-only PR) <em>before</em> starting implementation work, so parallel sessions can see it.</p>
     </div>
 
+    <div class="irregularity" id="X5">
+      <h3>X5 — Published test counts had drifted from the suites they describe <span class="tag yes">fixed</span></h3>
+      <p><strong>What was wrong (found 2026-11-22, session <code>33a37458</code>):</strong> restated counts
+        were stale. <code>README.md</code> listed alerts-core as <strong>19</strong> tests (it had 21) and
+        taxonomy as <strong>11</strong> (it had 17); <code>EXECUTIVE_SUMMARY.md</code> said "18 alert-core
+        tests, 5 simulator-core tests, 16 alerts-page DOM checks" while the suites measured
+        <strong>21 / 10 / 22</strong>. Separately, the executive summary still described the test-only
+        <code>esbuild</code> advisory as affecting <code>0.24.2</code> after the lockfile had been upgraded to
+        <code>0.25.0</code>.</p>
+      <p><strong>Fixed:</strong> both documents now carry the counts measured on 2026-11-22, with the date and
+        the per-file breakdown in the executive summary, and the advisory line says mitigated with the version
+        that is actually locked. The numbers were produced by running the suites, not by adjusting the prose:
+        <code>node --test tests/*.test.mjs</code> → 172/172 across 14 files (measured on the tree merged into
+        <code>main</code> on 2026-11-22); <code>cd tests/dom &amp;&amp; npm test</code>
+        → alerts 22/22, summary pass, category 23/23; <code>python3 -m unittest discover -s tools</code> → 42 OK;
+        <code>npm audit --prefix tests/dom</code> → 0 vulnerabilities.</p>
+      <p><strong>Why it matters:</strong> a count is the reader's only proxy for "was this actually run", so a
+        stale count quietly undermines every other claim on the page. The rule applied here is the one the site
+        already states elsewhere: a number is only checkable against the run it came from, and the run has to be
+        named.</p>
+      <p class="small"><strong>Sources:</strong> the repository's own suites (commands above) ·
+        <a class="src-link" href="https://github.com/advisories/GHSA-67mh-4wv8-2f99" target="_blank" rel="noopener noreferrer">GitHub advisory GHSA-67mh-4wv8-2f99 ↗</a> ·
+        <a class="src-link" href="reports/verify-33a37458.md">verification report §F</a></p>
+    </div>
+
     <div class="irregularity" id="X1">
-      <h3>X1 — 66 contract links point at a Kalshi staging bucket <span class="tag warn">open</span></h3>
-      <p><strong>What was found:</strong> in the captured demo API data (<code>data/snapshot.json</code>),
+      <h3>X1 — contract links point at a Kalshi staging bucket (66 at first capture; 80 in the 2026-11-22 capture) <span class="tag warn">open</span></h3>
+      <p><strong>What was found (first capture):</strong> in the captured demo API data (<code>data/snapshot.json</code>),
         136 occurrences covering 66 unique <code>contract_url</code> values point at
         <code>kalshi-public-docs-staging.s3.us-east-1.amazonaws.com</code>, while the sibling
         <code>contract_terms_url</code> points at <code>assets.kalshi.com</code>. Counted by walking the JSON,
@@ -555,9 +580,24 @@
         <em>not</em> state which host <code>contract_url</code> must use. So this is a question for Kalshi,
         not a verified defect.</p>
       <p><strong>Runner observation:</strong> the GitHub-hosted link audit received HTTP 403 for the 66 staging-host URLs. This describes those requests only; the official schema does not establish whether public access is expected, so this is not labelled a verified defect.</p>
-      <p><strong>Impact boundary:</strong> no published page links these URLs — they appear only in the raw
-        capture. The demo dashboard renders titles, prices and the event's own
-        <code>settlement_sources</code>, never <code>contract_url</code>.</p>
+      <p><strong>Impact boundary (corrected 2026-11-22, session <code>33a37458</code>):</strong> the
+        earlier text here said <em>“no published page links these URLs”</em>. That was no longer true when
+        this session checked it: the Live alerts feed rendered the series record's
+        <code>contract_url</code> as an “official contract filing” link, so a staging-host URL could be
+        published as a clickable filing. Measured in the committed capture (JSON walk, not grep, capture
+        generated 2026-11-22T07:05:27Z): 200 <code>contract_url</code> occurrences, 90 unique, of which
+        <strong>169 occurrences / 80 unique are on the staging bucket</strong> and 31 are on
+        <code>assets.kalshi.com</code>. Live check the same day: <code>GET /series/KXGAS</code> returns a
+        staging <code>contract_url</code> and <code>contract_terms_url</code> on
+        <code>assets.kalshi.com</code>; the terms PDF on the asset host opens, the staging object does not.
+        The feed now withholds any URL on the non-public host list and prints the reason instead of a link,
+        and it labels the two documents separately (<em>current contract terms</em>,
+        <em>original contract filing</em>) because the official Get Series schema defines them as different
+        documents. Covered by <code>tests/alerts-core.test.mjs</code> (7 new checks, including the exact
+        live <code>KXGAS</code> values) and <code>tests/dom/alerts-dom.mjs</code>.</p>
+      <p><strong>Still open:</strong> which host <code>contract_url</code> is <em>supposed</em> to use is
+        undocumented, so this stays a question for Kalshi rather than a verified defect, and the raw capture
+        keeps the values exactly as returned.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
         · full audit: <a class="src-link" href="reports/external-links-audit.md">reports/external-links-audit.md</a></p>
@@ -1130,23 +1170,25 @@
     </div>
 
     <div class="irregularity" id="AC1">
-      <h3>AC1 — The exchange-status strip does not repeat a documented caveat about 5xx bodies <span class="tag warn">open</span></h3>
+      <h3>AC1 — The exchange-status strip did not repeat a documented caveat about 5xx bodies <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> the <em>Get Exchange Status</em> reference warns that when the
         default index's status cannot be read the response is <code>500</code>, <code>503</code> or
         <code>504</code>, and that <em>"its body can be an <code>ExchangeStatus</code> with
         <code>exchange_active</code> and <code>trading_active</code> set to <code>false</code>, or an error
-        object, and in neither case does it mean the exchange is paused."</em> The landing page reads those
+        object, and in neither case does it mean the exchange is paused."</em> The landing page read those
         two flags to render its "trading is active" strip.</p>
-      <p><strong>Why it is flagged rather than changed here:</strong> the reader lives in
-        <code>assets/js/ui.js</code>, which is outside this session's file scope. If a 5xx body were parsed
-        as a normal status object, the strip could read "paused" during a gateway timeout — an
-        outage reported as a trading halt.</p>
-      <p><strong>What would close it:</strong> read the flags only from an HTTP <code>200</code> response,
-        and render "status unavailable" for any other code, exactly as the reference instructs.</p>
-      <p><strong>Not asserted:</strong> that the page currently mis-reports. This session did not observe a
-        5xx from the demo host, and the sandbox cannot reach it (see the container note in
-        <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a>). The gap is
-        that the defence is not evidenced either way.</p>
+      <p><strong>Why it was flagged rather than changed here:</strong> the reader was believed to live in
+        <code>assets/js/ui.js</code>, which was outside the flagging session's file scope. It does not —
+        the reader is inline in <code>index.html</code>, so the fix could be made in place.</p>
+      <p><strong>What closed it (session <code>8191667f</code>, 2026-11-22):</strong> the flags are now read
+        only from an HTTP <code>200</code> response. A <code>500</code>/<code>503</code>/<code>504</code>
+        renders "status unavailable" and a banner that states the page does not report a trading halt,
+        citing the reference; a network failure with no HTTP status still renders "unreachable".
+        <code>tests/exchange-status.test.mjs</code> extracts the reader and pins all three behaviours
+        (5xx never renders "not trading"; 200 drives the strip from the flags; no-status failure renders
+        "unreachable").</p>
+      <p><strong>Not asserted:</strong> that the page ever mis-reported. No 5xx from the demo host was
+        observed; the gap was that the defence was not evidenced either way, and now it is.</p>
       <p class="small"><strong>Official source:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a></p>
     </div>
@@ -1591,6 +1633,7 @@
         <a class="src-link" href="https://docs.github.com/en/rest/pages/pages#list-github-pages-builds" target="_blank" rel="noopener noreferrer">Pages builds API ↗</a>
         · the build list for this repository (<code>GET /repos/kanlerxz87-cyber/KalshiDash2/pages/builds</code>)
         · the three Actions runs above.</p>
+    </div>
 
     <!-- Flags added by the concurrent session (SC1…) preserved verbatim below -->
     <div class="irregularity" id="SC1">
@@ -1662,6 +1705,106 @@
         (throttling) or a network error (transport), and — if it is throttling — spacing the five workflows so
         they do not scan simultaneously.</p>
     </div>
+
+  <div class="card">
+    <h2>11 · Final integration re-verification (session <code>e7931fe7</code>, added 2026-11-22)</h2>
+    <p class="sub" style="margin-bottom:8px">A line-by-line pass over the merged site, checked against the official
+      reference pages and the site's own tests. The demo endpoints below were re-read on
+      <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Test In The Demo Environment ↗</a>,
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-orderbook" target="_blank" rel="noopener noreferrer">Get Market Orderbook ↗</a>,
+      <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a> and
+      <a class="src-link" href="https://docs.kalshi.com/llms.txt" target="_blank" rel="noopener noreferrer">the docs index ↗</a>;
+      the four endpoints, the demo URL pair, the <code>orderbook_fp</code> shape and the
+      <code>trades</code>/<code>cursor</code> shape all match what the site requests and parses. Three defects were found in
+      the traded-dollar panel added in PR #98 and are fixed below. Their numbers were wrong in a way no fixture had covered,
+      which is why each fix ships with a test that fails without it.</p>
+
+    <div class="irregularity" id="Z5">
+      <h3>Z5 — A trade with no recorded taker side was valued on the YES leg and folded into an "official" total <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/dollar-volume.js</code> returned
+        <code>priced: true</code> with <code>dollars = count_fp × yes_price_dollars</code> for a row that had neither
+        <code>taker_outcome_side</code> nor the deprecated <code>taker_side</code>. The module's own header said the
+        opposite ("reported as <code>priced:false</code> rather than guessed"), and the panel's label said the figure was
+        Σ(<code>count_fp</code> × the price of the side the taker bought). With no recorded side, which of the two price
+        fields applies is <em>unknown</em>: 10 contracts at YES $0.40 are $4.00 if the taker bought YES and $6.00 if they
+        bought NO. The old code silently chose the first.</p>
+      <p><strong>Why it matters:</strong> this is the one number on the site labelled "official", and the brief's rule is
+        that a value which cannot be confirmed is left blank and flagged — never inferred. A guessed dollar amount is
+        indistinguishable from a measured one once it is summed into a headline.</p>
+      <p><strong>Fix shipped:</strong> a row with no recorded side — or with no price on the side it did record — is
+        excluded from the total and counted separately (<code>unsided</code> / <code>missing</code>), and the page states
+        how many trades were excluded and why. The counts are carried through <code>rankByTradedDollars</code> so they
+        reach the rendered note instead of being dropped with the row.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — response schema ↗</a>
+        (<code>count_fp</code>, <code>yes_price_dollars</code>, <code>no_price_dollars</code>, <code>taker_outcome_side</code>,
+        <code>taker_side</code>) ·
+        <a class="src-link" href="tests/dollar-volume.test.mjs">tests/dollar-volume.test.mjs</a> —
+        "a row with no recorded taker side is NOT valued" and "a row is valued only on the price field that belongs to its own side" ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a></p>
+    </div>
+
+    <div class="irregularity" id="Z6">
+      <h3>Z6 — The traded-dollar headline could present a partial sum as the topic's total <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the KPI was computed as
+        <code>rows.reduce((a, r) =&gt; a + (r.dollars || 0), 0)</code>. A row whose trade pages could not all be read has
+        <code>dollars: null</code>, so <code>|| 0</code> turned an <em>unknown</em> amount into zero and the headline still
+        printed a dollar figure captioned "Σ across the N market(s) read" — while the table row beside it correctly showed
+        n/a. The page text promised the opposite: "a partial sum is never presented as a total".</p>
+      <p><strong>Fix shipped:</strong> only complete rows are added up, and if any measured market was unreadable the
+        headline is withheld as <span class="unv">n/a</span> with the reason; the trade and contract counts are labelled as
+        covering completed rows only. The note also names how many markets were skipped for budget and how many were
+        unreadable.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — cursor pagination ↗</a>
+        (an unread page means the window is not fully measured) ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a> — "an unreadable market withholds the headline total AND that row's figure"</p>
+    </div>
+
+    <div class="irregularity" id="Z7">
+      <h3>Z7 — Each row's "trades response" link opened only the event's first market, not the markets the row summed <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> an event row aggregates every measured market under that event
+        (<code>row.markets</code>, e.g. 3 markets), but its single source link was built from
+        <code>ev.markets[0].ticker</code> — the event's first market, which may be a different market from the ones
+        measured, and never all of them. Clicking the evidence behind a three-market total showed one market's trades.</p>
+      <p><strong>Fix shipped:</strong> <code>rankByTradedDollars</code> returns the tickers it actually measured per event,
+        and the row renders one link per ticker with the same <code>min_ts</code>/<code>max_ts</code> window and
+        <code>limit</code> the request used; a market whose read was incomplete is marked. Every dollar figure in the table
+        now has a response behind it that can be opened and re-added by hand.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — <code>ticker</code>, <code>min_ts</code>, <code>max_ts</code>, <code>limit</code> ↗</a> ·
+        <a class="src-link" href="tests/dom/category-dom.mjs">tests/dom/category-dom.mjs</a> —
+        "the traded-dollar table links every measured market's own trades response"</p>
+    </div>
+
+    <div class="irregularity" id="Z8">
+      <h3>Z8 — Z3's card was never closed, so two later cards rendered inside it and were counted twice <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the card for Z3 ended at its "Sources" paragraph with a comment
+        (<code>&lt;!-- Flags added by the concurrent session (SC1…) preserved verbatim below --&gt;</code>) and no
+        closing <code>&lt;/div&gt;</code>. SC1, SC2 and the sections after them therefore nested inside Z3: they
+        rendered with a card inside a card, and this page's own counter — and the "Open flags" figure on the
+        <a href="summary.html">Executive summary</a>, which reads the same rule from this page — treated Z3 as one
+        <em>open</em> card and its two nested <em>mitigated</em> neighbours as further states of the same card.
+        The page reported 87 items while adding up to 88 statuses.</p>
+      <p><strong>Why it matters:</strong> the counters are the reader's summary of how much is unresolved. A card
+        counted in two columns makes the review register look larger and more settled than it is, and the nesting
+        also hid SC1/SC2 from anyone scanning the headings.</p>
+      <p><strong>Fix shipped:</strong> the missing closing tag was added, so every card is a sibling again
+        (<code>.irregularity .irregularity</code> now matches nothing), and both counters read the status from the
+        card's own <code>&lt;h3&gt;</code>. <code>tests/dom/summary-dom.mjs</code> now fails if a card nests another,
+        if a card has no heading status tag, or if open + mitigated does not equal the item count.</p>
+      <p class="small"><strong>Sources:</strong> this page's own markup ·
+        <a class="src-link" href="tests/dom/summary-dom.mjs">tests/dom/summary-dom.mjs</a> ·
+        <a class="src-link" href="summary.html">summary.html</a> (reads the counts from this page)</p>
+    </div>
+
+    <p class="small" style="margin:0"><strong>Re-checked and unchanged:</strong> the
+      <code>orderbook_fp</code> response shape the liquidity tables parse (<code>yes_dollars</code>/<code>no_dollars</code>
+      as <code>[price, count]</code> strings), the documented <code>depth</code> bound of 0–100 with the page's
+      <code>depth=20</code>, the <code>limit</code> ceiling of 1000 used by the trades panel, and <code>min_ts</code>/<code>max_ts</code>
+      being Unix <em>seconds</em>. No displayed value was changed by this pass; the fixes only stop three guessed or partial
+      figures from being shown as measured ones.</p>
+  </div>
 
     <h2>10 · Line-by-line re-verification against the live demo API (session <code>faf9fe08</code>, added 2026-11-22)</h2>
     <p class="sub" style="margin-bottom:14px">
@@ -1870,6 +2013,7 @@
       </p>
     </div>
 
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
@@ -1891,8 +2035,11 @@ import { mountChrome, $, int } from "./assets/js/ui.js";
 mountChrome({ page: "flagged.html", title: "Flagged for review" });
 
 const cards = [...document.querySelectorAll(".irregularity")];
-const open = cards.filter(c => c.querySelector(".tag.warn")).length;
-const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
+/* The status tag lives in the card's own <h3>. Reading it from the whole card
+ * counted a nested card's tag as its parent's: Z3 was left unclosed, so SC1 and
+ * SC2 rendered inside it and the totals read 88 tags for 87 items (Z8). */
+const open = cards.filter(c => c.querySelector("h3 .tag.warn")).length;
+const mitigated = cards.filter(c => c.querySelector("h3 .tag.yes")).length;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 const fixedNow = [...document.querySelectorAll("#Y1,#Y2,#Y3,#Y4,#Y5,#Y6,#Y7")].length;

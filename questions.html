@@ -73,33 +73,19 @@
             <td>Account owner</td>
           </tr>
           <tr>
-            <td>Gas-price market coverage on the demo exchange</td>
-            <td>The gas topic currently has no open demo markets, so that page cannot demonstrate live data.</td>
-            <td>Re-scan on a different day, or confirm whether gas markets are restricted to production. The
-              page already reports its scan size so the claim is falsifiable.</td>
-            <td>Kalshi demo operations</td>
-          </tr>
-          <tr>
             <td>Broker-side cost basis for realised P&amp;L</td>
             <td>Profit per closed trade needs the entry and exit prices paired per position.</td>
-            <td>Derive it from <code>GET /portfolio/fills</code> paired by ticker and outcome side, and
+            <td>Derive it from <a href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer"><code>GET /portfolio/fills</code> ↗</a> paired by ticker and outcome side, and
               reconcile against <code>realized_pnl</code> from positions.</td>
             <td>Implementation work</td>
           </tr>
           <tr>
-            <td>Whether WebSocket streaming works from a browser</td>
-            <td>Streaming would give sub-second price updates instead of 2-second polling.</td>
-            <td>Test an authenticated WebSocket handshake from a browser context, or add a small relay.
-              Until then polling is used and labelled.</td>
+            <td>Whether an authenticated WebSocket handshake works from a browser on this deployment</td>
+            <td>Streaming would give per-change price updates instead of REST polling. The default page uses REST polling;
+              an optional same-origin relay exists (see Q10), and its signing trade-off is flagged.</td>
+            <td>Test an authenticated handshake from a browser context. The <a href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker page ↗</a>
+              states that an API key is required at the handshake. Until verified, polling stays the default and is labelled.</td>
             <td>Implementation work</td>
-          </tr>
-          <tr>
-            <td>Which sessions own the other branches</td>
-            <td>Five sessions wrote to this repository concurrently; coordination rules require one
-              integration owner for shared outputs.</td>
-            <td>Read <code>COORDINATION.md</code> on each branch and merge through a single integration
-              session.</td>
-            <td>Repo maintainer</td>
           </tr>
         </tbody>
       </table>

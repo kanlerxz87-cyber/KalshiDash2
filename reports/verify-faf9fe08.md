@@ -73,7 +73,8 @@ The raw URLs are listed once, in §F, so they can be opened directly.
 * **Found:** `assets/js/claims.js` said *"17 pages run against a DOM shim"* and *"reports 17/17 clean"*.
 * **Live check:** the harness's own `DEFAULT_PAGES` list in `tools/verify/page-runtime-check.mjs` now holds
   **18** pages, and running it on this branch reports `18/18 pages ran clean` plus `36 pages, 0 broken local
-  link(s)`. `flagged.html` (card Y9) also still quotes "17/17".
+  link(s)`. `flagged.html` (card Y9) also still quotes "17/17". (The count was 18 before the merge of `main`; a later
+session has since appended further pages. That is exactly why the register no longer states a number.)
 * **Fix:** the register no longer restates a page count that can grow; it names `DEFAULT_PAGES` and records the
   dated run. `flagged.html`'s Y9 sentence is left alone deliberately — it is a historical record of the run that
   happened when `jumps.js` was deleted, and rewriting it would falsify that record. NF4 on the Flagged page
@@ -134,21 +135,27 @@ pair and a stubbed `fetch`:
 
 | Suite | Command | Result |
 |---|---|---|
-| Node unit tests | `node --test tests/*.test.mjs` | **169 pass, 0 fail** across 15 files (155 on the branch base + 9 order-contract + 5 candle-spacing) |
+| Node unit tests | `node --test tests/*.test.mjs` | **190 pass, 0 fail** across 16 files |
 | Python tools | `python3 -m unittest discover -s tools -p 'test_*.py'` | **42 OK** |
 | Python tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | **20 OK, 3 skipped** (`cryptography` absent here) |
 | Page runtime | `node tools/verify/page-runtime-check.mjs` | **18/18 pages ran clean**, 36 pages link-checked, 0 broken |
 | Static link check | `python3 tools/check_site_links.py .` | **36 HTML pages**, 0 broken |
 | Alerts DOM | `cd tests/dom && node alerts-dom.mjs` | **21/21** |
-| Summary DOM | `node summary-dom.mjs` | **18/18** (flag counts read live from `flagged.html`: 40 open / 52 mitigated / 91 total; 28 sourced or project-labelled summary rows) |
+| Summary DOM | `node summary-dom.mjs` | **18/18**; flag counts read live from `flagged.html`; 28 sourced-or-project-labelled summary rows |
 | Category DOM | `node category-dom.mjs` | pass |
-| Signing self-test | `node evidence/auth-sign-test.mjs` | **6/6** |
+| Signing self-test | `node tools/verify/auth-sign-test.mjs` | **6/6** |
 | `git diff --check` | — | clean |
 
-Per-file Node counts on the branch base, for the record: activity-proxy 3, alerts-core 21, chart-axis 10,
-dollar-volume 25, historical-tier 14, jumps 6, live-core 23, live-feed-state 2, official-wording 5,
-result-semantics 11, simulator-core 10, sources-page 8, taxonomy 17. Added by this session:
-order-contract 9, candle-spacing 5.
+Per-file Node counts, measured on the merged tree (16 files, 190 tests): activity-proxy 3, alerts-core 28,
+candle-spacing 5, chart-axis 10, dollar-volume 31, exchange-status 3, historical-tier 14, jumps 6, live-core 23,
+live-feed-state 2, official-wording 6, order-contract 9, result-semantics 14, simulator-core 10, sources-page 9,
+taxonomy 17.
+
+On the branch base the same command gave **155** across 13 files, so the +35 is not all mine: three files from
+`main` landed with this merge (alerts-core +7, dollar-volume +6, result-semantics +3, official-wording +1,
+sources-page +1, plus the new `exchange-status` 3), and **14 are the two files this session added**
+(order-contract 9, candle-spacing 5). Both are wired into `site-check.yml` and were observed passing in CI run
+45002738119 before this branch was merged.
 
 ## E. What this session did **not** verify (left unverified, not filled in)
 
