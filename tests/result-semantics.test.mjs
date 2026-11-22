@@ -16,7 +16,9 @@
 // literal behaviour so the regression cannot return.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rankEvents } from "../assets/js/market.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { rankEvents, applyMarketToWatchEntry, marketResultState } from "../assets/js/market.js";
 import { updateTrade } from "../assets/js/alerts-core.js";
 
 const market = (ticker, result, extra = {}) => ({
@@ -117,4 +119,51 @@ test("paper trades still resolve on a literal yes and no", () => {
   assert.equal(lost.status, "resolved");
   assert.equal(lost.payout, 0);
   assert.equal(lost.pnl, -0.5);
+});
+
+test("Watchlist records yes, no, and scalar settlements literally and keeps blank unsettled", () => {
+  const mkEntry = () => ({
+    ticker: "MKT-0", title: "", final_result: null, resolved_at: null, last_seen: {}
+  });
+  const scalarOut = applyMarketToWatchEntry(
+    mkEntry(),
+    market("MKT-0", "scalar", { status: "finalized", settlement_ts: "2026-09-22T22:53:12Z", settlement_value_dollars: "0.5000" }),
+    "2026-11-22T08:00:00Z"
+  );
+  assert.equal(scalarOut.final_result, "scalar");
+  assert.equal(scalarOut.resolved_at, "2026-09-22T22:53:12Z");
+  assert.equal(scalarOut.last_seen.settlement_value, 0.5);
+
+  const closedBlank = applyMarketToWatchEntry(
+    mkEntry(),
+    market("MKT-0", "", { status: "closed" }),
+    "2026-11-22T08:00:00Z"
+  );
+  assert.equal(closedBlank.final_result, null);
+  assert.equal(closedBlank.resolved_at, null);
+});
+
+test("marketResultState never labels a blank result on a closed market as open", () => {
+  assert.deepEqual(marketResultState({ status: "closed", result: "" }), {
+    kind: "pending",
+    label: "awaiting result"
+  });
+  assert.deepEqual(marketResultState({ status: "determined", result: "" }), {
+    kind: "pending",
+    label: "awaiting result"
+  });
+  assert.deepEqual(marketResultState({ status: "active", result: "" }), {
+    kind: "unresolved",
+    label: "unresolved"
+  });
+  assert.deepEqual(marketResultState({ status: "finalized", result: "scalar" }), {
+    kind: "settled",
+    label: "scalar"
+  });
+});
+
+test("strategies.html testable rules table carries an Official source column on every row", () => {
+  const html = readFileSync(join(process.cwd(), "strategies.html"), "utf8");
+  assert.match(html, /<th>Where to run it<\/th><th>Official source<\/th>/);
+  assert.match(html, /SOURCES\.candles[\s\S]*SOURCES\.marketSettlement/);
 });
