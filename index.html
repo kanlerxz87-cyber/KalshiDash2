@@ -246,6 +246,7 @@ async function loadBoard({ auto = false } = {}) {
     const events = [];
     const capped = [];
     const perStatus = {};
+    let repeatedRows = 0;
     for (const status of ["open", "closed"]) {
       const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
         key: "events", maxPages: status === "open" ? 10 : 4
@@ -257,10 +258,16 @@ async function loadBoard({ auto = false } = {}) {
        * part of the exchange, and the page must say so instead of implying it
        * scanned everything. */
       if (rows.__capped) capped.push(`${status} (${rows.__pages} pages)`);
+      /* Rows the pagination guard removed because the exchange re-sent them
+       * (an undecodable cursor restarts a listing with no error — Get Markets,
+       * https://docs.kalshi.com/api-reference/market/get-markets). Counted once,
+       * and said out loud rather than left invisible. */
+      repeatedRows += rows.__duplicateRows || 0;
     }
     state.events = events;
     state.perStatus = perStatus;
     state.capped = capped;
+    state.repeatedRows = repeatedRows;
     state.loadedAt = new Date();
     pill($("#board-status"), "live", `live · ${events.length} events scanned${capped.length ? " (partial)" : ""}`);
     render();
@@ -375,10 +382,14 @@ function render() {
     ? ` <strong style="color:var(--warn)">Partial scan:</strong> the ${esc(state.capped.join(" and "))} list hit this page's
         page budget while the API still had more pages, so events beyond it are not represented here.`
     : "";
+  const repeated = (state.repeatedRows || 0) > 0
+    ? ` <strong style="color:var(--warn)">Repeated page:</strong> ${int(state.repeatedRows)} row(s) the exchange sent
+        twice were counted once, not added again.`
+    : "";
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
     ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
     ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")} (${int(state.perStatus?.open ?? 0)} open ·
-    ${int(state.perStatus?.closed ?? 0)} closed).${partial} ${src(SOURCES.events, "GET /events")}`;
+    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeated} ${src(SOURCES.events, "GET /events")}`;
 }
 
 $("#rank-mode").addEventListener("click", (e) => {

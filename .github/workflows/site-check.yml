@@ -43,6 +43,12 @@ jobs:
       # presented as a total.
       - name: Traded-dollar volume unit tests
         run: node --test tests/dollar-volume.test.mjs
+      # The cursor-pagination guard: Kalshi documents that an undecodable cursor
+      # is ignored and the first page comes back with no error, so every
+      # cursor-paged read has to dedupe by the row's own key and stop on a
+      # repeated cursor instead of double-counting.
+      - name: Pagination guard unit tests
+        run: node --test tests/paging-guard.test.mjs
       # The Sources page and its register must not drift apart, and no live
       # market value may be transcribed into either.
       - name: Sources register tests

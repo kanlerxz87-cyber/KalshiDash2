@@ -47,6 +47,7 @@
  */
 
 import { SOURCES } from "./config.js";
+import { createPageGuard } from "./paging.js";
 
 /* Re-exported so a page can cite the endpoint behind every number. */
 export const TRADES_SOURCE = SOURCES.trades;
@@ -185,8 +186,12 @@ export function summariseTally(tally, { complete = true, pagesRead = 0, capped =
     newest: t.newest,
     pagesRead,
     complete: ok,
+    duplicateTrades: t.duplicateTrades || 0,
     note: ok
-      ? (t.missing ? missingNote(t) : null)
+      ? [
+          t.missing ? missingNote(t) : null,
+          t.duplicateTrades ? `${t.duplicateTrades} repeated trade row(s) were counted once (the exchange re-sent a page).` : null
+        ].filter(Boolean).join(" ") || null
       : "At least one page of trades could not be read, so no dollar total is shown."
   };
 }
@@ -232,9 +237,27 @@ export function tradesPath(ticker, { min_ts, max_ts, limit }) {
  * client's unauthenticated `get`). Returns
  *   { summary, perPage, stopped }
  * where `stopped` explains an early stop: "cap" (the caller's page budget ran
- * out with a cursor still present) or "error" (a request threw). Either way the
- * summary renders as n/a rather than as a partial total.
+ * out with a cursor still present), "repeat" (the exchange handed back a cursor
+ * it had already given us — see below) or "error" (a request threw). Either way
+ * the summary renders as n/a rather than as a partial total.
+ *
+ * WHY THE "repeat" CASE EXISTS
+ * ----------------------------
+ * Kalshi's Get Markets reference documents that "a `cursor` that cannot be
+ * decoded is ignored and the first page is returned, with no error"
+ * (https://docs.kalshi.com/api-reference/market/get-markets, read 2026-11-22).
+ * A dollar total is the worst place for that to happen silently: the same trades
+ * would be summed twice and still look complete. Rows are therefore deduplicated
+ * by `trade_id` and a repeated cursor ends the walk with `complete: false`, so
+ * the page prints n/a and says why instead of doubling the figure.
  */
+/* A disclosed footnote for rows the guard removed. The dollar figure stays the
+ * sum of distinct trades; the reader is told repeats were seen rather than being
+ * shown a number whose provenance changed. */
+function summaryNoteDuplicateTrades(tally, dropped) {
+  tally.duplicateTrades = (tally.duplicateTrades || 0) + dropped;
+}
+
 export async function collectTrades(get, ticker, {
   seconds = 86400,
   nowMs = Date.now(),
@@ -247,6 +270,7 @@ export async function collectTrades(get, ticker, {
   let cursor = "";
   let stopped = null;
   const perPage = [];
+  const guard = createPageGuard();
 
   for (let i = 0; i < Math.max(1, maxPages); i++) {
     const base = tradesPath(ticker, w);
@@ -259,12 +283,26 @@ export async function collectTrades(get, ticker, {
       break;
     }
     pages += 1;
-    tally = foldTradesPage(tally, page);
-    perPage.push((page?.trades || []).length);
-    cursor = typeof page?.cursor === "string" ? page.cursor : "";
-    if (!cursor) { stopped = null; break; }
+    const raw = page?.trades || [];
+    /* Fold only the trades this walk has not already counted. */
+    const fresh = guard.accept(raw);
+    tally = foldTradesPage(tally, { trades: fresh });
+    perPage.push(raw.length);
+    const next = typeof page?.cursor === "string" ? page.cursor : "";
+    if (!next) { stopped = null; break; }
+    if (raw.length > 0 && fresh.length === 0) {
+      /* Every row on this page was already seen: the listing restarted, so the
+         pages after it are unknown and no total may be claimed. */
+      stopped = "repeat";
+      break;
+    }
+    if (!guard.remember(next)) { stopped = "repeat"; break; }
+    cursor = next;
     if (i === Math.max(1, maxPages) - 1) stopped = "cap";
   }
+  /* Repeats the guard removed are disclosed beside the total; when the walk was
+   * cut short the total is suppressed anyway, and the note explains the stop. */
+  if (guard.state.dropped) summaryNoteDuplicateTrades(tally, guard.state.dropped);
 
   const summary = summariseTally(tally, {
     complete: stopped === null,
@@ -272,6 +310,10 @@ export async function collectTrades(get, ticker, {
     capped: stopped === "cap"
   });
   if (stopped === "error") summary.note = "The trades endpoint could not be read, so no dollar total is shown.";
+  if (stopped === "repeat") {
+    summary.note = "The exchange re-sent a page it had already returned (an undecodable cursor restarts the "
+      + "listing without error), so the walk stopped and no dollar total is shown.";
+  }
   return { summary, perPage, stopped, window: w };
 }
 

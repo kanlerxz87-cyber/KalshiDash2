@@ -9,7 +9,7 @@ import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE, ALERT } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
   bucketCandles, LiveSampler, Watchlist, getEvent, eventContext,
-  detectJumps, jumpMarkers
+  detectJumps, jumpMarkers, seriesCategoriesFor
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
 import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE, TRADES_PATH as TRADE_PATH, missingNote } from "./dollar-volume.js";
@@ -107,16 +107,72 @@ function renderCoverage(res) {
   const trunc = cut.length
     ? `<p class="small" style="margin:6px 0 0">The <strong>${cut.join(", ")}</strong> list was longer than the page budget for this scan; events beyond it were not read. This is a scan limit, not an empty topic.</p>`
     : "";
-  if (res.events.length) {
-    el.innerHTML = `<p class="small muted" style="margin:0 0 6px">
+  const dupes = int(res.duplicateRows || 0);
+  const dup = dupes && dupes !== "0"
+    ? `<p class="small" style="margin:6px 0 0">${dupes} row(s) this scan had already read were counted once —
+       the exchange re-sent a page, which its own reference says can happen when a cursor cannot be decoded
+       (${src(SOURCES.markets, "Get Markets paging rules")}).</p>`
+    : "";
+  el.innerHTML = `${head(res, total, parts)}${trunc}${dup}${basisLine(res)}${sourcesLine(res)}`;
+}
+
+/* The scan sentence, kept apart from the additions below so each stays readable. */
+function head(res, total, parts) {
+  const lead = res.events.length
+    ? `<p class="small muted" style="margin:0 0 6px">
       This scan read ${int(total)} open event(s) from <code>GET /events?status=open&amp;with_nested_markets=true</code>
-      (${parts}) and matched ${int(res.events.length)} to ${esc(res.topic.label)}.</p>${trunc}`;
-    return;
-  }
-  el.innerHTML = `<div class="callout warn"><h3>No ${esc(res.topic.label)} events in this scan</h3>
+      (${parts}) and matched ${int(res.events.length)} to ${esc(res.topic.label)}.</p>`
+    : `<div class="callout warn"><h3>No ${esc(res.topic.label)} events in this scan</h3>
     <p style="margin:0 0 4px">The scan returned ${int(total)} open event(s) (${parts}) and none matched this topic's
     documented rule. That is a result of this scan, not a claim that the topic is empty on Kalshi —
-    the topic may fill later in the day.</p>${trunc}</div>`;
+    the topic may fill later in the day.</p></div>`;
+  return lead;
+}
+
+/* Which field decided the topic, and how often the fallback had to be used.
+ * Get Events marks the event object's own `category` deprecated in favour of
+ * the series-level category, so a board that matched through the fallback has
+ * to say so instead of implying series coverage it did not have. The counts are
+ * this scan's, not a claim about the exchange. */
+function basisLine(res) {
+  const b = res.categoryBasis || {};
+  const looked = (b.series || 0) + (b.event || 0) + (b.none || 0);
+  if (!looked) return "";
+  const cov = res.seriesCoverage || {};
+  const capNote = cov.capped
+    ? `, ${int(cov.capped)} series over the per-scan lookup cap (${int(cov.requested)} distinct series in this scan, ${int(cov.fetched)} looked up)`
+    : cov.failed ? `, ${int(cov.failed)} series lookup(s) failed` : "";
+  const fallback = b.event
+    ? `${int(b.event)} from the <strong>deprecated event <code>category</code></strong>`
+    : "none from the deprecated event field";
+  const neither = b.none ? `, ${int(b.none)} with neither (excluded)` : "";
+  return `<p class="small muted" style="margin:6px 0 0">Classification basis for this scan:
+    ${int(b.series || 0)} event(s) matched on the <strong>series-level</strong> category, ${fallback}${neither}${capNote}.
+    ${src(SOURCES.getSeries, "series-level category")} ${src(SOURCES.events, "deprecated event field")}</p>`;
+}
+
+/* The series record publishes the source its underlying number is read from
+ * (GET /series/{ticker} → `settlement_sources`). That is where the figure comes
+ * from — it is NOT presented as the cause of any price move, a claim the API
+ * does not support (Flagged F14 / A4). */
+function sourcesLine(res) {
+  const seen = new Map();
+  for (const ev of res.events || []) {
+    const t = ev.series_ticker;
+    if (!t || t.includes(",")) continue;
+    const rec = seriesCategoriesFor(t);
+    for (const s of (rec && rec.sources) || []) {
+      if (!seen.has(s.url)) seen.set(s.url, { ...s, series: t });
+    }
+  }
+  if (!seen.size) return "";
+  const list = [...seen.values()].slice(0, 6).map(s =>
+    `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name || s.url)}</a>
+     <span class="muted small">(${esc(s.series)})</span>`).join(" · ");
+  return `<p class="small" style="margin:6px 0 0"><strong>Where this topic's underlying number is published</strong>
+    — the <code>settlement_sources</code> Kalshi lists on the series record itself: ${list}.
+    These are the reference sources for settlement, not a claimed cause of a price move.
+    ${src(SOURCES.getSeries, "GET /series")}</p>`;
 }
 
 function renderBoard() {

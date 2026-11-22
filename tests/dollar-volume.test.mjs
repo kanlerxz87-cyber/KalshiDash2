@@ -225,11 +225,43 @@ test("collectTrades walks the cursor until the endpoint stops returning one", as
 });
 
 test("collectTrades reports a page budget that ran out as incomplete, not as a total", async () => {
-  const get = async () => ({ trades: [trade({ count: "10.00", yes: "0.30" })], cursor: "more" });
+  /* Distinct cursors per page, so this exercises the budget alone and not the
+   * repeated-cursor guard below. */
+  let n = 0;
+  const get = async () => { n += 1; return { trades: [trade({ count: "10.00", yes: "0.30" })], cursor: `more${n}` }; };
   const res = await collectTrades(get, "T", { seconds: 3600, maxPages: 2 });
   assert.equal(res.stopped, "cap");
   assert.equal(res.summary.complete, false);
   assert.equal(res.summary.dollars, null);
+});
+
+test("a cursor the exchange hands back twice stops the walk and suppresses the total", async () => {
+  /* Kalshi documents that an undecodable cursor is ignored and the first page
+   * comes back again with no error, so the same trades must not be summed twice:
+   * https://docs.kalshi.com/api-reference/market/get-markets */
+  const first = trade({ count: "10.00", yes: "0.30" });
+  const get = async () => ({ trades: [first], cursor: "same" });
+  const res = await collectTrades(get, "T", { seconds: 3600, maxPages: 5 });
+  assert.equal(res.stopped, "repeat");
+  assert.equal(res.summary.complete, false, "an interrupted walk is never a total");
+  assert.equal(res.summary.dollars, null);
+  assert.match(res.summary.note, /re-sent a page/);
+});
+
+test("a repeated trade row is counted once and the repeat is disclosed, not hidden", async () => {
+  const first = trade({ count: "10.00", yes: "0.30" });
+  const second = trade({ count: "20.00", yes: "0.30" });
+  const pages = [
+    { trades: [first], cursor: "c1" },
+    { trades: [first, second], cursor: "" }   /* the exchange re-sent `first` */
+  ];
+  let n = 0;
+  const res = await collectTrades(async () => pages[n++], "T", { seconds: 3600, maxPages: 5 });
+  assert.equal(res.summary.trades, 2, "the duplicated trade_id is folded in once");
+  assert.equal(res.summary.dollars, 9, "10*0.30 + 20*0.30, not 30*0.30 + 20*0.30");
+  assert.equal(res.summary.complete, true);
+  assert.equal(res.summary.duplicateTrades, 1);
+  assert.match(res.summary.note, /repeated trade row/);
 });
 
 test("collectTrades reports a failed request as incomplete and names it", async () => {
