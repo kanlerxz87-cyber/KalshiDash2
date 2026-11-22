@@ -151,9 +151,9 @@
       <table>
         <thead><tr>
           <th>Market</th><th class="num">Position</th><th class="num">Market exposure</th>
-          <th class="num">Realized P&amp;L</th><th class="num">Fees paid</th><th>Status</th><th>Official source</th>
+          <th class="num">Realized P&amp;L</th><th class="num">Fees paid</th><th>Official source</th>
         </tr></thead>
-        <tbody id="pos-body"><tr><td colspan="7"><div class="empty">No positions loaded.</div></td></tr></tbody>
+        <tbody id="pos-body"><tr><td colspan="6"><div class="empty">No positions loaded.</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>
@@ -270,10 +270,9 @@ $("#load-account").onclick = async () => {
       <td class="num">${money(positionDollars(p, "market_exposure_dollars", "market_exposure"))}</td>
       <td class="num">${money(positionDollars(p, "realized_pnl_dollars", "realized_pnl"))}</td>
       <td class="num">${money(positionDollars(p, "fees_paid_dollars", "fees_paid"))}</td>
-      <td><span class="pill idle">${esc(p.settlement_status || p.status || "")}</span></td>
       <td><a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
     </tr>`;
-    }).join("") : emptyRow(7, "The demo account has no open positions.");
+    }).join("") : emptyRow(6, "The demo account has no open positions.");
 
     pill($("#acct-status"), "live", "account loaded");
     loadFills();
