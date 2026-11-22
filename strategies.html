@@ -66,6 +66,8 @@
     </div>
     <div class="card">
       <h2>By side &amp; role</h2>
+      <p class="sub">Separate breakdowns: each fill appears once under side and once under liquidity role.
+        Do not add the two breakdowns together.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Bucket</th><th class="num">Fills</th><th class="num">Contracts</th><th class="num">Premium</th><th>Official source</th></tr></thead>
         <tbody id="by-side"><tr><td colspan="5"><div class="empty">No data.</div></td></tr></tbody>
@@ -135,7 +137,7 @@ const CATALOGUE = [
     name: "Fade the extreme",
     rule: "Buy NO when yes_ask ≥ 0.90 and volume_fp is thin",
     evidence: "Fills at extreme prices plus the market's settled `result`",
-    risk: "Extremes resolve correctly far more often than intuition suggests",
+    risk: "A high YES quote is not proof that a NO position is underpriced",
     status: "untested",
     sources: [SOURCES.markets, SOURCES.marketSettlement]
   },

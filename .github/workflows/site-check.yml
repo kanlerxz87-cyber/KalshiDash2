@@ -43,7 +43,10 @@ jobs:
       # presented as a total.
       - name: Traded-dollar volume unit tests
         run: node --test tests/dollar-volume.test.mjs
-      # Every published table's empty-state row must span its full width.
+      # Documented position fields, scoped totals and the actual page controller.
+      # Offline fixtures are test inputs, never live account verification.
+      - name: Portfolio data and page regression tests
+        run: node --test tests/portfolio-core.test.mjs tests/portfolio-page.test.mjs
       - name: Table empty-state shape tests
         run: node --test tests/table-shape.test.mjs
       # The Sources page and its register must not drift apart, and no live

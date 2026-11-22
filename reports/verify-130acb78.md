@@ -59,8 +59,25 @@ When both fields are absent, `num(undefined)` is `null`, and `null / 100` is `0`
 That is not an API-reported zero. Missing dollar values must render `n/a`.
 Undocumented `market_title` and status fields are removed from the position row.
 A Fees paid column and scoped, explicitly documented performance aggregates are
-added. The account display's coverage and request-failure handling are being
-regression-tested before publication.
+added. Only the current documented dollar fields are read; undocumented cents
+alternates are not used. Any missing input withholds that aggregate rather than
+showing a partial sum. Explicit API zeroes remain zeroes.
+
+### Query, coverage, failure states and fractions
+
+The old caller supplied `"?limit=200"` to a client method that already inserts
+`?`, producing `??limit=200`. `loadPositions()` now passes a bare, encoded query,
+requests `settlement_status=unsettled`, follows cursors for at most five pages of
+200, and explicitly reports whether paging finished. Missing required response
+fields, a repeated cursor, or a failed request is not treated as an empty account.
+A capped scan displays only its returned rows and withholds every aggregate.
+
+The UI calls these “unsettled-row” figures, not lifetime account performance or
+open/tradeable-market counts. It preserves fractional `position_fp` and fill
+`count_fp` quantities, clears stale totals on a failed reload, and prevents a
+pending account response from repopulating the display after the key is forgotten.
+Offline tests execute the actual published controller and the real client query
+builder; none is labelled live account verification.
 
 Source: [Get Positions](https://docs.kalshi.com/api-reference/portfolio/get-positions).
 
@@ -77,10 +94,14 @@ Source: [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills).
 
 `assets/js/alerts.js` used 9 columns for a 10-column alert table.
 `simulator.html` used 10 columns for a 12-column scoreboard. These are corrected.
-`tests/table-shape.test.mjs` checks published HTML table shapes (root and
-`categories/`, not the old `docs/` generation). JavaScript-module empty states
-require separate coverage; the category-book mismatch is logged for its owner.
-These are local markup defects, not claims about Kalshi data.
+`tests/table-shape.test.mjs` checks static placeholders and explicit inline table
+assignments (including ternary renderers) in root and category HTML, not the old
+`docs/` generation. It also checks the alerts controller's local `body` aliases.
+Mutation fixtures prove that restoring the alert's nine-column bug or a ternary
+width mismatch makes the guard fail. This is deliberately scoped syntax coverage,
+not a general JavaScript parser or proof of all external-controller layouts. The
+category-book error-path mismatch remains logged for its owner, not silently
+claimed fixed. These are local markup defects, not claims about Kalshi data.
 
 ## 3. Unverified order pricing — attempted change withdrawn
 
@@ -112,5 +133,17 @@ and [Order direction](https://docs.kalshi.com/getting_started/order_direction).
 
 ## 5. Integration checks
 
-Final suite counts, PR merge SHA and Pages deployment result will be recorded here
-and in this session's `COORDINATION.md` section after the final checks.
+Local pre-integration checks (2026-11-22):
+
+- `node --test`: **238/238** (including 13 portfolio-core, 12 real-controller
+  fixture checks, and 6 table-shape guards).
+- Python tools: **42 passed**; Python client/relay suite: **20 run, 3 skipped**.
+- Published-page runtime harness: **18/18**; local links: **36 HTML pages,
+  0 broken links**.
+- DOM fixtures: **22 alerts, 5 summary, 23 category checks passed**.
+- Signing self-test (`tools/verify/auth-sign-test.mjs`): **6/6**.
+- `git diff --check`: clean.
+
+CI runs the new portfolio and table suites. The final combined-tree result, PR
+merge SHA and Pages deployment will be appended after integration; the above
+numbers are explicitly dated local results, not a claim about a later commit.
