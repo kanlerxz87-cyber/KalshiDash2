@@ -80,12 +80,41 @@
       </label>
       <label class="field">Price per contract (USD)
         <input type="number" id="o-price" step="0.0001" min="0" max="1" value="0.50">
+        <span class="small muted" id="price-scale-note" style="display:block;margin-top:4px">
+          NO orders: see the note below <em>before</em> entering a price.
+        </span>
       </label>
       <label class="field">Contracts
         <input type="number" id="o-count" step="1" min="0.01" value="1">
       </label>
     </div>
     <div id="grid-note" class="small muted" style="margin-top:8px"></div>
+    <div class="callout warn" style="margin-top:10px" id="no-price-conflict">
+      <h3 style="margin-top:0">⚠ The price scale for a NO order is contradictory in the official docs</h3>
+      <p style="margin:0 0 6px">
+        This form sends <code>side: "ask"</code> when you buy NO, and it sends
+        <code>price</code> unchanged. Two official pages disagree on what that price means for a NO order,
+        and this session could not settle it without a demo key, so it is left visible rather than guessed at:
+      </p>
+      <ul class="small" style="margin:0 0 6px;padding-left:20px;line-height:1.7">
+        <li><strong>NO-lot price (multiples of $0.01).</strong>
+          <a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
+          says an order at price <em>p</em> with <code>outcome_side=no</code> is matched by an order at the
+          same <em>p</em> with <code>outcome_side=yes</code>, so the price does not change with the side.</li>
+        <li><strong>YES-leg price.</strong>
+          <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
+          defines its <code>side</code> field as "<code>bid</code> means buy YES, <code>ask</code> means sell
+          YES … this endpoint quotes everything from the YES side", with
+          "<code>ask</code> = sell YES = buy NO at <code>1 - price</code>".</li>
+      </ul>
+      <p class="small" style="margin:0">
+        <strong>How to avoid the ambiguity entirely:</strong> check the market first (step 3 loads its grid
+        when you type a ticker) and read the resulting price as the price you are paying. If you want the
+        opposite exposure at a known price, place that order as a YES order of the complementary market
+        instead of a NO order here. Tracked as <a href="flagged.html#NF1">Flagged NF1</a>; the field itself is
+        not disabled because both readings say the <em>exposure</em> is a NO position.
+      </p>
+    </div>
     <div class="toolbar" style="margin-top:12px">
       <button id="place">Place order</button>
       <button class="secondary" id="cancel-order">Cancel an order</button>

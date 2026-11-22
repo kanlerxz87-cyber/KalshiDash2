@@ -3371,3 +3371,26 @@ A bot pushed `[skip ci]` captures to this branch twice; each was **merged in**, 
 2. The suite counts first published in `README.md` / `EXECUTIVE_SUMMARY.md` were measured *before* the rebase onto `main`, i.e. 162 Node / 18 category-DOM. After the merge picked up PR #117/#121 the same suites measured **172** and **23**, so both files and the X5 card were updated to the merged-tree numbers. This is the same class of defect X5 exists to describe, found in my own output.
 
 **Open items for a reviewer (none blocks the merge):** X1's *host* question is still Kalshi's to answer — only the site's rendering was fixed; authenticated demo calls (F1/F2) and WebSocket handshakes (W1–W4) remain unexercised here for want of a key and of header support in the fetch tool; `reports/external-links-audit.md` was deliberately **not** regenerated (a local offline run rewrites every row's reachability to "not checked" and picks up fixture URLs; the manual `audit-external-links` workflow is the right place to refresh it from a runner).
+
+---
+
+## Session faf9fe08 (branch `arena/faf9fe08-kalshidash2`, from `main` @ `252e623`)
+
+**Date started:** 2026-11-22 (UTC). **Role:** independent line-by-line verification + integration for this branch.
+
+**Why this session exists / what is different:** every prior session recorded the same sandbox limit — their
+shell could not open TLS to `*.kalshi.co`, so live checks had to be delegated to GitHub runners. This session's
+toolchain *can* read the demo REST API directly, so the live claims are re-checked here against real responses
+and a dated report with re-runnable URLs is committed. That is the only new capability; nothing else is assumed.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| FAF-1 | Independent live re-verification of the published site's data-contract claims against the **live** Kalshi demo REST API + official docs; dated report with re-runnable URLs | in progress | `faf9fe08` | `reports/verify-faf9fe08.md` (new), this section | `https://external-api.demo.kalshi.co/trade-api/v2/*` responses fetched 2026-11-22; `https://docs.kalshi.com/*` | Any claim the live API contradicts is reported, never silently corrected |
+| FAF-2 | Fix only defects FAF-1 proves; scope added to this board before the edit | in progress | `faf9fe08` | see the FAF-2 file list below | local suites after each edit | — |
+| FAF-3 | Publish newly found irregularities as new cards (unused id series `NF1…`) on the Flagged page, with source links | in progress | `faf9fe08` | `flagged.html` (new cards only) | live URLs from FAF-1 | Flagged items do not block merge |
+| FAF-4 | Full local suite, PR → `main`, merge without waiting, confirm Pages deploy on the merged SHA, record PR link + result here | in progress | `faf9fe08` | this section | `gh pr create/merge`, Pages API, `node --test`, `python3 -m unittest`, `tools/check_site_links.py`, `tools/verify/page-runtime-check.mjs` | Do not merge a broken site |
+
+**Scope discipline:** this session edits `COORDINATION.md` (its own section only), the new report, `flagged.html`
+(new cards only), and — only after FAF-2's file list is written below — the specific site files a proven defect
+requires. `data/snapshot.json`, `scripts/`, `docs/`, `VERIFICATION.md`, `index.html`, the nav in `assets/js/ui.js`
+and all other sessions' sections are **not** edited here.

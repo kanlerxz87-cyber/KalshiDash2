@@ -57,6 +57,17 @@ jobs:
         run: node --test tests/activity-proxy.test.mjs
       - name: Published official-wording tests
         run: node --test tests/official-wording.test.mjs
+      # The order-write contract: bid≡yes / ask≡no, the V2 route, the documented
+      # required fields, and a millisecond signing timestamp. The demo order path
+      # needs credentials and cannot run here, so these pin the request the client
+      # builds against the official pages instead.
+      - name: Order-write contract tests (offline, real client + fake fetch)
+        run: node --test tests/order-contract.test.mjs
+      # Geometry and honesty of the candlestick line, against two captured demo
+      # responses: contiguous periods, a null close for an untraded period, and
+      # time-spaced rather than index-spaced X.
+      - name: Candlestick spacing / gap honesty tests
+        run: node --test tests/candle-spacing.test.mjs
       - name: Live-probe gas rule (offline proof)
         run: node --test tests/dom/live-site-no-match.test.mjs
       # Offline unit tests for the live-render verifier's parsing/classification

@@ -50,6 +50,18 @@
       the exchange's reported outcome. It answers "how was it resolved — yes or no" for markets this
       dashboard did not necessarily track.
     </p>
+    <p class="sub" style="margin-top:-4px">
+      <strong>This is a recent window, not a full archive.</strong> The table reads <code>GET /markets?status=settled</code>,
+      one of the live endpoints that stops serving data older than the published cutoff — so a market that
+      settled before it will not appear here however it resolved. The page does not silently pad the gap: the
+      counter above the table reports how many rows the live endpoint actually returned, and everything in
+      this view is in-window. For older settlements the archived tier is the correct source, and this page does
+      not query it — <a href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">how the cutoff works ↗</a>
+      · <a href="https://docs.kalshi.com/api-reference/historical/get-historical-markets" target="_blank" rel="noopener noreferrer">GET /historical/markets ↗</a>
+      · <a href="https://docs.kalshi.com/api-reference/portfolio/get-settlements" target="_blank" rel="noopener noreferrer">settlements of your own positions ↗</a>.
+      The cutoff is published live at <a href="https://external-api.demo.kalshi.co/trade-api/v2/historical/cutoff" target="_blank" rel="noopener noreferrer">GET /historical/cutoff ↗</a>
+      and is disclosed as Flagged <a href="flagged.html#NF3">NF3</a>.
+    </p>
     <div class="toolbar">
       <label class="inline">Filter
         <select id="filter">
