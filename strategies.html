@@ -36,6 +36,7 @@
     <h2>Your fills</h2>
     <div class="toolbar">
       <button id="load">Load my fills</button>
+      <button class="secondary" id="load-cached" style="display:none">Analyse cached fills</button>
       <span class="spacer"></span>
       <span id="status" class="pill idle">idle</span>
     </div>
@@ -100,7 +101,7 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Rule</th><th>Trigger</th><th>Side</th><th>Holding</th><th>Where to run it</th>
+          <th>Rule</th><th>Trigger</th><th>Side</th><th>Holding</th><th>Where to run it</th><th>Official source</th>
         </tr></thead>
         <tbody id="testable"></tbody>
       </table>
@@ -116,7 +117,7 @@
 <script type="module">
 import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { SOURCES, TOPICS, STRATEGIES as TESTABLE_STRATEGIES } from "./assets/js/config.js";
-import { api, analyseFills, classifyEvent } from "./assets/js/market.js";
+import { api, analyseFills, classifyEvent, fetchSeriesCategories } from "./assets/js/market.js";
 
 mountChrome({ page: "strategies.html", title: "Strategies" });
 
@@ -173,7 +174,8 @@ const CATALOGUE = [
 ];
 
 /* The catalogue entries above are fill-based; these six are history-based and
- * are replayed by the Strategy Tester. */
+ * are replayed by the Strategy Tester. Every row carries the official sources
+ * for the candlestick history and settlement rules it is scored against. */
 $("#strategies").innerHTML = CATALOGUE.map(s => `<tr>
   <td><strong>${esc(s.name)}</strong></td>
   <td class="small"><code>${esc(s.rule)}</code></td>
@@ -189,10 +191,11 @@ $("#testable").innerHTML = TESTABLE_STRATEGIES.map(s => `<tr>
   <td><span class="tag ${s.side === "yes" ? "yes" : "no"}">${esc(s.side)}</span></td>
   <td class="small">${esc(s.hold === "roundtrip" ? "sell back at entry + $0.10, else hold to settlement" : "hold to settlement")}</td>
   <td class="small nowrap"><a class="btn ghost" href="simulator.html">Run on the Strategy Tester →</a></td>
+  <td class="small">${src(SOURCES.candles, "candlesticks API")} · ${src(SOURCES.marketSettlement, "settlement rules")}</td>
 </tr>`).join("");
 
 /* ------------------------------- fills ---------------------------------- */
-/* Ticker -> topic, resolved through the event API and cached. */
+/* Ticker -> topic, resolved through the event + series API and cached. */
 const topicCache = new Map();
 async function topicForTicker(ticker) {
   if (!ticker) return null;
@@ -201,17 +204,18 @@ async function topicForTicker(ticker) {
   for (const c of candidates) {
     if (topicCache.has(c)) return topicCache.get(c);
   }
-  // The reliable path: market -> event -> classifyEvent. This reuses the one
-  // canonical taxonomy (assets/js/market.js + assets/js/config.js) so fills
-  // are filed exactly as the dashboard files events — including the literal
-  // `Culture` category and the gas exclusions (crude / natural-gas / diesel /
-  // Vegas). A hand-rolled regex here previously missed `Culture` and had no
-  // gas exclusions.
+  // Market -> event -> series category -> classifyEvent. Event `category` is
+  // deprecated in Get Event / Get Events ("use series-level category instead"),
+  // so fetchSeriesCategories resolves GET /series/{series_ticker} first and
+  // keeps the deprecated event field only as a fallback.
   try {
     const mj = await api.get(`/markets/${encodeURIComponent(ticker)}`);
     const m = mj.market || mj;
     const ej = await api.get(`/events/${encodeURIComponent(m.event_ticker)}`);
     const ev = ej.event || ej;
+    if (ev?.series_ticker) {
+      await fetchSeriesCategories([ev.series_ticker], { cap: 1 });
+    }
     const topic = classifyEvent(ev);
     topicCache.set(ticker, topic);
     return topic;
@@ -221,11 +225,71 @@ async function topicForTicker(ticker) {
   }
 }
 
+async function renderFillsList(fills, labelSuffix = "") {
+  if (!fills.length) {
+    $("#fills").innerHTML = emptyRow(10, "The demo account returned no fills, so there is nothing to analyse yet.");
+    pill($("#status"), "live", "0 fills");
+    return;
+  }
+  pill($("#status"), "warn", "resolving topics…");
+  const map = new Map();
+  for (const f of fills) {
+    const t = f.ticker || f.market_ticker;
+    if (t && !map.has(t)) map.set(t, await topicForTicker(t));
+  }
+  const analysis = analyseFills(fills, { topicResolver: (t) => map.get(t) ?? null });
+
+  $("#fill-stats").innerHTML = [
+    { k: "Fills", v: int(analysis.totals.count), m: "returned by the API" },
+    { k: "Contracts", v: int(analysis.totals.contracts), m: "Σ count_fp" },
+    { k: "Premium paid", v: money(analysis.totals.premium), m: "Σ contracts × price" },
+    { k: "Fees", v: money(analysis.totals.fees), m: "Σ fee_cost" }
+  ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+  $("#fills").innerHTML = analysis.rows.slice(0, 400).map(r => {
+    const topic = TOPICS.find(t => t.key === r.topic);
+    return `<tr>
+      <td class="small nowrap">${r.ts ? dt(new Date(r.ts).toISOString()) : `<span class="unv">n/a</span>`}</td>
+      <td class="mono small">${esc(r.ticker)}</td>
+      <td>${topic ? `<a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : `<span class="unv">outside scope</span>`}</td>
+      <td>${r.side ? `<span class="tag ${r.side === "yes" ? "yes" : "no"}">${esc(r.side)}</span>` : `<span class="unv">n/a</span>`}</td>
+      <td class="num">${dec(r.count)}</td>
+      <td class="num">${money4(r.price)}</td>
+      <td class="num">${money(r.cost)}</td>
+      <td class="num">${money(r.fee)}</td>
+      <td>${r.is_taker === true ? "taker" : r.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
+      <td>${src(SOURCES.fills, "fills API docs")}</td>
+    </tr>`;
+  }).join("");
+
+  $("#by-topic").innerHTML = analysis.byTopic.length ? analysis.byTopic.map(g => {
+    const topic = TOPICS.find(t => t.key === g.key);
+    return `<tr><td>${topic ? esc(topic.label) : `<span class="unv">outside scope</span>`}</td>
+      <td class="num">${int(g.n)}</td><td class="num">${dec(g.contracts)}</td>
+      <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td><td>${src(SOURCES.fills, "fills API docs")}</td></tr>`;
+  }).join("") : emptyRow(6, "No data.");
+
+  const sideRows = [...analysis.bySide, ...analysis.byTaker];
+  $("#by-side").innerHTML = sideRows.length ? sideRows.map(g => `<tr>
+    <td>${esc(g.key)}</td><td class="num">${int(g.n)}</td>
+    <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td>
+    <td>${src(SOURCES.fills, "fills API docs")}</td></tr>`).join("")
+    : emptyRow(5, "No data.");
+
+  $("#fills-note").innerHTML = `Premium = contracts × price paid. ${analysis.totals.missingPrice
+    ? `<strong>${analysis.totals.missingPrice} fill(s) had no price</strong> and are excluded from premium totals.` : ""}
+    ${analysis.totals.missingTopic ? `<strong>${analysis.totals.missingTopic} fill(s)</strong> were outside the five topics.` : ""}
+    ${src(SOURCES.fills, "fills API")}`;
+  pill($("#status"), "live", `${fills.length} fills analysed${labelSuffix}`);
+}
+
 $("#load").onclick = async () => {
   if (!api.hasCredentials()) {
-    $("#need-key").innerHTML = `<div class="callout warn"><h3>A demo key is needed</h3>
-      <p style="margin:0">Fills are account data, so they require a signed request. Load your demo key on the
-      <a href="portfolio.html">Portfolio</a> page, then return here.</p></div>`;
+    $("#need-key").innerHTML = `<div class="callout warn"><h3>A demo key is needed to fetch fresh fills</h3>
+      <p style="margin:0">Live fills are account data and require a signed request. Load your demo key and press
+      <em>Load balance, positions &amp; fills</em> on the <a href="portfolio.html">Portfolio</a> page — that page keeps
+      your private key in tab memory only and saves the returned <code>GET /portfolio/fills</code> payload to this
+      browser so it can be analysed here.</p></div>`;
     return;
   }
   pill($("#status"), "warn", "loading fills…");
@@ -233,82 +297,43 @@ $("#load").onclick = async () => {
   try {
     const j = await api.fills();
     const fills = j.fills || [];
-    if (!fills.length) {
-      $("#fills").innerHTML = emptyRow(10, "The demo account returned no fills, so there is nothing to analyse yet.");
-      pill($("#status"), "live", "0 fills");
-      return;
-    }
-    // Resolve topics first (network), then analyse.
-    const map = new Map();
-    for (const f of fills) {
-      const t = f.ticker || f.market_ticker;
-      if (t && !map.has(t)) map.set(t, await topicForTicker(t));
-    }
-    const analysis = analyseFills(fills, { topicResolver: (t) => map.get(t) ?? null });
-
-    $("#fill-stats").innerHTML = [
-      { k: "Fills", v: int(analysis.totals.count), m: "returned by the API" },
-      { k: "Contracts", v: int(analysis.totals.contracts), m: "Σ count_fp" },
-      { k: "Premium paid", v: money(analysis.totals.premium), m: "Σ contracts × price" },
-      { k: "Fees", v: money(analysis.totals.fees), m: "Σ fee_cost" }
-    ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
-
-    $("#fills").innerHTML = analysis.rows.slice(0, 400).map(r => {
-      const topic = TOPICS.find(t => t.key === r.topic);
-      return `<tr>
-        <td class="small nowrap">${r.ts ? dt(new Date(r.ts).toISOString()) : `<span class="unv">n/a</span>`}</td>
-        <td class="mono small">${esc(r.ticker)}</td>
-        <td>${topic ? `<a href="categories/${topic.key}.html">${esc(topic.label)}</a>` : `<span class="unv">outside scope</span>`}</td>
-        <td>${r.side ? `<span class="tag ${r.side === "yes" ? "yes" : "no"}">${esc(r.side)}</span>` : `<span class="unv">n/a</span>`}</td>
-        <td class="num">${dec(r.count)}</td>
-        <td class="num">${money4(r.price)}</td>
-        <td class="num">${money(r.cost)}</td>
-        <td class="num">${money(r.fee)}</td>
-        <td>${r.is_taker === true ? "taker" : r.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
-        <td>${src(SOURCES.fills, "fills API docs")}</td>
-      </tr>`;
-    }).join("");
-
-    $("#by-topic").innerHTML = analysis.byTopic.length ? analysis.byTopic.map(g => {
-      const topic = TOPICS.find(t => t.key === g.key);
-      return `<tr><td>${topic ? esc(topic.label) : `<span class="unv">outside scope</span>`}</td>
-        <td class="num">${int(g.n)}</td><td class="num">${dec(g.contracts)}</td>
-        <td class="num">${money(g.premium)}</td><td class="num">${money(g.fees)}</td><td>${src(SOURCES.fills, "fills API docs")}</td></tr>`;
-    }).join("") : emptyRow(6, "No data.");
-
-    const sideRows = [...analysis.bySide, ...analysis.byTaker];
-    $("#by-side").innerHTML = sideRows.length ? sideRows.map(g => `<tr>
-      <td>${esc(g.key)}</td><td class="num">${int(g.n)}</td>
-      <td class="num">${dec(g.contracts)}</td><td class="num">${money(g.premium)}</td>
-      <td>${src(SOURCES.fills, "fills API docs")}</td></tr>`).join("")
-      : emptyRow(5, "No data.");
-
-    $("#fills-note").innerHTML = `Premium = contracts × price paid. ${analysis.totals.missingPrice
-      ? `<strong>${analysis.totals.missingPrice} fill(s) had no price</strong> and are excluded from premium totals.` : ""}
-      ${analysis.totals.missingTopic ? `<strong>${analysis.totals.missingTopic} fill(s)</strong> were outside the five topics.` : ""}
-      ${src(SOURCES.fills, "fills API")}`;
-    pill($("#status"), "live", `${fills.length} fills analysed`);
+    localStorage.setItem("kalshiDash.fills", JSON.stringify({ at: new Date().toISOString(), fills }));
+    await renderFillsList(fills);
   } catch (e) {
     pill($("#status"), "err", e.message);
     $("#fills").innerHTML = emptyRow(10, "Fills request failed: " + e.message);
   }
 };
 
-/* Show cached fills immediately when present, so the page is useful without a key. */
+/* Analyse cached fills saved by portfolio.html immediately when present, because
+ * portfolio.html deliberately clears the private key on page navigation. Topic
+ * lookup uses only unauthenticated GET /markets, /events and /series reads. */
+let hasCachedFills = false;
 try {
   const saved = JSON.parse(localStorage.getItem("kalshiDash.fills") || "null");
   if (saved?.fills?.length) {
-    $("#need-key").innerHTML = `<div class="callout info"><h3>${saved.fills.length} fills cached in this browser</h3>
-      <p style="margin:0">Captured ${esc(new Date(saved.at).toLocaleString())}. Press <em>Load my fills</em> with a
-      demo key to refresh and analyse them.</p></div>`;
+    hasCachedFills = true;
+    const when = saved.at ? new Date(saved.at).toLocaleString() : "earlier in this browser";
+    const btn = $("#load-cached");
+    btn.style.display = "";
+    btn.textContent = `Re-analyse ${saved.fills.length} cached fill(s)`;
+    btn.onclick = () => renderFillsList(saved.fills, " (cached from Portfolio)");
+    $("#need-key").innerHTML = `<div class="callout info"><h3>${int(saved.fills.length)} fills cached from Portfolio</h3>
+      <p style="margin:0">Captured ${esc(when)} from <code>GET /portfolio/fills</code> on the
+      <a href="portfolio.html">Portfolio</a> page (which drops the private key on navigation by design).
+      Analysing those fills below using public event/series metadata.</p></div>`;
+    renderFillsList(saved.fills, " (cached from Portfolio)").catch(e => {
+      pill($("#status"), "err", e.message);
+    });
   }
 } catch {}
 
-if (!api.hasCredentials()) {
+if (!hasCachedFills && !api.hasCredentials()) {
   $("#need-key").innerHTML = `<div class="callout warn"><h3>A demo key is needed</h3>
-    <p style="margin:0">Fills are account data, so they require a signed request. Load your demo key on the
-    <a href="portfolio.html">Portfolio</a> page. This page never invents trades: with no key there is simply
-    no data.</p></div>`;
+    <p style="margin:0">Fills are account data, so they require a signed request. Load your demo key and fetch
+    fills on the <a href="portfolio.html">Portfolio</a> page, then open this page to analyse the saved
+    <code>GET /portfolio/fills</code> response. With no key and no saved fills there is simply no data —
+    this page never invents trades.</p></div>`;
 }
 </script>
 </body>
