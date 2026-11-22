@@ -376,6 +376,93 @@ export function chunk(arr, n) {
   return out;
 }
 
+/* ------------------------------------------------- series contract links
+ *
+ * A series record carries TWO different documents, and the official schema keeps
+ * them distinct (https://docs.kalshi.com/api-reference/market/get-series):
+ *
+ *   contract_url        "a direct link to the original filing of the contract
+ *                        which underlies the series"        (required)
+ *   contract_terms_url  "the URL to the current terms of the contract
+ *                        underlying the series"             (required)
+ *
+ * Neither field is documented as pointing at any particular host. In the demo
+ * data captured for this repository, `contract_url` frequently resolves to
+ * `kalshi-public-docs-staging.s3.us-east-1.amazonaws.com`, which is the host
+ * Flagged item X1 records as answering HTTP 403 to a public request. Publishing
+ * that as "the official contract filing" would hand the reader a dead link and
+ * call a staging object the filing, so the rules here are:
+ *
+ *   1. A URL on a host the site knows to be non-public (staging) is never
+ *      rendered. It is reported as withheld, with the reason, instead.
+ *   2. Only absolute https URLs are ever returned.
+ *   3. The two documents keep their own labels; the terms URL is the preferred
+ *      link because it is the document this site can actually point a reader at.
+ *   4. A link is only returned when the series record really carried it. Nothing
+ *      is assembled, guessed or rewritten.
+ */
+
+/* Hosts observed to refuse public reads. Kept as an explicit, reviewable list:
+ * every entry is a host that a public request could not open, not a guess about
+ * which host "should" be canonical. */
+export const NON_PUBLIC_CONTRACT_HOSTS = Object.freeze([
+  "kalshi-public-docs-staging.s3.us-east-1.amazonaws.com"
+]);
+
+/* The two documented documents, in the order the page should prefer them. */
+export const CONTRACT_FIELDS = Object.freeze([
+  { field: "contract_terms_url", label: "current contract terms" },
+  { field: "contract_url", label: "original contract filing" }
+]);
+
+function absoluteHttps(u) {
+  if (typeof u !== "string") return null;
+  const s = u.trim();
+  if (!/^https:\/\/[^\s]+$/i.test(s)) return null;
+  return s;
+}
+
+function hostOf(u) {
+  try { return new URL(u).hostname.toLowerCase(); } catch { return ""; }
+}
+
+export function isNonPublicHost(url, hosts = NON_PUBLIC_CONTRACT_HOSTS) {
+  const h = hostOf(String(url || ""));
+  if (!h) return false;
+  return hosts.some(x => h === x || h.endsWith("." + x));
+}
+
+/* Turn a series record into the links the alert feed may render.
+ *
+ * Returns:
+ *   links     [{ field, label, url }]  in preference order, only usable URLs
+ *   withheld  [{ field, label, host, reason }]  documented URLs that were not
+ *             rendered, each with the reason, so the page can say why
+ *
+ * A record that carries no usable URL yields empty arrays; the caller prints
+ * "not published on the series record", never a substituted link. */
+export function seriesContractLinks(series, { hosts = NON_PUBLIC_CONTRACT_HOSTS } = {}) {
+  const rec = series && typeof series === "object" ? (series.series || series) : null;
+  const links = [];
+  const withheld = [];
+  if (!rec) return { links, withheld };
+  for (const { field, label } of CONTRACT_FIELDS) {
+    const raw = rec[field];
+    if (raw === null || raw === undefined || raw === "") continue;
+    const url = absoluteHttps(raw);
+    if (!url) {
+      withheld.push({ field, label, host: "", reason: "not an absolute https URL" });
+      continue;
+    }
+    if (isNonPublicHost(url, hosts)) {
+      withheld.push({ field, label, host: hostOf(url), reason: "host does not serve public requests (Flagged X1)" });
+      continue;
+    }
+    links.push({ field, label, url });
+  }
+  return { links, withheld };
+}
+
 /* ---------------------------------------------------------------------------
  * Tradeability screen.
  *

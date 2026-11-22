@@ -469,5 +469,17 @@ export const CLAIMS = [
     detail: "The 200 body is {orderbook_fp: {yes_dollars: [[price, count], …], no_dollars: […]}}; `depth` accepts 0–100 and 0 means all levels. Quotes are derived as documented: a NO bid at y implies a YES ask at 1 − y.",
     source: `${D}/api-reference/market/get-market-orderbook`,
     ev: "Response schema and depth range fetched 2026-11-21; assets/js/kalshi.js deriveQuote reads orderbook_fp.yes_dollars / no_dollars and the pages request depth=20.",
-    status: "verified" }
+    status: "verified" },
+
+  // ---- series contract links, session 33a37458 (2026-11-22) ----
+  { cat: "api", claim: "A series publishes two distinct contract documents, and the site labels them separately",
+    detail: "contract_url is \"a direct link to the original filing of the contract which underlies the series\"; contract_terms_url is \"the URL to the current terms of the contract underlying the series\". Both are required fields of the series object. The alerts feed labels them \"original contract filing\" and \"current contract terms\" and offers the terms document first; neither is renamed \"the filing\".",
+    source: `${D}/api-reference/market/get-series`,
+    ev: "Schema fetched and read 2026-11-22; live GET /series/KXGAS and GET /series/GAS the same day returned both fields. Labels and preference order are unit-tested in tests/alerts-core.test.mjs.",
+    status: "verified" },
+  { cat: "api", claim: "A contract URL on a host that refuses public requests is withheld, not rendered",
+    detail: "The demo data returns contract_url values on kalshi-public-docs-staging.s3.us-east-1.amazonaws.com, the host Flagged X1 records as answering HTTP 403 to a public request. The site never renders a link on that host: it shows the reason instead, and keeps the value in the raw capture unchanged.",
+    source: `${D}/api-reference/market/get-series`,
+    ev: "Measured in data/snapshot.json (capture 2026-11-22T07:05:27Z, JSON walk): 169 of 200 contract_url occurrences, 80 unique values, are on the staging host; a public request to one such object did not return content, while the sibling assets.kalshi.com terms PDF did. Rule implemented in seriesContractLinks(); 7 unit checks.",
+    status: "partially verified", flag: "X1" }
 ];

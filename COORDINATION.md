@@ -3247,6 +3247,67 @@ Brief requirement under test: "Every table row must have a source link to an off
 
 **Still open, unchanged:** no demo API key in the repo (no account performance, fill, or end-to-end order claimed); alerts poll only while the tab is open; the scan universe is capped (12 × 200 events, top 30 open markets per topic); last-traded-price only; WS ticker path detects consecutive-reading swings only and needs the relay; simulated fills optimistic (F15); High-ROI watch is a rule set (A1); ranking still the labelled proxy (A11, mitigated); a topic total can be smaller than the truth because unreadable markets are excluded, and the page says how many.
 
+---
+
+---
+
+## Session `33a37458` — independent line-by-line re-verification of the published site (branch `arena/33a37458-kalshidash2`, started 2026-11-22)
+
+Branched from `main` @ `252e623` (the bot's 07:05Z snapshot refresh), clean tree, Pages `builds/latest`
+on that exact SHA = `built`. Every claim below is re-read from the files in this checkout and, where it
+is a factual statement about Kalshi, re-checked against an official page or a live demo response in this
+session — not against another session's prose.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| V1 | Line-by-line requirement traceability of the brief against the published site, with the file:line and the live evidence for each requirement | **done** | `33a37458` | `reports/verify-33a37458.md` (new), this section | local files + live demo API responses fetched this session | Logged below |
+| V2 | Re-verify the site's official-source claims (endpoints, fields, field semantics, demo env, WS channels) against docs.kalshi.com | **done** | `33a37458` | `reports/verify-33a37458.md` | https://docs.kalshi.com pages fetched this session | — |
+| V3 | Run every local suite on this base and record exact counts | **done** | `33a37458` | `reports/verify-33a37458.md` | `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tools`, `tools/check_site_links.py`, `tools/verify/page-runtime-check.mjs`, `evidence/auth-sign-test.mjs` | — |
+| V4 | Fix only defects proven in V1–V3; log each before editing | **done** | `33a37458` | `assets/js/alerts-core.js`, `assets/js/alerts.js`, `flagged.html` (X1 + new X5), `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/claims.js`, `tools/audit_external_links.py`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | defects A1–A3 logged in this section before any edit | A1 non-public contract link (fixed), A2 stale counts (fixed), A3 hard-coded audit note (fixed) |
+| V5 | PR → `main`, merge without waiting, confirm Pages deploy on the merged SHA, record the result | **in progress** | `33a37458` | this section | `gh`, Pages API | Flagged items do not block; a broken site does |
+
+Baseline run on this branch tip before any change (2026-11-22T08:0xZ): Node **155/155** across 13 test files
+(the "16" in an earlier draft of this line counted the `tests/` directory's 13 `*.test.mjs` files plus three
+non-test scripts; corrected here) · Python `tools` **42 OK** · static links **36 pages / 0 broken** · page
+runtime **18/18** · signing self-test **6/6** · `git diff --check` clean.
+
+After the fixes (2026-11-22T08:3xZ): Node **162/162** · DOM alerts **22/22**, category **18/18**, summary
+pass (87/100 claims verified, 39 open / 47 mitigated / 85 flags) · Python `tools` **42 OK** · links 36 / 0 ·
+runtime 18/18 · signing 6/6 · `npm audit` 0 vulnerabilities · `git diff --check` clean.
+Full write-up with one official source per row: `reports/verify-33a37458.md`.
+
+### `33a37458` — defects proven in V1–V3 (logged before any edit, as the board requires)
+
+**A1 (new, code defect, published site).** `assets/js/alerts.js:417` builds the "official contract
+filing" link from `[rec.contract_url, rec.contract_terms_url]` and uses `urls[0]` — i.e. it prefers
+`contract_url`. In the committed demo capture that field points at
+`kalshi-public-docs-staging.s3.us-east-1.amazonaws.com`, which is exactly the host **Flag X1** records as
+returning HTTP 403 to a public runner. Counting the JSON (not grep) in `data/snapshot.json`
+(generated 2026-11-22T07:05:27Z): 200 `contract_url` occurrences, 90 unique, of which **169 occurrences
+(80 unique) are on the staging bucket** and 31 are on `assets.kalshi.com`. So the alerts page publishes a
+link to a 403 URL as the official filing. Official schema, fetched this session
+([Get Series](https://docs.kalshi.com/api-reference/market/get-series)): `contract_url` = "a direct link
+to the original filing of the contract which underlies the series"; `contract_terms_url` = "the URL to the
+current terms of the contract underlying the series" — two different documents, both required, neither
+documented as staging. Live this session: `GET /series/KXGAS` and `/series/GAS` return
+`contract_url … staging …/GAS.pdf` + `contract_terms_url https://assets.kalshi.com/contract_terms/GAS.pdf`;
+the assets host serves a readable PDF, the staging host does not answer.
+**Also false as published:** Flag X1 and `tools/audit_external_links.py` both assert "no published page
+links them". That was true when written; `alerts.js` now does. Fix: prefer the terms URL, never render a
+staging-host link, label the two documents distinctly, and correct both statements.
+
+**A2 (new, stale published counts).** Three counts restated in the docs no longer match the suites:
+`README.md:166` says alerts-core has 19 tests (it has **21**), `README.md:169` says taxonomy has 11
+(it has **17**), and `EXECUTIVE_SUMMARY.md:49` says "18 alert-core tests, 5 simulator-core tests, 16
+alerts-page DOM checks" (measured this session: **21 / 10 / 21**). Fix: state the measured numbers and
+record the measurement date.
+
+**A3 (minor, tool note).** `tools/audit_external_links.py` hard-codes "Staging bucket (66 URLs)" in a
+review note, while the same script's own table today renders 80 — the note does not follow the data.
+Fix: derive the count in the note from the scan.
+
+---
+
 ### `e7931fe7` — addendum: the Flagged page's own item count (Z8, 2026-11-22T08:2xZ)
 
 Found while reading the deployed summary page: it reported **87 items · 50 mitigated** against **38 open**, i.e. 88 statuses for 87 items. Cause: the card for **Z3** was never closed, so **SC1**, **SC2** and everything after it rendered *inside* Z3. Both counters (this repository's `flagged.html` script and the "Open flags" figure on `summary.html`, which reads the same rule from the page) therefore counted Z3 as one open card and its two nested mitigated neighbours as extra states of the same card, and the nesting also hid those two headings from a reader scanning the section.
