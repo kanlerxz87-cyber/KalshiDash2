@@ -3206,3 +3206,15 @@ Brief requirement under test: "Every table row must have a source link to an off
 | L1 | Run the existing page-runtime harness and the full local suite on `main` @ `252e623`; record exact counts | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md` (new), this section | `node tools/verify/page-runtime-check.mjs`, `node --test tests/*.test.mjs`, `python3 -m unittest`, `tools/check_site_links.py .` | — |
 | L2 | Audit every rendered table data row on every published page: does it carry at least one link to an official host, or is it explicitly flagged? Fix only stale or unlinked **factual** rows found | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md`, `questions.html` (scope added: only the Missing-information table) | DOM capture from the runtime harness; host classification against `reports/external-links-audit.md` | F-1 stale gas row (contradicted by live API 2026-11-22) removed; F-2 stale WebSocket row reworded to match Q10; F-3 process row removed; F-4 link added. Legend rows in `sources.html`/`verification.html`/`summary.html` left as-is and logged |
 | L3 | Final integration: PR → `main`, merge without waiting, confirm Pages deploy; record PR link + result here | **in progress** | `3bc35c29` | this section | `gh pr create`, `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+### `3bc35c29` — result record (L1–L3 final)
+
+| Item | Result |
+|---|---|
+| Pull request | [#112](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/112) `arena/3bc35c29-kalshidash2` → `main` — **MERGED** (`gh pr merge 112 --merge`), merge commit `08890f0`. Two earlier merge attempts were blocked by board-only conflicts with other sessions' merges (resolved by union, nothing dropped). |
+| Pages | `pages/builds/latest` on `08890f0`: `status: built`, `error: null`. Live `questions.html` fetched from `kanlerxz87-cyber.github.io/KalshiDash2/` after the build. |
+| Checks | `check` (static site link check + tests) **SUCCESS** on the PR head; `verify-alerts` **success** (a `[skip ci]` bot commit on `main` moved during the window). |
+| Local suite on the branch | page-runtime **18/18**; links **36 pages / 0 broken**; Node **156/156**; Python tools **42 OK**. |
+| Flags for review | Legend-only rows in `sources.html`, `verification.html`, `summary.html` carry no link by design (logged in `reports/rowlink-audit-3bc35c29.md` §3, F-5). The browser-side authenticated WebSocket handshake remains untested (open question on `questions.html`). |
+
+**Session `3bc35c29` status: L1–L3 done.** Session finished.
