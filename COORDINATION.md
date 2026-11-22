@@ -3139,7 +3139,7 @@ only difference between the tested branch tip and `96e685c` was #105's 26 board 
 
 | Task | Status | Owner | Files |
 |---|---|---|---|
-| Correct unsupported probability wording in suggestion S4; verify its source and add regression coverage | in progress | `0d535383` | `suggestions.html`, `tests/official-wording.test.mjs`, `COORDINATION.md` |
+| Correct unsupported probability wording in suggestion S4; verify its source and add regression coverage | done | `0d535383` | `suggestions.html`, `tests/official-wording.test.mjs`, `COORDINATION.md` |
 
 Independent review found S4 asserts that a price is the market's probability and cites the orderbook guide; the cited guide documents bid/ask complementarity, not a verified probability. Source: <https://docs.kalshi.com/getting_started/orderbook_responses>. Scope is limited to this accuracy issue and its tests; no other session's claimed files are taken over.
 
