@@ -3206,3 +3206,29 @@ Brief requirement under test: "Every table row must have a source link to an off
 | L1 | Run the existing page-runtime harness and the full local suite on `main` @ `252e623`; record exact counts | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md` (new), this section | `node tools/verify/page-runtime-check.mjs`, `node --test tests/*.test.mjs`, `python3 -m unittest`, `tools/check_site_links.py .` | — |
 | L2 | Audit every rendered table data row on every published page: does it carry at least one link to an official host, or is it explicitly flagged? Fix only stale or unlinked **factual** rows found | **done** | `3bc35c29` | `reports/rowlink-audit-3bc35c29.md`, `questions.html` (scope added: only the Missing-information table) | DOM capture from the runtime harness; host classification against `reports/external-links-audit.md` | F-1 stale gas row (contradicted by live API 2026-11-22) removed; F-2 stale WebSocket row reworded to match Q10; F-3 process row removed; F-4 link added. Legend rows in `sources.html`/`verification.html`/`summary.html` left as-is and logged |
 | L3 | Final integration: PR → `main`, merge without waiting, confirm Pages deploy; record PR link + result here | **in progress** | `3bc35c29` | this section | `gh pr create`, `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+---
+
+## Session `33a37458` — independent line-by-line re-verification of the published site (branch `arena/33a37458-kalshidash2`, started 2026-11-22)
+
+Branched from `main` @ `252e623` (the bot's 07:05Z snapshot refresh), clean tree, Pages `builds/latest`
+on that exact SHA = `built`. Every claim below is re-read from the files in this checkout and, where it
+is a factual statement about Kalshi, re-checked against an official page or a live demo response in this
+session — not against another session's prose.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| V1 | Line-by-line requirement traceability of the brief against the published site, with the file:line and the live evidence for each requirement | **done** | `33a37458` | `reports/verify-33a37458.md` (new), this section | local files + live demo API responses fetched this session | Logged below |
+| V2 | Re-verify the site's official-source claims (endpoints, fields, field semantics, demo env, WS channels) against docs.kalshi.com | **done** | `33a37458` | `reports/verify-33a37458.md` | https://docs.kalshi.com pages fetched this session | — |
+| V3 | Run every local suite on this base and record exact counts | **done** | `33a37458` | `reports/verify-33a37458.md` | `node --test tests/*.test.mjs`, `python3 -m unittest discover -s tools`, `tools/check_site_links.py`, `tools/verify/page-runtime-check.mjs`, `evidence/auth-sign-test.mjs` | — |
+| V4 | Fix only defects proven in V1–V3; log each before editing | **done** | `33a37458` | `assets/js/alerts-core.js`, `assets/js/alerts.js`, `flagged.html` (X1 + new X5), `README.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/claims.js`, `tools/audit_external_links.py`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | defects A1–A3 logged in this section before any edit | A1 non-public contract link (fixed), A2 stale counts (fixed), A3 hard-coded audit note (fixed) |
+| V5 | PR → `main`, merge without waiting, confirm Pages deploy on the merged SHA, record the result | **in progress** | `33a37458` | this section | `gh`, Pages API | Flagged items do not block; a broken site does |
+
+Baseline run on this branch tip before any change (2026-11-22T08:0xZ): Node **155/155** across 13 test files
+(the "16" in an earlier draft of this line counted the `tests/` directory's 13 `*.test.mjs` files plus three
+non-test scripts; corrected here) · Python `tools` **42 OK** · static links **36 pages / 0 broken** · page
+runtime **18/18** · signing self-test **6/6** · `git diff --check` clean.
+
+After the fixes (2026-11-22T08:3xZ): Node **162/162** · DOM alerts **22/22**, category **18/18**, summary
+pass (87/100 claims verified, 39 open / 47 mitigated / 85 flags) · Python `tools` **42 OK** · links 36 / 0 ·
+runtime 18/18 · signing 6/6 · `npm audit` 0 vulnerabilities · `git diff --check` clean.
+Full write-up with one official source per row: `reports/verify-33a37458.md`.
