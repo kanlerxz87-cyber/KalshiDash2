@@ -191,6 +191,11 @@ export const CLAIMS = [
     detail: "side is bid (≡ yes) or ask (≡ no) — not buy/sell",
     source: `${D}/getting_started/order_direction`,
     ev: "Documented table bid≡yes, ask≡no", status: "verified" },
+  { cat: "trading", claim: "The price scale of a NO order",
+    detail: "Not settled. Order direction says direction does not change the price (a NO order at p matches a YES order at the same p); Create Order (V2) defines side as YES-leg-only and describes ask as 'buy NO at 1 - price'. The two readings differ by 1 - price, and no demo key was available to settle it with one live order. The order form discloses both readings instead of picking one; the YES path is unaffected and is pinned by tests/order-contract.test.mjs (9 tests).",
+    source: `${D}/api-reference/orders/create-order-v2`,
+    ev: "Both official pages quoted side by side in portfolio.html step 3 and Flagged NF1. A prior session's row D2 recorded only the YES-leg sentence and marked it verified — read as partial (reports/verify-independent-32b15793.md)",
+    status: "unverified", flag: "NF1" },
   { cat: "trading", claim: "Required order fields",
     detail: "ticker, side, count, price, time_in_force, self_trade_prevention_type",
     source: `${D}/api-reference/orders/create-order-v2`,
@@ -321,9 +326,9 @@ export const CLAIMS = [
     source: "https://docs.kalshi.com/getting_started/fee_rounding",
     ev: "node --test tests/simulator-core.test.mjs — 10/10 pass (2026-11-21)", status: "verified" },
   { cat: "repo", claim: "Every published page executes without error",
-    detail: "17 pages run against a DOM shim with live-shaped API fixtures",
+    detail: "Every page in tools/verify/page-runtime-check.mjs DEFAULT_PAGES runs against a DOM shim with live-shaped API fixtures; the page count is read from that list at run time instead of being restated here",
     source: "https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/tools/verify/page-runtime-check.mjs",
-    ev: "Live: node tools/verify/page-runtime-check.mjs reports 17/17 clean", status: "verified" },
+    ev: "Live: node tools/verify/page-runtime-check.mjs — 18/18 pages ran clean, 36 pages link-checked (2026-11-22, session faf9fe08). An earlier entry said 17/17; DEFAULT_PAGES had grown to 18 and the number is now not restated (Flagged NF2)", status: "verified", flag: "NF2" },
 
   // ---- live alerts page (session 4208a2dd, merged from main) ----
   { cat: "api", claim: "Batch price read by ticker list",

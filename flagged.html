@@ -1663,6 +1663,213 @@
         they do not scan simultaneously.</p>
     </div>
 
+    <h2>10 · Line-by-line re-verification against the live demo API (session <code>faf9fe08</code>, added 2026-11-22)</h2>
+    <p class="sub" style="margin-bottom:14px">
+      This session could read the demo REST API directly, so every item below is a response it read or a
+      documentation page it quoted — not an inference. The full transcript of URLs and findings is
+      <a href="reports/verify-faf9fe08.md">reports/verify-faf9fe08.md</a>; each URL there re-runs in a browser.
+    </p>
+
+    <div class="irregularity" id="NF1">
+      <h3>NF1 — The official pages disagree on the price scale of a NO order <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> ordering a NO position takes <code>side: "ask"</code>, and the two
+        official pages that define what <code>price</code> then means do not agree. This matters because the
+        two readings differ by <code>1 - price</code>, i.e. by up to a dollar per contract.</p>
+      <ul class="small" style="margin:0 0 8px;padding-left:20px;line-height:1.8">
+        <li><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
+          — "Direction does not change the price … An order at price <code>p</code> with
+          <code>outcome_side=no</code> is matched by an order at the same price <code>p</code> with
+          <code>outcome_side=yes</code>: both parties trade at the same price". Read literally, a NO order at
+          <code>0.23</code> pays 23¢ and the <code>price_ranges</code> grid (multiples of 1¢) accepts it.</li>
+        <li><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
+          — the <code>side</code> field is defined as "For event markets, this refers to the YES leg only:
+          <code>bid</code> means buy YES, <code>ask</code> means sell YES. (Selling YES is economically
+          equivalent to buying NO at <code>1 - price</code>, but this endpoint quotes everything from the YES
+          side.)" Read literally, a NO order at <code>0.23</code> is a YES-side price and the NO position costs
+          the complement, 77¢ — and <code>0.23</code> is not on the 1¢ grid of a 1¢-tick market, which would
+          invite <code>invalid_price</code>.</li>
+      </ul>
+      <p><strong>Why this session did not settle it:</strong> deciding it needs one live demo order on a
+        market with a visible book, and no demo API key exists in this repository. It is not inferable from
+        the docs, and guessing is exactly what the brief forbids.</p>
+      <p><strong>A prior session recorded the opposite conclusion.</strong>
+        <a href="reports/verify-independent-32b15793.md">reports/verify-independent-32b15793.md</a> row D2 marks the
+        mapping "verified" and quotes only the YES-leg sentence. The contradiction with the order-direction
+        page was not noticed, so that row should be read as partial. It is left in place rather than rewritten,
+        because it is a dated record of what that run checked.</p>
+      <p><strong>Status here:</strong> the order form sends <code>side: "ask"</code> for a NO purchase and
+        passes the entered price through unchanged — the reading that matches the site's own grid-snapping
+        against <code>price_ranges</code>. Step 3 of <a href="portfolio.html">portfolio.html</a> now carries a
+        visible warning naming both readings, so a user is never told the ambiguity is absent. Nothing is
+        silently "fixed" in either direction.</p>
+      <p><strong>What would close it:</strong> one demo order for 1 NO contract at a printed price on a market
+        whose YES bid and NO bid are both visible, then comparing the filled price and
+        <code>fill_count</code> cost against both predictions.</p>
+    </div>
+
+    <div class="irregularity" id="NF2">
+      <h3>NF2 — A published run count was stale, and the page count was restated where it could drift <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the claim register said "17 pages run against a DOM shim" and
+        "reports 17/17 clean". The harness's own <code>DEFAULT_PAGES</code> list in
+        <a href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/tools/verify/page-runtime-check.mjs" target="_blank" rel="noopener noreferrer">tools/verify/page-runtime-check.mjs ↗</a>
+        had grown to 18, and running it on this branch from an empty cache reports
+        <strong>18/18 pages ran clean</strong> plus <strong>36 pages, 0 broken local link(s)</strong>.</p>
+      <p><strong>Why it is flagged rather than quietly corrected:</strong> the same sentence is quoted on
+        <a href="flagged.html#Y9">Y9</a> above as the record of a specific run, and rewriting that quote would
+        falsify a dated observation. The register is corrected; the historical quote is left as it was
+        written.</p>
+      <p><strong>Fix:</strong> the register no longer restates a count that can grow. It names
+        <code>DEFAULT_PAGES</code>, dates the run, and reports the numbers that run produced. Any reader can
+        re-run one command to confirm them.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/main/tools/verify/page-runtime-check.mjs" target="_blank" rel="noopener noreferrer">page-runtime-check.mjs ↗</a>
+        <a class="src-link" href="reports/verify-faf9fe08.md">this run's transcript ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="NF3">
+      <h3>NF3 — "Recently resolved" reads only the live tier, so it cannot show anything older than the cutoff <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <a href="resolved.html">resolved.html</a> discovers settled markets
+        with <code>GET /markets?status=settled</code>. The official
+        <a href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">Historical Data ↗</a>
+        page lists <code>/markets</code> among the live endpoints that stop serving data at the published
+        cutoff, and says archived data is available only from the <code>/historical/*</code> routes.</p>
+      <p><strong>Measured this session (2026-11-22):</strong>
+        <a href="https://external-api.demo.kalshi.co/trade-api/v2/historical/cutoff" target="_blank" rel="noopener noreferrer">GET /historical/cutoff ↗</a>
+        returned <code>market_settled_ts: "2026-09-23T00:00:00Z"</code>,
+        <code>trades_created_ts: "2026-09-23T00:00:00Z"</code>,
+        <code>orders_updated_ts: "2026-11-08T00:00:00Z"</code> and
+        <code>market_positions_last_updated_ts: "2026-09-23T00:00:00Z"</code>. A settlement older than the
+        <code>market_settled_ts</code> value therefore has no guarantee of appearing in the live listing,
+        however it resolved — the row is absent, not wrong, and an absent row is not a "no".</p>
+      <p><strong>What the page did before:</strong> nothing said so. A reader could reasonably take the table
+        for a complete settlement history.</p>
+      <p><strong>Fix:</strong> the "Recently resolved" card now states that this is a recent window and not an
+        archive, names the cutoff mechanism, links the live cutoff endpoint, links
+        <code>GET /historical/markets</code> and the settlements route, and points at this card. The counter
+        above the table still reports exactly how many rows the live endpoint returned.</p>
+      <p><strong>Not fixed, deliberately:</strong> the page does not fall back to the archived tier. That would
+        need a per-row <code>/historical/markets/{ticker}</code> call to know a missing ticker's fate, and a
+        fallback that quietly mixed two tiers under one heading would be worse than an honest label. Recorded
+        as a deliberate limitation, not as compliance.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">Historical Data ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-markets" target="_blank" rel="noopener noreferrer">Get Historical Markets ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/historical/cutoff" target="_blank" rel="noopener noreferrer">live cutoff ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="NF4">
+      <h3>NF4 — The series list ignores <code>limit</code> and answers <code>null</code> for an empty category <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> the source register described <code>GET /series</code> as needing no
+        limit or cursor, which is right, but two behaviours measured this session make a response size a
+        floor rather than a total:</p>
+      <ul class="small" style="margin:0 0 8px;padding-left:20px;line-height:1.8">
+        <li><code>GET /series?category=Crypto&amp;limit=2</code> returned <strong>8</strong> series. A
+          <code>limit</code> that the <a href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+          page documents (1–100, default 100) is not honoured on the demo host.</li>
+        <li><code>GET /series?category=Fun</code> returned <code>{"series": null}</code> — not
+          <code>[]</code>. Code that reads <code>body.series.length</code> would throw; code that reads it as
+          "no series" and code that reads it as "the filter failed" are indistinguishable from this payload.</li>
+      </ul>
+      <p><strong>Why it matters:</strong> the site's topic discovery used to substring-match keywords against
+        this list (<a href="flagged.html#F8">F8</a>), and any census built from it would have been a partial
+        one while looking complete. <code>scripts/collect.py</code> also caps <code>/series</code> at
+        <code>max_pages=5</code>, which turns a long category into a silent truncation in the snapshot rather
+        than an error.</p>
+      <p><strong>Status here:</strong> the register entry now states both behaviours with the request that
+        showed each, so the limit is visible where the source is cited. The site's own taxonomy does not
+        depend on a series total — it classifies by event and by series category — so no page output changes.
+        The <code>null</code> case is already handled by <code>scripts/collect.py</code>
+        (<code>data.get(key) or []</code>).</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series?category=Crypto&limit=2" target="_blank" rel="noopener noreferrer">limit=2 returns 8 ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series?category=Fun" target="_blank" rel="noopener noreferrer">null payload ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="NF5">
+      <h3>NF5 — The published <code>GET /markets</code> page limit was wrong in the source register <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/sources.js</code> described Get Markets as "Market
+        fields, the status filter, and the <strong>200-row page limit</strong>".</p>
+      <p><strong>Official text:</strong>
+        <a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
+        documents <code>limit</code> as "Number of results per page. Defaults to 100. Maximum value is 1000."
+        Only <a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+        documents a 200 maximum.</p>
+      <p><strong>Measured this session:</strong> <code>GET /markets?limit=1001</code> is rejected while
+        <code>limit=1000</code> succeeds; <code>GET /events?limit=201</code> is rejected while
+        <code>limit=200</code> succeeds. The two endpoints really do have different caps, so quoting the
+        events cap for markets was a factual error in the audit trail of the source register itself.</p>
+      <p><strong>Impact:</strong> none on page output — <code>assets/js/market.js</code> already used 200,
+        which is valid on both endpoints. The error was in the register a reviewer reads to check the code.</p>
+      <p><strong>Fix:</strong> the register now reads "pagination (limit default 100, maximum 1000)".</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="NF6">
+      <h3>NF6 — The order path's two silent-wrong-order risks are now pinned by a test <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the demo order path cannot be exercised from this container (no demo
+        key exists in the repository), so two failures that would open the wrong position or get a signature
+        rejected had no automated guard:</p>
+      <ul class="small" style="margin:0 0 8px;padding-left:20px;line-height:1.8">
+        <li>Sending <code>side: "ask"</code> opens a <strong>NO</strong> position. The site's earlier form
+          offered "Sell Yes (ask)", which the API treats as a NO purchase — the mislabelling already tracked
+          as <a href="flagged.html#F7">F7</a>.</li>
+        <li>The <code>KALSHI-ACCESS-TIMESTAMP</code> header must be epoch <strong>milliseconds</strong>, and
+          the pre-sign text uses the same string. A seconds value is both a bad signature and an expired one
+          (<code>header_timestamp_expired</code>), and it is a one-token change to make by accident.</li>
+      </ul>
+      <p><strong>What this session added:</strong> <code>tests/order-contract.test.mjs</code> drives the real
+        <code>KalshiClient</code> with a generated RSA key pair and a stubbed <code>fetch</code>, then checks
+        the request it actually built: <code>bid</code> for YES and <code>ask</code> for NO, every documented
+        required field present and fixed-point formatted, the V2 route and not the removed v1 route, a
+        13-digit millisecond header, and a signature that verifies over
+        <code>&lt;ms&gt;POST/trade-api/v2/portfolio/events/orders</code> while failing over a seconds-based
+        timestamp and over a path without the <code>/trade-api/v2</code> prefix.</p>
+      <p><strong>Proof the test bites:</strong> changing <code>kalshi.js</code> to
+        <code>String(Math.floor(Date.now() / 1000))</code> makes exactly one assertion fail ("the timestamp
+        header is epoch milliseconds, not seconds"); restoring it returns 9/9. The guard was verified by
+        breaking the code on purpose, not by assuming it would catch it.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated requests — header in milliseconds ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
+      </p>
+    </div>
+
+    <div class="irregularity" id="NF7">
+      <h3>NF7 — This session's own working note about candle gaps was wrong, and the test says so <span class="tag yes">fixed</span></h3>
+      <p><strong>What happened:</strong> a note carried into this session claimed the demo candlestick
+        endpoint returned a sparse, misaligned series — a duplicated hour and a six-hour hole — for
+        <code>KXAAAGASW-26NOV23-3.6200</code>. Re-reading the same request on 2026-11-22 returned
+        <strong>seven candles exactly 3,600 seconds apart</strong>, and a 900-second window at
+        <code>period_interval=1</code> returned <strong>16 candles exactly 60 seconds apart</strong>. The
+        periods are aligned and contiguous; the exchange emits every period, not only traded ones.</p>
+      <p><strong>What is true, and narrower:</strong> an untraded period is still emitted, but its
+        <code>price</code> object contains <em>only</em> <code>previous_dollars</code> — no
+        <code>close_dollars</code>, <code>open</code>, <code>high</code>, <code>low</code> or
+        <code>mean</code>. So the plotted close line has a real one-period hole there. Filling it forward, or
+        treating it as <code>$0.00</code>, would put a price on screen that the response does not contain.</p>
+      <p><strong>Why it is on this page:</strong> the correction belongs on the record. A reader of the earlier
+        note would have gone looking for a chart bug that does not exist, and the real behaviour — a priced
+        hole inside an otherwise even series — is the one that needs the guard.</p>
+      <p><strong>What this session added:</strong> <code>tests/candle-spacing.test.mjs</code> reproduces both
+        captured responses verbatim and pins: contiguity, that an untraded period parses to
+        <code>y === null</code> (not 0, not the previous close), that the plotted value is the period close so
+        an intrabar bid dip of 2¢ is not drawn as a move, and that a jump marker never lands on an untraded
+        period. The X-axis geometry is pinned with a synthetic irregular series, because an evenly spaced
+        payload cannot distinguish a time axis from an index axis.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks ↗</a>
+        <a class="src-link" href="reports/verify-faf9fe08.md">captured responses and requests ↗</a>
+      </p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
@@ -1689,13 +1896,19 @@ const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 const fixedNow = [...document.querySelectorAll("#Y1,#Y2,#Y3,#Y4,#Y5,#Y6,#Y7")].length;
+/* Section 10 (session faf9fe08). Counted by id so the number cannot drift:
+ * every NF card is listed here once, and the id list is checked by
+ * tools/check_site_links.py, which fails on a dangling fragment. */
+const NF_IDS = ["NF1", "NF2", "NF3", "NF4", "NF5", "NF6", "NF7"];
+const nfCards = NF_IDS.map(id => document.querySelector("#" + id)).filter(Boolean);
 
 $("#counts").innerHTML = [
   { k: "Items on this page", v: int(cards.length), m: "each with evidence" },
   { k: "Open", v: int(open), m: "needs a decision" },
   { k: "Mitigated", v: int(mitigated), m: "handled explicitly by the site" },
   { k: "Defects in prior site", v: int(defects), m: "found by line-by-line review" },
-  { k: "Fixed by this session", v: int(fixedNow), m: "Y1–Y7, each with its source" }
+  { k: "Fixed by this session", v: int(fixedNow), m: "Y1–Y7, each with its source" },
+  { k: "Found against the live API", v: int(nfCards.length), m: "section 10, 2026-11-22" }
 ].map(s => `<div class="stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="m">${s.m}</div></div>`).join("");
 </script>
 </body>
