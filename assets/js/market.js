@@ -724,6 +724,45 @@ export class LiveSampler {
 
 const WATCH_KEY = "kalshiDash.watch.v1";
 
+/* Pure helper for a single market's result cell when `result` may be empty.
+ * Kalshi's `Market.result` enum is "yes" | "no" | "scalar" | "" while
+ * `Market.status` tracks lifecycle ("initialized", "inactive", "active",
+ * "closed", "determined", "disputed", "amended", "finalized"):
+ *   https://docs.kalshi.com/api-reference/market/get-market
+ * Rendering "open" whenever `result` is "" contradicts `status: "closed"` on
+ * markets awaiting determination (observed live on KXXRPD-26NOV2203-T1.5399). */
+export function marketResultState(market) {
+  const r = String(market?.result || "").toLowerCase();
+  if (r === "yes" || r === "no" || r === "scalar") return { kind: "settled", label: r };
+  if (r) return { kind: "settled", label: r };
+  const status = String(market?.status || "").toLowerCase();
+  if (["closed", "determined", "disputed", "amended", "finalized", "settled"].includes(status)) {
+    return { kind: "pending", label: "awaiting result" };
+  }
+  return { kind: "unresolved", label: "unresolved" };
+}
+
+/* Update one watch-list entry from a documented Get Market response.
+ * Any non-empty documented settlement outcome ("yes", "no", "scalar") is
+ * recorded literally as `final_result` rather than leaving a scalar market
+ * perpetually in "awaiting resolution". */
+export function applyMarketToWatchEntry(w, m, nowIso = new Date().toISOString()) {
+  const result = String(m?.result || "").toLowerCase();
+  w.last_seen = {
+    status: m.status, result,
+    yes_bid: num(m.yes_bid_dollars), yes_ask: num(m.yes_ask_dollars),
+    last: num(m.last_price_dollars), close_time: m.close_time,
+    settlement_value: num(m.settlement_value_dollars ?? m.settlement_value)
+  };
+  w.title = m.title || m.yes_sub_title || w.title;
+  if (result === "yes" || result === "no" || result === "scalar") {
+    w.final_result = result;
+    w.resolved_at = w.resolved_at || m.settlement_ts || nowIso;
+  }
+  w._error = null;
+  return w;
+}
+
 export const Watchlist = {
   all() {
     try { return JSON.parse(localStorage.getItem(WATCH_KEY) || "[]"); }
@@ -733,6 +772,8 @@ export const Watchlist = {
   add(market, topicKey, eventTitle) {
     const list = this.all();
     if (list.some(w => w.ticker === market.ticker)) return list;
+    const initResult = String(market.result || "").toLowerCase();
+    const isResolved = initResult === "yes" || initResult === "no" || initResult === "scalar";
     list.push({
       ticker: market.ticker,
       title: market.title || eventTitle || "",
@@ -745,7 +786,8 @@ export const Watchlist = {
         yes_bid: num(market.yes_bid_dollars), yes_ask: num(market.yes_ask_dollars),
         last: num(market.last_price_dollars), close_time: market.close_time
       },
-      resolved_at: null, final_result: null
+      resolved_at: isResolved ? (market.settlement_ts || new Date().toISOString()) : null,
+      final_result: isResolved ? initResult : null
     });
     localStorage.setItem(WATCH_KEY, JSON.stringify(list));
     return list;
@@ -762,19 +804,7 @@ export const Watchlist = {
     for (const w of list) {
       try {
         const m = await getMarket(w.ticker);
-        const result = (m.result || "").toLowerCase();
-        w.last_seen = {
-          status: m.status, result,
-          yes_bid: num(m.yes_bid_dollars), yes_ask: num(m.yes_ask_dollars),
-          last: num(m.last_price_dollars), close_time: m.close_time,
-          settlement_value: num(m.settlement_value_dollars ?? m.settlement_value)
-        };
-        w.title = m.title || w.title;
-        if (result === "yes" || result === "no") {
-          w.final_result = result;
-          w.resolved_at = w.resolved_at || new Date().toISOString();
-        }
-        w._error = null;
+        applyMarketToWatchEntry(w, m);
       } catch (e) {
         w._error = e.message;
       }

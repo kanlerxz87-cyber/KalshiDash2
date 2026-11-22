@@ -79,7 +79,7 @@
 <script type="module">
 import { mountChrome, esc, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { DEMO } from "./assets/js/config.js";
-import { api, getAll, Watchlist, classifyEvent, classifyMultivariate } from "./assets/js/market.js";
+import { api, getAll, Watchlist, classifyEvent, classifyMultivariate, fetchSeriesCategories } from "./assets/js/market.js";
 
 mountChrome({ page: "resolved.html", title: "Resolved" });
 
@@ -98,6 +98,7 @@ async function refreshWatch() {
     const resolved = w.final_result;
     const tag = resolved === "yes" ? `<span class="tag yes">yes</span>`
       : resolved === "no" ? `<span class="tag no">no</span>`
+      : resolved ? `<span class="tag warn" title="Settlement result reported by the exchange">${esc(resolved)}</span>`
       : `<span class="muted small">awaiting resolution</span>`;
     return `<tr>
       <td><strong>${esc(w.title || w.ticker)}</strong>
@@ -120,9 +121,10 @@ function renderStats(rows) {
   const resolved = rows.filter(w => w.final_result);
   const yes = resolved.filter(w => w.final_result === "yes").length;
   const no = resolved.filter(w => w.final_result === "no").length;
+  const scalar = resolved.filter(w => w.final_result === "scalar").length;
   $("#res-stats").innerHTML = [
     { k: "Tracked", v: int(rows.length), m: "markets in this browser" },
-    { k: "Resolved", v: int(resolved.length), m: "exchange reported a result" },
+    { k: "Resolved", v: int(resolved.length), m: scalar ? `exchange reported a result (${int(scalar)} scalar)` : "exchange reported a result" },
     { k: "Resolved YES", v: int(yes), m: "result = yes" },
     { k: "Resolved NO", v: int(no), m: "result = no" }
   ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
@@ -141,9 +143,9 @@ async function loadRecent() {
   pill($("#recent-status"), "warn", "loading…");
   try {
     const markets = await getAll("/markets?status=settled", { key: "markets", maxPages: 6, limit: 200 });
-    // Resolve event -> topic using the event detail, cached per event ticker.
+    // Resolve event -> series category -> topic, cached per event/series ticker.
     const evCache = new Map();
-    const rows = [];
+    const pending = [];
     const combos = [];
     /* The newest settled markets in the demo environment are overwhelmingly
      * multivariate ("combo") markets: on 2026-11-20 19:20Z the first page of
@@ -164,15 +166,23 @@ async function loadRecent() {
       const isCombo = (Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0)
         || (m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || ""));
       if (isCombo) { combos.push({ m, ev }); continue; }
-      rows.push({ m, ev, topic: ev ? classifyEvent(ev) : null });
-      if (rows.length >= 400) break;
+      pending.push({ m, ev });
+      if (pending.length >= 400) break;
     }
+    /* Prefer series-level categories (Get Events marks event.category deprecated). */
+    const seriesTickers = pending.map(x => x.ev?.series_ticker).filter(Boolean);
+    await fetchSeriesCategories(seriesTickers, { cap: 30 });
+    const rows = pending.map(({ m, ev }) => ({ m, ev, topic: ev ? classifyEvent(ev) : null }));
     /* Classify the combos by leg, reusing one look-up per leg event. */
     const legCache = new Map();
     const legLookup = async (t) => {
       if (!legCache.has(t)) {
-        try { const j = await api.get(`/events/${encodeURIComponent(t)}`); legCache.set(t, j.event || j); }
-        catch { legCache.set(t, null); }
+        try {
+          const j = await api.get(`/events/${encodeURIComponent(t)}`);
+          const legEv = j.event || j;
+          if (legEv?.series_ticker) await fetchSeriesCategories([legEv.series_ticker], { cap: 1 });
+          legCache.set(t, legEv);
+        } catch { legCache.set(t, null); }
       }
       return legCache.get(t);
     };
