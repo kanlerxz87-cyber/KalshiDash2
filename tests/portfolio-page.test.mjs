@@ -181,6 +181,8 @@ test("fill quantities retain their documented fixed-point fraction and dollar fe
 test("NO-price ambiguity stays visible and the confirmation does not claim a verified scale", async () => {
   assert.match(html, /id="no-price-conflict"/);
   assert.match(html, /flagged\.html#NF1/);
+  assert.match(html, /flagged\.html#P130/, "unverified account coverage is linked before loading a key");
+  assert.match(html, /reports\/verify-130acb78\.md/);
   const f = fixture();
   f.$("#o-ticker").value = "KXTEST-1";
   f.$("#o-side").value = "no";

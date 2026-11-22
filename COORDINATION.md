@@ -3493,4 +3493,10 @@ The earlier revision claimed a verified NO-price fix based only on the endpoint'
 - Local suites: **238/238 Node**, **42 tools**, **20 Python client/relay (3 skipped)**, **18/18 runtime**, **36 HTML pages / 0 broken local links**, **22 alerts / 5 summary / 23 category DOM**, **6/6 signing**. The attempted `auth-sign-check.mjs` invocation was a nonexistent path; corrected to the existing `tools/verify/auth-sign-test.mjs` and all six checks passed.
 - **P4 file-scope addition before editing:** add one new `flagged.html#P130` card for unsettled-position coverage / unverified fee inclusion and the mitigations in this pass. This is a new card only; all existing owners' cards, especially active session `8f3c331c`'s PG1/PG2 and X1 edits, remain untouched. Its V1–V7 record says its own card changes are done; V8 integration remains that session's task. Do not close or merge PR #126 from here.
 
+### Pre-merge integration result (2026-11-22T08:45Z)
+
+Merged `origin/main` @ `634ebfe` (PR #127) without changing its code. The only conflict was the board append: preserved the entire main board byte-for-byte as a prefix, followed by this session's section; all **46 session headings** retained. `flagged.html#P130` now publishes account-coverage / fee-inclusion limits, links the official Positions / Balance / Fills docs and this report, and records that the attempted NO conversion was withdrawn. Existing cards are untouched. Portfolio links P130 and the report even before an account is loaded.
+
+Full rerun after integration + P130: **238/238 Node**, **42 tools**, **20 Python (3 skipped)**, **18/18 runtime**, **36 pages / 0 broken local links**, **22 alerts / 5 summary / 23 category DOM**, **6/6 signing**. Flag counters reconcile at **97 total = 40 open + 57 mitigated** on this tree. No authenticated test or order was performed.
+
 **Status: P1–P3 done; P4 integration / Pages confirmation in progress.**

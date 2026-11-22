@@ -123,7 +123,8 @@ and [Order direction](https://docs.kalshi.com/getting_started/order_direction).
 ## 4. Remaining limitations
 
 - Whether `realized_pnl_dollars` includes fees is **unverified** in the cited
-  schema. No extra fee subtraction, net-P&L, or ROI figure is invented.
+  schema. No extra fee subtraction, net-P&L, or ROI figure is invented. Published
+  with the account-coverage limits as [Flagged P130](../flagged.html#P130).
 - Private account results and live order execution remain **unverified** for this
   session. Offline fixtures are labelled tests, never published as account data.
 - Unsettled-position totals are not lifetime account returns; archived positions,
