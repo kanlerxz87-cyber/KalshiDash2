@@ -226,6 +226,10 @@ class Client:
         self.calls = 0
         self.last_call = 0.0
         self.errors: list[str] = []
+        # Rows a paginated read had already seen (see `paginate`). Counted, not
+        # hidden, so the run summary can disclose a listing that restarted.
+        self.repeated_rows = 0
+        self.restarted_lists: list[str] = []
 
     def _throttle(self):
         now = time.monotonic()
@@ -263,23 +267,76 @@ class Client:
                 delay = min(delay * 2, 30)
         raise RuntimeError(f"giving up on {url}")
 
+    # Fields a row can be identified by, in the order the endpoints use them.
+    # The names come from the published schemas (trade_id on Get Trades,
+    # event_ticker on Get Events, ticker on Get Markets and Get Series List).
+    ROW_KEY_FIELDS = ("trade_id", "event_ticker", "ticker")
+
+    @classmethod
+    def _row_key(cls, row):
+        if not isinstance(row, dict):
+            return None
+        for field in cls.ROW_KEY_FIELDS:
+            value = row.get(field)
+            if isinstance(value, str) and value:
+                return f"{field}:{value}"
+        return None
+
     def paginate(self, path: str, key: str, params: dict | None = None,
                  max_pages: int = 25) -> tuple[list, list[str]]:
-        """Follow the Kalshi cursor pagination until the cursor is empty."""
+        """Follow the Kalshi cursor pagination until the cursor is empty.
+
+        Kalshi documents a failure mode that a naive loop would turn into double
+        counts: "a `cursor` that cannot be decoded is ignored and the first page is
+        returned, with no error"
+        (https://docs.kalshi.com/api-reference/market/get-markets, read 2026-11-22).
+        A page can therefore arrive twice while everything looks normal.
+
+        Two defences, both recorded rather than silent:
+          * a row whose documented key was already read is folded away, so a
+            repeated page cannot inflate a per-series event count or a trade
+            sample; a row with no key is always kept — no key, no drop;
+          * a cursor the exchange hands back a second time ends the walk, and the
+            list is recorded in `restarted_lists` so the run says the read was
+            incomplete instead of pretending the tail did not exist.
+        """
         items: list = []
         urls: list[str] = []
         cursor = ""
         pages = 0
+        seen_keys: set[str] = set()
+        sent_cursors: set[str] = set()
         p = dict(params or {})
         while pages < max_pages:
             if cursor:
                 p["cursor"] = cursor
             url, data = self.get(path, p)
             urls.append(url)
-            items.extend(data.get(key) or [])
+            rows = data.get(key) or []
+            fresh = []
+            for row in rows:
+                k = self._row_key(row)
+                if k is None:
+                    fresh.append(row)
+                    continue
+                if k in seen_keys:
+                    self.repeated_rows += 1
+                    continue
+                seen_keys.add(k)
+                fresh.append(row)
+            items.extend(fresh)
             cursor = data.get("cursor") or ""
             pages += 1
-            if not cursor:
+            if not cursor or not rows:
+                break
+            if cursor in sent_cursors:
+                self.restarted_lists.append(f"{path}::{key} (page {pages})")
+                break
+            sent_cursors.add(cursor)
+            if not fresh and seen_keys:
+                # Every row on this page was already read: the listing restarted,
+                # so anything after it is unknown. Stop and say so.
+                self.restarted_lists.append(f"{path}::{key} (page {pages}, all rows repeated)")
                 break
         return items, urls
 

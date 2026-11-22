@@ -124,6 +124,22 @@ tools/verify/             auditable verification harness
 COORDINATION.md           shared task board for parallel sessions
 ```
 
+## Deployment — which deployer is authoritative
+
+**GitHub Pages publishes from `main:/` with `build_type: legacy`** (verified against the
+`gh api repos/kanlerxz87-cyber/KalshiDash2/pages` record, 2026-11-22). That builder runs on
+every push to `main` and publishes the **repository root**, which is why `docs/`, `reports/` and
+`COORDINATION.md` are reachable on the live host as well as the pages themselves.
+
+`.github/workflows/pages.yml` is a **manual fallback for the same tree**: it has no push trigger (PR #17
+ended the two-deployer race) and since PR from session `8f3c331c` it uploads `path: .` — the repository
+root — instead of the old `path: docs`, which would have published the superseded generation. The flag
+that recorded the mismatch is [Flagged AC3](flagged.html#AC3).
+
+If Pages' source is ever switched from "deploy from a branch" to "GitHub Actions", `pages.yml` becomes
+the deployer; nothing else needs changing, and the push-triggered legacy build must be turned off so the
+two do not race again.
+
 ## Running locally
 
 Any static server works; ES modules require HTTP, not `file://`:

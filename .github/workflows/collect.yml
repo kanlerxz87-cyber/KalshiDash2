@@ -1,9 +1,18 @@
 name: Collect demo snapshot
 
 # Refreshes data/snapshot.json from the official Kalshi DEMO REST API.
-# The snapshot backs the repo's verification tables and the site's offline
-# fallback. The live site itself reads the API directly from the browser
-# (CORS-verified against https://external-api.demo.kalshi.co).
+#
+# What the snapshot is: a repository evidence artifact. It backs the offline
+# verification tables (tools/test_collect.py compares the committed file against
+# the generator's own disclosure notes) and gives a reviewable capture of one
+# collector run.
+#
+# What it is NOT: a fallback the site reads. No published page fetches
+# data/snapshot.json — every board, chart and alert on the live site calls the
+# demo API directly from the browser (CORS-verified against
+# https://external-api.demo.kalshi.co). The earlier header claimed an "offline
+# fallback" that has never existed; Flagged SB2 recorded that and this is the
+# correction. See reports/verify-8f3c331c.md §7 for the re-check.
 on:
   workflow_dispatch:
     inputs:

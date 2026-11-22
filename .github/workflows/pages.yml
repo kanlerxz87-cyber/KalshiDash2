@@ -4,6 +4,17 @@ name: Deploy GitHub Pages
 # on every push. Keeping this push trigger made two deployers race for the same
 # `github-pages` environment, so the visible site depended on which finished last.
 # This workflow is now manual-only (workflow_dispatch) to avoid that race.
+#
+# WHAT IT PUBLISHES, AND WHY THAT CHANGED (Flagged AC3, closed 2026-11-22)
+# The artifact used to be `path: docs` — the superseded site generation that now
+# only survives under `/docs/` because the legacy builder publishes the whole
+# repository. The live Pages source is `main:/`, the repository ROOT, so this
+# workflow described a different tree from the one visitors get: a maintainer
+# running it to repair a build would have published the retired generation.
+# The path is now the repository root, i.e. exactly what `main:/` publishes, and
+# the README names the legacy `main:/` builder as the authoritative deployer with
+# this workflow as the manual fallback for the SAME tree. If Pages is ever switched
+# to "GitHub Actions" as its source, this workflow becomes the deployer unchanged.
 on:
   workflow_dispatch:
 permissions:
@@ -24,6 +35,8 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          # The repository root: the same tree the `main:/` legacy builder
+          # publishes. Do not point this at `docs/` again — see the header.
+          path: .
       - id: deployment
         uses: actions/deploy-pages@v4
