@@ -1593,6 +1593,7 @@
         <a class="src-link" href="https://docs.github.com/en/rest/pages/pages#list-github-pages-builds" target="_blank" rel="noopener noreferrer">Pages builds API ↗</a>
         · the build list for this repository (<code>GET /repos/kanlerxz87-cyber/KalshiDash2/pages/builds</code>)
         · the three Actions runs above.</p>
+    </div>
 
     <!-- Flags added by the concurrent session (SC1…) preserved verbatim below -->
     <div class="irregularity" id="SC1">
@@ -1736,6 +1737,27 @@
         "the traded-dollar table links every measured market's own trades response"</p>
     </div>
 
+    <div class="irregularity" id="Z8">
+      <h3>Z8 — Z3's card was never closed, so two later cards rendered inside it and were counted twice <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> the card for Z3 ended at its "Sources" paragraph with a comment
+        (<code>&lt;!-- Flags added by the concurrent session (SC1…) preserved verbatim below --&gt;</code>) and no
+        closing <code>&lt;/div&gt;</code>. SC1, SC2 and the sections after them therefore nested inside Z3: they
+        rendered with a card inside a card, and this page's own counter — and the "Open flags" figure on the
+        <a href="summary.html">Executive summary</a>, which reads the same rule from this page — treated Z3 as one
+        <em>open</em> card and its two nested <em>mitigated</em> neighbours as further states of the same card.
+        The page reported 87 items while adding up to 88 statuses.</p>
+      <p><strong>Why it matters:</strong> the counters are the reader's summary of how much is unresolved. A card
+        counted in two columns makes the review register look larger and more settled than it is, and the nesting
+        also hid SC1/SC2 from anyone scanning the headings.</p>
+      <p><strong>Fix shipped:</strong> the missing closing tag was added, so every card is a sibling again
+        (<code>.irregularity .irregularity</code> now matches nothing), and both counters read the status from the
+        card's own <code>&lt;h3&gt;</code>. <code>tests/dom/summary-dom.mjs</code> now fails if a card nests another,
+        if a card has no heading status tag, or if open + mitigated does not equal the item count.</p>
+      <p class="small"><strong>Sources:</strong> this page's own markup ·
+        <a class="src-link" href="tests/dom/summary-dom.mjs">tests/dom/summary-dom.mjs</a> ·
+        <a class="src-link" href="summary.html">summary.html</a> (reads the counts from this page)</p>
+    </div>
+
     <p class="small" style="margin:0"><strong>Re-checked and unchanged:</strong> the
       <code>orderbook_fp</code> response shape the liquidity tables parse (<code>yes_dollars</code>/<code>no_dollars</code>
       as <code>[price, count]</code> strings), the documented <code>depth</code> bound of 0–100 with the page's
@@ -1765,8 +1787,11 @@ import { mountChrome, $, int } from "./assets/js/ui.js";
 mountChrome({ page: "flagged.html", title: "Flagged for review" });
 
 const cards = [...document.querySelectorAll(".irregularity")];
-const open = cards.filter(c => c.querySelector(".tag.warn")).length;
-const mitigated = cards.filter(c => c.querySelector(".tag.yes")).length;
+/* The status tag lives in the card's own <h3>. Reading it from the whole card
+ * counted a nested card's tag as its parent's: Z3 was left unclosed, so SC1 and
+ * SC2 rendered inside it and the totals read 88 tags for 87 items (Z8). */
+const open = cards.filter(c => c.querySelector("h3 .tag.warn")).length;
+const mitigated = cards.filter(c => c.querySelector("h3 .tag.yes")).length;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 const fixedNow = [...document.querySelectorAll("#Y1,#Y2,#Y3,#Y4,#Y5,#Y6,#Y7")].length;
