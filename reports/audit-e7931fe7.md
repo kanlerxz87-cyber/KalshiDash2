@@ -93,3 +93,12 @@ prints it beside the requested window.
 | Pages | build for `d10acff` recorded cancelled (Z3 race); `43e5aa2` and `08890f0` built; API `status: built` for `08890f0`, which contains the merge |
 | Live proof | `flagged.html?v=0812` serves §10 with Z5–Z7; `categories/crypto.html` serves the new exclusion rule |
 | Merged-tree suite | Node 165/165 · Python tools 42 · Python tests 20 (3 skipped) · links 36 pages / 0 broken · page runtime 18/18 · signing 6/6 · DOM alerts 21/21, category 23/23, summary pass (39 open / 49 mitigated / 87) |
+
+## 8. Addendum — the Flagged page double-counted a card (Z8)
+
+The deployed summary reported 87 items with 50 mitigated against 38 open. The card for Z3 had no closing
+`</div>`, so SC1, SC2 and the sections after them nested inside it: the cards rendered inside a card, and the
+two counters that read this page (its own script and `summary.html`'s "Open flags") counted the nested
+mitigated cards as further states of Z3. Fix: the missing closing tag, both counters scoped to the card's own
+`<h3>`, a published card (Z8) and three DOM assertions (no nested cards, exactly one heading status per card,
+open + mitigated = item count). After the fix the page reports 88 items, 38 open, 50 mitigated.

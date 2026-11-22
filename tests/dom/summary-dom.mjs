@@ -58,8 +58,11 @@ const partial = CLAIMS.filter(claim => claim.status === "partially verified").le
 const unverified = CLAIMS.filter(claim => claim.status === "unverified").length;
 const flagDoc = new JSDOM(flaggedHtml).window.document;
 const cards = [...flagDoc.querySelectorAll(".irregularity")];
-const open = cards.filter(card => card.querySelector(".tag.warn")).length;
-const mitigated = cards.filter(card => card.querySelector(".tag.yes")).length;
+/* Status comes from the card's own heading. Reading any tag in the card made a
+ * nested card's status count for its parent: Z3 was left unclosed, SC1/SC2
+ * rendered inside it, and the page totalled 88 statuses for 87 items (Z8). */
+const open = cards.filter(card => card.querySelector("h3 .tag.warn")).length;
+const mitigated = cards.filter(card => card.querySelector("h3 .tag.yes")).length;
 
 const stats = [...window.document.querySelectorAll("#headline .stat")];
 const stat = name => {
@@ -84,6 +87,14 @@ for (const row of sourceRows) {
 }
 assert.equal(stat("Claims verified").value, `${verified} / ${CLAIMS.length}`);
 assert.equal(stat("Claims verified").detail, `${partial} partial · ${unverified} unverified`);
+assert.equal(flagDoc.querySelectorAll(".irregularity .irregularity").length, 0,
+  "no card may nest another card (a missing closing tag once did: Z8)");
+for (const card of cards) {
+  assert.equal(card.querySelectorAll("h3 .tag").length, 1,
+    `every card states exactly one status in its own heading: ${card.id}`);
+}
+assert.equal(open + mitigated, cards.length,
+  `open + mitigated must equal the item count: ${open} + ${mitigated} vs ${cards.length}`);
 assert.equal(stat("Open flags").value, String(open));
 assert.equal(stat("Open flags").detail, `${cards.length} items · ${mitigated} mitigated`);
 assert.ok(!window.document.querySelector("#headline").textContent.includes("[object Object]"));
