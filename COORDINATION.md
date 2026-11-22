@@ -3394,3 +3394,15 @@ and a dated report with re-runnable URLs is committed. That is the only new capa
 (new cards only), and — only after FAF-2's file list is written below — the specific site files a proven defect
 requires. `data/snapshot.json`, `scripts/`, `docs/`, `VERIFICATION.md`, `index.html`, the nav in `assets/js/ui.js`
 and all other sessions' sections are **not** edited here.
+---
+
+## Session `130acb78` — portfolio & trade-analysis verification + correctness pass (branch `arena/130acb78-kalshidash2`, 2026-11-22)
+
+Branched from `main` @ `252e623` (clean tree; Pages `builds/latest` on that exact SHA = `built`). `gh pr list --state open` at claim time: **#97** (`arena/f468e69b-kalshidash2`, docs-only record, `CONFLICTING`) — not touched by this session. Sessions active at claim time and their scopes: `3bc35c29` (`questions.html`, `reports/rowlink-audit-3bc35c29.md`), `0d535383` (suggestions), `33a37458` (`reports/verify-33a37458.md`), `e7931fe7` (integration; `assets/js/dollar-volume.js`, `assets/js/category.js`, `tests/dollar-volume.test.mjs`, `tests/dom/category-dom.mjs`, `flagged.html`). This session's file scope is disjoint from all of them.
+
+| ID | Task | Status | Owner | Exclusive files | Sources / verification | Irregularities |
+|---|---|---|---|---|---|---|
+| P1 | Line-by-line verification of `portfolio.html`, `strategies.html`, `resolved.html`, `event.html` against official docs and the live demo API; dated report with one official link per row | in progress | `130acb78` | `reports/verify-130acb78.md` (new), this section | docs.kalshi.com: Get Balance, Get Positions, Get Fills, Create Order V2, orderbook_responses, market_settlement; live `external-api.demo.kalshi.co` | — |
+| P2 | Fix proven defects in `portfolio.html`: a position with no `market_exposure_dollars` / `realized_pnl_dollars` rendered `$0.00` (because `num(null)/100 === 0`) instead of `n/a`; remove the undocumented `market_title` reference; add documented performance totals (Σ `realized_pnl_dollars`, Σ `fees_paid_dollars`, Σ `total_traded_dollars`) | in progress | `130acb78` | `portfolio.html` | [Get Positions](https://docs.kalshi.com/api-reference/portfolio/get-positions) | — |
+| P3 | Empty-state `colspan` mismatches (alerts table 9 vs 10 columns; simulator scoreboard/ledger 10 vs 12) + a static regression test over every published table | in progress | `130acb78` | `alerts.html`, `simulator.html`, `tests/table-shape.test.mjs` (new) | local static/DOM check | the same defect in `assets/js/category.js` (book tables, 5 vs 6) is **logged for its owner `e7931fe7`**, not edited here |
+| P4 | Full local suite; PR → `main`; merge without waiting; confirm Pages deploy on the merged SHA; record PR link + result here | unclaimed | `130acb78` | this section | `gh`, Pages API | Do not merge a broken site. Flagged items do not block |
