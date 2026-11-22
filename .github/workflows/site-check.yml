@@ -67,3 +67,23 @@ jobs:
         run: node --test tests/dom/live-site-assertions.test.mjs
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
+
+  # The published page controllers, bundled and run in jsdom against Kalshi-shaped
+  # fixtures. These suites cover behaviour the unit tests cannot: what the reader
+  # actually sees, including the traded-dollar panel's refusal to show a total when
+  # one market was unreadable or when a trade has no recorded taker side (Z5–Z7 on
+  # the Flagged page). They were previously local-only, which is how those three
+  # defects survived review.
+  dom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the DOM harness
+        working-directory: tests/dom
+        run: npm ci
+      - name: Alerts, summary and category pages (fixtures, no network)
+        working-directory: tests/dom
+        run: npm test

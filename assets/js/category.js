@@ -12,7 +12,7 @@ import {
   detectJumps, jumpMarkers
 } from "./market.js";
 import { deriveQuote } from "./kalshi.js";
-import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE } from "./dollar-volume.js";
+import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE, TRADES_PATH as TRADE_PATH, missingNote } from "./dollar-volume.js";
 
 const topicKey = document.body.dataset.topic;
 const topic = TOPICS.find(t => t.key === topicKey);
@@ -224,14 +224,27 @@ async function measureTradedDollars() {
 }
 
 function renderTradedDollars(res) {
-  const total = res.rows.reduce((a, r) => a + (r.dollars || 0), 0);
-  const trades = res.rows.reduce((a, r) => a + (r.trades || 0), 0);
-  const contracts = res.rows.reduce((a, r) => a + (r.contracts || 0), 0);
+  /* Only complete rows are added up. A row whose pages could not all be read
+   * contributes null, and `r.dollars || 0` would quietly turn that into "$0.00
+   * measured" — presenting a partial sum as the topic's total, which is the one
+   * thing this panel promises never to do. So the headline figure is withheld
+   * (n/a) whenever any measured market was unreadable. */
+  const completeRows = res.rows.filter(r => r.complete);
+  const dollarsTotal = res.failed ? null : completeRows.reduce((a, r) => a + (r.dollars || 0), 0);
+  const trades = completeRows.reduce((a, r) => a + (r.trades || 0), 0);
+  const contracts = completeRows.reduce((a, r) => a + (r.contracts || 0), 0);
   const hrs = Math.round(res.window.seconds / 3600);
+  const budget = `${res.measured + res.failed} of ${res.totalMarkets} open market(s), last ${hrs}h`;
   $("#dollar-kpis").innerHTML = [
-    { k: "Traded dollars", v: money(total, { dp: 2 }), m: `Σ across the ${res.measured} market(s) read, last ${hrs}h` },
-    { k: "Trades read", v: int(trades), m: "completed transactions in the window" },
-    { k: "Contracts read", v: int(contracts), m: "Σ count_fp" }
+    {
+      k: "Traded dollars",
+      v: res.failed
+        ? `<span class="unv" title="At least one market's trade pages could not be read, so no total is shown">n/a</span>`
+        : money(dollarsTotal, { dp: 2 }),
+      m: res.failed ? `${res.failed} market(s) unreadable — no total shown` : `Σ over the measured markets (${budget})`
+    },
+    { k: "Trades read", v: int(trades), m: res.failed ? "completed transactions in rows read in full" : "completed transactions in the window" },
+    { k: "Contracts read", v: int(contracts), m: "Σ count_fp, completed rows only" }
   ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 
   if (!res.rows.length) {
@@ -240,7 +253,14 @@ function renderTradedDollars(res) {
   }
   $("#dollar-rows").innerHTML = res.rows.map(r => {
     const ev = r.event;
-    const src = `${DEMO.rest}/markets/trades?ticker=${encodeURIComponent((ev.markets?.[0] || {}).ticker || "")}&min_ts=${res.window.min_ts}&max_ts=${res.window.max_ts}`;
+    /* One link per market that was actually measured, each pointing at that
+     * market's own trades response for this window. An earlier version linked
+     * only the event's first market while the row summed several, so the link
+     * could not substantiate the number beside it. */
+    const links = (r.tickers || []).map(t => {
+      const href = `${DEMO.rest}${TRADE_PATH}?ticker=${encodeURIComponent(t.ticker)}&min_ts=${res.window.min_ts}&max_ts=${res.window.max_ts}&limit=${TRADE_LIMITS.maxLimit}`;
+      return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="trades response for ${esc(t.ticker)}${t.complete ? "" : " (incomplete read)"}">${esc(t.ticker)}${t.complete ? "" : " ⚠"} ↗</a>`;
+    }).join('<span class="muted"> · </span>');
     const dollars = r.complete
       ? money(r.dollars)
       : `<span class="unv" title="At least one market's trade pages could not be read">n/a</span>`;
@@ -251,18 +271,26 @@ function renderTradedDollars(res) {
       <td class="num">${int(r.trades)}</td>
       <td class="num">${int(r.contracts)}</td>
       <td class="num">${dollars}</td>
-      <td><a href="${esc(src)}" target="_blank" rel="noopener noreferrer">trades response ↗</a></td>
+      <td class="small">${links || `<span class="unv">n/a</span>`}</td>
     </tr>`;
   }).join("");
 
+  const excluded = missingNote({ missing: res.missingTrades || 0, unsided: res.unsidedTrades || 0 });
+  const observed = res.observed?.oldest && res.observed?.newest
+    ? ` Trades actually read span ${esc(res.observed.oldest)} – ${esc(res.observed.newest)} (<code>created_time</code> of the rows returned).`
+    : " No trade rows were returned in this window.";
   const skipped = res.skippedMarkets
     ? ` ${int(res.skippedMarkets)} of ${int(res.totalMarkets)} open markets in this topic were outside the ${res.measured + res.failed}-market budget and are not measured.`
     : "";
-  const failed = res.failed ? ` ${int(res.failed)} market(s) could not be read and are excluded from their event's total.` : "";
+  const failed = res.failed
+    ? ` ${int(res.failed)} market(s) could not be read: their events show n/a and the topic's traded-dollar headline is withheld rather than shown as a partial sum.`
+    : "";
   $("#dollar-note").innerHTML = `
     Σ(<code>count_fp</code> × <code>yes_price_dollars</code> for a YES taker, <code>no_price_dollars</code> for a NO taker), from
     <a href="${esc(TRADES_SOURCE)}" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>,
-    window ${esc(res.window.min_ts)}–${esc(res.window.max_ts)} (Unix seconds).${esc(skipped)}${esc(failed)}
+    requested window ${esc(res.window.min_ts)}–${esc(res.window.max_ts)} (Unix seconds).${observed}${excluded ? " " + esc(excluded) : ""}${esc(skipped)}${esc(failed)}
+    Each market measured has its own response link, so every dollar figure in the table can be checked against the trades it came from.
+    A trade with no recorded taker side, or no price on that side, is excluded and counted here rather than valued by assumption.
     If any page of trades cannot be read the event shows <span class="unv">n/a</span>; a partial sum is never presented as a total.`;
 }
 

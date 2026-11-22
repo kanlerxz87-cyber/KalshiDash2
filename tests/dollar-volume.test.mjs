@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  tradeDollars, foldTradesPage, emptyTally, summariseTally,
+  tradeDollars, foldTradesPage, emptyTally, summariseTally, missingNote,
   windowQuery, tradesPath, collectTrades, rankByTradedDollars,
   LIMITS, TRADES_SOURCE, TRADES_PATH
 } from "../assets/js/dollar-volume.js";
@@ -62,14 +62,23 @@ test("the deprecated taker_side is accepted when taker_outcome_side is absent", 
   assert.equal(tradeDollars(t).dollars, 4);
 });
 
-test("a row with no side is valued on the YES leg and says so", () => {
+test("a row with no recorded taker side is NOT valued, because the side decides the price", () => {
   const t = trade({ count: "5.00", yes: "0.20", no: "0.80" });
   delete t.taker_outcome_side;
   const d = tradeDollars(t);
-  assert.equal(d.priced, true);
+  assert.equal(d.priced, false, "no dollar amount is invented for an unknown side");
+  assert.equal(d.dollars, null);
   assert.equal(d.side, null);
-  assert.equal(d.dollars, 1);
+  assert.equal(d.contracts, 5, "the contract count is still reported");
   assert.match(d.reason, /taker side not returned/);
+});
+
+test("a row is valued only on the price field that belongs to its own side", () => {
+  const yesOnlyNoPrice = trade({ count: "5.00", yes: "0.20", no: "0.80", side: "no" });
+  yesOnlyNoPrice.no_price_dollars = null;
+  const d = tradeDollars(yesOnlyNoPrice);
+  assert.equal(d.priced, false, "a NO taker is never valued at the YES price");
+  assert.match(d.reason, /no_price_dollars/);
 });
 
 test("a row without a usable price is not priced rather than counted as zero", () => {
@@ -107,7 +116,17 @@ test("an unpriced row is counted as missing, not as zero dollars", () => {
   ] });
   assert.equal(acc.trades, 2);
   assert.equal(acc.missing, 1);
+  assert.equal(acc.unsided, 0);
   assert.equal(acc.dollars, 0.5);
+});
+
+test("a trade with no recorded taker side counts as missing AND unsided", () => {
+  const t = trade({ count: "1.00", yes: "0.50" });
+  delete t.taker_outcome_side;
+  const acc = foldTradesPage(emptyTally(), { trades: [t] });
+  assert.equal(acc.dollars, 0, "nothing is added to the total");
+  assert.equal(acc.missing, 1);
+  assert.equal(acc.unsided, 1);
 });
 
 test("AN EMPTY WINDOW IS ZERO, AND COMPLETE", () => {
@@ -137,7 +156,19 @@ test("a missing-price disclosure survives into the summary", () => {
   ] });
   const s = summariseTally(acc, { complete: true });
   assert.equal(s.dollars, 0.5);
-  assert.match(s.note, /1 trade\(s\) carried no usable price/);
+  assert.match(s.note, /1 trade\(s\) could not be valued/);
+  assert.match(s.note, /no usable price/);
+});
+
+test("the exclusion note names an unknown taker side separately from a missing price", () => {
+  const unsided = trade({ count: "1.00", yes: "0.50" });
+  delete unsided.taker_outcome_side;
+  const acc = foldTradesPage(emptyTally(), { trades: [unsided, { count_fp: "1.00", yes_price_dollars: null, taker_outcome_side: "yes" }] });
+  const s = summariseTally(acc, { complete: true });
+  assert.equal(s.missing, 2);
+  assert.equal(s.unsided, 1);
+  assert.match(s.note, /1 had no recorded taker side; 1 carried no usable price/);
+  assert.equal(missingNote({ missing: 0, unsided: 0 }), null);
 });
 
 test("windowQuery emits Unix SECONDS inside the documented bounds", () => {
@@ -260,6 +291,51 @@ test("rankByTradedDollars discloses the markets it did not measure", async () =>
   assert.equal(res.measured, 2);
   assert.equal(res.skippedMarkets, 1);
   assert.equal(res.totalMarkets, 3);
+});
+
+test("each row carries the tickers it measured, so its source links match its number", async () => {
+  const events = [{ event_ticker: "E", markets: [
+    { ticker: "A", status: "open", volume_fp: "2" },
+    { ticker: "B", status: "open", volume_fp: "1" }
+  ] }];
+  const get = async () => ({ trades: [trade({ count: "10.00", yes: "0.50" })], cursor: "" });
+  const res = await rankByTradedDollars(get, events, { maxMarkets: 5 });
+  assert.deepEqual(res.rows[0].tickers.map(t => t.ticker), ["A", "B"]);
+  assert.equal(res.rows[0].tickers.every(t => t.complete), true);
+  assert.equal(res.rows[0].dollars, 10, "two markets at $5 each");
+});
+
+test("unvaluable trades are counted on the result, not silently dropped", async () => {
+  const events = [{ event_ticker: "E", markets: [{ ticker: "A", status: "open", volume_fp: "1" }] }];
+  const get = async () => ({
+    trades: [
+      trade({ count: "10.00", yes: "0.50", side: "yes" }),
+      { count_fp: "4.00", yes_price_dollars: "0.50", no_price_dollars: "0.50" }
+    ],
+    cursor: ""
+  });
+  const res = await rankByTradedDollars(get, events, { maxMarkets: 5 });
+  assert.equal(res.missingTrades, 1);
+  assert.equal(res.unsidedTrades, 1);
+  assert.equal(res.rows[0].missing, 1);
+  assert.equal(res.rows[0].dollars, 5, "only the valued trade is summed");
+});
+
+test("the result reports the timestamps of the trades it actually read", async () => {
+  const events = [{ event_ticker: "E", markets: [
+    { ticker: "A", status: "open", volume_fp: "2" },
+    { ticker: "B", status: "open", volume_fp: "1" }
+  ] }];
+  const get = async (path) => ({
+    trades: [trade({
+      count: "1.00", yes: "0.50",
+      at: path.includes("ticker=A") ? "2026-11-21T10:00:00Z" : "2026-11-21T12:30:00Z"
+    })],
+    cursor: ""
+  });
+  const res = await rankByTradedDollars(get, events, { maxMarkets: 5 });
+  assert.equal(res.observed.oldest, "2026-11-21T10:00:00Z");
+  assert.equal(res.observed.newest, "2026-11-21T12:30:00Z");
 });
 
 test("an event with a failed market read is left without a dollar figure", async () => {

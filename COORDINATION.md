@@ -3182,3 +3182,12 @@ Findings that require a change in another owner's files are logged as requests o
 
 - **Conflict log:** rebasing the deployment-record commit onto `main` after PR #113 produced an append-only conflict in `COORDINATION.md`; both sessions’ complete sections were preserved.
 - A subsequent rebase also conflicted in the generated alerts report after both `main` and this branch's verification bot produced captures. Kept the existing main capture intact (branch capture remains in commit `fbac8b1`) rather than replacing a shared generated output; both requests reported HTTP 200. No other session's board entry was removed.
+## Session `e7931fe7` — integration verification (2026-11-22 08:03 UTC)
+
+| Task | Status | Owner | File scope |
+|---|---|---|---|
+| I1: independently audit current integration, source attribution and build; document confirmed issues and limitations | in progress | `e7931fe7` | `COORDINATION.md`, `reports/audit-e7931fe7.md`, and, only if necessary for integration, `flagged.html` and related shared site files |
+
+Earlier 2026-11-20/21 in-progress claims with no recent commits are stale under the 60-minute rule; no other session's work is being replaced. The fixed Arena branch `arena/e7931fe7-kalshidash2` is used for this session.
+
+**I1 scope extension / integration finding (2026-11-22 08:05 UTC):** the trade-dollar panel can treat a missing taker side or required price as a usable partial amount, can label a sampled event as a total, and may link the wrong market's trade response. Claimed additionally for the integration fix: `assets/js/dollar-volume.js`, `assets/js/category.js`, `tests/dollar-volume.test.mjs`, `tests/dom/category-dom.mjs`, `flagged.html`. Sources: [Get Trades](https://docs.kalshi.com/api-reference/market/get-trades); malformed/incomplete data must remain unverified. The earlier claim is stale (session `135bc17e`, completed PR #98 and final board record), so this is a recorded handoff rather than simultaneous ownership.

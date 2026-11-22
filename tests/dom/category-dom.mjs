@@ -111,6 +111,9 @@ function weeklyCandles() {
   return out;
 }
 
+/* Which market's trades request should fail, for the n/a assertion below. */
+let tradesFailure = null;
+
 const ORDERBOOK = {
   orderbook_fp: {
     yes_dollars: [["0.5000", "10.00"], ["0.5100", "25.00"]],
@@ -152,6 +155,28 @@ async function mockFetch(url) {
     return reply(200, {
       ticker: "KXBTC-1",
       candlesticks: interval === 1 ? minuteCandles() : weeklyCandles()
+    });
+  }
+  if (path === "/markets/trades") {
+    const ticker = u.searchParams.get("ticker");
+    assert.ok(u.searchParams.get("min_ts") && u.searchParams.get("max_ts"),
+      "the trades request carries a documented min_ts/max_ts window");
+    assert.equal(u.searchParams.get("limit"), "1000");
+    if (ticker === tradesFailure) return reply(500, { error: { code: "fixture_failure" } });
+    const yes = ticker === "KXBTC-2" ? "0.30" : "0.50";
+    return reply(200, {
+      trades: [{
+        trade_id: "t-" + ticker,
+        ticker,
+        count_fp: "10.00",
+        yes_price_dollars: yes,
+        no_price_dollars: (1 - Number(yes)).toFixed(4),
+        taker_outcome_side: "yes",
+        taker_book_side: "bid",
+        created_time: new Date((NOW_S - 60) * 1000).toISOString(),
+        is_block_trade: false
+      }],
+      cursor: ""
     });
   }
   if (path === "/markets/KXBTC-1/orderbook") {
@@ -306,7 +331,41 @@ check("the 7-day request used the documented 60-minute period interval", () => {
   assert.match(candle, /period_interval=60/);
 });
 
-/* 5. hygiene */
+/* 5. official traded dollars (GET /markets/trades) */
+$("#dollar-run").click();
+await until(() => text("#dollar-status").includes("measured"));
+check("the traded-dollar table links every measured market's own trades response", () => {
+  const html = $("#dollar-rows").innerHTML;
+  assert.match(html, /ticker=KXBTC-1/, "market 1 response linked");
+  assert.match(html, /ticker=KXBTC-2/, "market 2 response linked, not just the event's first market");
+  assert.match(html, /max_ts=\d+/, "the link carries the same window that was measured");
+  assert.equal($$("#dollar-rows tr").length, 1, "one event row aggregates its two markets");
+});
+check("the traded-dollar figure is the sum of the documented count × side price", () => {
+  /* KXBTC-1: 10 × $0.50 = $5.00, KXBTC-2: 10 × $0.30 = $3.00 → $8.00. */
+  assert.match(text("#dollar-kpis"), /Traded dollars\s*\$8\.00/);
+  assert.match(text("#dollar-rows"), /\$8\.00/);
+  assert.match(text("#dollar-kpis"), /Trades read\s*2/);
+});
+check("the panel states the created_time span of the trades it actually read", () => {
+  assert.match(text("#dollar-note"), /Trades actually read span \d{4}-\d{2}-\d{2}T[\d:.]+Z/);
+});
+check("every table row keeps six cells, matching the published header", () => {
+  const header = $("#dollar-rows").closest("table").querySelectorAll("thead th");
+  assert.equal(header.length, 6);
+  for (const row of $$("#dollar-rows tr")) assert.equal(row.cells.length, 6);
+});
+
+tradesFailure = "KXBTC-2";
+$("#dollar-run").click();
+await until(() => text("#dollar-status").includes("unreadable"));
+check("an unreadable market withholds the headline total AND that row's figure", () => {
+  assert.match(text("#dollar-kpis"), /Traded dollars\s*n\/a/, "no partial sum is shown as the total");
+  assert.match(text("#dollar-rows"), /n\/a/, "the affected event shows n/a");
+  assert.ok(!/\$8\.00/.test(text("#dollar-rows")), "the earlier total is replaced, not left behind");
+});
+
+/* 6. hygiene */
 check("no request left the demo host or hit an unmocked path", () => {
   assert.ok(!requests.some(r => r.includes("not_mocked")));
   for (const r of requests) assert.ok(!/^https?:\/\/(?!external-api\.demo\.kalshi\.co)/.test(r));

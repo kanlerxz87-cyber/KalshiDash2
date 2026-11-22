@@ -86,7 +86,9 @@
         Σ(<code>count_fp</code> × <code>yes_price_dollars</code> for a YES taker, <code>no_price_dollars</code> for a NO taker), from
         <a href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades ↗</a>.
         <code>min_ts</code>/<code>max_ts</code> are Unix seconds, as the reference requires. If any page of trades cannot be
-        read, the event shows <span class="unv">n/a</span> — a partial sum is never presented as a total.
+        read, the event shows <span class="unv">n/a</span> and the topic total is withheld — a partial sum is never presented as a
+        total. A trade with no recorded taker side, or no price on the side taken, is excluded and counted instead of being
+        valued by assumption; each market measured carries its own response link, so every row can be checked.
       </div>
     </div>
   </div>
