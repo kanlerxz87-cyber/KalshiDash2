@@ -28,6 +28,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Validate local links and anchors in the published site
         run: python tools/check_site_links.py .
+      - name: Exchange-status 5xx caveat regression tests
+        run: node --test tests/exchange-status.test.mjs
       - name: Alert engine unit tests
         run: node --test tests/alerts-core.test.mjs
       - name: Live-feed unit tests

@@ -3150,3 +3150,28 @@ Independent review found S4 asserts that a price is the market's probability and
 - **Checks:** 156 Node unit tests, 15 DOM-helper tests, 42 Python tool tests, 20 Python tests (3 skipped), 18/18 page-runtime checks, and 36 HTML pages with zero broken local links.
 - **Limits / review:** this is a targeted correction, not a new line-by-line audit of the whole repository. Authenticated demo trading and account data remain unverified without a demo key; the published F1 and F13 flags remain open. A historical PR #97 is open and conflicting on another session's branch, and is not taken over here. Pages status before this change was `built`.
 - **Coordination:** first pull before publishing the claim could not find the new branch on origin; rebased on `origin/main` and then created the current branch remotely. No merge conflict occurred.
+
+---
+
+---
+
+## Session `8191667f` — close Flagged AC1 (exchange-status 5xx caveat) + final integration (branch `arena/8191667f-kalshidash2`, 2026-11-22)
+
+**Claimed at 2026-11-22T08:04Z.** Branch base: `252e623` (== `origin/main`, verified `git rev-list HEAD..origin/main` = 0).
+No other session holds a claim on the files below: the last board entries are session `0acc711d`'s final record
+(2026-11-21T23:3xZ, PR #102 merged) and session `f468e69b`'s audit record (PR #97, still open, `MERGEABLE`/`DIRTY`
+— it touches only `COORDINATION.md`, `reports/alerts-live-check.md`, `reports/audit-f468e69b.md`, none of which
+this session edits). This session takes the AC1 scope over and records the handoff here. Nothing from any other
+session is discarded.
+
+| ID | Task | Status | Owner | Files in scope (exclusive) | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------------|------------------------|----------------|
+| AC1 | Read `GET /exchange/status` flags only from HTTP 200; render "status unavailable" for every HTTP error. Update the AC1 card to `fixed`. | **done** | `8191667f` | `index.html` (exchange-status block only), `flagged.html` (AC1 card only), `tests/exchange-status.test.mjs` (new), `.github/workflows/site-check.yml` (test step only), this section | [Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status) fetched 2026-11-22: reference explicitly says "Read the flags only from a 200 response" and documents that a 500/503/504 does not itself mean paused; regression tests cover 500/503/504, 429, successful active/inactive 200, and network error; full local checks below | No live 5xx was observed; fix is driven by the documented contract and exercised with stubbed responses. |
+| Z5 | Final integration for this branch: PR → `main`, merge, confirm Pages deploy of the merged SHA, record PR link + merge result | **in progress** | `8191667f` | this section | `gh pr create` / `gh pr merge --merge`, Pages API | Do not merge a broken site. |
+
+**Verification performed 2026-11-22 (pre-PR):** official source fetched and checked: [Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status) states "Read the flags only from a 200 response" and specifically warns that 500/503/504 bodies may contain false flags without meaning paused. `node --test` passed **175/175** before the final small predicate generalization; focused `node --test tests/exchange-status.test.mjs` then passed **3/3** (including 429). Python tools **42/42**; Python `tests/` **20 passed, 3 skipped**; page runtime **18/18**; static link check **36 pages / 0 broken**; `git diff --check` clean. The offline tests do not claim to simulate a real Kalshi outage.
+
+**File scope note:** this session deliberately does **not** edit `assets/js/**` (owned by the relay/feed and
+taxonomy owners), `data/snapshot.json`, `scripts/collect.py`, or any other page. The AC1 reader lives inline in
+`index.html` (the card's "outside this session's scope" note is stale — the reader is not in `assets/js/ui.js`).
+Findings that require a change in another owner's files are logged as requests on this board, never silently rewritten.
