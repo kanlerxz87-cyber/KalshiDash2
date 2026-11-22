@@ -84,3 +84,12 @@ test("the docs index the register was checked against is linked on the page", ()
   const page = read("sources.html");
   assert.match(page, /https:\/\/docs\.kalshi\.com\/llms\.txt/);
 });
+
+test("Get Markets documents the 1-1000 page limit and archived-tier endpoints are registered", () => {
+  const gm = SOURCES.find(s => s.url === "https://docs.kalshi.com/api-reference/market/get-markets");
+  assert.ok(gm, "Get Markets must be in SOURCES");
+  assert.doesNotMatch(gm.used, /200-row page limit/i);
+  assert.match(gm.used, /1000/);
+  assert.ok(SOURCES.some(s => s.url === "https://docs.kalshi.com/api-reference/historical/get-historical-markets"));
+  assert.ok(SOURCES.some(s => s.url === "https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks"));
+});
