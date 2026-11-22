@@ -555,8 +555,9 @@
       <p><strong>Fixed:</strong> both documents now carry the counts measured on 2026-11-22, with the date and
         the per-file breakdown in the executive summary, and the advisory line says mitigated with the version
         that is actually locked. The numbers were produced by running the suites, not by adjusting the prose:
-        <code>node --test tests/*.test.mjs</code> → 162/162 across 13 files; <code>cd tests/dom &amp;&amp; npm test</code>
-        → 22/22, summary pass, 18/18; <code>python3 -m unittest discover -s tools</code> → 42 OK;
+        <code>node --test tests/*.test.mjs</code> → 172/172 across 14 files (measured on the tree merged into
+        <code>main</code> on 2026-11-22); <code>cd tests/dom &amp;&amp; npm test</code>
+        → alerts 22/22, summary pass, category 23/23; <code>python3 -m unittest discover -s tools</code> → 42 OK;
         <code>npm audit --prefix tests/dom</code> → 0 vulnerabilities.</p>
       <p><strong>Why it matters:</strong> a count is the reader's only proxy for "was this actually run", so a
         stale count quietly undermines every other claim on the page. The rule applied here is the one the site
