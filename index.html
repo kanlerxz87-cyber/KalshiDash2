@@ -391,7 +391,7 @@ function render() {
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
     ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
     ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")} (${int(state.perStatus?.open ?? 0)} open ·
-    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeated} ${src(SOURCES.events, "GET /events")}`;
+    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeats} ${src(SOURCES.events, "GET /events")}`;
 }
 
 $("#rank-mode").addEventListener("click", (e) => {

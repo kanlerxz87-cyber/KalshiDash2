@@ -3610,3 +3610,76 @@ would save the next reader the same check.
 
 **Suite state on the final rebased tree (branch `611c0fc`..rebased):** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
 `tests/dom` 23/23 · page-runtime 18/18 · `check_site_links.py` 36 pages / 0 broken · all 12 workflows parse.
+
+---
+
+## Session `74b579c8` — closing integration + bot-refresh reconciliation (branch `arena/74b579c8-kalshidash2`, 2026-11-25 UTC)
+
+**Claimed:** 2026-11-25 UTC, on the current Arena branch `arena/74b579c8-kalshidash2` (base `16442f0`, current `main`).
+
+**Relationship to open session `0a85d723`:** that session's only pushed commit (`98aae5a`) is a 14-line board claim with **status `in progress`** on branch `arena/0a85d723-kalshidash2`, touching **only its own section of this file** and declaring *"read-only for site/code/data"*. No file in this table overlaps it, and it raises no conflict request. This session does **not** touch that section, and its claim is left intact.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| I1 | Re-verify the live `main` tree line by line with the repo's own harnesses; record exact counts | in progress | `74b579c8` | `reports/verify-74b579c8.md` (new), this section | Local harness runs on `16442f0`; official docs re-read for any claim changed |
+| I2 | Reconcile the scheduled probe/snapshot artifacts with the figures the site publishes from them (citation drift) | done | `74b579c8` | `assets/js/claims.js` (citation text only), `scripts/collect.py` (topic field name only), `data/snapshot.json` (one renamed key per topic), `tests/probe-citation-drift.test.mjs` (new) | Committed `data/probe/api_surface.json` (capture 2026-11-24T18:14Z) vs the published figures; `scripts/collect.py` vs `_meta.collection_scope`; `GET /series` / `Get Series List` docs for the "no limit/cursor" basis |
+| I3 | Publish the finding to the site where a reader must see it (existing cards only — no new card, so the flag counters stay stable) | done | `74b579c8` | `flagged.html` (C1, AC2, SB3, F8 text only) | Official source links unchanged; figures now carry their probe capture time |
+| I4 | Final integration: full suite + link/runtime/DOM checks, PR to `main`, merge, confirm Pages deploy, record result here | in progress | `74b579c8` | this section, `reports/verify-74b579c8.md` | GitHub Actions run IDs + Pages API |
+| I5 | **Fix the `main` regression from merged PR #126** (homepage `render()` throws `ReferenceError: repeated is not defined`; `live-site-render` red at `9204bea`) + add a guard so the class cannot ship again | done (fix verified locally; ships with I4's merge) | `74b579c8` | `index.html` (one token), `tests/page-identifiers.test.mjs` (new) | Actions runs `45614650299` (main, fail) + `45615852375` (branch repro, fail); `git diff a47484c 9204bea -- index.html`; guard validated against `git show 9204bea:index.html` (flags exactly `["repeated"]`) |
+
+**Update, same day:** PR **#126** (`arena/8f3c331c-kalshidash2`) was **merged into `main`** by its own owner at `9204bea` while this session was in progress, so the paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`) **is** on `main` from that point on. This session did not merge, close or rebase that PR; it rebased its own branch onto the result and kept both sides (see the conflict log below).
+
+**Known dead run:** Actions run `45613619362` (`arena/0a85d723-kalshidash2`, "Static site link check") is queued and never started — a runner-side stall on that session's branch, not a `main` failure. `main`'s own latest Pages build (`45579994985`) and collect run (`45579804063`) both succeeded.
+
+### Scope amendment and recorded deviations (session `74b579c8`)
+
+- **Files actually touched, added to the exclusive scope in the same pass:** `assets/js/claims.js`,
+  `scripts/collect.py`, `data/snapshot.json`, `tests/probe-citation-drift.test.mjs`, `flagged.html`
+  (text inside existing cards C1 / AC2 / SB3 / F8 only — no card added or removed, so the published
+  counters `40 open / 57 mitigated / 97 total` are unchanged and `tests/dom/summary-dom.mjs` still
+  reconciles them). `I2`'s original note named a snapshot-metadata reader and a `tests/snapshot-meta.test.mjs`
+  that this audit did not need; the drift it found was in citation text, not in a reader, and the test file
+  is named `probe-citation-drift.test.mjs` instead. Recorded here rather than silently amended.
+- **Overlap with open PR #126 (`arena/8f3c331c-kalshidash2`):** that PR also edits
+  `assets/js/claims.js`, `assets/js/dollar-volume.js`, `assets/js/market.js`, `assets/js/category.js`
+  and adds `assets/js/paging.js`. This session did **not** edit the last three or add `paging.js`. Whoever
+  integrates #126 should expect a textual conflict in `claims.js` only (this session changed three `ev:`
+  strings and one `detail:` string in the `topic` group; #126 adds new rows elsewhere). No work discarded,
+  no file taken over.
+- **What this session did not attempt, and no longer needs to:** the API-surface paging guard
+  (`assets/js/paging.js`) was the claimed work of #126, which its owner **merged at `9204bea` while this
+  session ran**. The guard is therefore on `main`, `getAll()` / `collectTrades()` / `Client.paginate()` now
+  deduplicate, and this session neither duplicated nor reverted it. Rebased on top of that merge; both sides
+  kept (conflict log in `reports/verify-74b579c8.md` §6a).
+
+### `74b579c8` — the `main` regression inside merged PR #126, found and fixed here (2026-11-25)
+
+**The defect (I5).** `live-site-render` failed on `main` at the #126 merge SHA `9204bea` (run `45614650299`,
+exit status 1 = real content assertion, not the inconclusive exit 2), after ten consecutive successes on
+`main` through `a47484c`. Reproduced deterministically on this branch via `workflow_dispatch`
+(run `45615852375`, also exit 1). **Root cause:** PR #126's board-note hunk in `index.html` declares
+`const repeats = …` but interpolates `${repeated}` in the `#board-note` template. `render()` runs inside
+`loadBoard()`'s `try`, so on **every load of the homepage** the catch replaces the board with
+*"Could not load events: repeated is not defined"* and the status pill turns red — the main dashboard was
+unusable on the deployed site from the moment #126 merged. The Actions logs/artifacts are not retrievable
+from this sandbox (blob storage unreachable), so the diagnosis is static — `git diff a47484c 9204bea -- index.html` —
+plus the workflow-dispatch reproduction, both recorded in `reports/verify-74b579c8.md` §7a.
+
+**The fix.** `index.html`: one token, `${repeated}` → `${repeats}`. **The guard:**
+`tests/page-identifiers.test.mjs` (new) — every identifier interpolated as a bare `${name}` in any
+published page or `assets/js` module must appear somewhere else in the same file; a name that appears
+*only* inside interpolations is undeclared or a phantom. The guard's self-test embeds the shipped pattern,
+and the rule was validated against the real pre-fix file (`git show 9204bea:index.html` flags exactly
+`["repeated"]`). It is token-level on purpose: an earlier declaration-parsing attempt false-flagged
+`noPrice` and `status`, and the failure mode of this guard is one clear line in test output, not a broken
+page. Scope note: `index.html` is a shared output, but #126's owner session is **done** (PR merged, task
+recorded done below), no live claim covers it, `main` is broken without the fix, and the user's standing
+rule is *"Do not merge a broken site"* — the one-token fix is disclosed here and in PR #129 rather than
+requested and left broken. Nothing else from #126 was touched.
+
+**Verification after the fix (same tree, all local harnesses):** `node --test tests/*.test.mjs`
+**238/238** (235 + 3 new guard checks); `tests/dom` node tests **15/15**; `page-runtime-check` **18/18**,
+36 pages, 0 broken local links; `auth-sign-test` **6/6**; `tools` unittest **47/47**; `tests` unittest 20
+(3 skipped); DOM harnesses **22/22** (alerts), **23/23** (category), **23/23** (summary, counters
+`38 open / 61 mitigated / 99 total`, claims `96/109 verified; 9 partial; 4 unverified`). The live proof —
+`live-site-render` green against the real demo API — is re-run on this branch before I4's merge.

@@ -80,7 +80,7 @@
       <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
         keywords against <code>GET /series</code>. One response from that list returned over sixteen
-        thousand series (16,653 rows in <code>data/probe/api_surface.json</code>), so a
+        thousand series (16,698 rows in <code>data/probe/api_surface.json</code>, capture 2026-11-24T18:14Z), so a
         keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
         "golf" matched <code>KXTRUMPGOLFD</code> (a Politics market), while no <code>category</code> value
         covers gasoline at all.</p>
@@ -198,6 +198,16 @@
         and calls each one a <em>point-in-time row count for one response, not a catalogue total</em>. The probe
         workflow's output field was renamed from <code>series_count</code> to
         <code>series_rows_in_single_response</code> so a single response cannot be read as a catalogue size again.</p>
+      <p><strong>Same defect, second file (fixed 2026-11-25, session <code>74b579c8</code>):</strong> the
+        rename above was applied to the probe workflow but not to the scheduled collector.
+        <code>scripts/collect.py</code> still wrote <code>"series_count": len(tk_series)</code> into every
+        topic of <code>data/snapshot.json</code>, where the number is <em>not</em> a catalogue size either: it
+        counts the rows the run kept after the category/tag filters, the local series-family rule and the
+        <code>--top-series</code> cap. The committed file showed <code>gas 133</code>, <code>elections
+        2,722</code>, <code>culture 2,684</code> — kept rows, not population — beside an <code>events</code>
+        array capped at 100 and 40 emitted series rows. The field is now
+        <code>series_rows_kept_for_topic</code> in the collector and in the committed snapshot, and
+        <code>tests/probe-citation-drift.test.mjs</code> fails if the old key returns.</p>
       <p><strong>Residual:</strong> the live series count is not asserted on the site at all. Any reader who needs the
         current figure can call the endpoint; a number printed here would be stale the moment the catalogue grew.</p>
       <p class="small"><strong>Official sources:</strong>
@@ -1266,7 +1276,15 @@
         <code>category</code> field and is the page the captured vocabulary was read from) and name
         <em>Get Tags for Series Categories</em> as the official category-to-tag map. The observed values are
         unchanged and come from the committed capture <code>data/probe/api_surface.json</code>:
-        Elections 5,420 · Crypto 642 · Sports 8,486 series.</p>
+        Elections 5,430 · Entertainment 5,257 · Social 100 · Crypto 642 · Sports 8,492 series, in the
+        2026-11-24T18:14Z probe capture.</p>
+      <p><strong>Drift found 2026-11-25 (session <code>74b579c8</code>):</strong> this card previously published
+        <em>Elections 5,420 · Sports 8,486</em> while the committed file it cites holds <em>5,430</em> and
+        <em>8,492</em>. The old figures were accurate for an earlier capture — <code>data/probe/api_surface.json</code>
+        is rewritten every few days by <code>.github/workflows/probe.yml</code>, and the page did not carry a
+        capture date, so the numbers aged without any test noticing. The card now quotes the capture time
+        beside the figure. A capture-time check (below) now fails the build if a
+        <code>data/probe/api_surface.json</code> figure is published without one.</p>
       <p><strong>Why this class of defect is easy to miss:</strong> the link checker proves a link resolves,
         not that the linked page says what the row claims. Suggested guard in
         <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a> §4 S3.</p>
@@ -1509,8 +1527,8 @@
     <div class="irregularity" id="SB3">
       <h3>SB3 — Topic series lists are sampled, not the true top by volume <span class="tag warn">open</span></h3>
       <p><strong>What was found:</strong> <code>collect_series()</code> requests at most five pages of
-        <code>GET /series</code> per category. The captured vocabulary holds 5,255 <code>Entertainment</code>
-        series and 5,420 <code>Elections</code> series, so a large share is never requested. The returned page
+        <code>GET /series</code> per category. The captured vocabulary holds 5,257 <code>Entertainment</code>
+        series and 5,430 <code>Elections</code> series (2026-11-24T18:14Z capture), so a large share is never requested. The returned page
         order is not documented as volume-ordered, which means "top 40 series by volume" is really "top 40 by
         volume among the pages returned".</p>
       <p><strong>Why it is not patched:</strong> raising the cap multiplies the runtime of every scheduled run
