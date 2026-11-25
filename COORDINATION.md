@@ -3610,3 +3610,22 @@ would save the next reader the same check.
 
 **Suite state on the final rebased tree (branch `611c0fc`..rebased):** `node --test tests/*.test.mjs` 175/175 · `tools` unittest 47/47 (was 42) ·
 `tests/dom` 23/23 · page-runtime 18/18 · `check_site_links.py` 36 pages / 0 broken · all 12 workflows parse.
+
+---
+
+## Session `74b579c8` — closing integration + bot-refresh reconciliation (branch `arena/74b579c8-kalshidash2`, 2026-11-25 UTC)
+
+**Claimed:** 2026-11-25 UTC, on the current Arena branch `arena/74b579c8-kalshidash2` (base `16442f0`, current `main`).
+
+**Relationship to open session `0a85d723`:** that session's only pushed commit (`98aae5a`) is a 14-line board claim with **status `in progress`** on branch `arena/0a85d723-kalshidash2`, touching **only its own section of this file** and declaring *"read-only for site/code/data"*. No file in this table overlaps it, and it raises no conflict request. This session does **not** touch that section, and its claim is left intact.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| I1 | Re-verify the live `main` tree line by line with the repo's own harnesses; record exact counts | in progress | `74b579c8` | `reports/verify-74b579c8.md` (new), this section | Local harness runs on `16442f0`; official docs re-read for any claim changed |
+| I2 | Reconcile `main`'s scheduled data snapshot with the site's own snapshot-metadata reader (drift check) | in progress | `74b579c8` | `assets/js/kalshi.js` (snapshot metadata reader only), `tests/snapshot-meta.test.mjs` (new) | `data/snapshot.json` vs `assets/js/*` consumers |
+| I3 | Publish the verification record to the site (Flagged for Review / Verification) **only if** I1/I2 find something a reader must know | unclaimed until I1/I2 conclude | `74b579c8` | `flagged.html` (new card only), `verification.html` (new row only) | Official source link per row |
+| I4 | Final integration: full suite + link/runtime/DOM checks, PR to `main`, merge, confirm Pages deploy, record result here | in progress | `74b579c8` | this section, `reports/verify-74b579c8.md` | GitHub Actions run IDs + Pages API |
+
+**Update, same day:** PR **#126** (`arena/8f3c331c-kalshidash2`) was **merged into `main`** by its own owner at `9204bea` while this session was in progress, so the paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`) **is** on `main` from that point on. This session did not merge, close or rebase that PR; it rebased its own branch onto the result and kept both sides (see the conflict log below).
+
+**Known dead run:** Actions run `45613619362` (`arena/0a85d723-kalshidash2`, "Static site link check") is queued and never started — a runner-side stall on that session's branch, not a `main` failure. `main`'s own latest Pages build (`45579994985`) and collect run (`45579804063`) both succeeded.
