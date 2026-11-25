@@ -207,6 +207,13 @@ by this token-level rule, whose failure mode is one explicit test line.
 total`, claims `96/109 verified; 9 partial; 4 unverified`). The live proof (`live-site-render` green
 against the real demo API on this branch) is obtained before the PR merges; the PR does not merge without it.
 
+**Outcome (2026-11-25, same day).** `live-site-render` workflow_dispatch on the fix commit `a18651b`:
+run **`45618820525`**, **success** — every content assertion green against the real demo API. PR **#129**
+merged at **`9148298`** (13:01:04Z); the push-triggered `live-site-render` on `main` at that merge SHA
+(run **`45619339182`**) is **success** — the check that failed at `9204bea` is green at the merge, so the
+defect is fixed at the source of truth. Pages build **`45619338603`** succeeded and the hosted homepage
+serves the fixed dashboard. Full run IDs in `COORDINATION.md` (`74b579c8` final record).
+
 ## 8. Open, non-blocking (carried forward, not closed here)
 
 - **X1** — which host `contract_url` is meant to use is still undocumented; the site withholds non-public
