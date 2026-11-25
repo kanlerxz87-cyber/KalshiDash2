@@ -118,30 +118,46 @@ still reconciles: `40 open / 57 mitigated / 97 total`.
    `series_rows_kept_for_topic` must be an integer ≥ the rows emitted.
 4. `scripts/collect.py` writes the renamed key and not the retired one.
 
-## 6. Harness run after the edits (same tree this report ships)
+## 6. Harness run after the edits, on the rebased tree this report ships
+
+This branch was rebased onto `main` after PR **#126** merged (`9204bea`), so the numbers below include that
+session's paging guard and its 10 new tests. Nothing from #126 was dropped or rewritten.
 
 | Suite | Result |
 |---|---|
-| `node --test tests/*.test.mjs` | **225 / 225** (221 + 4 new) |
+| `node --test tests/*.test.mjs` | **235 / 235** (221 baseline + 10 from #126 + 4 new here) |
 | `node tools/verify/page-runtime-check.mjs` | **18 / 18 pages**, 36 pages, **0 broken local links** |
 | `node evidence/auth-sign-test.mjs` | **6 / 6** |
 | `python3 tools/check_site_links.py .` | 36 pages, 0 broken |
-| `python3 -m unittest discover -s tools` | **42 / 42 OK** |
+| `python3 -m unittest discover -s tools` | **47 / 47 OK** (was 42; +5 from #126) |
 | `python3 -m unittest discover -s tests` | **20 run, OK, 3 skipped** |
 | `cd tests/dom && npm test` | **22/22 + 23/23 + 23/23** |
+| Derived counters in `tests/dom/summary-dom.mjs` | claims **96/109 verified**, 9 partial, 4 unverified; flags **38 open + 61 mitigated = 99 total** |
+
+The counters moved because #126 added cards and claims; they are derived from the DOM, not hard-coded, so
+they reconcile by construction rather than by hand.
+
+## 6a. Conflict log (required by the standing rules)
+
+| Collision | `main`'s version (kept) | This session's version (kept) | Resolution |
+|---|---|---|---|
+| `COORDINATION.md` at EOF | the whole `8f3c331c` section for PR #126 | this session's `74b579c8` section | **both retained** — main's section verbatim as a prefix, then a separator, then this session's section; 47 session headings before this rebase, 48 after |
+| Stale board note | — | this session's I-table said "#126 is still `OPEN`/`CONFLICTING`, its paging guard is **not** on `main`" | that sentence was true when written and false 40 minutes later; rewritten to record that #126 merged at `9204bea` and that the guard **is** on `main`, without deleting the original claim's substance |
+| `assets/js/claims.js` | #126's new rows and its `paging.js` citations | this session's four `ev:` strings and one `detail:` string in the `topic` group | **auto-merged cleanly**, no textual conflict; both sides intact (verified by the full suite above) |
+| `assets/js/dollar-volume.js`, `assets/js/market.js`, `assets/js/category.js`, `assets/js/paging.js` | #126's versions | this session touched **none** of these files | no conflict; #126's paging guard is present and its 10 tests pass on this tree |
+
+No other session's work was discarded, no PR was closed, and no file was taken over.
 
 ## 7. Deployment state observed (not changed by this session)
 
 - Pages API: `status: built`, `build_type: legacy`, source `main:/`, `https_enforced: true`.
 - Last `main` successes before this session: Pages build `45579994985`, snapshot collect `45579804063`.
-- **Stale blocker, another session's:** PR **#126** (`arena/8f3c331c-kalshidash2`) is `OPEN` and
-  `CONFLICTING`. Its paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`, ~91 + 74 lines) is
-  **not on `main`**, so `getAll()` (`assets/js/market.js`), `collectTrades()` (`assets/js/dollar-volume.js`)
-  and `Client.paginate()` (`scripts/collect.py`) still follow cursors **without deduplication**. Kalshi's own
-  pagination page says a damaged cursor is ignored and page 1 is returned with no error, so a walk that
-  never advances sums the same rows twice while still looking complete. This session did **not** merge,
-  close, rebase or take over that PR, and did not duplicate its fix — recorded on the board for whoever
-  integrates it.
+- **Resolved during this session, not by this session:** PR **#126** (`arena/8f3c331c-kalshidash2`) was
+  `OPEN`/`CONFLICTING` when this audit began and was merged into `main` at `9204bea` by its own owner while
+  the audit ran. Its paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`) therefore **is** on
+  `main`, closing the cursor-deduplication gap this report would otherwise have had to raise for a third
+  time. This session did not merge, close, rebase or take over that PR; it rebased its own branch onto the
+  result and kept both sides (see §6a).
 - **Dead run:** Actions run `45613619362` (`arena/0a85d723-kalshidash2`, "Static site link check") sits
   `queued` and never started — a runner-side stall on that session's branch, not a `main` failure. That
   session's only pushed commit is a 14-line board claim, `in progress`, `read-only for site/code/data`,
@@ -155,7 +171,8 @@ still reconciles: `40 open / 57 mitigated / 97 total`.
 - **SB3** — topic series discovery is a 5-page sample, now stated with its capture time.
 - **P130 / F1 / F2 / NF1** — account coverage, fee inclusion, and NO-order pricing remain as recorded by
   earlier sessions; this session made no authenticated call and placed no order.
-- The paging guard above, owned by #126.
+- **Closed** by #126 (merged `9204bea`): the cursor-deduplication guard in `getAll()`,
+  `collectTrades()` and `Client.paginate()`.
 
 ## 9. Sources (all re-fetched this session)
 

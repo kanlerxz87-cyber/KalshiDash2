@@ -3645,7 +3645,8 @@ would save the next reader the same check.
   integrates #126 should expect a textual conflict in `claims.js` only (this session changed three `ev:`
   strings and one `detail:` string in the `topic` group; #126 adds new rows elsewhere). No work discarded,
   no file taken over.
-- **What this session did not attempt:** the API-surface paging guard itself (`paging.js`), because it is
-  the claimed work of #126 and is unmerged as of this record. `main` still follows cursors without
-  deduplication in `getAll()` (`assets/js/market.js`), `collectTrades()` (`assets/js/dollar-volume.js`)
-  and `Client.paginate()` (`scripts/collect.py`) — see flagged **F5/NF4** and this board's earlier note.
+- **What this session did not attempt, and no longer needs to:** the API-surface paging guard
+  (`assets/js/paging.js`) was the claimed work of #126, which its owner **merged at `9204bea` while this
+  session ran**. The guard is therefore on `main`, `getAll()` / `collectTrades()` / `Client.paginate()` now
+  deduplicate, and this session neither duplicated nor reverted it. Rebased on top of that merge; both sides
+  kept (conflict log in `reports/verify-74b579c8.md` §6a).
