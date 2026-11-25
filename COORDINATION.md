@@ -3622,10 +3622,30 @@ would save the next reader the same check.
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
 | I1 | Re-verify the live `main` tree line by line with the repo's own harnesses; record exact counts | in progress | `74b579c8` | `reports/verify-74b579c8.md` (new), this section | Local harness runs on `16442f0`; official docs re-read for any claim changed |
-| I2 | Reconcile `main`'s scheduled data snapshot with the site's own snapshot-metadata reader (drift check) | in progress | `74b579c8` | `assets/js/kalshi.js` (snapshot metadata reader only), `tests/snapshot-meta.test.mjs` (new) | `data/snapshot.json` vs `assets/js/*` consumers |
-| I3 | Publish the verification record to the site (Flagged for Review / Verification) **only if** I1/I2 find something a reader must know | unclaimed until I1/I2 conclude | `74b579c8` | `flagged.html` (new card only), `verification.html` (new row only) | Official source link per row |
+| I2 | Reconcile the scheduled probe/snapshot artifacts with the figures the site publishes from them (citation drift) | done | `74b579c8` | `assets/js/claims.js` (citation text only), `scripts/collect.py` (topic field name only), `data/snapshot.json` (one renamed key per topic), `tests/probe-citation-drift.test.mjs` (new) | Committed `data/probe/api_surface.json` (capture 2026-11-24T18:14Z) vs the published figures; `scripts/collect.py` vs `_meta.collection_scope`; `GET /series` / `Get Series List` docs for the "no limit/cursor" basis |
+| I3 | Publish the finding to the site where a reader must see it (existing cards only — no new card, so the flag counters stay stable) | done | `74b579c8` | `flagged.html` (C1, AC2, SB3, F8 text only) | Official source links unchanged; figures now carry their probe capture time |
 | I4 | Final integration: full suite + link/runtime/DOM checks, PR to `main`, merge, confirm Pages deploy, record result here | in progress | `74b579c8` | this section, `reports/verify-74b579c8.md` | GitHub Actions run IDs + Pages API |
 
 **Update, same day:** PR **#126** (`arena/8f3c331c-kalshidash2`) was **merged into `main`** by its own owner at `9204bea` while this session was in progress, so the paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`) **is** on `main` from that point on. This session did not merge, close or rebase that PR; it rebased its own branch onto the result and kept both sides (see the conflict log below).
 
 **Known dead run:** Actions run `45613619362` (`arena/0a85d723-kalshidash2`, "Static site link check") is queued and never started — a runner-side stall on that session's branch, not a `main` failure. `main`'s own latest Pages build (`45579994985`) and collect run (`45579804063`) both succeeded.
+
+### Scope amendment and recorded deviations (session `74b579c8`)
+
+- **Files actually touched, added to the exclusive scope in the same pass:** `assets/js/claims.js`,
+  `scripts/collect.py`, `data/snapshot.json`, `tests/probe-citation-drift.test.mjs`, `flagged.html`
+  (text inside existing cards C1 / AC2 / SB3 / F8 only — no card added or removed, so the published
+  counters `40 open / 57 mitigated / 97 total` are unchanged and `tests/dom/summary-dom.mjs` still
+  reconciles them). `I2`'s original note named a snapshot-metadata reader and a `tests/snapshot-meta.test.mjs`
+  that this audit did not need; the drift it found was in citation text, not in a reader, and the test file
+  is named `probe-citation-drift.test.mjs` instead. Recorded here rather than silently amended.
+- **Overlap with open PR #126 (`arena/8f3c331c-kalshidash2`):** that PR also edits
+  `assets/js/claims.js`, `assets/js/dollar-volume.js`, `assets/js/market.js`, `assets/js/category.js`
+  and adds `assets/js/paging.js`. This session did **not** edit the last three or add `paging.js`. Whoever
+  integrates #126 should expect a textual conflict in `claims.js` only (this session changed three `ev:`
+  strings and one `detail:` string in the `topic` group; #126 adds new rows elsewhere). No work discarded,
+  no file taken over.
+- **What this session did not attempt:** the API-surface paging guard itself (`paging.js`), because it is
+  the claimed work of #126 and is unmerged as of this record. `main` still follows cursors without
+  deduplication in `getAll()` (`assets/js/market.js`), `collectTrades()` (`assets/js/dollar-volume.js`)
+  and `Client.paginate()` (`scripts/collect.py`) — see flagged **F5/NF4** and this board's earlier note.
