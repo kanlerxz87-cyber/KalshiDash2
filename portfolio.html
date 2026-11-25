@@ -58,6 +58,8 @@
       <span id="acct-status" class="pill idle">idle</span>
     </div>
     <div class="grid cols-4" id="acct-stats" style="margin:12px 0"></div>
+    <div class="grid cols-4" id="perf-stats" style="margin:0 0 6px"></div>
+    <div class="table-note" id="perf-note" style="margin:0 0 10px"></div>
     <div id="acct-error"></div>
   </div>
 
@@ -74,8 +76,8 @@
       </label>
       <label class="field">You are buying
         <select id="o-side">
-          <option value="yes">YES — pays $1.00 if yes wins</option>
-          <option value="no">NO — pays $1.00 if no wins</option>
+          <option value="yes">YES position</option>
+          <option value="no">NO position — price scale unverified</option>
         </select>
       </label>
       <label class="field">Price per contract (USD)
@@ -90,29 +92,26 @@
     </div>
     <div id="grid-note" class="small muted" style="margin-top:8px"></div>
     <div class="callout warn" style="margin-top:10px" id="no-price-conflict">
-      <h3 style="margin-top:0">⚠ The price scale for a NO order is contradictory in the official docs</h3>
+      <h3 style="margin-top:0">NO-order price scale: unverified</h3>
       <p style="margin:0 0 6px">
-        This form sends <code>side: "ask"</code> when you buy NO, and it sends
-        <code>price</code> unchanged. Two official pages disagree on what that price means for a NO order,
-        and this session could not settle it without a demo key, so it is left visible rather than guessed at:
+        This form sends <code>side: "ask"</code> for a NO position and passes the entered
+        <code>price</code> through unchanged. The following official descriptions leave its price
+        interpretation unresolved here:
       </p>
       <ul class="small" style="margin:0 0 6px;padding-left:20px;line-height:1.7">
-        <li><strong>NO-lot price (multiples of $0.01).</strong>
-          <a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
-          says an order at price <em>p</em> with <code>outcome_side=no</code> is matched by an order at the
-          same <em>p</em> with <code>outcome_side=yes</code>, so the price does not change with the side.</li>
-        <li><strong>YES-leg price.</strong>
-          <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
-          defines its <code>side</code> field as "<code>bid</code> means buy YES, <code>ask</code> means sell
-          YES … this endpoint quotes everything from the YES side", with
-          "<code>ask</code> = sell YES = buy NO at <code>1 - price</code>".</li>
+        <li><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
+          says direction does not change the order's price and describes NO and YES orders matching at
+          the same <em>p</em>.</li>
+        <li><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2 ↗</a>
+          describes <code>bid</code> as buy YES, <code>ask</code> as sell YES, and says the endpoint
+          quotes the YES side: “Selling YES is economically equivalent to buying NO at
+          <code>1 - price</code>”.</li>
       </ul>
       <p class="small" style="margin:0">
-        <strong>How to avoid the ambiguity entirely:</strong> check the market first (step 3 loads its grid
-        when you type a ticker) and read the resulting price as the price you are paying. If you want the
-        opposite exposure at a known price, place that order as a YES order of the complementary market
-        instead of a NO order here. Tracked as <a href="flagged.html#NF1">Flagged NF1</a>; the field itself is
-        not disabled because both readings say the <em>exposure</em> is a NO position.
+        No authenticated order was placed to validate either interpretation. A valid price grid alone
+        does not resolve the amount a NO position would cost. Use the
+        <a href="https://demo.kalshi.co/" target="_blank" rel="noopener noreferrer">official demo interface ↗</a>
+        instead if you need a confirmed order preview. See <a href="flagged.html#NF1">Flagged NF1</a>.
       </p>
     </div>
     <div class="toolbar" style="margin-top:12px">
@@ -149,25 +148,31 @@
       <table>
         <thead><tr>
           <th>Market</th><th class="num">Position</th><th class="num">Market exposure</th>
-          <th class="num">Realized P&amp;L</th><th>Status</th><th>Official source</th>
+          <th class="num">Realized P&amp;L</th><th class="num">Fees paid</th><th>Official source</th>
         </tr></thead>
         <tbody id="pos-body"><tr><td colspan="6"><div class="empty">No positions loaded.</div></td></tr></tbody>
       </table>
       <div class="table-note">
         Source: <a href="https://docs.kalshi.com/api-reference/portfolio/get-positions" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>
         · <a href="https://docs.kalshi.com/api-reference/portfolio/get-balance" target="_blank" rel="noopener noreferrer">GET /portfolio/balance ↗</a>
+        · <a href="flagged.html#P130">Coverage and unverified fee inclusion</a>
+        · <a href="reports/verify-130acb78.md">Verification report</a>
       </div>
     </div>
   </div>
 </main>
 
 <script type="module">
-import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow } from "./assets/js/ui.js";
+import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow } from "./assets/js/ui.js";
 import { SOURCES } from "./assets/js/config.js";
 import { api, num } from "./assets/js/market.js";
 import { snapToGrid } from "./assets/js/kalshi.js";
+import { positionDollars, summarizePositions, loadPositions } from "./assets/js/portfolio-core.js";
 
 mountChrome({ page: "portfolio.html", title: "Portfolio" });
+
+// Ignore an older account read after a reload or after the key is forgotten.
+let accountRequest = 0;
 
 /* ------------------------------- key handling ------------------------------ */
 $("#load-key").onclick = () => {
@@ -184,50 +189,85 @@ $("#load-key").onclick = () => {
   }
 };
 $("#clear-key").onclick = () => {
+  accountRequest++;
   api.clearCredentials();
   $("#keyId").value = "";
   $("#pem").value = "";
   pill($("#key-status"), "idle", "no key loaded");
+  pill($("#acct-status"), "idle", "idle");
   $("#acct-stats").innerHTML = "";
+  $("#perf-stats").innerHTML = "";
+  $("#perf-note").innerHTML = "";
   $("#acct-error").innerHTML = "";
+  $("#pos-body").innerHTML = emptyRow(6, "No positions loaded.");
 };
 
 /* ------------------------------- account ---------------------------------- */
 $("#load-account").onclick = async () => {
   if (!api.hasCredentials()) { pill($("#acct-status"), "err", "load a demo key first"); return; }
+  const request = ++accountRequest;
   pill($("#acct-status"), "warn", "loading…");
+  $("#acct-stats").innerHTML = "";
+  $("#perf-stats").innerHTML = "";
+  $("#perf-note").innerHTML = "";
   $("#acct-error").innerHTML = "";
+  $("#pos-body").innerHTML = emptyRow(6, "Loading unsettled positions…");
   try {
     const bal = await api.balance();
-    let pos = { market_positions: [] };
-    try { pos = await api.positions("?limit=200"); } catch (e) { $("#acct-error").innerHTML = `<div class="callout warn">Positions: ${esc(e.message)}</div>`; }
-    const positions = pos.market_positions || pos.positions || [];
+    if (request !== accountRequest) return;
+    let scan = null, positionError = null;
+    try { scan = await loadPositions(api); } catch (e) { positionError = e; }
+    if (request !== accountRequest) return;
+    const positions = scan?.positions || [];
 
     $("#acct-stats").innerHTML = [
       { k: "Balance", v: money(bal.balance_dollars ?? (num(bal.balance) !== null ? bal.balance / 100 : null)), m: "available cash" },
-      { k: "Portfolio value", v: money(num(bal.portfolio_value) !== null ? bal.portfolio_value / 100 : null), m: "open position value" },
-      { k: "Open positions", v: int(positions.length), m: "markets with exposure" },
-      { k: "Updated", v: bal.updated_ts ? new Date(bal.updated_ts * 1000).toLocaleTimeString() : "—", m: "API timestamp" }
+      { k: "Portfolio value", v: money(num(bal.portfolio_value) !== null ? bal.portfolio_value / 100 : null), m: "API value (cents ÷ 100)" },
+      { k: "Position rows read", v: int(scan ? positions.length : null), m: scan ? "unsettled tier · this scan" : "unavailable · request failed" },
+      { k: "Updated", v: bal.updated_ts ? new Date(bal.updated_ts * 1000).toLocaleTimeString() : "—", m: "balance API timestamp" }
     ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 
-    $("#pos-body").innerHTML = positions.length ? positions.map(p => `<tr>
-      <td><strong>${esc(p.ticker || p.market_ticker || "")}</strong>
-        ${p.market_title ? `<div class="small muted">${esc(p.market_title)}</div>` : ""}</td>
-      <td class="num">${int(p.position_fp ?? p.position)}</td>
-      <td class="num">${money(p.market_exposure_dollars ?? (num(p.market_exposure) / 100))}</td>
-      <td class="num">${money(p.realized_pnl_dollars ?? (num(p.realized_pnl) / 100))}</td>
-      <td><span class="pill idle">${esc(p.settlement_status || p.status || "")}</span></td>
-      <td><a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
-    </tr>`).join("") : emptyRow(6, "The demo account has no open positions.");
+    if (scan) {
+      const perf = summarizePositions(positions, { complete: scan.complete });
+      $("#perf-stats").innerHTML = positions.length ? [
+        { k: "Unsettled-row realized P&L", v: money(perf.sums.realized), m: "Σ realized_pnl_dollars" },
+        { k: "Unsettled-row fees", v: money(perf.sums.fees), m: "Σ fees_paid_dollars" },
+        { k: "Unsettled-row traded", v: money(perf.sums.traded), m: "Σ total_traded_dollars" },
+        { k: "Unsettled-row exposure", v: money(perf.sums.exposure), m: "Σ market_exposure_dollars" }
+      ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("") : "";
+      $("#perf-note").innerHTML =
+        `Source: <a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">GET /portfolio/positions ↗</a>. ` +
+        `${int(positions.length)} unsettled row(s), ${int(scan.pages)} page(s). ` +
+        (scan.complete ? "Paging exhausted for this query. " : `<strong class="unv">Incomplete scan: page cap reached; totals are unavailable.</strong> `) +
+        `Not lifetime account performance: settled and archived positions are not included. ` +
+        `A total is n/a if any row lacks its input: realized P&L ${int(perf.missing.realized)} missing · ` +
+        `fees ${int(perf.missing.fees)} · traded ${int(perf.missing.traded)} · exposure ${int(perf.missing.exposure)}. ` +
+        `Whether <code>realized_pnl_dollars</code> includes <code>fees_paid_dollars</code> is unverified ` +
+        `in the schema, so no extra fee subtraction or ROI is derived.`;
 
-    pill($("#acct-status"), "live", "account loaded");
-    loadFills();
+      $("#pos-body").innerHTML = positions.length ? positions.map(p => `<tr>
+        <td>${p.ticker ? `<strong>${esc(p.ticker)}</strong>` : `<span class="unv">not returned</span>`}</td>
+        <td class="num">${dec(p.position_fp)}</td>
+        <td class="num">${money(positionDollars(p, "market_exposure_dollars"))}</td>
+        <td class="num">${money(positionDollars(p, "realized_pnl_dollars"))}</td>
+        <td class="num">${money(positionDollars(p, "fees_paid_dollars"))}</td>
+        <td><a href="${SOURCES.positions}" target="_blank" rel="noopener noreferrer">Official endpoint docs ↗</a></td>
+      </tr>`).join("") : emptyRow(6, "The API returned no unsettled position records.");
+      pill($("#acct-status"), scan.complete ? "live" : "warn", scan.complete ? "account loaded" : "balance loaded · position scan incomplete");
+    } else {
+      $("#acct-error").innerHTML = `<div class="callout warn">Positions unavailable: ${esc(positionError.message)}</div>`;
+      $("#pos-body").innerHTML = emptyRow(6, "Positions unavailable: " + positionError.message);
+      pill($("#acct-status"), "warn", "balance loaded · positions unavailable");
+    }
+    await loadFills();
   } catch (e) {
+    if (request !== accountRequest) return;
     pill($("#acct-status"), "err", e.message);
-    $("#acct-error").innerHTML = `<div class="callout bad"><h3>The request was rejected</h3>
+    $("#pos-body").innerHTML = emptyRow(6, "Account request failed: " + e.message);
+    $("#acct-error").innerHTML = `<div class="callout bad"><h3>The request failed</h3>
       <p style="margin:0 0 6px">${esc(e.message)}</p>
       <p style="margin:0" class="small">
-        ${e.status === 401 ? "401 usually means the signature or timestamp was rejected. Kalshi requires the timestamp to be within 30 seconds of its clock, and the signature must cover <code>/trade-api/v2</code> + path without the query string." : ""}
+        ${e.status === 401 ? "401 can indicate a rejected signature or timestamp. Kalshi requires the timestamp to be within 30 seconds of its clock, and the signature must cover <code>/trade-api/v2</code> + path without the query string." : ""}
         <a href="${SOURCES.apiKeys}" target="_blank" rel="noopener noreferrer">Signing rules ↗</a></p></div>`;
   }
 };
@@ -244,11 +284,11 @@ async function loadFills() {
       <td class="small nowrap">${dt(f.created_time || (f.ts ? new Date(f.ts * 1000).toISOString() : null))}</td>
       <td class="mono small">${esc(f.ticker || f.market_ticker || "")}</td>
       <td>${f.outcome_side ? `<span class="tag ${f.outcome_side === "yes" ? "yes" : "no"}">${esc(f.outcome_side)}</span>` : `<span class="unv">not returned</span>`}</td>
-      <td class="num">${int(f.count_fp ?? f.count)}</td>
+      <td class="num">${dec(f.count_fp)}</td>
       <td class="num">${money4(f.yes_price_dollars)}</td>
       <td class="num">${money4(f.no_price_dollars)}</td>
       <td>${f.is_taker === true ? "taker" : f.is_taker === false ? "maker" : `<span class="unv">n/a</span>`}</td>
-      <td class="num">${money(f.fee_cost_dollars ?? num(f.fee_cost))}</td>
+      <td class="num">${money(f.fee_cost)}</td>
       <!-- fee_cost is documented as a DOLLAR string on Get Fills (there is no
            fee_cost_dollars field), so dividing it by 100 showed fees 100x too
            small. https://docs.kalshi.com/api-reference/portfolio/get-fills -->
@@ -310,7 +350,11 @@ $("#place").onclick = async () => {
 
   // Final confirmation, because this places a real order on the demo book.
   const verb = outcomeSide === "yes" ? "BUY YES" : "BUY NO";
-  if (!confirm(`${verb} ${count} contract(s) at $${price.toFixed(4)} on ${ticker}?\n\nThis submits a demo order.`)) return;
+  // The NO-price documentation conflict remains unresolved (Flagged NF1).
+  // Preserve the existing request price; do not invent a price conversion.
+  if (!confirm(`${verb} ${count} contract(s) with request price $${price.toFixed(4)} on ${ticker}?` +
+      (outcomeSide === "no" ? "\nNO-order price scale is unverified; see Flagged NF1." : "") +
+      "\n\nThis submits a demo order.")) return;
 
   pill($("#order-status"), "warn", "submitting…");
   $("#order-result").innerHTML = "";
