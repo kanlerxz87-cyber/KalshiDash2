@@ -163,6 +163,50 @@ No other session's work was discarded, no PR was closed, and no file was taken o
   session's only pushed commit is a 14-line board claim, `in progress`, `read-only for site/code/data`,
   non-overlapping with this session's files; its claim was left untouched.
 
+## 7a. Regression found in merged PR #126 — root-caused and fixed in this session
+
+**Symptom.** `live-site-render` failed on `main` at the #126 merge SHA `9204bea` (run **`45614650299`**,
+job "render": every step green except the final gate, annotation *"A content assertion failed … Exit
+status 1"* — the FAIL path, not the inconclusive exit 2). The ten previous `main` runs through `a47484c`
+(2026-11-22) were all `success`. Reproduced deterministically on this branch with
+`gh workflow run live-site-render.yml` (run **`45615852375`**, also exit 1). Actions logs and artifacts
+are **not retrievable from this sandbox** (the `productionresultssa*.blob.core.windows.net` endpoint is
+TLS-blocked here; `gh run view --log`, `gh run download` and the jobs/logs API all return blob URLs that
+cannot be fetched), so the diagnosis below is static analysis plus workflow reproduction, which is
+sufficient because the defect is deterministic.
+
+**Root cause — one token in `index.html` (PR #126's board-note hunk).** The hunk declares
+`const repeats = (state.duplicateRows || 0) > 0 ? … : "";` but the `#board-note` template it feeds
+interpolates `${repeated}`:
+
+```
+${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeated} ${src(SOURCES.events, "GET /events")}`;
+                                                    ^^^^^^^^ declared name is `repeats`
+```
+
+`render()` runs inside `loadBoard()`'s `try`, so the `ReferenceError` is swallowed by the catch, which
+replaces the board with **"Could not load events: repeated is not defined"** and turns the status pill red.
+On the deployed site this fired on **every load of the homepage**: the main dashboard — the page the
+`live-site-render` Overview assertions read (`#board-body tr > 1`, `parseScanCount(#board-note)`) — was
+unusable from the merge of #126 until the fix below. `git diff a47484c 9204bea -- index.html` shows the
+hunk; `grep` on the fixed file shows zero occurrences of a bare `repeated` identifier.
+
+**Fix (I5).** `index.html`: `${repeated}` → `${repeats}` — one token, nothing else in #126 touched.
+**Guard:** `tests/page-identifiers.test.mjs` (new, 3 checks): every identifier interpolated as a bare
+`${name}` in any published page or `assets/js` module must appear somewhere else in the same file (a name
+that appears *only* inside interpolations is undeclared or a phantom — either way it cannot render). The
+guard embeds the shipped pattern in its self-test, and the rule was validated against the real pre-fix
+file: `git show 9204bea:index.html` makes it flag exactly `["repeated"]`. An earlier attempt to statically
+find *undeclared* identifiers false-flagged legitimate declarations (`noPrice`, `status`) and was replaced
+by this token-level rule, whose failure mode is one explicit test line.
+
+**Verification after the fix (this tree):** `node --test tests/*.test.mjs` **238/238** (235 + 3 new);
+`tests/dom` node tests **15/15**; `page-runtime-check` **18/18** with 36 pages / 0 broken local links;
+`auth-sign-test` **6/6**; `tools` unittest **47/47**; `tests` unittest 20 (3 skipped); DOM harnesses
+**22/22** (alerts), **23/23** (category), **23/23** (summary — counters `38 open / 61 mitigated / 99
+total`, claims `96/109 verified; 9 partial; 4 unverified`). The live proof (`live-site-render` green
+against the real demo API on this branch) is obtained before the PR merges; the PR does not merge without it.
+
 ## 8. Open, non-blocking (carried forward, not closed here)
 
 - **X1** — which host `contract_url` is meant to use is still undocumented; the site withholds non-public
