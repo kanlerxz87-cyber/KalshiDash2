@@ -3509,3 +3509,17 @@ Full rerun after integration + P130: **238/238 Node**, **42 tools**, **20 Python
 - **Open, non-blocking:** P130 fee inclusion / lifetime-account coverage, F1/F2 private account execution, NF1 NO-order pricing, and the pre-existing category-book colspan handoff. No credential requested and no live order placed.
 
 **Session `130acb78`: P1–P4 DONE.** This final record is published by a documentation-only follow-up PR from the same Arena branch; the verified dashboard changes are already live through #125.
+
+---
+
+## Session `0a85d723` — current-main independent verification and delivery check (2026-11-25 UTC)
+
+**Claimed:** 2026-11-25 UTC on the current Arena branch `arena/0a85d723-kalshidash2` (base `16442f0`).
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| A1 | Independently map the brief's requested dashboard, alerting, market lifecycle, portfolio/simulator, category, source, and review-page requirements to the current root site; document concrete implementation evidence and gaps | in progress | `0a85d723` | `reports/verify-0a85d723.md` (new), this session's section only | Current checkout; official `docs.kalshi.com` references and live demo API responses where accessible; no assumptions for unverified values |
+| A2 | Run the current local test/build/link/runtime checks and record exact results; do not alter site code during the read-only audit | in progress | `0a85d723` | `reports/verify-0a85d723.md`, this session's section only | Repository test commands and GitHub workflow definitions; results are dated and reproducible |
+| A3 | Check the current GitHub Pages deployment and hosted site against the audited commit; report exact PR/deploy evidence and any deployment gap | in progress | `0a85d723` | `reports/verify-0a85d723.md`, this session's section only | `gh` / GitHub Pages API and hosted page checks |
+
+**Scope discipline:** this claim is read-only for site/code/data. No other session's files will be edited. If the audit proves a site defect, it will first be recorded with file/line and evidence here; any follow-up must add an exclusive file scope before the edit. Shared navigation, index, data tables, and Flagged page remain untouched absent an explicit integration scope.
