@@ -300,7 +300,7 @@
    "label": "Gas Prices",
    "rule": "Selected from the official categories Economics / Commodities plus the directly fetched KXGAS series, then restricted to the retail-gasoline series families (KXAAAGAS*, AAAGAS*, KXGAS) and gas-price titles, with crude / natural-gas / diesel / Vegas rows excluded - the same rule the dashboard applies.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
-   "series_count": 133,
+   "series_rows_kept_for_topic": 133,
    "series": [
     {
      "ticker": "KXGAS",
@@ -8344,7 +8344,7 @@
    "label": "Elections",
    "rule": "Selected by the official Kalshi category 'Elections'.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
-   "series_count": 2722,
+   "series_rows_kept_for_topic": 2722,
    "series": [
     {
      "ticker": "KXPRESNOMD",
@@ -19343,7 +19343,7 @@
    "label": "Culture",
    "rule": "Selected by the official Kalshi categories 'Culture', 'Social' and 'Entertainment' - the same three categories the dashboard maps to Culture.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
-   "series_count": 2684,
+   "series_rows_kept_for_topic": 2684,
    "series": [
     {
      "ticker": "KXWORLDCUPHALFTIME",
@@ -30051,7 +30051,7 @@
    "label": "Crypto",
    "rule": "Selected by the official Kalshi category 'Crypto'.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
-   "series_count": 321,
+   "series_rows_kept_for_topic": 321,
    "series": [
     {
      "ticker": "KXBTCD",
@@ -41334,7 +41334,7 @@
    "label": "Golf",
    "rule": "Selected with the server-side `tags` parameter (Golf). The Get Series List spec does not describe how `tags` matching works, so this is the filter the request applied, not a documented taxonomy.",
    "source": "https://docs.kalshi.com/api-reference/market/get-series-list",
-   "series_count": 134,
+   "series_rows_kept_for_topic": 134,
    "series": [
     {
      "ticker": "KXPGATOUR",

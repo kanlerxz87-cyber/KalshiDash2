@@ -682,7 +682,14 @@ def main() -> int:
             "label": TOPICS[key]["label"],
             "rule": TOPICS[key]["note"],
             "source": TOPICS[key]["source"],
-            "series_count": len(tk_series),
+            # NOT a catalogue size. `len(tk_series)` is the number of series rows
+            # this run kept for the topic after the documented category/tag
+            # filters, the local series-family rule, and the per-topic cap
+            # (--top-series) — see _meta.collection_scope. The field was named
+            # `series_count`, which invites exactly that misreading; renamed
+            # 2026-11-25 (session 74b579c8), same rationale as the probe's
+            # `series_count` -> `series_rows_in_single_response` rename (Flagged C1).
+            "series_rows_kept_for_topic": len(tk_series),
             "series": [pick(s, SERIES_FIELDS) for s in tk_series[: args.top_series]],
             "events": ev_rows[:100],
             "markets": mk_rows[:200],
