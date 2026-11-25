@@ -3621,11 +3621,11 @@ would save the next reader the same check.
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
-| I1 | Re-verify the live `main` tree line by line with the repo's own harnesses; record exact counts | in progress | `74b579c8` | `reports/verify-74b579c8.md` (new), this section | Local harness runs on `16442f0`; official docs re-read for any claim changed |
+| I1 | Re-verify the live `main` tree line by line with the repo's own harnesses; record exact counts | done | `74b579c8` | `reports/verify-74b579c8.md` (new), this section | Local harness runs on `16442f0`; official docs re-read for any claim changed |
 | I2 | Reconcile the scheduled probe/snapshot artifacts with the figures the site publishes from them (citation drift) | done | `74b579c8` | `assets/js/claims.js` (citation text only), `scripts/collect.py` (topic field name only), `data/snapshot.json` (one renamed key per topic), `tests/probe-citation-drift.test.mjs` (new) | Committed `data/probe/api_surface.json` (capture 2026-11-24T18:14Z) vs the published figures; `scripts/collect.py` vs `_meta.collection_scope`; `GET /series` / `Get Series List` docs for the "no limit/cursor" basis |
 | I3 | Publish the finding to the site where a reader must see it (existing cards only — no new card, so the flag counters stay stable) | done | `74b579c8` | `flagged.html` (C1, AC2, SB3, F8 text only) | Official source links unchanged; figures now carry their probe capture time |
-| I4 | Final integration: full suite + link/runtime/DOM checks, PR to `main`, merge, confirm Pages deploy, record result here | in progress | `74b579c8` | this section, `reports/verify-74b579c8.md` | GitHub Actions run IDs + Pages API |
-| I5 | **Fix the `main` regression from merged PR #126** (homepage `render()` throws `ReferenceError: repeated is not defined`; `live-site-render` red at `9204bea`) + add a guard so the class cannot ship again | done (fix verified locally; ships with I4's merge) | `74b579c8` | `index.html` (one token), `tests/page-identifiers.test.mjs` (new) | Actions runs `45614650299` (main, fail) + `45615852375` (branch repro, fail); `git diff a47484c 9204bea -- index.html`; guard validated against `git show 9204bea:index.html` (flags exactly `["repeated"]`) |
+| I4 | Final integration: full suite + link/runtime/DOM checks, PR to `main`, merge, confirm Pages deploy, record result here | done | `74b579c8` | this section, `reports/verify-74b579c8.md` | GitHub Actions run IDs + Pages API |
+| I5 | **Fix the `main` regression from merged PR #126** (homepage `render()` throws `ReferenceError: repeated is not defined`; `live-site-render` red at `9204bea`) + add a guard so the class cannot ship again | done — shipped in PR #129 at `9148298` | `74b579c8` | `index.html` (one token), `tests/page-identifiers.test.mjs` (new) | Actions runs `45614650299` (main, fail) + `45615852375` (branch repro, fail); `git diff a47484c 9204bea -- index.html`; guard validated against `git show 9204bea:index.html` (flags exactly `["repeated"]`) |
 
 **Update, same day:** PR **#126** (`arena/8f3c331c-kalshidash2`) was **merged into `main`** by its own owner at `9204bea` while this session was in progress, so the paging guard (`assets/js/paging.js`, `tests/paging-guard.test.mjs`) **is** on `main` from that point on. This session did not merge, close or rebase that PR; it rebased its own branch onto the result and kept both sides (see the conflict log below).
 
@@ -3682,4 +3682,28 @@ requested and left broken. Nothing else from #126 was touched.
 36 pages, 0 broken local links; `auth-sign-test` **6/6**; `tools` unittest **47/47**; `tests` unittest 20
 (3 skipped); DOM harnesses **22/22** (alerts), **23/23** (category), **23/23** (summary, counters
 `38 open / 61 mitigated / 99 total`, claims `96/109 verified; 9 partial; 4 unverified`). The live proof —
-`live-site-render` green against the real demo API — is re-run on this branch before I4's merge.
+`live-site-render` green against the real demo API — was obtained on this branch before the merge (recorded below).
+
+### `74b579c8` — final record: PR #129 merged, Pages built, `live-site-render` green on `main` (2026-11-25)
+
+- **PR:** [#129](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/129) — *verify(citations): pin probe-figure
+  capture times, retire the collector's misleading series_count, add a drift guard + fix the #126 homepage
+  regression* — **merged** into `main` at **`9148298`** (2026-11-25T13:01:04Z) via `gh pr merge 129 --merge`, without
+  waiting for review, per the standing rules. Branch head at merge: `cdff991` (fix `a18651b` + two bot report
+  refreshes).
+- **Live proof before merge:** `live-site-render` workflow_dispatch on the fix commit `a18651b` — run
+  **`45618820525`**, **success**, every content assertion green against the real demo API. Branch checks on
+  `a18651b` (render / dom ×2 / check ×2 / verify) all success.
+- **Proof on `main` after merge (same workflow, push-triggered, at `9148298`):** `live-site-render`
+  **`45619339182` success** — the check that failed at `9204bea` is green again at the merge SHA, so the I5
+  regression is fixed at the source of truth, not just on the branch. Also green at `9148298`: `verify-live-site`
+  `45619339185`, `Static site link check` `45619339257`, `verify-alerts` `45619339023`.
+- **Pages:** build/deploy run **`45619338603` success** (`pages-build-deployment`, legacy build, source `main:/`,
+  `https_enforced: true`). Hosted content checked at `https://kanlerxz87-cyber.github.io/KalshiDash2/` — serves the
+  fixed dashboard (title, hero, five-topic board sections, alerts/simulator entry cards).
+- **Flagged irregularities left for review do not block anything** and remain published on the Flagged for Review
+  page: X1 (`contract_url` host), F5/NF4 (`/series` paging), SB3 (topic sample basis), P130/F1/F2/NF1 (account
+  coverage / fees / NO pricing). This session made no authenticated call and placed no order.
+- Bot note: the scheduled alerts-refresh bot kept committing `reports/alerts-live-check.md` to this branch
+  (`57a6dd2`, `cdff991`, both `[skip ci]`, 7–10 lines each). Each was fast-forwarded/kept, never discarded.
+
