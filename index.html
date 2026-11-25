@@ -246,6 +246,12 @@ async function loadBoard({ auto = false } = {}) {
     const events = [];
     const capped = [];
     const perStatus = {};
+    /* Rows the pagination guard folded away. Kalshi's own paging note says a
+     * market whose close time changes mid-scan "can be skipped or returned
+     * twice. Deduplicate by `ticker`" — so a repeat is expected and is counted
+     * once, and the number is shown rather than quietly swallowed
+     * (https://docs.kalshi.com/api-reference/market/get-markets). */
+    let dupes = 0;
     for (const status of ["open", "closed"]) {
       const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
         key: "events", maxPages: status === "open" ? 10 : 4
@@ -257,10 +263,12 @@ async function loadBoard({ auto = false } = {}) {
        * part of the exchange, and the page must say so instead of implying it
        * scanned everything. */
       if (rows.__capped) capped.push(`${status} (${rows.__pages} pages)`);
+      dupes += rows.__duplicateRows || 0;
     }
     state.events = events;
     state.perStatus = perStatus;
     state.capped = capped;
+    state.duplicateRows = dupes;
     state.loadedAt = new Date();
     pill($("#board-status"), "live", `live · ${events.length} events scanned${capped.length ? " (partial)" : ""}`);
     render();
@@ -375,10 +383,15 @@ function render() {
     ? ` <strong style="color:var(--warn)">Partial scan:</strong> the ${esc(state.capped.join(" and "))} list hit this page's
         page budget while the API still had more pages, so events beyond it are not represented here.`
     : "";
+  const repeats = (state.duplicateRows || 0) > 0
+    ? ` <strong>Repeats:</strong> ${int(state.duplicateRows)} row(s) the API returned more than once were
+       deduplicated by their own ticker, as its paging note directs, and the scan is
+       marked partial if the exchange restarted the listing mid-way.`
+    : "";
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
     ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
     ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")} (${int(state.perStatus?.open ?? 0)} open ·
-    ${int(state.perStatus?.closed ?? 0)} closed).${partial} ${src(SOURCES.events, "GET /events")}`;
+    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeated} ${src(SOURCES.events, "GET /events")}`;
 }
 
 $("#rank-mode").addEventListener("click", (e) => {

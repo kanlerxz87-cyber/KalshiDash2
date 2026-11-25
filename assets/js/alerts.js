@@ -172,7 +172,12 @@ async function loadUniverse(onProgress) {
     /* getAll() sets __capped when it stopped at its page budget with a
      * cursor still outstanding. A length check (events.length >= 12*200)
      * misses the case where the last page returned fewer than 200 rows. */
-    capped: !!events.__capped
+    capped: !!events.__capped,
+    /* Rows the pagination guard removed because the exchange re-sent them
+     * (an undecodable cursor restarts a list with no error — documented on
+     * https://docs.kalshi.com/api-reference/market/get-markets). Disclosed so a
+     * scan that restarted is never read as a complete one. */
+    duplicateRows: events.__duplicateRows || 0
   };
   const perTopic = {};
   for (const m of S.universe) perTopic[m._topic] = (perTopic[m._topic] || 0) + 1;
@@ -642,7 +647,7 @@ function renderUniverseNote() {
       ? ` (${int(u.seriesCoverage.capped)} series not looked up in this scan: per-scan cap)`
       : "") + ".";
   el.innerHTML = `Scanned ${int(u.scanned)} open events (${int(u.matchedEvents)} in the five topics; ${int(u.liveMarkets)} live markets). ` +
-    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}${basisNote}`;
+    `Watching ${int(S.watching)} markets: ${esc(per)}.${u.capped ? " Scan hit its page limit, so coverage may be partial." : ""}${u.duplicateRows ? ` ${int(u.duplicateRows)} repeated row(s) were counted once.` : ""}${basisNote}`;
 }
 
 /* The same swings as the feeds, as a table. Every row links the official API

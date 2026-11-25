@@ -8,6 +8,7 @@
  */
 import { KalshiClient } from "./kalshi.js";
 import { TOPICS, CANDLE, DEMO } from "./config.js";
+import { createPageGuard } from "./paging.js";
 
 export const api = new KalshiClient();
 
@@ -26,26 +27,44 @@ export const api = new KalshiClient();
  *     (https://docs.kalshi.com/api-reference/market/get-markets)
  *   GET /events   limit defaults to 200, maximum 200
  *     (https://docs.kalshi.com/api-reference/events/get-events)
- * The default below (200) is valid for both endpoints. */
+ * The default below (200) is valid for both endpoints.
+ *
+ * The same Get Markets page also warns that "a `cursor` that cannot be decoded
+ * is ignored and the first page is returned, with no error" — so a page can
+ * arrive twice with nothing to indicate it. `createPageGuard()` drops rows whose
+ * documented key was already seen and stops the walk when a cursor comes back a
+ * second time, marking the read incomplete rather than double-counting it
+ * (assets/js/paging.js). */
 export async function getAll(path, { key, maxPages = 20, limit = 200, onPage } = {}) {
   const out = [];
   let cursor = "";
   let pages = 0;
   let capped = false;
+  const guard = createPageGuard();
   for (let i = 0; i < maxPages; i++) {
     const sep = path.includes("?") ? "&" : "?";
     const url = path + sep + "limit=" + limit + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
     const page = await api.get(url);
     pages += 1;
-    const rows = page[key] || [];
+    const rawRows = page[key] || [];
+    const rows = guard.accept(rawRows);
     out.push(...rows);
     if (onPage) onPage(out.length, rows.length);
-    cursor = page.cursor || "";
-    if (!cursor || rows.length === 0) break;
+    const next = page.cursor || "";
+    /* Empty cursor ends the list. A page whose every row was already seen means
+     * the exchange restarted the listing: stop, and mark the read incomplete,
+     * because pages that were never reached must not be reported as absent. */
+    if (!next) break;
+    if (rawRows.length === 0) break;
+    if (rows.length === 0) { capped = true; break; }
+    if (!guard.remember(next)) { capped = true; break; }
+    cursor = next;
     if (i === maxPages - 1) capped = true;
   }
   Object.defineProperty(out, "__pages", { value: pages, enumerable: false });
   Object.defineProperty(out, "__capped", { value: capped, enumerable: false });
+  Object.defineProperty(out, "__repeatedCursor", { value: guard.state.repeatedCursor, enumerable: false });
+  Object.defineProperty(out, "__duplicateRows", { value: guard.state.dropped, enumerable: false });
   return out;
 }
 
@@ -119,6 +138,20 @@ const SERIES_CATEGORIES = new Map(); // series_ticker -> { cats, primary, failed
 
 /* Seed the cache (also used by tests and by callers that already hold a series
  * record, so a page never re-requests what it has). */
+/* The series record's own `settlement_sources`, kept verbatim in shape.
+ *
+ * A series carries the sources Kalshi publishes for the number the market is
+ * settled against (live check, 2026-11-22: `GET /series/KXAAAGASW` returns
+ * `[{ name: "AAA", url: "https://gasprices.aaa.com/" }]`). They are surfaced as
+ * *where the underlying figure is published* — never as the cause of a price
+ * move, which is a claim the API does not support (Flagged F14 / A4). */
+function seriesSourcesFrom(series) {
+  const list = Array.isArray(series?.settlement_sources) ? series.settlement_sources : [];
+  return list
+    .filter(s => s && typeof s.url === "string" && s.url !== "")
+    .map(s => ({ name: typeof s.name === "string" && s.name !== "" ? s.name : null, url: s.url }));
+}
+
 export function primeSeriesCategories(entries) {
   for (const [ticker, value] of Object.entries(entries || {})) {
     if (!ticker) continue;
@@ -127,6 +160,9 @@ export function primeSeriesCategories(entries) {
     SERIES_CATEGORIES.set(String(ticker), {
       cats: [...new Set([...cats, primary].filter(Boolean))],
       primary,
+      /* A primed record may carry the sources directly; otherwise none. Nothing
+       * is fetched here, so an absent field stays absent rather than guessed. */
+      sources: Array.isArray(value && value.sources) ? seriesSourcesFrom({ settlement_sources: value.sources }) : [],
       failed: false
     });
   }
@@ -164,13 +200,14 @@ export async function fetchSeriesCategories(tickers, { cap = 30, fetcher } = {})
       SERIES_CATEGORIES.set(ticker, {
         cats: [...new Set([...cats, primary].filter(Boolean))],
         primary,
+        sources: seriesSourcesFrom(series),
         failed: false
       });
       fetched += 1;
     } catch {
       /* A failed lookup is not a category. Leave the event to the documented
        * fallback rather than guessing. */
-      SERIES_CATEGORIES.set(ticker, { cats: [], primary: null, failed: true });
+      SERIES_CATEGORIES.set(ticker, { cats: [], primary: null, sources: [], failed: true });
       failed += 1;
     }
   }
@@ -279,6 +316,7 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
    * instead of repeating a hard-coded count that can go stale. */
   const perStatus = {};
   const capped = {};
+  const duplicates = {};
   for (const status of statuses) {
     const maxPages = status === "open" ? 12 : 6;
     const rows = await getAll(`/events?status=${status}&with_nested_markets=true`, {
@@ -292,6 +330,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
      * also fires when the final page exactly filled the budget but the
      * cursor was already empty, so the flag would over-report truncation. */
     capped[status] = !!rows.__capped;
+    /* Rows the pagination guard removed for this status (see getAll). */
+    duplicates[status] = rows.__duplicateRows || 0;
     if (onProgress) onProgress(rows.length, status);
     events.push(...rows);
   }
@@ -360,6 +400,8 @@ export async function discoverTopic(topicKey, { includeSettled = true, includeMu
     seriesCoverage,
     perStatus: { ...perStatus, multivariate: mveScanned },
     capped: { ...capped, multivariate: mveCapped },
+    /* Total repeat rows the guard folded away across every status read. */
+    duplicateRows: Object.values(duplicates).reduce((a, b) => a + b, 0),
     source: `${DEMO.rest}/events?with_nested_markets=true`
   };
 }

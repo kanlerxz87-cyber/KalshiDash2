@@ -134,6 +134,67 @@ class TradeSampleAggregationTests(unittest.TestCase):
         ]), {})
 
 
+class PaginationGuardTests(unittest.TestCase):
+    """Kalshi documents that a page can be returned twice with no error.
+
+    The Get Markets reference says a cursor that cannot be decoded "is ignored
+    and the first page is returned, with no error", and that a market whose close
+    time changes mid-scan "can be skipped or returned twice. Deduplicate by
+    `ticker`" (https://docs.kalshi.com/api-reference/market/get-markets, read
+    2026-11-22). The collector follows cursors, so it has to fold repeats away
+    instead of inflating a per-series event count with them.
+    """
+
+    def test_repeated_rows_are_counted_once(self):
+        shared = {"event_ticker": "EV-1"}
+        client = PaginatedFixtureClient([
+            {"events": [shared, {"event_ticker": "EV-2"}], "cursor": "c1"},
+            {"events": [dict(shared), {"event_ticker": "EV-3"}], "cursor": ""},
+        ])
+        rows, _urls = client.paginate("/events", "events", {"series_ticker": "S"}, max_pages=5)
+        self.assertEqual([r["event_ticker"] for r in rows], ["EV-1", "EV-2", "EV-3"])
+        self.assertEqual(client.repeated_rows, 1, "the re-sent row is counted, not hidden")
+        self.assertEqual(client.restarted_lists, [])
+
+    def test_a_repeated_cursor_ends_the_walk(self):
+        page = {"events": [{"event_ticker": "EV-1"}], "cursor": "same"}
+        client = PaginatedFixtureClient([page, dict(page), dict(page)])
+        rows, _urls = client.paginate("/events", "events", {}, max_pages=10)
+        self.assertEqual(len(rows), 1, "the listing restarted, so the walk stops")
+        self.assertEqual(len(client.requests), 2, "it does not keep asking for the same page")
+        self.assertEqual(len(client.restarted_lists), 1)
+
+    def test_a_page_of_all_known_rows_marks_the_read_restarted(self):
+        first = {"events": [{"event_ticker": "EV-1"}], "cursor": "c1"}
+        again = {"events": [{"event_ticker": "EV-1"}], "cursor": "c2"}
+        client = PaginatedFixtureClient([first, again])
+        rows, _urls = client.paginate("/events", "events", {}, max_pages=5)
+        self.assertEqual([r["event_ticker"] for r in rows], ["EV-1"])
+        self.assertEqual(len(client.restarted_lists), 1)
+        self.assertIn("all rows repeated", client.restarted_lists[0])
+
+    def test_rows_without_a_documented_key_are_kept(self):
+        # No `ticker`, no `event_ticker`, no `trade_id`: the guard must not guess
+        # that two such rows are the same one.
+        client = PaginatedFixtureClient([
+            {"series": [{"title": "A"}, {"title": "A"}], "cursor": ""},
+        ])
+        rows, _urls = client.paginate("/series", "series", {}, max_pages=5)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(client.repeated_rows, 0)
+
+    def test_trade_rows_are_deduplicated_by_trade_id(self):
+        t = {"trade_id": "T-1", "ticker": "MKT-A", "count_fp": "10.00", "yes_price_dollars": "0.30"}
+        client = PaginatedFixtureClient([
+            {"trades": [t], "cursor": "c1"},
+            {"trades": [dict(t), {"trade_id": "T-2", "ticker": "MKT-A", "count_fp": "5.00",
+                                  "yes_price_dollars": "0.30"}], "cursor": ""},
+        ])
+        rows, _urls = client.paginate("/markets/trades", "trades", {}, max_pages=5)
+        self.assertEqual([r["trade_id"] for r in rows], ["T-1", "T-2"])
+        self.assertEqual(client.repeated_rows, 1)
+
+
 class SnapshotMetadataTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
