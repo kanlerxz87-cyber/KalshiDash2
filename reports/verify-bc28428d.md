@@ -310,3 +310,64 @@ Wired into `site-check.yml` as a named step; all workflow YAML re-parsed.
 **This session does not claim to have fixed the live-engine failure itself.** It fixed the reason the failure
 could not be read. The next green `live-engine-check` run — which commits its report either way — will say what
 failed. That is recorded here rather than guessed at, in line with the rule against inventing a diagnosis.
+
+---
+
+## 8 · Final results, and what the live exchange then did (2026-11-27)
+
+Three PRs, all merged without waiting for review, all deployed, all with a guard that was shown to fail on the
+code it replaces.
+
+| PR | Merged at | What it fixed |
+|---|---|---|
+| [#149](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/149) | `6a54db8` (22:30:52Z) | `AlertEngine` reported a price pair only once per page life |
+| [#157](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/157) | `97eda74` (22:48:18Z) | the live-engine report counted its move diagnostic over a wider population than the engine scans |
+| [#162](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/162) | `2069daa` (22:59:38Z) | the live-engine workflow skipped its own report-commit step on failure |
+
+### §6 proven on the live exchange, not just in a test
+
+The `live-engine-check` run at **23:01:26Z** (success) regenerated `reports/live-engine-check.md` on `main` with
+the fixed script. The two lines that used to contradict each other now reconcile exactly:
+
+```
+- Markets in the five topics: 2741
+- Markets with a readable previous price (status active or open): 2741
+- Excluded from that count: 8 market(s) ... whose status is outside active/open
+- Largest single move against the exchange's previous price: 0.00 on `KXNEXTNATOSECGEN-99-KIOH`
+```
+
+Before the fix the same section read *2,749* readable prices against *2,741* scanned markets, drew its "largest
+move" from the 8-market difference, and printed **+0.14** directly beneath **"Swings: 0"**. Now the population
+is named, the 8 exclusions are counted and disclosed, and the largest move (**0.00**) is one the engine actually
+looked at. The fix is verified against live data, which is the only verification that counts for a live report.
+
+### §7's failure did not reproduce — and that is recorded, not hidden
+
+The two red `live-engine-check` runs (22:52:49Z, 22:54:03Z) did **not** recur: the next run on the same merged
+tree passed at **23:01:17Z**. So the cause was transient (most plausibly an exchange-side or runner-side
+condition during those two minutes) and this session never claimed otherwise. What was fixed is what could be
+proved from here: the workflow now commits its report on a failed run too, so the next occurrence will leave
+evidence instead of nothing.
+
+This is the honest resolution of the episode: **two fixes that are proved, and one transient failure that is
+documented as transient rather than dressed up as a diagnosis.**
+
+### Deploy state
+
+Pages `status: built`, `error: null` after each merge (`build_type: legacy`, source `main:/`), with
+`verify-alerts`, `verify-live-site`, `live-site-render` and `Static site link check` green on `main`. The
+deployed `assets/js/alert-engine.js` was re-read over HTTPS and serves the fixed module (`pollSeq` and the new
+`poll|…|pollSeq` / `ref|…` key), so the §1 fix is live and not merely committed.
+
+### Local suite at the end of this session
+
+`node --test tests/*.test.mjs` **290/290** (260 at the start, +4 dedupe, +3 report-consistency, +2 workflow
+contract, plus the guards other sessions added meanwhile) · `check_site_links.py` **36 pages / 0 broken** ·
+`page-runtime-check` **18/18** clean · `tests/dom` **55/55** · Python `tools` **55/55** · `tests` 28 run
+(4 network-gated skips) · `auth-sign-test` **6/6** · every workflow YAML parses.
+
+### Still open, deliberately
+
+F1/F2 (no authenticated order — no demo key exists in this repo or this session), the transient live-check
+condition above, and every pre-existing item already published on `flagged.html`. None of them blocks the merge,
+per the standing rules; they are listed here so nothing found in this session disappears into a commit message.

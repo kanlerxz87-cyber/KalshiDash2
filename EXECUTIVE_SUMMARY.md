@@ -45,7 +45,7 @@ F18 work. The independent re-fetch of 20 official doc claims made by session `46
 [`reports/verify-46f45a35.md`](reports/verify-46f45a35.md); the live-API round for this snapshot is
 [`reports/verify-8299bffe.md`](reports/verify-8299bffe.md).
 
-- **Node unit & static suites (`node --test tests/*.test.mjs`):** **281/281 passed** (including the `alert-engine-dedupe` and `live-engine-report-consistency` guards added in this round).
+- **Node unit & static suites (`node --test tests/*.test.mjs`):** **290/290 passed** (including the `alert-engine-dedupe`, `live-engine-report-consistency` and `live-engine-workflow` guards added in this round).
 - **jsdom DOM suites:** alerts **26/26**, category **24/24**, summary **all pass** (105/116 verified · 8 partial · 3 unverified; 38 open / 69 mitigated / 107 total — recounted from `flagged.html` and `assets/js/claims.js` on this tree).
 - **Python unit tests:** `tools` **55/55** passed; `tests` OK (**4** network-gated skips without `cryptography` — CI installs it).
 - **Site link, signing & runtime checks:** `tools/check_site_links.py` — **36** HTML pages, **0** broken links; `evidence/auth-sign-test.mjs` — **6/6**; `tools/verify/page-runtime-check.mjs` — **18/18** pages executed cleanly, `0` errors.
