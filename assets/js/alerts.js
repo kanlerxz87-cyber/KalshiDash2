@@ -20,11 +20,14 @@ import { api, getAll, classifyEvent, classifyEventWithBasis, fetchSeriesCategori
 import {
   THRESHOLD, STRATEGIES, detectMoves, detectReferenceSwings, mergeAlerts,
   watchCheck, planTrades, updateTrade, summarize, pickUniverse, chunk, num,
-  screenMarket, marketRefFromAlert, seriesContractLinks
+  screenMarket, marketRefFromAlert, seriesContractLinks,
+  swingPermalink, parseSwingHash, visibleAlert, watchIds, newWatchIds
 } from "./alerts-core.js";
 import { LiveFeed, FEED_STATE, probeRelay } from "./live-feed.js";
 
 const SIM_KEY = "kalshiDash.sim.v1";
+const MUTE_KEY = "kalshiDash.mute.v1";
+const SOUND_KEY = "kalshiDash.watchSound.v1";
 const SIM_CAP = 500;
 const FEED_CAP = 300;
 const BATCH = 25;
@@ -70,6 +73,12 @@ const S = {
   feedState: FEED_STATE.POLL,
   feedDetail: "polling the REST API",
   feedFrames: 0,
+  /* S15/S16 transcript UX: free-text filter, muted topic keys, opt-in sound
+   * for the High-ROI watch chat, and the last shortlist ids we cued. */
+  query: "",
+  muted: loadMutes(),
+  soundOn: loadSound(),
+  cuedWatch: new Set(),
   /* Markets already on the resolution watch list. Seeded from localStorage so
    * a re-render shows "tracked" instead of offering the button again. */
   tracked: new Set(Watchlist.all().map(w => w.ticker))
@@ -110,6 +119,25 @@ function loadTrades() {
 }
 function saveTrades() {
   try { localStorage.setItem(SIM_KEY, JSON.stringify(S.trades)); } catch { /* storage full or disabled */ }
+}
+/* S16: muted topic keys survive reloads. Unknown keys are dropped so a stale
+ * preference can never hide a topic this page no longer tracks. */
+function loadMutes() {
+  try {
+    const v = JSON.parse(localStorage.getItem(MUTE_KEY) || "[]");
+    if (!Array.isArray(v)) return new Set();
+    const known = new Set(TOPICS.map(t => t.key));
+    return new Set(v.filter(k => known.has(k)));
+  } catch { return new Set(); }
+}
+function saveMutes() {
+  try { localStorage.setItem(MUTE_KEY, JSON.stringify([...S.muted])); } catch { /* private mode */ }
+}
+function loadSound() {
+  try { return localStorage.getItem(SOUND_KEY) === "1"; } catch { return false; }
+}
+function saveSound(on) {
+  try { localStorage.setItem(SOUND_KEY, on ? "1" : "0"); } catch { /* private mode */ }
 }
 function capTrades(list) {
   if (list.length <= SIM_CAP) return list;
@@ -474,7 +502,11 @@ function schedule() {
 function topicLabel(k) { return TOPIC_LABEL[k] || k || "—"; }
 
 function feedItems(list) {
-  return S.alerts.filter(a => (S.topic === "all" || a.topic === S.topic) && (!list || list(a)));
+  /* Single topic selector + per-topic mute + transcript query (S15/S16).
+   * The table view uses the same gate so a filtered chat and table agree. */
+  return S.alerts.filter(a =>
+    visibleAlert(a, { topic: S.topic, muted: S.muted, query: S.query, topicLabel })
+    && (!list || list(a)));
 }
 
 /* The Kalshi demo market site. The demo-environment guide documents the root
@@ -566,6 +598,8 @@ function msgHTML(a, watchFeed) {
         ${a.eventTicker
           ? `<a class="src-link" href="event.html?ticker=${encodeURIComponent(a.eventTicker)}">event detail ↗</a>`
           : ""}
+        <a class="src-link permalink" href="${esc(swingPermalink(a.id))}" data-swing-link="${esc(a.id)}"
+           title="Stable link to this swing">permalink ↗</a>
         <span class="small muted">limits, depth and the resolution page</span>
       </div>
       <div class="links">
@@ -588,6 +622,49 @@ function renderFeed(el, items, watchFeed, emptyText) {
   }
   if (first || atBottom) el.scrollTop = el.scrollHeight;
   el.dataset.ready = "1";
+  /* S15: a #swing=… fragment highlights and scrolls to that one message. */
+  const want = parseSwingHash(location.hash);
+  if (want) highlightSwing(want);
+}
+
+/* Scroll the first message carrying this swing id into view and flash it.
+ * Returns true when the id was found in either chat. */
+function highlightSwing(id) {
+  const nodes = document.querySelectorAll("[data-swing-link]");
+  for (const n of nodes) {
+    if (n.getAttribute("data-swing-link") !== id) continue;
+    const card = n.closest("article.msg");
+    if (!card) continue;
+    card.classList.add("swing-target");
+    card.scrollIntoView({ block: "center", behavior: "smooth" });
+    const chat = card.closest(".chat");
+    if (chat) chat.scrollTop = card.offsetTop - chat.clientHeight / 2;
+    return true;
+  }
+  return false;
+}
+
+/* S16: one short tone when the shortlist chat gains a message. Opt-in, Web
+ * Audio only (no asset download); failures are silent — audio is a nicety. */
+function cueWatchSound(count) {
+  if (!S.soundOn || count <= 0) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+    osc.onended = () => { try { ctx.close(); } catch { /* already closed */ } };
+    const el = $("#cue-status");
+    if (el) el.textContent = `${count} new watch pick${count > 1 ? "s" : ""} · cue played`;
+  } catch { /* audio denied or unavailable */ }
 }
 
 function renderFeeds() {
@@ -603,11 +680,20 @@ function renderFeeds() {
   const all = feedItems();
   const watch = feedItems(a => (S.watch.get(a.id) || {}).pass)
     .sort((a, b) => ((b.screen?.score ?? 0) - (a.screen?.score ?? 0)) || (b.at - a.at));
+  /* S16: fire the opt-in cue only for shortlist ids not seen since last time. */
+  const wIds = watchIds(S.alerts, S.watch).filter(id =>
+    visibleAlert(S.alerts.find(a => a.id === id) || {}, { topic: S.topic, muted: S.muted, query: S.query, topicLabel }));
+  const fresh = newWatchIds([...S.cuedWatch], wIds);
+  for (const id of fresh) S.cuedWatch.add(id);
+  cueWatchSound(fresh.length);
   const watching = S.watching ? `Watching ${S.watching} markets.` : "";
+  const filtered = (S.query.trim() || S.muted.size)
+    ? ` (${S.muted.size ? `muted ${S.muted.size} topic(s)` : ""}${S.query.trim() ? `${S.muted.size ? " · " : ""}filter “${S.query.trim()}”` : ""})`
+    : "";
   renderFeed($("#feed-all"), all, false,
-    S.polls ? `No move of $0.10 or more yet. ${watching}` : "Waiting for the first poll…");
+    S.polls ? `No move of $0.10 or more yet.${filtered} ${watching}` : "Waiting for the first poll…");
   renderFeed($("#feed-watch"), watch, true,
-    S.polls ? `No alert has passed the High-ROI rules yet. ${watching}` : "Waiting for the first poll…");
+    S.polls ? `No alert has passed the High-ROI rules yet.${filtered} ${watching}` : "Waiting for the first poll…");
 }
 
 function renderStatus() {
@@ -655,13 +741,18 @@ function renderUniverseNote() {
 function renderAlertTable() {
   const body = $("#alert-rows");
   if (!body) return;
-  const list = [...S.alerts].reverse().slice(0, 120);
+  /* Same gate as the chats (S15/S16): topic selector, mute set, query. */
+  const visible = S.alerts.filter(a =>
+    visibleAlert(a, { topic: S.topic, muted: S.muted, query: S.query, topicLabel }));
+  const list = [...visible].reverse().slice(0, 120);
   if (!list.length) {
-    body.innerHTML = emptyRow(10, "No swing of $0.10 or more recorded yet.");
+    body.innerHTML = emptyRow(10, S.alerts.length
+      ? "No recorded swing matches the current filter or mute settings."
+      : "No swing of $0.10 or more recorded yet.");
     $("#alert-count").textContent = "0 rows";
     return;
   }
-  $("#alert-count").textContent = `${list.length} of ${S.alerts.length} recorded`;
+  $("#alert-count").textContent = `${list.length} of ${visible.length} matching · ${S.alerts.length} recorded`;
   body.innerHTML = list.map(a => {
     const w = S.watch.get(a.id) || {};
     const up = a.direction === "up";
@@ -789,6 +880,65 @@ $("#pause").addEventListener("click", () => {
 $("#topic").addEventListener("change", e => {
   S.topic = e.target.value;
   renderFeeds();
+  renderAlertTable();
+});
+
+/* S15: free-text transcript filter. Debounced so typing does not re-render
+ * the chat on every keystroke. */
+let filterTimer = null;
+const filterInput = $("#transcript-filter");
+if (filterInput) {
+  filterInput.addEventListener("input", e => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => {
+      S.query = e.target.value || "";
+      renderFeeds();
+      renderAlertTable();
+    }, 150);
+  });
+}
+
+/* S16: mute chips — one toggle per topic, persisted. Muting hides that topic
+ * from both chats and the table without changing the single-topic selector. */
+function renderMuteChips() {
+  const host = $("#mute-chips");
+  if (!host) return;
+  host.innerHTML = TOPICS.map(t => {
+    const on = S.muted.has(t.key);
+    return `<button type="button" class="mute-chip${on ? " muted" : ""}" data-mute="${esc(t.key)}"`
+      + ` aria-pressed="${on}" title="${on ? "Unmute" : "Mute"} ${esc(t.label)}">${esc(t.label)}</button>`;
+  }).join("");
+}
+renderMuteChips();
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-mute]");
+  if (!b) return;
+  const key = b.getAttribute("data-mute");
+  if (S.muted.has(key)) S.muted.delete(key); else S.muted.add(key);
+  saveMutes();
+  renderMuteChips();
+  renderFeeds();
+  renderAlertTable();
+});
+
+/* S16: opt-in sound for the shortlist chat. Default off. */
+const soundInput = $("#watch-sound");
+if (soundInput) {
+  soundInput.checked = S.soundOn;
+  soundInput.addEventListener("change", e => {
+    S.soundOn = e.target.checked;
+    saveSound(S.soundOn);
+    const el = $("#cue-status");
+    if (el) el.textContent = S.soundOn ? "watch chat sound on" : "watch chat sound off";
+  });
+}
+
+/* S15: opening a #swing=… permalink after load still highlights the message
+ * once the first render has produced it. */
+window.addEventListener("hashchange", () => {
+  const want = parseSwingHash(location.hash);
+  if (want) highlightSwing(want);
 });
 
 $("#reset-sim").addEventListener("click", () => {

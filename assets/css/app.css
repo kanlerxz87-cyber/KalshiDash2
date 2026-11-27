@@ -475,3 +475,36 @@ dl.kv dd { margin: 0; }
 .breakdown .b-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 12.5px; }
 .breakdown .b-bar { height: 6px; border-radius: 3px; background: var(--accent); }
 .breakdown .b-bar.zero { background: var(--border); }
+
+/* ---------------- S15/S16 transcript UX ----------------
+   Permalink flash, mute chips and the transcript filter. Classes are emitted
+   by assets/js/alerts.js; official-wording.test.mjs requires a rule for each. */
+.mute-bar { gap: 8px; align-items: center; flex-wrap: wrap; }
+.mute-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.mute-chip {
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.mute-chip:hover { border-color: var(--accent); }
+.mute-chip.muted {
+  background: var(--surface-2);
+  color: var(--muted);
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+#transcript-filter {
+  min-width: 160px;
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.msg.permalink { color: inherit; }
+.msg.swing-target {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: var(--accent-soft);
+}

@@ -283,6 +283,51 @@ check("clicking Track to resolution writes only documented fields to the watch l
     "the feed now marks the market as tracked");
 });
 
+check("every chat message carries a permalink to its own swing", () => {
+  const links = $$("#feed-all [data-swing-link]");
+  assert.ok(links.length > 0, "permalink anchors are rendered");
+  for (const a of links) {
+    const id = a.getAttribute("data-swing-link");
+    assert.ok(id, "each permalink names its swing id");
+    assert.ok(a.getAttribute("href").startsWith("#swing="), "href is an in-page swing fragment");
+  }
+});
+
+check("transcript filter input is wired and present", () => {
+  const input = $("#transcript-filter");
+  assert.ok(input, "the filter input exists");
+  assert.equal(input.tagName, "INPUT");
+  assert.ok(input.getAttribute("aria-label"), "the filter is labelled for assistive tech");
+});
+
+check("mute chips are rendered for all five topics and toggle aria-pressed", () => {
+  const chips = $$("#mute-chips [data-mute]");
+  assert.equal(chips.length, 5, "one chip per topic");
+  const keys = chips.map(c => c.getAttribute("data-mute")).sort();
+  assert.deepEqual(keys, ["crypto", "culture", "elections", "gas", "golf"]);
+  const golf = chips.find(c => c.getAttribute("data-mute") === "golf");
+  assert.equal(golf.getAttribute("aria-pressed"), "false");
+  golf.click();
+  const golf2 = $("#mute-chips [data-mute=golf]");
+  assert.equal(golf2.getAttribute("aria-pressed"), "true", "mute persists across re-render");
+  assert.ok(JSON.parse(w.localStorage.getItem("kalshiDash.mute.v1") || "[]").includes("golf"),
+    "mute choice is saved to localStorage");
+  golf2.click();
+  assert.equal($("#mute-chips [data-mute=golf]").getAttribute("aria-pressed"), "false");
+});
+
+check("watch sound checkbox is off by default and saves its preference", () => {
+  const box = $("#watch-sound");
+  assert.ok(box, "the sound toggle exists");
+  assert.equal(box.checked, false, "sound is opt-in");
+  box.checked = true;
+  box.dispatchEvent(new w.Event("change", { bubbles: true }));
+  assert.equal(w.localStorage.getItem("kalshiDash.watchSound.v1"), "1");
+  box.checked = false;
+  box.dispatchEvent(new w.Event("change", { bubbles: true }));
+  assert.equal(w.localStorage.getItem("kalshiDash.watchSound.v1"), "0");
+});
+
 for (const [s, n] of results) console.log(s, n);
 const failed = results.filter(r => r[0] === "FAIL").length;
 console.log(`\n${results.length - failed}/${results.length} checks passed`);
