@@ -7,10 +7,10 @@ or by `scripts/kalshi_client.py`.
 
 This is the Markdown companion for the **published root site** served by GitHub Pages (`main:/`).
 The full client-side claims register lives in [`assets/js/claims.js`](assets/js/claims.js) (**114** claims:
-102 verified, 9 partially verified, 3 unverified, shown on [`verification.html`](verification.html)), the
+104 verified, 8 partially verified, 3 unverified, shown on [`verification.html`](verification.html)), the
 documentation audit register lives in [`assets/js/sources.js`](assets/js/sources.js) (**49** sources,
 **49 verified / 0 unverified** on [`sources.html`](sources.html)), and the irregularity register
-(**F1–F20**, **DR1–DR3**, 40 open / 66 mitigated / 106 total items) lives on [`flagged.html`](flagged.html).
+(**F1–F20**, **DR1–DR3**, 38 open / 68 mitigated / 106 total items) lives on [`flagged.html`](flagged.html).
 `docs/flagged.html` remains historical only.
 
 ## Table

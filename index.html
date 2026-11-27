@@ -88,10 +88,31 @@
           <dt>REST base</dt><dd class="mono">external-api.demo.kalshi.co/trade-api/v2</dd>
           <dt>WebSocket</dt><dd class="mono">external-api-ws.demo.kalshi.co</dd>
           <dt>Exchange status</dt><dd id="exch-status" class="unv">checking…</dd>
+          <dt>Per-shard detail</dt><dd id="exch-shards" class="sub small" style="margin:0">waiting for a 200 response…</dd>
           <dt>Funds</dt><dd>mock only (demo)</dd>
         </dl>
+        <details style="margin-top:10px">
+          <summary class="small">Which shard will a market be on?</summary>
+          <p class="sub small" style="margin:8px 0 6px">The exchange's own assignment table — new events are created on the shard it names,
+            and an order can only be cancelled or decreased on the shard where it rests. Shard 0 is the catch-all.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th class="num">Shard</th><th>Category</th><th>Tags</th><th>Checked here</th></tr></thead>
+              <tbody>
+                <tr><td class="num mono">0</td><td>All other categories</td><td>—</td><td class="small muted">live: pure-Golf series <code class="mono">KXPGA5BALL</code> read <code class="mono">exchange_index: 0</code>, 2026-11-27</td></tr>
+                <tr><td class="num mono">1</td><td>Exotics (Combos)</td><td>—</td><td class="small muted">not read in this session</td></tr>
+                <tr><td class="num mono">2</td><td>Crypto · Commodities</td><td>—</td><td class="small muted">live: <code class="mono">series?category=Crypto</code> read <code class="mono">exchange_index: 2</code>, 2026-11-27</td></tr>
+                <tr><td class="num mono">3</td><td>Sports</td><td>Tennis, Baseball, Basketball</td><td class="small muted">live: <code class="mono">KXGOLFTENNISMAJORS</code> (tags Golf, Tennis) read <code class="mono">exchange_index: 3</code>, 2026-11-27</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="sub small" style="margin:6px 0 0">Source: <a href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">Exchange Sharding ↗</a>.
+            Rows the exchange returned in this session are dated; the rest are quoted from the page and were not exercised here.</p>
+        </details>
         <p class="sub small" style="margin-top:10px">
           Sources: <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">demo environment ↗</a>
+          · <a href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a>
+          · <a href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">exchange sharding ↗</a>
         </p>
       </div>
       <div class="card">
@@ -182,6 +203,7 @@
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { DEMO, TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
 import { api, getAll, rankEvents, classifyEventWithBasis, fetchSeriesCategories, num } from "./assets/js/market.js";
+import { readStatus, confirmedTrading, summaryLine, shardRows } from "./assets/js/exchange-status.js";
 
 mountChrome({ page: "index.html", title: "Overview" });
 
@@ -194,26 +216,81 @@ const state = { events: [], mode: "money", loadedAt: null };
  * false, or an error object, and in neither case does it mean the exchange
  * is paused." The flags are therefore read only from an HTTP 200 response;
  * any other code renders "status unavailable", never "not trading".
- * (Flagged AC1; https://docs.kalshi.com/api-reference/exchange/get-exchange-status) */
+ * (Flagged AC1; https://docs.kalshi.com/api-reference/exchange/get-exchange-status)
+ *
+ * Flagged F18: the same page carries a per-shard breakdown in
+ * `exchange_index_statuses` — "The top-level fields describe the default
+ * exchange index (0)" and "an index other than 0 whose status request failed
+ * or timed out is reported with all of its flags false. Read the status again
+ * before treating a single false reading for one index as a pause." So the
+ * strip now prints one row per shard, marks a lone `false` on a shard that
+ * was confirmed trading on an earlier poll as "re-read required" rather than
+ * a pause, and keeps every shard row the exchange sent even when a later poll
+ * omits the breakdown. A default-index row that disagrees with the top-level
+ * flags is shown as a disagreement, not silently resolved.
+ * (https://docs.kalshi.com/getting_started/exchange_sharding) */
 (async () => {
   const el = $("#exch-status");
+  const det = $("#exch-shards");
+  /* Shards whose trading flag this tab has actually read as true, and the last
+   * breakdown seen — both survive a failed or breakdown-less poll on purpose:
+   * the reference says to read again, not to forget what was read. */
+  let confirmed = new Set();
+  let lastShards = [];
+  const renderShards = (rows, skipNote) => {
+    if (!det) return;
+    if (!rows.length) {
+      /* The schema states the field is "Absent when the per-index breakdown is
+       * unavailable", so absence is a documented state, not a fault — and not
+       * something to fill in. */
+      det.innerHTML = `<span class="unv">no per-shard rows</span> <span class="muted">— the reference documents
+        <code>exchange_index_statuses</code> as "Absent when the per-index breakdown is unavailable"; nothing is inferred.</span>`
+        + (skipNote ? ` <span class="small muted">(${esc(skipNote)})</span>` : "");
+      return;
+    }
+    const body = rows.map(r => `<tr><td class="mono">${r.index}</td><td>${esc(r.description || "—")}</td>`
+      + `<td>${r.exchangeActive ? "yes" : "<strong>no</strong>"}</td>`
+      + `<td>${r.tradingActive ? "yes" : "<strong>no</strong>"}</td>`
+      + `<td>${r.transfersActive === null ? `<span class="unv">n/a</span>` : (r.transfersActive ? "yes" : "<strong>no</strong>")}</td>`
+      + `<td>${r.state === "trading" ? `<span class="tag yes">trading</span>`
+        : r.state === "re-read" ? `<span class="tag warn">re-read required</span> <span class="small muted">false now, true on an earlier read — read again before calling it a pause</span>`
+        : r.state === "down" ? `<span class="tag no">reads false</span> <span class="small muted">never seen true in this tab</span>`
+        : `<span class="unv">n/a</span>`}</td>`
+      + `<td>${r.conflictsTopLevel ? `<span class="tag warn">disagrees with top-level flags</span>` : `<span class="muted small">agrees</span>`}</td></tr>`).join("");
+    const skip = skipNote ? `<p class="small muted" style="margin:6px 0 0">${esc(skipNote)}</p>` : "";
+    det.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Shard</th><th>Description</th><th>Exchange active</th>`
+      + `<th>Trading active</th><th>Transfers active</th><th>Reading</th><th>vs default (0)</th></tr></thead><tbody>${body}</tbody></table></div>`
+      + skip;
+  };
   try {
     const s = await api.get("/exchange/status");
-    el.innerHTML = s.trading_active && s.exchange_active
-      ? `<span class="tag yes">trading active</span> <span class="small muted">as of ${new Date().toLocaleTimeString()}</span>`
-      : `<span class="tag no">not trading</span>`;
+    const st = readStatus(s, confirmed);
+    /* The strip's one line must not claim more than the response proves. */
+    el.innerHTML = `<span class="tag ${st.tradingActive && st.exchangeActive ? "yes" : "no"}">${esc(summaryLine(st))}</span>`
+      + ` <span class="small muted">as of ${new Date().toLocaleTimeString()}</span>`;
+    const nextConfirmed = confirmedTrading(st);
+    const rows = shardRows(st, confirmed);
+    if (rows.length) lastShards = rows;
+    const skipNote = !st.breakdown
+      ? "this response omitted exchange_index_statuses"
+      : (st.skipped ? `${st.skipped} entry/entries could not be read as a shard record and were skipped` : "");
+    renderShards(rows.length ? rows : lastShards, rows.length ? skipNote : (skipNote || "no breakdown in this response"));
+    confirmed = nextConfirmed;
     const banner = $("#connect-banner");
     banner.className = "callout ok";
     banner.innerHTML = `<h3>Connected to the Kalshi demo API</h3>
       <p style="margin:0" class="small">Live public market data, unauthenticated, from
       <code class="mono">external-api.demo.kalshi.co</code>. Trading on the demo exchange is
-      <strong>${s.trading_active ? "active" : "inactive"}</strong>.
+      <strong>${st.tradingActive ? "active" : "inactive"}</strong> on the default index (0), which is what the
+      top-level flags describe; per-shard readings are in the environment panel and a single <code>false</code>
+      is a re-read signal, not a pause.
       ${src(SOURCES.demoEnv, "demo env docs")}</p>`;
   } catch (e) {
     const unavailable = e && Number.isInteger(e.status);
     el.innerHTML = unavailable
       ? `<span class="tag warn">status unavailable</span>`
       : `<span class="tag no">unreachable</span>`;
+    renderShards(lastShards, "status could not be read this time — the rows above are from the last 200 response in this tab");
     const banner = $("#connect-banner");
     banner.className = "callout bad";
     banner.innerHTML = unavailable

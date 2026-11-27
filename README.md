@@ -22,9 +22,11 @@ Official docs: <https://docs.kalshi.com> · demo site: <https://demo.kalshi.co>.
 
 **Sources & Claims registers:** [`sources.html`](sources.html) (`assets/js/sources.js`, 49 sources verified,
 0 unverified) lists every documentation source used; [`verification.html`](verification.html)
-(`assets/js/claims.js`, 114 claims: 102 verified, 9 partially verified, 3 unverified) links every technical
+(`assets/js/claims.js`, 115 claims: 104 verified, 8 partially verified, 3 unverified) links every technical
 claim to an official page or probe; [`flagged.html`](flagged.html) records open defects, design limits, and
-verified irregularities (**F1–F20**, **DR1–DR3**, 40 open / 66 mitigated / 106 total).
+verified irregularities (**F1–F20**, **DR1–DR3**, 38 open / 68 mitigated / 106 total).
+The Overview's environment strip reads the exchange's **per-shard** breakdown, so a single shard reading `false`
+is shown as *re-read required* rather than a halt (`assets/js/exchange-status.js`, Flagged **F18**).
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
 (Σ `count_fp` × price of the taker's recorded `taker_outcome_side`), alongside the ranking column's
