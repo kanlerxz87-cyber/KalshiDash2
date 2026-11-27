@@ -29,7 +29,7 @@
  *   - One trade per market per strategy, taken at the first signal.
  */
 import { STRATEGIES } from "./config.js";
-import { api, getAll, classifyEvent, num, fetchCandles } from "./market.js";
+import { api, getAll, classifyEventWithBasis, fetchSeriesCategories, num, fetchCandles } from "./market.js";
 
 const CLOSE_EPS = 1e-9;
 
@@ -168,7 +168,7 @@ export async function loadSettledUniverse({ limit = 25, maxPages = 2, onProgress
   let archived = [];
   let archivedError = null;
   try {
-    archived = await getAll(`/historical/markets?limit=${HISTORICAL_UNIVERSE.limit}`, {
+    archived = await getAll("/historical/markets", {
       key: "markets",
       maxPages: HISTORICAL_UNIVERSE.maxPages,
       limit: HISTORICAL_UNIVERSE.limit
@@ -201,18 +201,24 @@ export async function loadSettledUniverse({ limit = 25, maxPages = 2, onProgress
     }
     if (!event) continue;
 
+    if (event.series_ticker) {
+      await fetchSeriesCategories([event.series_ticker], { cap: 1 });
+    }
+    const verdict = classifyEventWithBasis({
+      event_ticker: m.event_ticker,
+      category: event.category,
+      title: event.title,
+      sub_title: event.sub_title,
+      series_ticker: event.series_ticker
+    });
+
     const enriched = {
       ...m,
       series_ticker: event.series_ticker || null,
       category: event.category || null,
       event_title: event.title || m.event_ticker,
-      topic: classifyEvent({
-        event_ticker: m.event_ticker,
-        category: event.category,
-        title: event.title,
-        sub_title: event.sub_title,
-        series_ticker: event.series_ticker
-      })
+      topic: verdict.topic,
+      category_basis: verdict.basis
     };
     rows.push(enriched);
     onProgress(rows.length, settled.length);
@@ -575,6 +581,37 @@ export function tradesToCsv(trades) {
 /* --------------------------------------------------------------------------
  * Live paper trading
  * ----------------------------------------------------------------------- */
+
+/* Convert a live AlertEngine swing into a paper-trade entry, or null if the
+ * swing did not clear the tradeability screen (`swing.pick`) or has no valid
+ * YES price.
+ *
+ * Official reciprocal pricing
+ * (https://docs.kalshi.com/getting_started/orderbook_responses,
+ *  https://docs.kalshi.com/getting_started/market_settlement):
+ *   `swing.to` is the YES contract price (`last_price_dollars`). Buying YES
+ *   enters at `swing.to`; buying NO enters at the complement `1 - swing.to`,
+ *   matching `Paper.settle()` (`payout = side === "yes" ? sv : 1 - sv`). */
+export function paperEntryFromSwing(swing) {
+  if (!swing || !swing.pick) return null;
+  const yesPrice = Number(swing.to);
+  if (!Number.isFinite(yesPrice) || yesPrice < 0 || yesPrice > 1) return null;
+  const side = swing.dir === "up" ? "yes" : "no";
+  const entryPrice = side === "yes" ? yesPrice : Number((1 - yesPrice).toFixed(6));
+  return {
+    ticker: swing.ticker,
+    event_ticker: swing.eventTicker,
+    event_title: swing.eventTitle,
+    topic: swing.topicKey,
+    side,
+    entry_price: entryPrice,
+    yes_price_at_entry: yesPrice,
+    entry_basis: swing.basis,
+    screen_score: swing.screen ? swing.screen.score : null,
+    delta: swing.delta,
+    strategy: "Live momentum (buy the side that moved)"
+  };
+}
 
 /* A tiny in-browser paper-trading book. Orders are simulated against live
  * prices; nothing is sent to the exchange and nothing is stored outside this

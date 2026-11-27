@@ -1,4 +1,4 @@
-# site/tools — evidence shipped with the site
+# evidence/ — evidence shipped with the site
 
 These files travel with the published site so that any claim on
 <https://kanlerxz87-cyber.github.io/KalshiDash2/> can be re-checked from the same
@@ -6,14 +6,15 @@ origin, without trusting a build log.
 
 | File | What it records |
 | --- | --- |
-| `evidence-cors-taxonomy.md` | Raw demo-API capture: CORS headers per endpoint, event-category counts, series matches for the five topics, auth-route probes. Captured 2026-11-20 11:08 UTC by GitHub Actions. |
+| `evidence-cors-taxonomy.md` | Raw demo-API capture: CORS headers per endpoint, event-category counts, series matches for the five topics, auth-route probes. Captured 2026-11-20 11:08–11:10 UTC by GitHub Actions. |
 | `evidence-routes-settled.md` | Raw demo-API capture: the deprecated order route's `410` response, top markets by volume, price grids, settled-market `result` distribution. Captured 2026-11-20 11:08 UTC. |
+| `live-2026-11-22-8f3c331c.md` | Raw demo-API capture: historical cutoff, archived markets, archived candlesticks, and series endpoint responses. Captured 2026-11-22 UTC. |
 | `auth-sign-test.mjs` | Deterministic self-test of the documented signing rules. No network, no credentials — generates a local RSA key pair and asserts the six rules the site depends on. |
 
 ## Running the signing self-test
 
 ```bash
-node site/tools/auth-sign-test.mjs
+node evidence/auth-sign-test.mjs
 ```
 
 Expected output: `6/6 checks passed`. The checks are:

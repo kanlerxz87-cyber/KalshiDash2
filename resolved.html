@@ -159,6 +159,9 @@ async function loadRecent() {
     const evCache = new Map();
     const pending = [];
     const combos = [];
+    const COMBO_CAP = 40;
+    const LEG_CAP = 40;
+    let combosSkipped = 0;
     /* The newest settled markets in the demo environment are overwhelmingly
      * multivariate ("combo") markets: on 2026-11-20 19:20Z the first page of
      * GET /markets?status=settled was two Exotics combos, whose event record has
@@ -168,37 +171,48 @@ async function loadRecent() {
      * (https://docs.kalshi.com/api-reference/events/get-multivariate-events)
      * Without this step the settled list silently drops to "nothing for this
      * topic" while the exchange is in fact resolving markets. */
-    for (const m of markets) {
+    for (let idx = 0; idx < markets.length; idx++) {
+      const m = markets[idx];
+      const isCombo = (Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0)
+        || (m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || ""));
+      if (isCombo) {
+        if (combos.length < COMBO_CAP) combos.push({ m, ev: null, _order: idx });
+        else combosSkipped += 1;
+        continue;
+      }
+      if (pending.length >= 400) continue;
       let ev = evCache.get(m.event_ticker);
       if (ev === undefined) {
         try { const j = await api.get(`/events/${encodeURIComponent(m.event_ticker)}`); ev = j.event || j; }
         catch { ev = null; }
         evCache.set(m.event_ticker, ev);
       }
-      const isCombo = (Array.isArray(m.mve_selected_legs) && m.mve_selected_legs.length > 0)
-        || (m.market_type === "binary" && /^KXMVE/.test(m.event_ticker || ""));
-      if (isCombo) { combos.push({ m, ev }); continue; }
-      pending.push({ m, ev });
-      if (pending.length >= 400) break;
+      pending.push({ m, ev, _order: idx });
     }
     /* Prefer series-level categories (Get Events marks event.category deprecated). */
     const seriesTickers = pending.map(x => x.ev?.series_ticker).filter(Boolean);
     await fetchSeriesCategories(seriesTickers, { cap: 30 });
-    const rows = pending.map(({ m, ev }) => ({ m, ev, topic: ev ? classifyEvent(ev) : null }));
-    /* Classify the combos by leg, reusing one look-up per leg event. */
+    const rows = pending.map(({ m, ev, _order }) => ({ m, ev, topic: ev ? classifyEvent(ev) : null, _order }));
+    /* Classify the combos by leg, reusing one bounded look-up per leg event. */
     const legCache = new Map();
+    let legLookups = 0;
     const legLookup = async (t) => {
       if (!legCache.has(t)) {
-        try {
-          const j = await api.get(`/events/${encodeURIComponent(t)}`);
-          const legEv = j.event || j;
-          if (legEv?.series_ticker) await fetchSeriesCategories([legEv.series_ticker], { cap: 1 });
-          legCache.set(t, legEv);
-        } catch { legCache.set(t, null); }
+        if (legLookups >= LEG_CAP) {
+          legCache.set(t, null);
+        } else {
+          legLookups += 1;
+          try {
+            const j = await api.get(`/events/${encodeURIComponent(t)}`);
+            const legEv = j.event || j;
+            if (legEv?.series_ticker) await fetchSeriesCategories([legEv.series_ticker], { cap: 1 });
+            legCache.set(t, legEv);
+          } catch { legCache.set(t, null); }
+        }
       }
       return legCache.get(t);
     };
-    for (const { m, ev } of combos) {
+    for (const { m, ev, _order } of combos) {
       const c = await classifyMultivariate({ event_ticker: m.event_ticker, markets: [m] }, legLookup);
       if (!c) continue;
       rows.push({
@@ -206,14 +220,20 @@ async function loadRecent() {
         ev: ev || null,
         topic: c.topic,
         combo: c,
-        /* Keep the order stable: newest settlements first, as the API returns. */
-        _order: markets.indexOf(m)
+        _order
       });
     }
+    /* Restore the exchange's newest-settlement-first order across both
+     * standard and combo rows before the 150-row display slice. */
+    rows.sort((a, b) => a._order - b._order);
     window.__recentRows = rows;
     window.__recentCombos = combos.length;
+    const partial = markets.__capped || combosSkipped > 0;
+    const dupNote = (markets.__duplicateRows || 0) > 0
+      ? ` · ${markets.__duplicateRows} duplicate rows deduplicated`
+      : "";
     pill($("#recent-status"), "live",
-      `live · ${rows.length} settled markets${combos.length ? ` · ${combos.length} combos resolved by their legs` : ""}`);
+      `live · ${rows.length} settled markets${combos.length ? ` · ${combos.length} combos resolved by their legs` : ""}${partial ? " (partial)" : ""}${dupNote}`);
     renderRecent();
   } catch (e) {
     pill($("#recent-status"), "err", e.message);

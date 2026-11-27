@@ -38,7 +38,7 @@ jobs:
           PAGES=(
             "/" "summary.html" "alerts.html" "simulator.html" "event.html"
             "resolved.html" "portfolio.html" "strategies.html" "suggestions.html"
-            "questions.html" "verification.html" "flagged.html"
+            "questions.html" "verification.html" "sources.html" "flagged.html"
             "categories/gas.html" "categories/elections.html" "categories/culture.html"
             "categories/crypto.html" "categories/golf.html"
           )
@@ -108,6 +108,7 @@ jobs:
           probe "summary.html" "#requirement-matrix tr" "requirement count derives from its matrix"
           probe "summary.html" "DOMParser" "flag count reads every flagged item"
           probe "verification.html" "Verification register" "claim register"
+          probe "sources.html" "Sources" "sources register"
           probe "flagged.html" "Flagged for review" "flag register"
           probe "questions.html" "Questions" "question register"
           probe "suggestions.html" "Suggestions" "decision board"

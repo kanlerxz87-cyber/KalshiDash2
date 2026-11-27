@@ -27,12 +27,31 @@ FIELDS = ["created_time", "ticker", "market_ticker", "outcome_side", "book_side"
           "count_fp", "yes_price_dollars", "fee_cost"]
 
 TOPIC_KEYWORDS = {
-    "Gas Prices": ["gas", "gasoline", "fuel", "eia"],
+    # Retail motor gasoline only — never bare "gas", which false-matches
+    # KXVEGAS / KXNATGAS / KXMADAGASCAR (Flagged G1 / F8).
+    "Gas Prices": ["kxaaagas", "aaagas", "gasoline", "retail gas", "gas price", "motor fuel", "eia"],
     "Elections": ["election", "president", "senate", "house", "governor", "vote", "ballot", "congress"],
     "Culture": ["culture", "movie", "film", "music", "oscar", "grammy", "emmy", "book", "celebrity"],
     "Crypto": ["crypto", "bitcoin", "ethereum", "btc", "eth", "coin"],
     "Golf": ["golf", "pga", "masters", "ryder"],
 }
+
+GAS_EXCLUSIONS = ("natgas", "natural gas", "vegas", "madagascar", "gaslight", "greenhouse")
+
+
+def fill_price_for_band(row):
+    """Return the traded side's documented price string when present.
+
+    For NO fills (`outcome_side == 'no'` or `book_side == 'ask'`), prefer the
+    documented `no_price_dollars` column when the CSV carries it rather than
+    classifying a NO trade by `yes_price_dollars`. Nothing is inferred when a
+    price field is missing.
+    """
+    side = (row.get("outcome_side") or "").strip().lower()
+    book = (row.get("book_side") or "").strip().lower()
+    if (side == "no" or book == "ask") and (row.get("no_price_dollars") or "").strip():
+        return row.get("no_price_dollars")
+    return row.get("yes_price_dollars")
 
 
 def trade_type(price):
@@ -54,6 +73,8 @@ def trade_type(price):
 def topic_of(ticker):
     hay = (ticker or "").lower()
     for label, words in TOPIC_KEYWORDS.items():
+        if label == "Gas Prices" and any(ex in hay for ex in GAS_EXCLUSIONS):
+            continue
         if any(w in hay for w in words):
             return label
     return "Other / uncategorized"
@@ -77,7 +98,7 @@ def main():
 
     out_rows = []
     for r in rows:
-        ty = trade_type(r.get("yes_price_dollars"))
+        ty = trade_type(fill_price_for_band(r))
         topic = topic_of(r.get("ticker") or r.get("market_ticker"))
         direction = r.get("outcome_side") or r.get("book_side") or ""
         try:
