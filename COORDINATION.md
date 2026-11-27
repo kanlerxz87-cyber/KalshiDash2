@@ -3896,3 +3896,17 @@ history — ask the API for the revision before calling a card wrong.**
   browser, never transcribed); acceptance of an order or any P&L (no credentials, no authenticated call, **no
   order placed**); that a `/series` response is the full catalogue (F5); the per-shard status semantics beyond the
   quoted reference text (F18).
+
+## Session `e081e9af` (branch `arena/e081e9af-kalshidash2`, base `main` @ `e487e12`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:4xZ. Checked before claiming: `gh pr list --state open` → empty (PRs #131/#132 merged); active siblings `54220d3d` (sources.js fee row, flagged F18–F20), `d3e0e9f5` (claims.js, flagged existing cards, summary.html, trace.js), `df162a93` (simulator/kalshi_ws/index/resolved/questions/verification/sources/analyze_trades), `c0aa9245` (collect.yml — its collect fix is superseded by merged PR #132's stricter version). None of the files below is in an active claim.
+
+**Stale-claim handoff (60-minute rule):** `869f5339`'s board rows for `alerts.html` / `assets/js/alerts.js` are from 2026-11-20, last commit that day, and their alerts work was merged in PR #23 (`dd5e36b`). That session is not live; this session takes the alerts UX files for the scope below only.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| E1 | S15 — permalink for every recorded swing + a filterable transcript over both chats and the table view | in progress | `e081e9af` | `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | Project UX feature (no exchange fact asserted); suggestion S15 on `suggestions.html` |
+| E2 | S16 — per-topic mute for the feeds + an opt-in sound cue when the High-ROI watch gets a message | in progress | `e081e9af` | same as E1 | Project UX feature; suggestion S16 on `suggestions.html`; topics already defined in `config.js` |
+| E3 | Update S15/S16 status on the suggestions page once E1/E2 are green; full local suite; PR → `main`, merge, confirm Pages | in progress | `e081e9af` | `suggestions.html` (S15/S16 status lines only), this section | `node --test`, DOM ×3, page-runtime, link check, python unittest; `gh` |
+
+**Not claimed:** any probe/collector/claims/flagged/summary/simulator file; any authenticated call or order (none possible from here).
