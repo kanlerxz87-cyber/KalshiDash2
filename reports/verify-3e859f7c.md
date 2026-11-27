@@ -105,4 +105,9 @@ Executed locally on the rebased tree (`main` @ `54c3ca1` + `3e859f7c`):
 | `python3 -m unittest discover -s tests` | **28** run (**24** passed, **4** skipped without optional `cryptography`/live WS) |
 | `python3 tools/check_site_links.py .` | **36** HTML pages OK |
 
-*PR CI run IDs, merge SHA, and live GitHub Pages deployment verification will be recorded in `COORDINATION.md` after merge.*
+### Deployment & Post-Merge Verification (2026-11-27T22:45Z)
+
+- **PR:** [#159](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/159) merged to `main` at **`2c594ea4c42421e28bb79b5a2f3a6088b9e622bb`** (`2026-11-27T22:44:50Z`).
+- **Post-merge workflows on `main` (`2c594ea`):** `Static site link check` (`46078484932`), `verify-alerts` (`46078484962`), `verify-live-site` (`46078484989`), `live-site-render` (`46078484991`), `live-engine-check` (`46078484915`) — all **success**.
+- **GitHub Pages:** `pages build and deployment` (`46078513206`) **success** on descendant commit `ca7d5e3719895963ef8876c90422c589bdb46e84` (`status: "built"`, `error: null`, `https_enforced: true`).
+- **Live deployed fetch confirmed:** `sources.html?v=3e859f7c` (**49** sources, **29** read in full, **0** unverified), `assets/js/sources.js?v=3e859f7c`, `questions.html?v=3e859f7c`, `suggestions.html?v=3e859f7c`, and `index.html?v=3e859f7c` all serve the merged changes live.
