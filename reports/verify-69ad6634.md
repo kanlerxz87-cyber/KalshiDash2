@@ -1,0 +1,61 @@
+# Independent requirements and deployment audit — `69ad6634`
+
+**Checked:** 2026-11-27 UTC  
+**Tree:** `arena/69ad6634-kalshidash2`, based on `main` at `db912326` (claim commit `3c71d66`, documentation refresh `e81f9e8`; final audit additions follow).  
+**Purpose:** verify that the existing root GitHub Pages site actually addresses the request, refresh stale local test-count snapshots, and document what remains conditional or unverified. This review introduced no live-market data, no credentials, and no trade.
+
+## Executive finding
+
+The repository already contains the requested root Pages site and its supporting registers. The published site is an interactive, public-market-data dashboard for five topics (gas, elections, culture, crypto, golf), with event/category detail pages, charts, depth, alerts, paper trading, backtests, portfolio/order UI, resolution views, sources, and a flagged-review page. The official-source spot checks and local tests listed below support those implementation claims.
+
+**The important boundary is account access:** this is a static GitHub Pages frontend. It can read public demo market data without credentials, but portfolio/account reads and live demo orders require the account owner's demo credentials. None were present in this session and **no real demo order, fill, portfolio balance or P&L was verified**. The High-ROI stream is a transparent project-defined liquidity/price screen, not a validated ROI model or prediction. Sharp-move source links are market/settlement reference links, not evidence of causation.
+
+## Requirement-to-implementation review
+
+| Requested capability | Implementation inspected / delivered | Verification and limitation |
+|---|---|---|
+| Highest-dollar live markets, limited to Gas, Elections, Culture, Crypto, Golf | `index.html`; `categories/{gas,elections,culture,crypto,golf}.html`; `assets/js/config.js`, `assets/js/market.js`, `assets/js/dollar-volume.js` | Topics are classified from the exchange's [series taxonomy](https://docs.kalshi.com/api-reference/market/get-series) and explicit rules. The main board labels `volume_fp × last_price_dollars` as a **proxy**, not cash turnover ([Get Markets](https://docs.kalshi.com/api-reference/market/get-markets)). Category pages offer a separate on-demand total from the official [trades endpoint](https://docs.kalshi.com/api-reference/market/get-trades); missing/incomplete records are excluded or the total withheld. The ranking is within a bounded open-event scan (not the complete catalogue), so it can omit markets beyond the scan cap; see F16/A2/A3. The five-topic DOM check and dollar-volume tests pass. |
+| Separate topic pages and event groupings | `categories/*.html`, `assets/js/category.js`, taxonomy code in `assets/js/market.js` | Five topic pages are part of the link/runtime check. The [Get Series](https://docs.kalshi.com/api-reference/market/get-series) and [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list) schemas support the taxonomy fields used. Taxonomy tests include Golf series tags, gas exclusions, combos, categories and lookup failures. |
+| Live price charts, X=time / Y=price, range selection | Category charts in `assets/js/category.js` and `assets/js/market.js` | Supports locally sampled short windows and exchange candles for longer windows; axes/window behavior and irregular time spacing are covered by Node and DOM tests. [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) documents minute/hour/day intervals, not seconds: seconds-range history is local sampling, disclosed as such. |
+| Liquidity and available contracts by price | Category order-book tables (`orderbook_fp.yes_dollars` / `no_dollars`) | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) documents the fixed-point depth response. DOM tests verify both sides, six-column shape, literal NO bid plus complementary YES ask, and failure-state clearing. Depth is only the returned active bid book, not guaranteed executable quantity. |
+| Two live scrolling alert feeds; ≥$0.10 moves up/down | `alerts.html`, `assets/js/alerts.js`, `assets/js/alerts-core.js` | All-alert and High-ROI watch feeds are implemented. Tests cover exactly $0.10, both directions, sub-threshold moves, feed screening and automatic browser-local paper strategies. [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) documents the input market fields. GitHub Pages uses REST polling; the authenticated [WebSocket ticker](https://docs.kalshi.com/websockets/market-ticker) option requires a separately run relay. |
+| Automated simulated strategy trials and trade-analysis | `simulator.html`, `assets/js/simulator.js`, `strategies.html`, `assets/js/portfolio-core.js` | Backtests replay [official candles](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) and use official [settlement fields](https://docs.kalshi.com/getting_started/market_settlement); [fee-schedule](https://kalshi.com/docs/kalshi-fee-schedule.pdf) modeling, strategy baselines, topic/direction rollups and CSV export are tested. Live fills/positions analysis remains empty until credentials and fills are available; paper fills are not exchange fills. |
+| Track events through yes/no resolution | `resolved.html`, `event.html`, `assets/js/market.js` | Reads the market's exchange-reported result and lifecycle fields ([Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement)). A result remains pending until the exchange reports it. Scalar outcomes are surfaced where present, rather than forced into yes/no. |
+| Demo portfolio and order execution | `portfolio.html`, `assets/js/kalshi.js` | Signed portfolio reads and the [V2 order endpoint](https://docs.kalshi.com/api-reference/orders/create-order-v2) exist, with price-grid handling ([fixed-point guide](https://docs.kalshi.com/getting_started/fixed_point_migration)) and a signing self-test. Portfolio and order routes require authentication ([authenticated request guide](https://docs.kalshi.com/getting_started/quick_start_authenticated_requests)); no order was submitted or accepted in this audit. The requested “no manual input” cannot apply to account authentication or real account data. |
+| Jump context and website links | `alerts.html`, category charts, event detail | Each jump can point to official [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [market candle](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) and [settlement](https://docs.kalshi.com/getting_started/market_settlement) references. Kalshi's `settlement_sources` describe where a market is resolved, not news that caused a price move. Do not read them as causal attribution. |
+| Clean landing page, executive summary, category navigation, verification and review pages | `index.html`, `summary.html`, `sources.html`, `verification.html`, `flagged.html` | The live root deployment was fetched and rendered; summary reports 20 requirement areas, 102/114 verified claims, 9 partial, 3 unverified, and 40 open / 66 mitigated flags (106 total). These are project audit-register figures, not Kalshi API facts. Flagged items remain visible and do not block the site. |
+
+## Official references re-fetched
+
+The following Kalshi-owned documentation pages were fetched on 2026-11-27 and checked for the claims above:
+
+- [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets) — market fields include contract volume, last YES price, previous price, status, result and pagination cursor; `notional_value_dollars` is a single-contract settlement value, not dollar turnover.
+- [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook) — the response includes fixed-point count levels under `orderbook_fp` and permits depth selection.
+- [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks) — candle timestamps and prices; valid `period_interval` values are 1, 60 and 1440 minutes. This is why the seconds chart window is local sampling, not a seconds-candle API claim.
+- [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) — authenticated V2 POST order endpoint and request shape.
+- [Market Settlement](https://docs.kalshi.com/getting_started/market_settlement) — settlement resolves positions and transfers payouts according to the determined outcome; timing may vary.
+- [Market Ticker WebSocket](https://docs.kalshi.com/websockets/market-ticker) — ticker message schema and authenticated WebSocket requirement.
+- [Demo environment](https://docs.kalshi.com/getting_started/demo_env) — demo REST/WebSocket environment details (also linked by `VERIFICATION.md`).
+
+These are documentation checks, not a live authenticated account verification. The source register links its full audited list at [Sources](../sources.html); the published [Verification](../verification.html) and [Flagged for Review](../flagged.html) pages preserve evidence and unresolved items.
+
+## Verification performed in this session
+
+- `node --test tests/*.test.mjs`: **266/266 passed**.
+- `(cd tests/dom && npm ci && npm test)`: **55/55 passed** (alerts 26, summary 5, category 24); npm audit reported **0 vulnerabilities**.
+- `python3 -m unittest discover -s tools`: **55/55 passed**.
+- `python3 -m unittest discover -s tests`: **28 run, 24 passed, 4 skipped**.
+- `python3 tools/check_site_links.py .`: **36 HTML pages, 0 broken local links**.
+- `node tools/verify/page-runtime-check.mjs`: **18/18 published pages clean**, with 36-page internal-link check also reporting 0 broken links.
+- `node evidence/auth-sign-test.mjs`: **6/6 signing checks passed**. This is a deterministic self-test, not an authenticated Kalshi request.
+- `git diff --check`: passed.
+- GitHub Actions for this audit: branch Static site link check run [46076617302](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46076617302) succeeded; root `live-site-render` run [46076646169](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46076646169) succeeded. A concurrent unrelated branch's static check [46076621689](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46076621689) also succeeded.
+- GitHub Pages API reported **built**, source `main:/`, HTTPS enforced. Latest completed Pages build at audit start was run [46070530114](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46070530114), successful on `db912326`; the deployed homepage, executive summary and flagged page were fetched during this audit.
+
+## Corrections and remaining review items
+
+1. **Stale repository test snapshots fixed:** `README.md` and `EXECUTIVE_SUMMARY.md` previously reported 263 Node tests and 20 Python `tests` (17 pass / 3 skipped). This run confirms **266 Node tests** and **28 Python tests (24 pass / 4 skipped)**. README and the executive-summary verification snapshot now match the actual run.
+2. **No live order/account evidence:** F1 and related portfolio evidence remain unverified; this audit deliberately did not access or invent credentials. The site does not autonomously execute authenticated orders.
+3. **No causality claim:** market settlement-source links are references, not news explanations for sharp price moves. News/article discovery or causal attribution is not implemented as verified functionality.
+4. **No ROI claim:** “High-ROI” is only a rule-filtered watch label; profitability is not established. Backtest assumptions still omit spread/slippage and live queue position.
+5. **No Pages configuration change was needed:** root Pages already deploys successfully from `main:/`; the user-facing site is at <https://kanlerxz87-cyber.github.io/KalshiDash2/>.
