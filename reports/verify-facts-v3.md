@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-27T22:52:50Z |
+| Captured (UTC) | 2026-11-27T23:00:50Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `0d819cd532a29d0e1a92dfff59db0b7326335627` |
+| Commit | `33b81cdee5bf03782b4fce5b246b385fd8f9bcd9` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -15,13 +15,13 @@
 | `GET /events?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /series?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /events/KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB/candlesticks?start_ts=1795733571&end_ts=1795819971&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /events/KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR/candlesticks?start_ts=1795734051&end_ts=1795820451&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
-**Resolved ids used above:** market `KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB` → event `KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB` → series `KXMVECROSSCATEGORY`
+**Resolved ids used above:** market `KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR` → event `KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B` → series `KXMVECROSSCATEGORY`
 
 ## B. Market → event → series lookup path (needed for candlesticks)
 
@@ -72,7 +72,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "yes_sub_title"
  ],
  "series_ticker": null,
- "event_ticker": "KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB"
+ "event_ticker": "KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B"
 }
 ```
 
@@ -101,17 +101,17 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
 
 `period_interval=1` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR"}
 ```
 
 `period_interval=60` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR"}
 ```
 
 `period_interval=1440` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026JOS2CWXQD4UH24BB-N2FDGZ2SB"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S20264IASC2NVOVQY675B-GOJVGF4JR"}
 ```
 
 Unsupported `period_interval=5`:
@@ -122,7 +122,7 @@ HTTP 400
 
 ## D. Orderbook — resting bid depth (liquidity)
 ```json
-{"orderbook_fp":{"no_dollars":[],"yes_dollars":[["0.0100","1.00"]]}}
+{"orderbook_fp":{"no_dollars":[],"yes_dollars":[]}}
 ```
 
 ## E. Order write routes (unauthenticated: route existence only)
