@@ -80,7 +80,7 @@
       <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
         keywords against <code>GET /series</code>. One response from that list returned over sixteen
-        thousand series (16,698 rows in <code>data/probe/api_surface.json</code>, capture 2026-11-24T18:14Z), so a
+        thousand series (16,698 rows in <code>data/probe/api_surface_2026-11-24.json</code>, capture 2026-11-24T18:14Z), so a
         keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
         "golf" matched <code>KXTRUMPGOLFD</code> (a Politics market), while no <code>category</code> value
         covers gasoline at all.</p>
@@ -92,7 +92,7 @@
         the root config still carried the same unsound <code>/GAS/i</code> pattern — it matched
         <code>KXNBALASVEGAS</code> and <code>KXNATGASW</code> — and the culture topic missed the literal
         <code>Culture</code> category that exists in the live demo vocabulary (4 series,
-        <code>data/probe/api_surface.json</code>). The gas matcher is now the <code>KXAAAGAS*</code> family
+        <code>data/probe/api_surface_2026-11-24.json</code>). The gas matcher is now the <code>KXAAAGAS*</code> family
         plus explicit exclusions (crude / WTI / Brent / natural-gas / diesel / Vegas / barrels / oil),
         and <code>classifyEvent</code> honours per-topic <code>excludePatterns</code>. 15/15 classification
         cases pass, including <em>Natural gas price</em> → none, <em>Las Vegas</em> → none, <em>AAA gas price</em> → gas.</p>
@@ -183,7 +183,7 @@
           <em>legacy</em> generation. The published root site had no Sources page and the shared navigation had no
           entry for one, so the promise had no deliverable.</li>
         <li>This page (F5/F8) and the Verification register published <strong>16,643</strong> as "the complete series
-          catalogue", while the committed probe capture <code>data/probe/api_surface.json</code> records
+          catalogue", while the <a href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/f8d90c5cfdb0/data/probe/api_surface.json">historical probe capture</a> recorded
           <strong>16,653</strong> rows in the same call. Both numbers are real captures: 16,643 is recorded in
           <code>evidence/evidence-cors-taxonomy.md</code> at 2026-11-20T11:08Z, and the probe file was captured
           later. Neither is a documented total, because <code>GET /series</code> documents no <code>limit</code> or
@@ -227,7 +227,7 @@
         Verification register published <em>16,643</em> as "the complete series catalogue". Two committed
         captures of the same call disagree, and both are legitimate — the catalogue moves:
         <code>evidence/evidence-cors-taxonomy.md</code> (and <code>reports/verify-facts-raw.md</code>) record
-        <strong>16,643</strong> rows at 2026-11-20T11:08Z, while <code>data/probe/api_surface.json</code>
+        <strong>16,643</strong> rows at 2026-11-20T11:08Z, while the <a href="https://github.com/kanlerxz87-cyber/KalshiDash2/blob/f8d90c5cfdb0/data/probe/api_surface.json">historical probe capture</a>
         records <strong>16,653</strong> rows at its later capture time. Presenting either number as "the
         catalogue" was the defect: the reference documents no <code>limit</code> or <code>cursor</code> for
         <code>GET /series</code>, so the row count is a point-in-time observation of one response, not a
@@ -1275,16 +1275,14 @@
       <p><strong>Fixed:</strong> the three rows now cite <em>Get Series List</em> (the page that defines the
         <code>category</code> field and is the page the captured vocabulary was read from) and name
         <em>Get Tags for Series Categories</em> as the official category-to-tag map. The observed values are
-        unchanged and come from the committed capture <code>data/probe/api_surface.json</code>:
+        unchanged and come from the pinned capture <code>data/probe/api_surface_2026-11-24.json</code>:
         Elections 5,430 · Entertainment 5,257 · Social 100 · Crypto 642 · Sports 8,492 series, in the
         2026-11-24T18:14Z probe capture.</p>
       <p><strong>Drift found 2026-11-25 (session <code>74b579c8</code>):</strong> this card previously published
         <em>Elections 5,420 · Sports 8,486</em> while the committed file it cites holds <em>5,430</em> and
-        <em>8,492</em>. The old figures were accurate for an earlier capture — <code>data/probe/api_surface.json</code>
-        is rewritten every few days by <code>.github/workflows/probe.yml</code>, and the page did not carry a
-        capture date, so the numbers aged without any test noticing. The card now quotes the capture time
-        beside the figure. A capture-time check (below) now fails the build if a
-        <code>data/probe/api_surface.json</code> figure is published without one.</p>
+        <em>8,492</em>. The old figures were accurate for an earlier capture. The rolling probe is rewritten by
+        <code>.github/workflows/probe.yml</code>; the cited 2026-11-24 capture is now pinned separately, so
+        future refreshes do not silently replace its evidence. The test compares these figures to that capture.</p>
       <p><strong>Why this class of defect is easy to miss:</strong> the link checker proves a link resolves,
         not that the linked page says what the row claims. Suggested guard in
         <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a> §4 S3.</p>
@@ -1537,7 +1535,7 @@
         volume" wording is not over-read.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List — no ordering guarantee documented ↗</a>
-        · counts: <code>data/probe/api_surface.json</code></p>
+        · counts: <code>data/probe/api_surface_2026-11-24.json</code></p>
     </div>
 
     <div class="irregularity" id="SB4">
