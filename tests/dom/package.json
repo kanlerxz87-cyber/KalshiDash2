@@ -1,10 +1,11 @@
 {
   "name": "kalshidash2-dom-tests",
   "private": true,
-  "description": "Dev-only DOM regression tests for the alerts and executive summary pages. Not part of the published site.",
+  "description": "Dev-only DOM regression tests for the alerts and executive summary pages. Not part of the published site. The render-audit script loads the deployed site in real Chromium.",
   "type": "module",
   "scripts": {
-    "test": "node alerts-dom.mjs && node summary-dom.mjs && node category-dom.mjs"
+    "test": "node alerts-dom.mjs && node summary-dom.mjs && node category-dom.mjs",
+    "audit": "node render-audit.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.0",
