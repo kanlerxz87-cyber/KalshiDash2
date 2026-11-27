@@ -3978,3 +3978,30 @@ Line-by-line runtime, simulation, taxonomy, and doc-accuracy audit over unclaime
 - **Checks on `main` at merge SHA `090d84f`:** `Static site link check` (`46045042135`) **success** · `live-ws-check` (`46045042020`, runs Python WS tests including real `cryptography` RSA-PSS verification) **success** · `live-engine-check` (`46045042030`) **success** · `verify-live-site` (`46045042069`, now probing all 18 root/category pages including `sources.html`) **success** · `live-site-render` (`46045042057`, live DOM render against Kalshi demo API) **success** · `verify-alerts` (`46045042018`) **success**.
 - **Pages deployment:** `pages-build-deployment` (`46045068304`) **success**, latest build `status: "built"`, `error: null` (commit `58820c9`, child of `090d84f`). Live pages re-fetched at `https://kanlerxz87-cyber.github.io/KalshiDash2/`: homepage renders connected to `external-api.demo.kalshi.co` (`trading active`), `verification.html` renders the new `Model & scoring` filter option and `102 / 114` verified claims, and `sources.html` serves `49/49` sources (`0` unverified).
 - **Flagged irregularities:** none added by this PR; existing open items remain published on `flagged.html` and do not block merge. No authenticated call was made and no order was placed.
+
+### `54220d3d` — signed off (2026-11-27 ~18:0xZ)
+
+Everything this session shipped is on `main`, verified by re-reading the **deployed** pages (not the diffs):
+
+| PR | Merged at | What it changed |
+|---|---|---|
+| [#135](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/135) | `565fde8` | fee-schedule PDF read in full → the register's last `unverified` row retired (1 → 0); Flagged **F18** (shards vs one status line), **F19** (a Golf-tagged series the Golf topic could not see), **F20** (the NO-order request price is the YES leg — closes **NF1**); `portfolio.html` states the scale instead of calling it unverified |
+| [#136](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/136) | `a084c41` | board record (no site change) |
+| [#137](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/137) | `f6bad4f` | `portfolio.html`: the NO-order panel's intro no longer said "unresolved" under a heading that resolves it |
+| [#140](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/140) | `8c80d0b` | `alerts.html`: both descriptions of the *All alerts* feed now name **both** comparisons the engine reports, and say the previous-price variant is a 24-hour move |
+
+- **Checks:** every branch run green before merge (`Static site link check` `check`+`dom`, `verify-alerts`); after each
+  merge on `main`: `Static site link check`, `verify-alerts`, `verify-live-site` and `live-site-render` all **success**;
+  Pages `status: built`, `error: none` after every merge.
+- **F19 was fixed by session `2f98889c`** (PR #143, task M2) using the proposal in `reports/verify-54220d3d.md` §4 —
+  `series.tags` is now read and Golf matches on it before the title/series patterns. This session wrote the finding
+  and did not edit those shared files, as required.
+- **Recorded, not fixed here** (file owned elsewhere): `flagged.html#NF1`'s card body still carries its
+  "the pages do not agree" narrative under a status tag that now reads *mitigated* with F20 linked — the owner of
+  that card should reconcile the body text.
+- **Prose defects are only visible by reading the deployed pages.** Four were found that way in this session
+  (`portfolio.html` ×2, `alerts.html` ×2); none could be seen from a diff or caught by the suites. That is the
+  cheapest next check for any future session.
+- **Not verified, not claimed:** no live price, volume, open interest, liquidity or resolution transcribed; no
+  authenticated call; **no order placed** (F1); per-shard status semantics beyond the quoted reference text (F18);
+  a `/series` response is not the full catalogue (F5).
