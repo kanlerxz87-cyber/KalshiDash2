@@ -128,10 +128,12 @@
 
   <div class="card">
     <h2>4 · Fills</h2>
-    <p class="sub">The raw fills below feed the <a href="strategies.html">Strategies</a> page. Nothing is
+    <p class="sub">The raw fills below feed the <a href="strategies.html">Strategies</a> page and can be exported in the exact
+      <code>Get Fills</code> CSV column format accepted by <code>scripts/analyze_trades.py</code>. Nothing is
       analysed unless it came back from <code>GET /portfolio/fills</code>.</p>
     <div class="toolbar">
       <button class="secondary" id="reload-fills">Reload fills</button>
+      <button class="secondary" id="export-fills-csv" disabled>Export fills CSV</button>
       <span id="fills-status" class="pill idle">idle</span>
     </div>
     <div class="table-wrap">
@@ -170,12 +172,13 @@ import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow } from
 import { SOURCES } from "./assets/js/config.js";
 import { api, num } from "./assets/js/market.js";
 import { snapToGrid } from "./assets/js/kalshi.js";
-import { positionDollars, summarizePositions, loadPositions } from "./assets/js/portfolio-core.js";
+import { positionDollars, summarizePositions, loadPositions, downloadFillsCsv } from "./assets/js/portfolio-core.js";
 
 mountChrome({ page: "portfolio.html", title: "Portfolio" });
 
 // Ignore an older account read after a reload or after the key is forgotten.
 let accountRequest = 0;
+let loadedFills = [];
 
 /* ------------------------------- key handling ------------------------------ */
 $("#load-key").onclick = () => {
@@ -194,6 +197,7 @@ $("#load-key").onclick = () => {
 $("#clear-key").onclick = () => {
   accountRequest++;
   api.clearCredentials();
+  loadedFills = [];
   window.__fills = [];
   $("#keyId").value = "";
   $("#pem").value = "";
@@ -202,6 +206,7 @@ $("#clear-key").onclick = () => {
   pill($("#acct-status"), "idle", "idle");
   pill($("#fills-status"), "idle", "idle");
   pill($("#order-status"), "idle", "idle");
+  $("#export-fills-csv").disabled = true;
   $("#acct-stats").innerHTML = "";
   $("#perf-stats").innerHTML = "";
   $("#perf-note").innerHTML = "";
@@ -290,7 +295,9 @@ async function loadFills(req = accountRequest) {
     const j = await api.fills();
     if (request !== accountRequest) return;
     const fills = j.fills || [];
+    loadedFills = fills;
     window.__fills = fills;
+    $("#export-fills-csv").disabled = fills.length === 0;
     $("#fills-body").innerHTML = fills.length ? fills.slice(0, 300).map(f => `<tr>
       <td class="small nowrap">${dt(f.created_time || (f.ts ? new Date(f.ts * 1000).toISOString() : null))}</td>
       <td class="mono small">${esc(f.ticker || f.market_ticker || "")}</td>
@@ -309,11 +316,17 @@ async function loadFills(req = accountRequest) {
     localStorage.setItem("kalshiDash.fills", JSON.stringify({ at: new Date().toISOString(), fills }));
   } catch (e) {
     if (request !== accountRequest) return;
+    loadedFills = [];
+    $("#export-fills-csv").disabled = true;
     pill($("#fills-status"), "err", e.message);
     $("#fills-body").innerHTML = emptyRow(9, "Fills request failed: " + e.message);
   }
 }
 $("#reload-fills").onclick = () => loadFills();
+$("#export-fills-csv").onclick = () => {
+  if (!loadedFills.length) return "";
+  return downloadFillsCsv(loadedFills, "kalshi-demo-fills.csv");
+};
 
 /* ------------------------------- order form ------------------------------ */
 let marketInfo = null;

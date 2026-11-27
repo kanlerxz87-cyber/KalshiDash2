@@ -228,3 +228,32 @@ test("forgetting the key also clears fills/order panels and blocks a late fills 
   assert.match(f.$("#fills-status").innerHTML, /idle/);
   assert.match(f.$("#order-status").innerHTML, /idle/);
 });
+
+test("fills CSV export outputs documented Get Fills fields and Forget key clears fills state", async () => {
+  const f = fixture();
+  f.state.fills = async () => ({
+    fills: [{
+      created_time: "2026-11-27T15:00:00Z",
+      ticker: "KXTEST-1",
+      market_ticker: "KXTEST-1",
+      outcome_side: "no",
+      book_side: "ask",
+      count_fp: "1.50",
+      yes_price_dollars: "0.8500",
+      no_price_dollars: "0.1500",
+      is_taker: false,
+      fee_cost: "0.0100"
+    }],
+    cursor: ""
+  });
+  await f.load();
+  assert.equal(f.$("#export-fills-csv").disabled, false);
+  const csv = f.$("#export-fills-csv").onclick();
+  assert.match(csv, /^created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,no_price_dollars,is_taker,fee_cost\n/);
+  assert.match(csv, /2026-11-27T15:00:00Z,KXTEST-1,KXTEST-1,no,ask,1\.50,0\.8500,0\.1500,false,0\.0100/);
+
+  f.$("#clear-key").onclick();
+  assert.equal(f.$("#export-fills-csv").disabled, true);
+  assert.equal(f.$("#export-fills-csv").onclick(), "");
+  assert.match(f.$("#fills-body").innerHTML, /No fills loaded\./);
+});

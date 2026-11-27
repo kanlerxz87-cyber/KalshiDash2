@@ -4,7 +4,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { KalshiClient } from "../assets/js/kalshi.js";
 import { analyseFills } from "../assets/js/market.js";
-import { POSITION_FIELDS, positionDollars, summarizePositions, loadPositions } from "../assets/js/portfolio-core.js";
+import {
+  POSITION_FIELDS, positionDollars, summarizePositions, loadPositions,
+  FILL_CSV_COLUMNS, escapeCsvCell, fillsToCsv
+} from "../assets/js/portfolio-core.js";
 
 function row(overrides = {}) {
   return {
@@ -133,4 +136,44 @@ test("liquidity-role buckets say taker/maker, not true/false; side is separate",
   assert.equal(result.byRole.find(g => g.key === "unclassified").n, 2);
   assert.equal(result.bySide[0].key, "yes");
   assert.equal(result.bySide[0].n, 4);
+});
+
+test("fillsToCsv emits the exact Get Fills columns with blank unreturned fields and formula safety", () => {
+  assert.deepEqual(FILL_CSV_COLUMNS, [
+    "created_time", "ticker", "market_ticker", "outcome_side", "book_side",
+    "count_fp", "yes_price_dollars", "no_price_dollars", "is_taker", "fee_cost"
+  ]);
+  const csv = fillsToCsv([
+    {
+      created_time: "2026-11-27T15:00:00Z",
+      ticker: "KXBTCD-26NOV2817-T71249.99",
+      market_ticker: "KXBTCD-26NOV2817-T71249.99",
+      outcome_side: "no",
+      book_side: "ask",
+      count_fp: "2.50",
+      yes_price_dollars: "0.9200",
+      no_price_dollars: "0.0800",
+      is_taker: true,
+      fee_cost: "0.0200"
+    },
+    {
+      ts: 1795791600,
+      ticker: "=CMD|' /C calc'!A0,bad",
+      outcome_side: "yes"
+      // missing count_fp, prices, is_taker, fee_cost -> left blank, never filled with 0
+    }
+  ]);
+  const lines = csv.trimEnd().split("\n");
+  assert.equal(lines.length, 3);
+  assert.equal(lines[0], FILL_CSV_COLUMNS.join(","));
+  assert.equal(
+    lines[1],
+    "2026-11-27T15:00:00Z,KXBTCD-26NOV2817-T71249.99,KXBTCD-26NOV2817-T71249.99,no,ask,2.50,0.9200,0.0800,true,0.0200"
+  );
+  assert.equal(
+    lines[2],
+    `2026-11-27T15:00:00.000Z,"'=CMD|' /C calc'!A0,bad",,yes,,,,,,`
+  );
+  assert.equal(escapeCsvCell("-1.2500"), "-1.2500", "signed numeric strings are not prefixed");
+  assert.equal(escapeCsvCell("@SUM(A1)"), "'@SUM(A1)", "formula prefixes are escaped");
 });

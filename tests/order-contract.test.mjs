@@ -21,7 +21,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { KalshiClient } from "../assets/js/kalshi.js";
+import { KalshiClient, deriveQuote, liquidityAtPrice } from "../assets/js/kalshi.js";
 
 // --- a real key pair, generated per run: the client really signs ------------
 const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -185,4 +185,52 @@ test("an unknown outcome side is refused before any request is made", async () =
     /outcomeSide/
   );
   assert.equal(calls.length, 0, "nothing was sent");
+});
+
+test("liquidityAtPrice computes exact and cumulative YES/NO contracts from reciprocal bids", () => {
+  // Official Orderbook Responses rule: NO bid at y implies YES ask at 1 - y;
+  // YES bid at x implies NO ask at 1 - x.
+  const quote = deriveQuote({
+    orderbook_fp: {
+      yes_dollars: [["0.4000", "12.50"], ["0.5100", "25.00"]],
+      no_dollars: [["0.4600", "40.25"], ["0.4700", "15.00"]]
+    }
+  });
+  // YES asks are 0.5300 (15.00 contracts) and 0.5400 (40.25 contracts).
+  const at53 = liquidityAtPrice(quote, { side: "yes", limitPrice: 0.53 });
+  assert.equal(at53.valid, true);
+  assert.equal(at53.bestAsk, 0.53);
+  assert.equal(at53.exactContracts, 15);
+  assert.equal(at53.fillableContracts, 15);
+  assert.equal(at53.totalCostDollars, 7.95);
+  assert.equal(at53.vwapDollars, 0.53);
+
+  const at54 = liquidityAtPrice(quote, { side: "yes", limitPrice: "0.5400" });
+  assert.equal(at54.exactContracts, 40.25);
+  assert.equal(at54.fillableContracts, 55.25, "fractional count_fp hundredths are preserved, never rounded");
+  assert.equal(at54.levelsMatched, 2);
+  // 15 * 0.53 + 40.25 * 0.54 = 7.95 + 21.735 = 29.685
+  assert.equal(at54.totalCostDollars, 29.685);
+
+  // NO asks are 0.4900 (25.00 contracts from YES bid 0.51) and 0.6000 (12.50 from YES bid 0.40).
+  const noAt55 = liquidityAtPrice(quote, { side: "no", limitPrice: 0.55 });
+  assert.equal(noAt55.valid, true);
+  assert.equal(noAt55.bestAsk, 0.49);
+  assert.equal(noAt55.exactContracts, 0);
+  assert.equal(noAt55.fillableContracts, 25);
+  assert.equal(noAt55.totalOfferedContracts, 37.5);
+});
+
+test("liquidityAtPrice handles empty books and rejects out-of-range prices", () => {
+  const empty = deriveQuote({ orderbook_fp: { yes_dollars: [], no_dollars: [] } });
+  const res = liquidityAtPrice(empty, { side: "yes", limitPrice: 0.50 });
+  assert.equal(res.valid, true);
+  assert.equal(res.bestAsk, null);
+  assert.equal(res.fillableContracts, 0);
+  assert.equal(res.vwapDollars, null);
+
+  for (const bad of ["", null, 0, 1, -0.1, 1.2, "abc"]) {
+    assert.equal(liquidityAtPrice(empty, { side: "yes", limitPrice: bad }).valid, false, `rejected ${bad}`);
+  }
+  assert.equal(liquidityAtPrice(empty, { side: "both", limitPrice: 0.5 }).valid, false);
 });
