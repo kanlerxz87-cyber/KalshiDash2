@@ -249,24 +249,39 @@ const UNVERIFIED = CLAIMS.filter(c => c.status === "unverified").length;
 const REQUIREMENTS = document.querySelectorAll("#requirement-matrix tr").length;
 const EXECUTED_ORDERS = 0;
 
-let FLAG_COUNTS = { open: null, mitigated: null, total: null };
+/* The statuses a Flagged card can state, in the order the page uses them.
+ * These are the literal words in the card's own heading tag. */
+const FLAG_STATUSES = ["open", "mitigated", "fixed", "corrected"];
+
+let FLAG_COUNTS = { open: null, byStatus: null, total: null };
 try {
   const res = await fetch("flagged.html", { cache: "no-store" });
   if (!res.ok) throw new Error(`Flagged page returned HTTP ${res.status}`);
   const flagDoc = new DOMParser().parseFromString(await res.text(), "text/html");
   const cards = [...flagDoc.querySelectorAll(".irregularity")];
   /* A card's status is the tag in its own heading. Counting any tag anywhere in
-   * the card double-counted a nested card (Z8 on the Flagged page). */
-  FLAG_COUNTS = {
-    open: cards.filter(card => card.querySelector("h3 .tag.warn")).length,
-    mitigated: cards.filter(card => card.querySelector("h3 .tag.yes")).length,
-    total: cards.length
-  };
+   * the card double-counted a nested card (Z8 on the Flagged page).
+   *
+   * Counting by CSS class instead of by the word was the second half of that
+   * mistake: `tag.warn` vs `tag.yes` lumped fixed, mitigated and corrected
+   * under one number, so this line read "66 mitigated" while only 28 cards
+   * said mitigated (37 said fixed, 1 said corrected). The headline now repeats
+   * the words (flagged page, DR4). */
+  const statusOf = card => (card.querySelector("h3 .tag")?.textContent || "").trim().toLowerCase();
+  const byStatus = Object.fromEntries(
+    FLAG_STATUSES.map(status => [status, cards.filter(card => statusOf(card) === status).length])
+  );
+  FLAG_COUNTS = { open: byStatus.open, byStatus, total: cards.length };
 } catch { /* the summary still renders when the cross-page count is unavailable */ }
 
 const flagMeta = FLAG_COUNTS.total === null
   ? "see the Flagged page"
-  : `${FLAG_COUNTS.total} items · ${FLAG_COUNTS.mitigated} mitigated`;
+  : [
+      `${FLAG_COUNTS.total} items`,
+      ...FLAG_STATUSES
+        .filter(status => status !== "open")
+        .map(status => `${FLAG_COUNTS.byStatus[status]} ${status}`)
+    ].join(" · ");
 
 $("#headline").innerHTML = [
   { k: "Requirement areas", v: REQUIREMENTS, m: "listed in the matrix below" },

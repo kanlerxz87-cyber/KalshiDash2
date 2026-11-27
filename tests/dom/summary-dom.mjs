@@ -61,8 +61,20 @@ const cards = [...flagDoc.querySelectorAll(".irregularity")];
 /* Status comes from the card's own heading. Reading any tag in the card made a
  * nested card's status count for its parent: Z3 was left unclosed, SC1/SC2
  * rendered inside it, and the page totalled 88 statuses for 87 items (Z8). */
-const open = cards.filter(card => card.querySelector("h3 .tag.warn")).length;
-const mitigated = cards.filter(card => card.querySelector("h3 .tag.yes")).length;
+/* Counts are taken from the WORD in each card's own heading, which is what the
+ * Summary now prints. Counting the tag's class instead reported "66 mitigated"
+ * for 28 mitigated, 37 fixed and 1 corrected card (Flagged DR4). */
+const FLAG_STATUSES = ["open", "mitigated", "fixed", "corrected"];
+const statusOf = card => (card.querySelector("h3 .tag")?.textContent || "").trim().toLowerCase();
+const byStatus = Object.fromEntries(
+  FLAG_STATUSES.map(status => [status, cards.filter(card => statusOf(card) === status).length])
+);
+const open = byStatus.open;
+const closed = cards.length - open;
+const expectedFlagDetail = [
+  `${cards.length} items`,
+  ...FLAG_STATUSES.filter(status => status !== "open").map(status => `${byStatus[status]} ${status}`)
+].join(" \u00b7 ");
 
 const stats = [...window.document.querySelectorAll("#headline .stat")];
 const stat = name => {
@@ -110,16 +122,26 @@ for (const card of cards) {
   assert.equal(card.querySelectorAll("h3 .tag").length, 1,
     `every card states exactly one status in its own heading: ${card.id}`);
 }
-assert.equal(open + mitigated, cards.length,
-  `open + mitigated must equal the item count: ${open} + ${mitigated} vs ${cards.length}`);
+for (const card of cards) {
+  assert.ok(FLAG_STATUSES.includes(statusOf(card)),
+    `every card states one of the published status words (${card.id} says "${statusOf(card)}")`);
+}
+assert.equal(open + closed, cards.length,
+  `open + closed must equal the item count: ${open} + ${closed} vs ${cards.length}`);
+assert.equal(
+  byStatus.open + byStatus.mitigated + byStatus.fixed + byStatus.corrected,
+  cards.length,
+  "the per-status breakdown must account for every card, with none unlabelled"
+);
 assert.equal(stat("Open flags").value, String(open));
-assert.equal(stat("Open flags").detail, `${cards.length} items · ${mitigated} mitigated`);
+assert.equal(stat("Open flags").detail, expectedFlagDetail,
+  "the headline names each closed status by the number of cards that state it");
 assert.ok(!window.document.querySelector("#headline").textContent.includes("[object Object]"));
 assert.deepEqual(pageErrors, [], "summary module runs without jsdom errors");
 
 console.log(`PASS  requirement areas = ${requirements}`);
 console.log(`PASS  claim counts = ${verified}/${CLAIMS.length} verified; ${partial} partial; ${unverified} unverified`);
-console.log(`PASS  flag counts = ${open} open; ${mitigated} mitigated; ${cards.length} total`);
+console.log(`PASS  flag counts = ${open} open; ${byStatus.mitigated} mitigated; ${byStatus.fixed} fixed; ${byStatus.corrected} corrected; ${cards.length} total`);
 console.log(`PASS  sourced/project-labelled summary rows = ${sourceRows.length}`);
 console.log("PASS  no object interpolation or page errors");
 
