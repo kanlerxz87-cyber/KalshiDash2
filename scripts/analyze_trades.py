@@ -3,14 +3,14 @@
 
 Input: a CSV in the exact Get Fills field names (see data/trades_template.csv
 or the --export-csv output of scripts/kalshi_client.py):
-  created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,fee_cost
+  created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,no_price_dollars,is_taker,fee_cost
 
 Nothing is invented: empty input -> empty report. Every numeric value comes
 from the CSV; trade-type price bands are this project's analytic convention
 (see docs/sources.html "Analytic conventions" — they are NOT official Kalshi
 taxonomy).
 
-Trade types (price bands on yes_price_dollars):
+Trade types (price bands on the traded outcome's documented dollar price):
   Deep longshot (<= $0.10) | Moderate underdog ($0.11-$0.40) |
   Coin flip ($0.41-$0.60) | Favorite ($0.61-$0.89) | Near-certain (>= $0.90)
 
@@ -24,7 +24,7 @@ import sys
 from collections import defaultdict
 
 FIELDS = ["created_time", "ticker", "market_ticker", "outcome_side", "book_side",
-          "count_fp", "yes_price_dollars", "fee_cost"]
+          "count_fp", "yes_price_dollars", "no_price_dollars", "is_taker", "fee_cost"]
 
 TOPIC_KEYWORDS = {
     # Retail motor gasoline only — never bare "gas", which false-matches
@@ -42,16 +42,22 @@ GAS_EXCLUSIONS = ("natgas", "natural gas", "vegas", "madagascar", "gaslight", "g
 def fill_price_for_band(row):
     """Return the traded side's documented price string when present.
 
-    For NO fills (`outcome_side == 'no'` or `book_side == 'ask'`), prefer the
-    documented `no_price_dollars` column when the CSV carries it rather than
-    classifying a NO trade by `yes_price_dollars`. Nothing is inferred when a
-    price field is missing.
+    For NO fills (`outcome_side == 'no'` or `book_side == 'ask'`), require the
+    documented `no_price_dollars` column rather than classifying a NO trade by
+    `yes_price_dollars` or inferring `1 - yes_price_dollars`. For YES fills
+    (`outcome_side == 'yes'` or `book_side == 'bid'`), use `yes_price_dollars`.
+    When the side or its documented price is absent, return None so the row is
+    labelled unclassified rather than guessed.
     """
     side = (row.get("outcome_side") or "").strip().lower()
     book = (row.get("book_side") or "").strip().lower()
-    if (side == "no" or book == "ask") and (row.get("no_price_dollars") or "").strip():
-        return row.get("no_price_dollars")
-    return row.get("yes_price_dollars")
+    if side == "no" or book == "ask":
+        no_px = (row.get("no_price_dollars") or "").strip()
+        return no_px or None
+    if side == "yes" or book == "bid":
+        yes_px = (row.get("yes_price_dollars") or "").strip()
+        return yes_px or None
+    return None
 
 
 def trade_type(price):

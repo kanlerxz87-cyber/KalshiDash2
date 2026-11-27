@@ -58,13 +58,19 @@ from urllib.parse import urlparse
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Keep these in sync with scripts/kalshi_ws.py.
+# Official demo Trade API hosts (https://docs.kalshi.com/getting_started/demo_env
+# and https://docs.kalshi.com/getting_started/api_environments). Strict allowlists
+# prevent sending signed WebSocket headers or REST queries to production or
+# arbitrary hosts.
 DEFAULT_WS_URL = "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2"
-PRODUCTION_MARKERS = (
-    "external-api-ws.kalshi.com",
-    "api.elections.kalshi.com",
-    "kalshi.com/trade-api",
-)
+ALLOWED_DEMO_WS_HOSTS = frozenset({
+    "external-api-ws.demo.kalshi.co",
+    "demo-api.kalshi.co",
+})
+ALLOWED_DEMO_REST_HOSTS = frozenset({
+    "external-api.demo.kalshi.co",
+    "demo-api.kalshi.co",
+})
 
 # Bounded fan-out queue per subscriber. A slow reader must never grow the
 # server's memory without limit.
@@ -72,9 +78,42 @@ QUEUE_MAX = 2000
 
 
 def ensure_demo(url):
-    if any(m in url for m in PRODUCTION_MARKERS):
-        sys.exit("Refusing to run: this relay is demo-only (mock funds). "
-                 "Production WebSocket hosts are intentionally not supported.")
+    target = (url or "").strip().rstrip("/")
+    parsed = urlparse(target)
+    if (
+        parsed.scheme != "wss"
+        or parsed.hostname not in ALLOWED_DEMO_WS_HOSTS
+        or parsed.path != "/trade-api/ws/v2"
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
+        sys.exit(
+            f"Refusing to run against {target!r}: this relay is locked to the official "
+            "Kalshi DEMO WebSocket endpoints (wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2 "
+            "or wss://demo-api.kalshi.co/trade-api/ws/v2). Production and non-demo "
+            "hosts are intentionally rejected."
+        )
+    return target
+
+
+def ensure_demo_rest(base_url):
+    target = (base_url or "").strip().rstrip("/")
+    parsed = urlparse(target)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in ALLOWED_DEMO_REST_HOSTS
+        or parsed.path != "/trade-api/v2"
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
+        sys.exit(
+            f"Refusing to discover markets from {target!r}: only official Kalshi DEMO "
+            "REST roots (https://external-api.demo.kalshi.co/trade-api/v2 or "
+            "https://demo-api.kalshi.co/trade-api/v2) are allowed."
+        )
+    return target
 
 
 # --------------------------------------------------------------------------- #
@@ -231,7 +270,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
             "state": getattr(src, "state", "unavailable") if src else "unavailable",
             "tickers": len(self.universe),
             "source": "Kalshi demo WebSocket ticker channel",
-            "source_url": DEFAULT_WS_URL,
+            "source_url": getattr(src, "url", DEFAULT_WS_URL) if src else DEFAULT_WS_URL,
         }).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -308,8 +347,10 @@ def discover_universe(limit=60):
               "auto-discover a universe. Use --ticker / --ticker-file.",
               file=sys.stderr)
         return []
-    base = os.environ.get("KALSHI_DEMO_BASE",
-                          "https://external-api.demo.kalshi.co/trade-api/v2")
+    base = ensure_demo_rest(os.environ.get(
+        "KALSHI_DEMO_BASE",
+        "https://external-api.demo.kalshi.co/trade-api/v2",
+    ))
     try:
         r = requests.get(base + "/markets", params={"status": "open", "limit": limit},
                          timeout=30)

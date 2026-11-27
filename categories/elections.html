@@ -128,9 +128,20 @@
       the size a YES buyer can take at a given price is readable directly.</p>
     <div class="toolbar">
       <button class="secondary tiny" id="book-refresh">Refresh book</button>
+      <label class="inline">Check availability
+        <select id="book-check-side" aria-label="Liquidity lookup side">
+          <option value="yes" selected>Buy YES (takes NO bids)</option>
+          <option value="no">Buy NO (takes YES bids)</option>
+        </select>
+      </label>
+      <label class="inline">at or below price ($)
+        <input type="number" id="book-check-price" min="0.0001" max="0.9999" step="0.01" value="0.55" style="width:90px">
+      </label>
+      <span class="spacer"></span>
       <span id="book-status" class="pill idle">idle</span>
     </div>
-    <div id="book-summary" style="margin-bottom:14px"></div>
+    <div id="book-summary" style="margin-bottom:10px"></div>
+    <div id="book-check-result" style="margin-bottom:14px"></div>
     <div class="book-grid">
       <div>
         <h3>YES bids — resting demand for YES (sell into these)</h3>

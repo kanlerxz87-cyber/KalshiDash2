@@ -37,6 +37,7 @@
     <div class="toolbar">
       <button id="load">Load my fills</button>
       <button class="secondary" id="load-cached" style="display:none">Analyse cached fills</button>
+      <button class="secondary" id="export-fills-csv" style="display:none">Export fills CSV</button>
       <span class="spacer"></span>
       <span id="status" class="pill idle">idle</span>
     </div>
@@ -120,6 +121,7 @@
 import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { SOURCES, TOPICS, STRATEGIES as TESTABLE_STRATEGIES } from "./assets/js/config.js";
 import { api, analyseFills, classifyEvent, fetchSeriesCategories } from "./assets/js/market.js";
+import { downloadFillsCsv } from "./assets/js/portfolio-core.js";
 
 mountChrome({ page: "strategies.html", title: "Strategies" });
 
@@ -227,7 +229,15 @@ async function topicForTicker(ticker) {
   }
 }
 
+let activeFills = [];
+$("#export-fills-csv").onclick = () => {
+  if (!activeFills.length) return "";
+  return downloadFillsCsv(activeFills, "kalshi-demo-fills.csv");
+};
+
 async function renderFillsList(fills, labelSuffix = "") {
+  activeFills = Array.isArray(fills) ? fills : [];
+  $("#export-fills-csv").style.display = activeFills.length ? "" : "none";
   if (!fills.length) {
     $("#fills").innerHTML = emptyRow(10, "The demo account returned no fills, so there is nothing to analyse yet.");
     pill($("#status"), "live", "0 fills");

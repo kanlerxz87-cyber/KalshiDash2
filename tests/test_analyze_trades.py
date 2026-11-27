@@ -54,6 +54,20 @@ class AnalyzeTradesTests(unittest.TestCase):
         self.assertEqual(fill_price_for_band(yes_row), "0.9200")
         self.assertEqual(trade_type(fill_price_for_band(yes_row)), "Near-certain (>= $0.90)")
 
+    def test_no_fill_without_no_price_dollars_is_unclassified_not_yes_price(self):
+        # Never classify a NO fill by the opposite leg's yes_price_dollars or infer 1 - yes.
+        missing_no = {
+            "outcome_side": "no",
+            "book_side": "ask",
+            "yes_price_dollars": "0.9200",
+        }
+        self.assertIsNone(fill_price_for_band(missing_no))
+        self.assertEqual(trade_type(fill_price_for_band(missing_no)), "unclassified (no price)")
+
+        missing_side = {"yes_price_dollars": "0.5000", "no_price_dollars": "0.5000"}
+        self.assertIsNone(fill_price_for_band(missing_side))
+        self.assertEqual(trade_type(fill_price_for_band(missing_side)), "unclassified (no price)")
+
     def test_template_csv_runs_cleanly_with_zero_rows(self):
         res = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "analyze_trades.py"), str(ROOT / "data" / "trades_template.csv")],

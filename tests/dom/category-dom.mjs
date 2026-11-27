@@ -324,6 +324,22 @@ check("the book note names the reciprocal rule and its official source", () => {
   assert.match(text("#book-src"), /NO bid at y implies a\s*YES ask at 1 − y/);
   assert.match($("#book-src").innerHTML, /getting_started\/orderbook_responses/);
 });
+check("the interactive liquidity-at-price lookup answers contracts available at a chosen price", () => {
+  // Default loads at best YES ask ($0.5300): 15 contracts immediately fillable.
+  assert.match(text("#book-check-result"), /At \$0\.5300 \(YES buyer\): 15 contract\(s\) immediately fillable/);
+  // Raise limit to $0.54 → sweeps both NO-bid levels (15 + 40 = 55 contracts).
+  $("#book-check-price").value = "0.54";
+  $("#book-check-price").dispatchEvent(new w.Event("input"));
+  assert.match(text("#book-check-result"), /At \$0\.5400 \(YES buyer\): 55 contract\(s\) immediately fillable/);
+  assert.match(text("#book-check-result"), /40 at exact \$0\.5400/);
+  assert.match($("#book-check-result").innerHTML, /orderbook\?depth=20/);
+  // Switch to Buy NO at $0.50 → sweeps YES bid $0.51 (implied NO ask $0.49, 25 contracts), not YES bid $0.50 (implied NO ask $0.50 → +10 = 35 contracts).
+  $("#book-check-side").value = "no";
+  $("#book-check-side").dispatchEvent(new w.Event("change"));
+  $("#book-check-price").value = "0.50";
+  $("#book-check-price").dispatchEvent(new w.Event("input"));
+  assert.match(text("#book-check-result"), /At \$0\.5000 \(NO buyer\): 35 contract\(s\) immediately fillable/);
+});
 
 /* 4. long-window axis labels */
 drawnText = [];
@@ -380,6 +396,7 @@ $("#book-refresh").click();
 await until(() => text("#book-status").includes("500"));
 check("an orderbook error spans all six columns on both sides and clears stale summary KPIs", () => {
   assert.equal(text("#book-summary"), "", "stale summary KPIs are cleared on error");
+  assert.equal(text("#book-check-result"), "", "stale liquidity-at-price result is cleared on error");
   for (const sel of ["#yes-book", "#no-book"]) {
     const header = $$(`#${sel.replace("#", "")}`)[0].closest("table").querySelectorAll("thead th");
     assert.equal(header.length, 6, `${sel} header has six columns`);
