@@ -3715,3 +3715,36 @@ requested and left broken. Nothing else from #126 was touched.
 | Verify traded-dollar completeness and prevent unverifiable totals | in progress | bacbd8a9 | `assets/js/dollar-volume.js`, `tests/dollar-volume.test.mjs`, `reports/dollar-completeness-bacbd8a9.md` |
 | Final integration: pin dated evidence and repair existing citation check | in progress | bacbd8a9 | `flagged.html`, `assets/js/claims.js`, `tests/probe-citation-drift.test.mjs`, `data/probe/api_surface_2026-11-24.json` |
 | Verified and tested both claimed tasks | done | bacbd8a9 | [Review and source links](reports/dollar-completeness-bacbd8a9.md); malformed page handling published as DV1. |
+
+---
+
+## Session `858d4941` (branch `arena/858d4941-kalshidash2`, based on `main` @ `bb4ede5`, reconciled onto `main` @ `956e704`, 2026-11-27 UTC)
+
+**Why this session exists.** `main` @ `bb4ede5` was red on a clean checkout (`node --test tests/*.test.mjs` → 237 pass / **1 fail**) while every Actions build on it showed green. The failing assertion was `probe-citation-drift`, and the reason it was invisible is the real finding: **the two guards written to prevent exactly this were referenced by no workflow.**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| J1 | Wire **every** `tests/*.test.mjs` into CI so no guard can be orphaned again; make the orphan check itself a test | done | `858d4941` | `.github/workflows/site-check.yml`, `tests/ci-coverage.test.mjs` (new) | Local run showing 1 failure CI could not see; CI run `46041382916` executing the new steps |
+| J2 | Give the probe artifacts a capture-time field, so "when" is readable from the file and not only from the git log | done | `858d4941` | `.github/workflows/probe.yml`, `data/probe/api_surface.json`, `data/probe/api_surface_2026-11-24.json`, `tools/test_collect.py` | Actions run `46037867319` timestamps; `reports/verify-74b579c8.md` for the pinned file's minute |
+| J3 | Repair `Collect demo snapshot`, red for four consecutive runs | done | `858d4941` | `.github/workflows/collect.yml`, `tools/test_collect.py` | Runs `45707850601`, `45784496470`, `45899975342`, `45968392940`; step-level detail + local reproduction of the `KeyError` |
+| J4 | Audit every Flagged card's source-link claim | done | `858d4941` | `flagged.html` ("How to read this page" panel only) | Measured 94 of 100 cards carry an official link; the 5 repository-process cards cannot |
+| J5 | Full suite + link/runtime/DOM checks, PR, merge, confirm Pages `built` | in progress | `858d4941` | this section, `reports/verify-858d4941.md` | Do not merge a broken site |
+
+### `858d4941` — what was found and fixed
+
+1. **The guards were orphaned.** `tests/probe-citation-drift.test.mjs` and `tests/page-identifiers.test.mjs` — shipped by PR #129 to stop their own failures recurring — were named by **no workflow**, so neither could fail a build. `site-check.yml` now runs the whole `tests/*.test.mjs` glob (replacing a hand-maintained list of ~20 files, which is how two were dropped), names both guards, and runs `tests/ci-coverage.test.mjs`, which fails if any test file is ever unreferenced. Proven to bite: run against `git show bb4ede5:…` the assertions fail on all 5 probe-citation rows and all 4 `flagged.html` figures.
+2. **The probe artifacts had no capture-time field.** Probe run `46037867319` rewrote the figures (Elections 5,430→5,472; Sports 8,492→8,496; Entertainment 5,257→5,259; 16,698→17,023 rows) while the site still printed the old ones as current — confirmed against the **live host**, not inferred. `probe.yml` now writes `captured_at` on every run; both committed artifacts carry a stamp with a `captured_at_basis` recording how it was derived (the pinned file's seconds are back-filled and say so).
+3. **`Collect demo snapshot` had failed four consecutive runs.** Collection succeeded, then the job died in *Summarise*, which still read `t['series_count']` — a key PR #129 retired. `KeyError` every run, snapshot stale since 2026-11-25. Fixed, with the four run IDs recorded in the step comment; `tools/test_collect.py` now asserts the workflow reads keys the collector actually writes. **The rename was verified by a test; the workflow consuming the renamed key was not.**
+4. **The Flagged page overclaimed its own sourcing.** The panel said *"Every item has … an official source link."* Measured across 100 cards: **94** carry one; **5** (A2, R2, Y9, Y10, Y11) are repository-process findings that no official Kalshi page can confirm. No link was invented to close the gap — the sentence was corrected, the five items are now named in a disclosure, and the correction is pinned by a test.
+
+### `858d4941` — conflict with PR #131 (session `bacbd8a9`), resolved by adopting their approach
+
+While PR #132 was open, **PR #131 merged into `main` at `da6c723` and fixed the same citation drift, better**: instead of refreshing the published figures to the newest capture (this session's approach), it **pinned** them to an immutable dated copy, `data/probe/api_surface_2026-11-24.json`. Refreshing the figures would then have contradicted #131's citations and undone a design that removes the drift class rather than chasing it.
+
+**Resolution:** reset onto `main` @ `956e704`; **withdrew** this session's figure edits to `flagged.html` / `assets/js/claims.js` (superseded) and **re-applied only the non-overlapping work** — CI wiring + coverage guard, the collect fix, the `captured_at` contract, and the Flagged disclosure correction. Nothing from #131 was modified, reverted or discarded; the pinned file gains only two additive metadata keys and its measured values are unchanged. Full detail: `reports/verify-858d4941.md` §7.
+
+**Verification after reconciliation** (detail in `reports/verify-858d4941.md`): `node --test tests/*.test.mjs` **246/246** (main was 237/1) · python tools **55/55** (was 47) · python tests 20 (3 skipped) · DOM **22/22 · 23/23 · 23/23** (summary suite reconciles **38 open / 62 mitigated / 100 total** — PR #131's DV1 card, and *no card added by this session*) · `page-runtime-check` **18/18**, 36 pages, 0 broken local links · `check_site_links.py` 36 pages / 0 broken · `auth-sign-test` **6/6** · both edited workflows parse as YAML and their embedded Python compiles, with the fixed `Summarise` body executed against the committed snapshot.
+
+**Not verified and not claimed:** any live price, volume, open interest, liquidity or resolution (browser side, never transcribed; sandbox TLS to `*.kalshi.co` still fails); order acceptance or P&L (no credentials, no authenticated call, no order placed); that a `/series` response is the full catalogue (F5); the exact second of the pinned capture (minute only is evidenced).
+
+**Flagged page:** no card added or removed. Previously open items (X1, F5/NF4, SB3, P130, F1, F2, NF1, and PR #131's DV1) are unchanged and still published.

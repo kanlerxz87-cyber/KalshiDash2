@@ -20,13 +20,22 @@
   <div class="callout warn">
     <h3>How to read this page</h3>
     <p style="margin:0 0 6px">
-      Every item has an ID, the evidence that produced it, and an official source link. Items marked
+      Every item has an ID and the evidence that produced it. Items about Kalshi&rsquo;s API or data carry an
+      official source link; items marked
       <span class="tag warn">open</span> are unresolved; <span class="tag yes">mitigated</span> means the site
       handles the problem explicitly rather than hiding it.
     </p>
     <p style="margin:0" class="small">Two items (F6, F7) describe defects in the previously published version
       of this site, found by re-checking it line by line. They are recorded here rather than deleted, because
       the record of a fix is itself evidence.</p>
+    <p style="margin:6px 0 0" class="small"><strong>Five items (A2, R2, Y9, Y10, Y11) are process findings
+      about this repository, not claims about Kalshi</strong> &mdash; how the alert loop is hosted, how parallel
+      sessions collided, a dead module, a duplicate site generation, and the scope of the &ldquo;High-ROI&rdquo;
+      screen. No official Kalshi page can confirm or deny any of them, so they carry repository evidence
+      (file paths, test names, commit and conflict records) instead of an external link. They are listed here
+      so the pattern is visible rather than assumed: this page previously said <em>every</em> item had an
+      official source link, which was not true for these five. Corrected 2026-11-27 (session
+      <code>858d4941</code>); the claim was wrong, not the findings.</p>
   </div>
 
   <div class="grid cols-4" id="counts" style="margin-bottom:16px"></div>

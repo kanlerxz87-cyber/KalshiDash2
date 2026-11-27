@@ -26,6 +26,7 @@ jobs:
           mkdir -p data/probe
           python3 - <<'PY'
           import json, urllib.request, urllib.error, ssl
+          from datetime import datetime, timezone
 
           BASES = [
               "https://external-api.demo.kalshi.co/trade-api/v2",
@@ -33,7 +34,24 @@ jobs:
           ]
           ORIGIN = "https://kanlerxz87-cyber.github.io"
 
-          out = {"cors": {}, "endpoints": {}}
+          # Stamp the capture time INTO the artifact.
+          #
+          # The site quotes figures out of this file and the file is rewritten on
+          # a schedule, so "when was this" has to be readable from the file. Until
+          # 2026-11-27 the only record was the commit time, which the browser
+          # cannot read: every published figure had to be hand-stamped, and every
+          # stamp went stale the moment the schedule fired (observed at bb4ede5 —
+          # Elections 5,430 -> 5,472 with the site still printing 5,430).
+          # Session bacbd8a9 (PR #131) removed the drift for the *published*
+          # figures by pinning them to data/probe/api_surface_2026-11-24.json.
+          # This field is the other half: the rolling artifact now states its own
+          # capture time, so the next pinned copy needs no archaeology.
+          # Captured before the first request, so the stamp bounds the whole run.
+          out = {
+              "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "cors": {},
+              "endpoints": {},
+          }
 
           def get(url, headers=None, method="GET"):
               req = urllib.request.Request(url, headers=headers or {}, method=method)
@@ -111,6 +129,7 @@ jobs:
               json.dump(out, f, indent=2)
 
           # compact summary in the run log
+          print("captured_at:", out["captured_at"])
           print("CORS:")
           for b, v in out["cors"].items():
               print(" ", b, v)
