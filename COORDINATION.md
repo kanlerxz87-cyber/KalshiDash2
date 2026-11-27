@@ -4005,3 +4005,11 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 - **Not verified, not claimed:** no live price, volume, open interest, liquidity or resolution transcribed; no
   authenticated call; **no order placed** (F1); per-shard status semantics beyond the quoted reference text (F18);
   a `/series` response is not the full catalogue (F5).
+
+## Session `0ddedd67` (2026-11-27)
+
+| Task | Status | Owner | Exclusive scope | Sources / verification |
+|---|---|---|---|---|
+| Independent current-state audit of deployment, tests and outstanding limitations | in progress | `0ddedd67` | `reports/audit-0ddedd67.md`, this board entry | GitHub repository and Pages APIs; official Kalshi documentation where accessible. No shared site files claimed. |
+
+`flagged.html` is included in open PR #141, so this session will not modify it; the NF1 prose handoff above remains for its owner.
