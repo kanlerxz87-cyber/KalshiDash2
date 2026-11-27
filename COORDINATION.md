@@ -4029,9 +4029,9 @@ checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
-| A1 | Fix `AlertEngine` swing de-duplication: the key `ticker\|from\|to` ignores time and basis, so a market that moves A→B, B→A, A→B is reported once. The simulator's **live paper trader** consumes this engine, so repeat moves (and therefore repeat paper entries) were silently dropped. | in progress → done | `bc28428d` | `assets/js/alert-engine.js`, `tests/alert-engine-dedupe.test.mjs` (new), `tests/ci-coverage.test.mjs` (only if the new test needs registering) | Reproduced against the real module with a mocked `fetch` (4 real swings in, 2 delivered out) before any change; the documented API contract used is [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`last_price_dollars`, `previous_price_dollars`), which is what the engine compares |
+| A1 | Fix `AlertEngine` swing de-duplication: the key `ticker\|from\|to` ignores time and basis, so a market that moves A→B, B→A, A→B is reported once. The simulator's **live paper trader** consumes this engine, so repeat moves (and therefore repeat paper entries) were silently dropped. Shipped in PR #149 at `6a54db8`. | done | `bc28428d` | `assets/js/alert-engine.js`, `tests/alert-engine-dedupe.test.mjs` (new), `tests/ci-coverage.test.mjs` (only if the new test needs registering) | Reproduced against the real module with a mocked `fetch` (4 real swings in, 2 delivered out) before any change; the documented API contract used is [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`last_price_dollars`, `previous_price_dollars`), which is what the engine compares |
 | A2 | Line-by-line re-verification of the published arithmetic/contracts that this session could check offline: `alert-engine` vs `alerts-core` move detection, register counters (claims 102/9/3; flags 40 open / 66 mitigated / 106), order body vs [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2), fee model claims vs the official schedule | done | `bc28428d` | `reports/verify-bc28428d.md` (new) | Official docs fetched 2026-11-27; register figures recomputed from `assets/js/claims.js` and `flagged.html` by script |
-| A3 | Final integration: full local suite, PR to `main`, merge without waiting, confirm Pages build, record here | in progress | `bc28428d` | this section, `reports/verify-bc28428d.md` | GitHub Actions run IDs + Pages API |
+| A3 | Final integration: full local suite, PR to `main`, merge without waiting, confirm Pages build, record here | done | `bc28428d` | this section, `reports/verify-bc28428d.md` | GitHub Actions run IDs + Pages API |
 
 **Standing constraint observed:** this sandbox cannot reach `*.kalshi.co` (TLS handshake is refused by the
 outbound proxy — `curl: (35) SSL_ERROR_SYSCALL`), so no live market figure is transcribed here. Live checks
@@ -4122,4 +4122,45 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 
 **Overlap / handoff:** after the claim and first push, open PRs were discovered: [#148](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/148) owned the README/executive-summary test-count refresh and a broad official-doc re-fetch; [#147](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/147) owns a Pages/deployment and limitations audit. PR #148 merged at `33b1923`; A3's duplicate README/summary edits were reverted from this branch, and the merged documentation was preserved during rebase. This session retains only its distinct requirement-to-existing-implementation matrix in `reports/verify-69ad6634.md`; it does not edit PR #147's files or attempt to open/merge a duplicate site-change PR. The requirements matrix cross-checks official sources and emphasizes request coverage; no claim of an authenticated order or event-causality proof is made. After PR #149 merged, this branch was rebased onto `main` and a `COORDINATION.md` append conflict was resolved by retaining both PR #149's `bc28428d` section and this session's section verbatim; no other session work was discarded. Latest GitHub Pages build `46077123647` passed; live verification/render and engine checks at `6a54db8` passed. This branch's earlier static check `46076989978` passed; the updated PR-head checks are running. CI logged only non-blocking Node.js 20→24 action-runtime warnings (linked in the report).
 
+---
 
+### `bc28428d` — final record: PR #149 merged, Pages built, every live check green (2026-11-27)
+
+- **PR:** [#149](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/149) — *fix(alerts): AlertEngine dropped repeat
+  swings — report every real move* — **merged** into `main` at **`6a54db8`** (2026-11-27T22:30:52Z) via
+  `gh pr merge 149 --merge`, without waiting for review, per the standing rules.
+- **Conflict log (required by rule 6):** between opening and merging, two concurrent events landed.
+  (a) `main` advanced to `33b1923` (PR #148, session `46f45a35`); the merge was rejected as unmergeable.
+  Rebased and hit the usual **add/add conflict in `COORDINATION.md`**; resolved by keeping **both** boards —
+  `46f45a35`'s section first, `bc28428d`'s second — with no content from either session discarded.
+  (b) The repo's own `reports: live alerts check` bot then committed `bc6e7ae` **onto this branch**, which
+  rejected the force-push. That bot commit was **kept, not discarded**: the branch was merged with
+  `origin/arena/bc28428d-kalshidash2` (second `COORDINATION.md` conflict, both sides being the same text —
+  markers removed, section kept once). Nothing from another session or bot was reverted.
+  `46f45a35`'s suite-count refresh in `README.md` / `EXECUTIVE_SUMMARY.md` was preserved and only the
+  count itself advanced to **270/270** because this branch adds four tests.
+- **Local suite on the merged head:** `node --test tests/*.test.mjs` **270/270**; `tests/dom` **55/55**
+  (alerts 26, summary 5, category 24); `tools` unittest **55/55**; `tests` unittest **28 run / 24 pass /
+  4 skipped** (live-WS only); `check_site_links.py` **36 pages / 0 broken**; `page-runtime-check` **18/18** clean;
+  `auth-sign-test` **6/6**; all workflow YAML re-parsed.
+- **Checks on `main` at the merge SHA `6a54db8`:** `Static site link check` **success** ·
+  `verify-alerts` **success** · `verify-live-site` **success** · `live-engine-check` **success** ·
+  `live-site-render` **success**. The `pages build and deployment` run triggered at the merge was
+  `cancelled` (superseded by the bot's report commit); the deployment run for `bd464b8`
+  (the child of `6a54db8`) is **success**, and the Pages API reports `status: "built"`, `error: null`,
+  `build_type: "legacy"`, `source: "main:/"`.
+- **Live content verified after deploy:** `https://kanlerxz87-cyber.github.io/KalshiDash2/assets/js/alert-engine.js`
+  serves the fixed module — the new *De-duplication* header, `this.pollSeq = 0`, and the
+  `poll|…|pollSeq` / `ref|…` key are all present on the deployed file. The fix is live, not just committed.
+- **Live API evidence (from the workflows, since this sandbox cannot reach `*.kalshi.co`):**
+  `reports/live-engine-check.md` (run 22:31:01Z) → 1,200 events scanned, **2,741** markets in the five topics,
+  2,749 markets with a readable previous price, largest move against the exchange reference
+  **+0.14** on `KXTVSEASONRELEASETHELASTOFUS-26-APR`, **0** poll-to-poll swings ≥$0.10 in that scan
+  (a quiet window — not a zero result for the rule). `reports/alerts-live-check.md` → `GET /events` HTTP **200**,
+  2,107 markets `active`, batch read 25/25 returned, `settlement_sources` present (11 entries on `KXERUPTSUPER-0`),
+  0 moves ≥$0.10 across two polls 20s apart.
+  **Neither report is treated as proof that an alert fires** — the rule is proved by the unit and DOM
+  suites, which is exactly what those reports say about themselves.
+- **Not claimed:** no authenticated call and **no order placed** (F1/F2 remain open); no price, balance,
+  fill or resolution transcribed into static text from this session; the demo exchange was *quiet* during the
+  window, which is reported as such rather than read as a defect.
