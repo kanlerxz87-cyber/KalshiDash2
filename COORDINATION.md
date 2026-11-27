@@ -4105,3 +4105,21 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 - **V1–V5 all closed.** Session scope remains `reports/verify-d3e0e9f5.md`, `flagged.html` (existing cards' text
   only), `assets/js/claims.js` (affected rows only), `tests/requirements-trace.test.mjs`, `assets/js/trace.js`,
   `summary.html` §8, and this section. The board is free for the next session.
+
+---
+
+## Session `69ad6634` — independent requirements and deployment audit (2026-11-27 UTC)
+
+**Claim:** read-only audit of the existing root-site implementation against the request, including official documentation link spot-checks and local verification. The canonical site and existing source/claim registers already exist; this task will report coverage and limitations rather than duplicate site files or introduce unverified market data.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| A1 | Map the requested dashboard, alerting, event-resolution, simulation, trading, categories, executive summary, source rows, and GitHub Pages requirements to the current implementation; inspect relevant behavior and identify unverified boundaries | done | `69ad6634` | `reports/verify-69ad6634.md` (new), this section of `COORDINATION.md` | Official docs re-fetched: [Get Markets](https://docs.kalshi.com/api-reference/market/get-markets), [Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook), [Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), [Settlement](https://docs.kalshi.com/getting_started/market_settlement), [Ticker WS](https://docs.kalshi.com/websockets/market-ticker), [Demo environment](https://docs.kalshi.com/getting_started/demo_env) (2026-11-27) |
+| A2 | Run local functional, DOM, runtime, Python and internal-link checks; record exact results and any regressions | done | `69ad6634` | `reports/verify-69ad6634.md` (new), this section of `COORDINATION.md` | Node 270/270 after PR #149 rebase; DOM 55/55; Python tools 55/55; Python tests 28 (24 pass, 4 skipped); link check 36 pages / 0 broken; runtime 18/18; signing 6/6 |
+| A3 | Synchronize repository README and executive-summary test counts with this session's executed verification results | done (withdrawn as duplicate) | `69ad6634` | None in final patch; attempted edits to `README.md` / `EXECUTIVE_SUMMARY.md` were reverted | Local counts independently confirmed; the update was published by merged [PR #148](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/148) |
+
+**Scope boundaries:** no edits to shared site pages, source/claim registers, market snapshot, workflows or other sessions' files. No authenticated account access, no orders, and no static market values will be asserted.
+
+**Overlap / handoff:** after the claim and first push, open PRs were discovered: [#148](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/148) owned the README/executive-summary test-count refresh and a broad official-doc re-fetch; [#147](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/147) owns a Pages/deployment and limitations audit. PR #148 merged at `33b1923`; A3's duplicate README/summary edits were reverted from this branch, and the merged documentation was preserved during rebase. This session retains only its distinct requirement-to-existing-implementation matrix in `reports/verify-69ad6634.md`; it does not edit PR #147's files or attempt to open/merge a duplicate site-change PR. The requirements matrix cross-checks official sources and emphasizes request coverage; no claim of an authenticated order or event-causality proof is made. After PR #149 merged, this branch was rebased onto `main` and a `COORDINATION.md` append conflict was resolved by retaining both PR #149's `bc28428d` section and this session's section verbatim; no other session work was discarded. Latest GitHub Pages build `46077123647` passed; live verification/render and engine checks at `6a54db8` passed. This branch's earlier static check `46076989978` passed; the updated PR-head checks are running. CI logged only non-blocking Node.js 20→24 action-runtime warnings (linked in the report).
+
+
