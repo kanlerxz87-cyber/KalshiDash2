@@ -178,18 +178,29 @@ test("fill quantities retain their documented fixed-point fraction and dollar fe
   assert.equal((f.$("#fills-body").innerHTML.match(/<td\b/g) || []).length, 9);
 });
 
-test("NO-price ambiguity stays visible and the confirmation does not claim a verified scale", async () => {
+test("a NO order states the YES-leg request price and the complement cost, and never claims a receipt", async () => {
+  /* Flagged F20 (2026-11-27) settled NF1 from documentation: the Create Order V2
+   * BookSide schema says the request price is the YES leg ("this endpoint quotes
+   * everything from the YES side"), while the order-direction page says the
+   * matching price is the same on both sides. So the entered price is sent
+   * unchanged and the NO cost (1 - price) is stated, never sent. This test pins
+   * both halves: the scale is named, and the order still cannot be submitted
+   * without an explicit confirmation (it is declined here). */
   assert.match(html, /id="no-price-conflict"/);
   assert.match(html, /flagged\.html#NF1/);
+  assert.match(html, /flagged\.html#F20/, "the resolving card is linked");
   assert.match(html, /flagged\.html#P130/, "unverified account coverage is linked before loading a key");
   assert.match(html, /reports\/verify-130acb78\.md/);
+  assert.doesNotMatch(html, /NO-order price scale is unverified/,
+    "the site must not still call the scale unverified after F20");
   const f = fixture();
   f.$("#o-ticker").value = "KXTEST-1";
   f.$("#o-side").value = "no";
   f.$("#o-price").value = "0.63";
   f.$("#o-count").value = "1";
   await f.$("#place").onclick();
-  assert.match(f.state.confirmations[0], /NO-order price scale is unverified/);
+  assert.match(f.state.confirmations[0], /YES-leg price/);
   assert.match(f.state.confirmations[0], /request price \$0\.6300/);
+  assert.match(f.state.confirmations[0], /NO position costs 1 − price = \$0\.3700/);
   assert.deepEqual(f.state.calls, [], "confirmation declined: no order or account requests");
 });

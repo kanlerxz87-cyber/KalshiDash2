@@ -43,13 +43,20 @@ test("no source is a Kalshi docs shortcut that the index does not carry", () => 
   }
 });
 
-test("the unverified rows are exactly the ones the page marks unverified", () => {
+test("every row the register marks unverified carries a reason and a link", () => {
+  /* This used to require at least one unverified row ("at least the fee-schedule
+   * PDF must be flagged"). Session 54220d3d read that PDF in full on 2026-11-27
+   * and retired the last unverified row (reports/verify-54220d3d.md §2), so the
+   * count is now legitimately zero. The invariant worth pinning is not the
+   * number: it is that nothing may be called unverified without a link and an
+   * explanation, and that the count the page shows is the count the register
+   * has. */
   const unv = unverifiedEntries();
-  assert.ok(unv.length >= 1, "at least the fee-schedule PDF must be flagged");
   for (const e of unv) {
-    assert.ok(/^https:\/\//.test(e.url));
+    assert.ok(/^https:\/\//.test(e.url), `${e.title} must still link its source`);
     assert.ok(e.note && e.note.length > 10, `${e.title} must explain why it is unverified`);
   }
+  assert.equal(unv.length, SOURCES.filter(e => e.verified === "unverified").length);
 });
 
 test("the summary counts agree with the register", () => {
