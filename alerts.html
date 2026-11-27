@@ -38,7 +38,10 @@
     <h1>Live alerts</h1>
     <p>
       Two scrolling feeds. The <strong>All alerts</strong> feed shows every swing of
-      <strong>$0.10 or more</strong> in the last traded price of an open market in the five topics. The
+      <strong>$0.10 or more</strong> in the last traded price of an open market in the five topics, measured
+      either between two polls of this page or against the exchange's own
+      <code>previous_price_dollars</code> — which the schema defines as the price <em>a day ago</em>, so that
+      variant is a 24-hour move, not a sudden one. The
       <strong>High-ROI watch</strong> feed keeps only the swings that pass a transparent rule set, ranked by a
       tradeability score. Simulated strategies run automatically on both feeds. No orders are placed.
     </p>
@@ -115,7 +118,9 @@
   <div class="feeds">
     <section class="card" aria-labelledby="h-all">
       <h2 id="h-all">All alerts</h2>
-      <p class="sub">Every move of ≥ $0.10 between two polls. Newest at the bottom, in a
+      <p class="sub">Every move of ≥ $0.10, from <em>either</em> comparison — between two polls of this
+        page, or against the exchange's own previous price (a day ago); each message names the one that
+        produced it. Newest at the bottom, in a
         fixed-height log that scrolls; it stays where you scrolled if you are reading older rows.
         Each message has a <strong>permalink</strong>; open it to jump straight to that swing.</p>
       <div class="chat" id="feed-all" role="log" aria-live="polite" aria-label="All alerts"></div>

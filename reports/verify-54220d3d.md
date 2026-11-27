@@ -168,3 +168,28 @@ Until then the Golf page states the limitation in its own note.
 | `tools/check_site_links.py` | **36 pages, 0 broken links** |
 
 After this session's edits the same suites are re-run and recorded on `COORDINATION.md`.
+
+## 6 · Post-merge re-read of the deployed pages (2026-11-27T17:5xZ)
+
+Verification is not finished when the diff is green. Reading the **deployed** pages after PR #135/#136/#137
+surfaced three contradictions that no test could see, because each needs a reader's eye:
+
+| Page | What it said | What is true | Fixed |
+|---|---|---|---|
+| `portfolio.html` | the NO-order panel's intro said the two official descriptions "leave its price interpretation **unresolved** here", directly under a heading that resolves it and above a paragraph that resolves it | F20 (this pass) resolves it | yes — intro now says read together they answer different questions |
+| `alerts.html` (page head) | "shows every swing of **$0.10 or more** in the last traded price" | the engine reports **two** comparisons and labels each message | yes — both comparisons named |
+| `alerts.html` (feed sub-heading) | "Every move of ≥ $0.10 **between two polls**" | `detectReferenceSwings()` also emits swings against `previous_price_dollars`, which the schema defines as the price **a day ago** — the page's own table note already says so | yes — both comparisons named, and the message's label is called out |
+
+Also re-read in this pass and found correct: `flagged.html` (sections 12 render with F18/F19/F20 and the
+"What is not flagged" list closes the page), `assets/js/sources.js` (the new fee-schedule note and `tags` notes
+are what the deployed file serves), `portfolio.html`'s F20 panel text and its confirmation wording.
+
+**Cross-check from an independent run at the same time (no action needed):** the scheduled
+`live-engine-check` report of 2026-11-27T17:44:14Z scanned 1,200 events / 2,757 topic markets, found **0**
+swings at the $0.10 threshold, and reported a largest previous-price move of **+0.14**
+(`KXTVSEASONRELEASETHELASTOFUS-26-APR`, 0.70 → 0.84). That is consistent with the site's wording on two counts:
+the exchange was quiet at that moment, and the only move of that size was a *previous-price* (24-hour) move, not
+an intraday one.
+
+**Status of the concurrent sessions at this point:** PRs #138–#143 merged while this pass ran. Re-reading the
+deployed pages after those merges is the only way this class of drift is visible, and it is why §6 exists.
