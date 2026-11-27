@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-27T22:40:09Z |
+| Captured (UTC) | 2026-11-27T22:48:27Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `41ca9bbed8fdeb36fb962a32edd1516158bdf17c` |
+| Commit | `97eda74270573a6c05b4a6f0f8df55cec1cadd73` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -15,13 +15,13 @@
 | `GET /events?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /series?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /events/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E/candlesticks?start_ts=1795732813&end_ts=1795819213&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /events/KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W/candlesticks?start_ts=1795733307&end_ts=1795819707&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
-**Resolved ids used above:** market `KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E` → event `KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO` → series `KXMVECROSSCATEGORY`
+**Resolved ids used above:** market `KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W` → event `KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D` → series `KXMVECROSSCATEGORY`
 
 ## B. Market → event → series lookup path (needed for candlesticks)
 
@@ -72,7 +72,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "yes_sub_title"
  ],
  "series_ticker": null,
- "event_ticker": "KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO"
+ "event_ticker": "KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D"
 }
 ```
 
@@ -101,17 +101,17 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
 
 `period_interval=1` (minutes), last 24h:
 ```json
-{"candlesticks":[{"end_period_ts":1795819200,"open_interest_fp":"100.00","price":{"close_dollars":"0.4500","high_dollars":"0.4500","low_dollars":"0.4500","mean_dollars":"0.4500","open_dollars":"0.4500"},"volume_fp":"100.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"1.0000","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.4500","low_dollars":"0.0000","open_dollars":"0.4500"}}],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
+{"candlesticks":[{"end_period_ts":1795819680,"open_interest_fp":"100.00","price":{"close_dollars":"0.4500","high_dollars":"0.4500","low_dollars":"0.4500","mean_dollars":"0.4500","open_dollars":"0.4500"},"volume_fp":"100.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"1.0000","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.4500","low_dollars":"0.0000","open_dollars":"0.4500"}}],"ticker":"KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W"}
 ```
 
 `period_interval=60` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W"}
 ```
 
 `period_interval=1440` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S2026UJQAURGKHYOSYU4D-QV2PJBL5W"}
 ```
 
 Unsupported `period_interval=5`:
@@ -122,7 +122,7 @@ HTTP 400
 
 ## D. Orderbook — resting bid depth (liquidity)
 ```json
-{"orderbook_fp":{"no_dollars":[],"yes_dollars":[["0.0100","1.00"]]}}
+{"orderbook_fp":{"no_dollars":[],"yes_dollars":[]}}
 ```
 
 ## E. Order write routes (unauthenticated: route existence only)
