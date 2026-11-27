@@ -2397,8 +2397,10 @@
     <div class="irregularity" id="DR3">
       <h3>DR3 — Flagged F6 was three days stale and cited a directory that never existed <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> card F6 was published as <em>open</em> and said the fix lived in
-        <code>site/assets/js/kalshi.js</code> — there is no <code>site/</code> directory in this repository at any
-        revision. The claim it makes is nonetheless <strong>true of revision <code>424190e</code></strong>
+        <code>site/assets/js/kalshi.js</code> — and no such directory has ever existed here: the tree at the root
+        commit <code>1a30722</code> has no <code>site/</code> entry, and the GitHub commits API reports
+        <strong>0</strong> commits touching <code>site</code> across all <strong>816</strong> commits
+        (<code>GET /commits?path=site</code>). The claim it makes is nonetheless <strong>true of revision <code>424190e</code></strong>
         (2026-11-20T11:04:59Z): <code>docs/assets/app.js</code> line 101 imported the private key as
         <code>"spki"</code> and line 104 signed the bare route. It was repaired 19 minutes later in
         <code>c3676e5</code>. The card outlived the defect, so the site was reporting an open bug that no longer

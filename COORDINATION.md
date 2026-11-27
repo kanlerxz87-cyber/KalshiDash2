@@ -3843,8 +3843,8 @@ not an independent check, so re-fetching a URL a previous session already cited 
 | V1 | Line-by-line re-verification of published API-contract claims against the official `.md` documentation pages **and** dated live demo responses; record every check with its URL | done | `d3e0e9f5` | `reports/verify-d3e0e9f5.md` (new), this section | docs.kalshi.com `.md` pages + `external-api.demo.kalshi.co` responses fetched 2026-11-27 |
 | V2 | Repair the defects V1 proves (stale file paths, contradicted premises); no claim is corrected without the contradicting source quoted | done — F6 pinned to `424190e`/`c3676e5`; `DR1`–`DR3` published | `d3e0e9f5` | `flagged.html` (existing cards' text only), `assets/js/claims.js` (affected rows only), `tests/` (new guard only) | V1's record |
 | V3 | Add the requirement-traceability matrix the brief calls "line by line" to the Summary page, derived from the repository (no hand-typed counts) | done — 17/17 rows wired, `tests/requirements-trace.test.mjs` (10 checks) + a summary-DOM assertion | `d3e0e9f5` | `summary.html`, `assets/js/trace.js` (new), `tests/requirements-trace.test.mjs` (new), `tests/dom/summary-dom.mjs` (assertion only) | brief requirement list; repo paths |
-| V4 | Re-verify the *deployed* Pages build matches the merged `main` and that its own checks are green | in progress | `d3e0e9f5` | this section | Pages API, Actions run IDs, hosted-page fetches |
-| V5 | Full local suite (node, python tools, DOM ×3, page-runtime, link check), PR → `main`, merge without waiting, confirm Pages deploy, record PR link + result here | unclaimed | — | this section | Do not merge a broken site |
+| V4 | Re-verify the *deployed* Pages build matches the merged `main` and that its own checks are green | done — see §7 of the report; Pages `built` at `f6bad4f` (contains `0c5bf02`), live page re-fetched | `d3e0e9f5` | this section | Pages API (`/pages`, `/pages/builds`), Actions run IDs, cache-busted hosted-page fetches |
+| V5 | Full local suite (node, python tools, DOM ×3, page-runtime, link check), PR → `main`, merge without waiting, confirm Pages deploy, record PR link + result here | done — PR [#134](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/134) merged at `0c5bf02`; suite green below; Pages `built` at `f6bad4f` | `d3e0e9f5` | this section | Do not merge a broken site |
 
 **Correction to this session's own claim, kept visible (2026-11-27T17:5xZ).** The claim above first read that
 F6's premise was "contradicted by the code … at any revision", on the strength of `git log -S'"spki"'` and
@@ -4066,3 +4066,42 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 **Not in scope (owned elsewhere, not touched):** `assets/js/sources.js`, `assets/js/simulator.js`, `simulator.html`,
 `assets/js/trace.js`, `summary.html`, `assets/js/alerts.js`, `alerts.html`, `portfolio.html`, `strategies.html`,
 `resolved.html`, `questions.html`, `suggestions.html`, `scripts/**`, `.github/workflows/**`.
+
+---
+
+---
+
+### `d3e0e9f5` — final record: PR #134 merged, Pages confirmed by fetch, V1–V5 closed (2026-11-27T17:45Z)
+
+- **PR:** [#134](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/134) — *verify(round 11): pin Flagged F6 to
+  the revision it is true of, publish DR1-DR3, add a measured requirement-trace matrix* — **merged** into `main` at
+  **`0c5bf02`** (2026-11-27T17:39:51Z) via `gh pr merge 134 --merge`, no review wait, per the standing rule.
+  The first merge attempt was rejected with *"Pull Request has merge conflicts"* because session `54220d3d` merged
+  #135/#136 into `main` mid-session; resolved by merging `origin/main` into the branch (board conflict kept **both**
+  sessions' sections), re-running the suite, and pushing fast-forward — then the merge succeeded.
+- **Deploy, and the one thing worth remembering from it.** Two consecutive Pages builds on `0c5bf02` and
+  `a1d5605` reported **`errored — Page build failed.`**, and `GET /pages` sat at `errored` → `building`. The site
+  was nonetheless already serving the merged content: a cache-busted fetch of `summary.html?v=pagefail` returned
+  this session's rows (102/114 claims, 106 cards, the §8 trace table) while the status still said `errored`. The
+  next build, triggered by `54220d3d`'s PR #137, came back **`built`** at **`f6bad4f`**, and that tree contains
+  this session's merge (`git merge-base --is-ancestor 0c5bf02 origin/main` → true). Re-fetched
+  `flagged.html?v=f6bad4f2` after the successful build: §11 (`DR1`–`DR3`) and section 12's `F20` render.
+  **Lesson for the board:** a Pages build status describes *one attempt*, not the site — confirm a deploy with a
+  cache-busted page fetch compared against `origin/main`, never from `pages.error.message` alone.
+- **Suite on the merged branch, run locally after the last edit (2026-11-27T17:44Z):** `node --test
+  tests/*.test.mjs` **256/256**; python `tools` **55/55**; python `tests` 20 (3 network-gated skips); DOM
+  **22 · 23 · 23**; `page-runtime-check` **18/18 pages / 36 pages / 0 broken links**; `check_site_links.py` 36
+  pages / 0 broken; `auth-sign-test` **6/6**. Post-merge CI on `main` at `0c5bf02`: `Static site link check`,
+  `verify-alerts`, `verify-live-site`, `live-site-render` — all **success**.
+- **One repair in this closing pass:** `DR3`'s headline sentence said `site/` "never existed", which is a claim
+  about the whole history — the exact species of error this report's §3 retracts. It is now supported by two
+  measurements instead: the root commit `1a30722` has no `site/` entry, and `GET /commits?path=site` returns
+  **0** across the **816** commits the API reports. The GitHub API sees the full history; this sandbox's shallow
+  `git log` cannot.
+- **Conflict log:** every `COORDINATION.md` conflict today (three fetches, plus the mid-session merge) was
+  append/append; each was resolved keeping both sessions' sections separated by `---`, and `flagged.html`'s
+  conflict kept both sides' cards. Nothing from another session was discarded, reverted or reworded; no other
+  session's file was edited (`DR2` about `simulator.js` is reported as a card and left unpatched, per the rule).
+- **V1–V5 all closed.** Session scope remains `reports/verify-d3e0e9f5.md`, `flagged.html` (existing cards' text
+  only), `assets/js/claims.js` (affected rows only), `tests/requirements-trace.test.mjs`, `assets/js/trace.js`,
+  `summary.html` §8, and this section. The board is free for the next session.
