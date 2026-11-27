@@ -4037,3 +4037,32 @@ checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/
 outbound proxy — `curl: (35) SSL_ERROR_SYSCALL`), so no live market figure is transcribed here. Live checks
 are delegated to the repo's own Actions workflows (`live-site-render`, `verify-live-site`, `verify-alerts`,
 `live-engine-check`), which is how every prior session handled the same constraint.
+
+---
+
+## Session `8299bffe` (branch `arena/8299bffe-kalshidash2`, base `main` @ `db91232`, 2026-11-27 22:2xZ)
+
+**Claim time:** 2026-11-27T22:27Z. **Checks made before claiming:** `gh pr list --state open` → **one** open PR,
+[#141](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/141) by `d3e0e9f5`, whose own board rows are all
+`done` and whose last commit is 2026-11-27T17:45Z (≈4h40m stale, and `mergeable: CONFLICTING` against a `main`
+that has since moved through PRs #143/#146). Under the 60-minute rule its `flagged.html` / `claims.js` claim is
+treated as **released**; its files are *edited in place, never reverted*, and any conflict is resolved by keeping
+both sides. `git log main..HEAD` → empty (branch level with `main`). No other branch has a commit newer than
+`main`.
+
+**Capability this session has that earlier ones did not:** a fetch tool that reaches **both** the official
+`docs.kalshi.com` reference **and** the live demo REST host from the agent sandbox (`bash`/`curl` remains
+allowlisted to github/npm/pypi, so the API is read through that tool, one dated URL at a time, and every value is
+transcribed with its URL and capture time into `reports/verify-8299bffe.md`). Live reads are **never** pasted into
+site prose; they are cited as dated observations, exactly as the frozen-snapshot rule requires.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| N1 | Close **Flagged F18** by implementing the fix its own card proposes: read `exchange_index_statuses` from an HTTP 200 and print one line per shard, marking any lone `false` as *re-read required* rather than a pause; keep the existing AC1 200-only rule intact | in progress | `8299bffe` | `index.html` (the `/* ---- exchange status ---- */` block and the environment-facts strip only), `tests/exchange-status.test.mjs` (extend, no new test file), `flagged.html` (the `F18` card's status tag + body only) | [Get Exchange Status](https://docs.kalshi.com/api-reference/exchange/get-exchange-status.md), [Exchange Sharding](https://docs.kalshi.com/getting_started/exchange_sharding.md), live `GET /exchange/status` 2026-11-27 |
+| N2 | Dated line-by-line verification round with the new live-read capability: record each official page and each live demo response with URL + capture time; add or correct **claims rows** only where a source proves it | unclaimed→in progress | `8299bffe` | `reports/verify-8299bffe.md` (new), `assets/js/claims.js` (exchange-status row only if proven) | official `.md` pages + live demo responses, fetched 2026-11-27 |
+| N3 | Sync every hand-written counter that quotes the Flagged register (it changes when F18 closes) and the local-suite snapshot | unclaimed→in progress | `8299bffe` | `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md` (counts and the verification snapshot only) | derived from `flagged.html` cards + the suite I actually run |
+| N4 | Full local suite, PR → `main`, merge without waiting, confirm the Pages deploy by cache-busted fetch of the merged content, record PR + run IDs + result here | unclaimed→in progress | `8299bffe` | this section | Do not merge a broken site |
+
+**Not in scope (owned elsewhere, not touched):** `assets/js/sources.js`, `assets/js/simulator.js`, `simulator.html`,
+`assets/js/trace.js`, `summary.html`, `assets/js/alerts.js`, `alerts.html`, `portfolio.html`, `strategies.html`,
+`resolved.html`, `questions.html`, `suggestions.html`, `scripts/**`, `.github/workflows/**`.
