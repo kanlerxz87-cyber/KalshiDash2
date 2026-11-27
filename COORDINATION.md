@@ -4037,3 +4037,17 @@ checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/
 outbound proxy — `curl: (35) SSL_ERROR_SYSCALL`), so no live market figure is transcribed here. Live checks
 are delegated to the repo's own Actions workflows (`live-site-render`, `verify-live-site`, `verify-alerts`,
 `live-engine-check`), which is how every prior session handled the same constraint.
+
+---
+
+
+## Session `69ad6634` — independent requirements and deployment audit (2026-11-27 UTC)
+
+**Claim:** read-only audit of the existing root-site implementation against the request, including official documentation link spot-checks and local verification. The canonical site and existing source/claim registers already exist; this task will report coverage and limitations rather than duplicate site files or introduce unverified market data.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| A1 | Map the requested dashboard, alerting, event-resolution, simulation, trading, categories, executive summary, source rows, and GitHub Pages requirements to the current implementation; inspect relevant behavior and identify unverified boundaries | in progress | `69ad6634` | `reports/verify-69ad6634.md` (new), this section of `COORDINATION.md` | Official Kalshi docs to be re-fetched for the reviewed API behavior; repo tests and static checks |
+| A2 | Run local functional, DOM, runtime, Python and internal-link checks; record exact results and any regressions | in progress | `69ad6634` | `reports/verify-69ad6634.md` (new), this section of `COORDINATION.md` | Commands/results to be recorded after execution |
+
+**Scope boundaries:** no edits to shared site pages, source/claim registers, market snapshot, workflows or other sessions' files. No authenticated account access, no orders, and no static market values will be asserted.
