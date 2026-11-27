@@ -2170,6 +2170,81 @@
       <h3>DV1 — Malformed trade pages could appear as verified totals <span class="tag yes">mitigated</span></h3>
       <p><strong>Mitigated:</strong> A successful response missing the required trades array or string cursor now withholds the dollar amount. An explicit empty array with an empty cursor still represents no returned trades.</p>
       <p class="small"><strong>Official source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades">Get Trades ↗</a></p>
+
+    <h2>12 · Official-source re-verification against the live exchange (session <code>54220d3d</code>, added 2026-11-27)</h2>
+    <p class="sub" style="margin-bottom:14px">
+      This session could read <code>docs.kalshi.com</code>, the fee-schedule PDF and the live demo REST API
+      directly, so the two items below are a response it read and a page it quoted — not an inference. The full
+      transcript, plus the claims that re-verified cleanly today, is
+      <a href="reports/verify-54220d3d.md">reports/verify-54220d3d.md</a>; every URL there re-runs in a browser.
+    </p>
+
+    <div class="irregularity" id="F18">
+      <h3>F18 — The exchange is sharded and the site reports one status line <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> on 2026-11-27 the demo host answered
+        <code>GET /exchange/status</code> with <code>exchange_active: true</code>,
+        <code>trading_active: true</code> <em>and</em> a four-entry
+        <code>exchange_index_statuses</code> array (<code>Default</code>, <code>Demo shard 1</code>,
+        <code>Demo shard 2</code>, and one entry whose description is blank). The reference states that
+        <em>"the top-level fields describe the default exchange index (0)"</em> and that an index other than 0
+        whose status request failed or timed out <em>"is reported with all of its flags
+        <code>false</code>"</em> — and that a single <code>false</code> reading for one index must be re-read
+        before it is treated as a pause.</p>
+      <p><strong>Consequence:</strong> the Overview's environment strip reads the two top-level flags and
+        therefore says "trading active" for the whole exchange while an individual shard could be paused.
+        It is one line of text, not a wrong price, but it is a status claim the site cannot support at
+        shard level.</p>
+      <p><strong>What the site does about it:</strong> nothing is invented. The Overview keeps reading only
+        the flags it can defend (the documented 200-only rule it already follows for 5xx), and this card records
+        that the per-shard breakdown exists and is not read. A fix would print one line per
+        <code>exchange_index</code> and re-read rather than treat a lone <code>false</code> as a halt.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">Exchange sharding ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/exchange/status" target="_blank" rel="noopener noreferrer">live demo response ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="F19">
+      <h3>F19 — A Golf-tagged series the Golf topic cannot see <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> Kalshi's series records carry a <code>tags</code> array, and
+        <code>Golf</code> is one of its values; <code>GET /series</code> documents a <code>tags</code> filter and
+        the demo host honours it (a <code>category=Sports&amp;tags=Golf</code> request returned only Golf-tagged
+        rows on 2026-11-27). The site's Golf topic does not read tags: it narrows category <code>Sports</code> with
+        series and title patterns.</p>
+      <p><strong>Evidence (the site's own classifier, unmodified, over live series records):</strong></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Series</th><th>Title</th><th><code>tags</code></th><th>Site's topic</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">KXDPWORLDTOURR2LEAD</td><td>DP World Tour R2 Leader</td><td><code>["Golf"]</code></td>
+              <td><span class="tag no">not classified</span> — matched only by the tag</td></tr>
+            <tr><td class="mono">KXLPGAR2LEAD</td><td>LPGA Round 2 Leader</td><td><code>["Golf"]</code></td>
+              <td>golf — matched by title</td></tr>
+            <tr><td class="mono">KXPGAPLAYOFF</td><td>Golf Playoff</td><td><code>["Golf"]</code></td>
+              <td>golf — matched by title</td></tr>
+            <tr><td class="mono">KXHOLEINONE</td><td>Golf Hole in One</td><td><code>["Golf"]</code></td>
+              <td>golf — matched by title</td></tr>
+            <tr><td class="mono">KXGOLFCAT</td><td><code>a</code></td><td><code>["Golf"]</code></td>
+              <td>golf — matched on the <strong>ticker</strong> (<code>/GOLF/i</code>), not on a golf word in the title</td></tr>
+            <tr><td class="mono">KXMLBGAME</td><td>Pro Baseball Game</td><td><code>[]</code></td>
+              <td><span class="tag no">not classified</span> — correctly excluded (not a golf control)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Consequence:</strong> a Golf-tagged series is missed whenever its title carries none of the
+        site's golf words. It shows up as missing coverage only when that series has an event inside the scanned
+        page of <code>/events</code>, so it can go unnoticed for days — which is exactly why it is published
+        rather than patched quietly.</p>
+      <p><strong>Proposed fix (not applied here):</strong> read <code>series.tags</code> alongside
+        <code>categories</code> and match a <code>Golf</code> tag before the title patterns, with the
+        <code>KXDPWORLDTOURR2LEAD</code> fixture above added to <code>tests/taxonomy.test.mjs</code>. The state
+        files for that (the taxonomy in <code>assets/js/config.js</code> and the classifier in
+        <code>assets/js/market.js</code>) are shared controllers other live sessions edit, so this session did
+        not change them.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List (the <code>tags</code> filter) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">Get Series (<code>tags</code> field) ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXDPWORLDTOURR2LEAD" target="_blank" rel="noopener noreferrer">live series record ↗</a></p>
     </div>
 
     <h2>What is <em>not</em> flagged</h2>
