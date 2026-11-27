@@ -3811,3 +3811,20 @@ the scheduled probe rewrote `data/probe/api_surface.json` at 2026-11-27T16:57Z (
 claimed by `858d4941` / `bacbd8a9` / `c0aa9245`; this session did not touch either for that purpose and does
 **not** treat the failure as its own. It must be resolved before the site is merged, by whichever of those
 sessions lands first (or by the integration pull request, if they have not landed).
+
+---
+
+## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `996a598`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:37Z. Checked active siblings and open PRs before claiming:
+PR #135 (`54220d3d`) is merged on `main`; PR #134 (`d3e0e9f5`: `flagged.html`, `assets/js/claims.js`, `summary.html`, `assets/js/trace.js`, `tests/requirements-trace.test.mjs`, `tests/dom/summary-dom.mjs`) is open; `df162a93` claims `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `summary.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`; `e081e9af` claims `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs`, `suggestions.html`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
+
+**Disjoint scope (`2f98889c`) — zero overlap with all active branches above:**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| M1 | Fix logged 5-col vs 6-col `#yes-book`/`#no-book` error row width bug + clear stale `#book-summary` on error; extend DOM & static table-width guards | in progress | `2f98889c` | `assets/js/category.js`, `tests/dom/category-dom.mjs`, `tests/table-shape.test.mjs` | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook), [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses); `COORDINATION.md` logged request |
+| M2 | Fulfill `54220d3d` §4 handoff: store `series.tags` in `fetchSeriesCategories`/`primeSeriesCategories`, add Golf `tagPatterns: [/^Golf$/i]` before title/series patterns, and pin `KXDPWORLDTOURR2LEAD` + `KXMLBGAME` in taxonomy tests | in progress | `2f98889c` | `assets/js/config.js`, `assets/js/market.js`, `tests/taxonomy.test.mjs` | [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), `reports/verify-54220d3d.md` §3–4 |
+| M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | in progress | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
+| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | Do not merge a broken site |
+
