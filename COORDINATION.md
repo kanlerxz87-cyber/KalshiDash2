@@ -4021,7 +4021,6 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 **Cross-scope request (not edited here — `flagged.html` owned by PR #141):** `flagged.html#NF1`'s title and body still say the official pages "disagree / do not agree" under a *mitigated* tag whose callout says they answer different questions (already noted by `54220d3d`). Owner of `flagged.html` should reconcile the title/body wording with the F20 resolution.
 
 ---
-
 ## Session `bc28428d` — alert-engine dedupe defect + independent re-verification (branch `arena/bc28428d-kalshidash2`, 2026-11-27 UTC)
 
 **Claimed:** 2026-11-27 UTC, base `main` @ `db91232` (this Arena branch, synced to `main`; no divergence).
