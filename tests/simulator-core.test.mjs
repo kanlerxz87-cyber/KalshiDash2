@@ -4,11 +4,15 @@ import {
   aggregate,
   aggregateBreakdowns,
   fillFeeDollars,
+  loadSettledUniverse,
+  paperEntryFromSwing,
+  Paper,
   replayRandomControl,
   replayStrategy,
   takerFeeMultiplier,
   tradesToCsv
 } from "../assets/js/simulator.js";
+import { api, clearSeriesCategoryCache } from "../assets/js/market.js";
 
 const market = {
   ticker: "T-TEST-1",
@@ -189,4 +193,103 @@ test("CSV ledger export carries fee columns and official fee-schedule links", ()
   assert.match(csv, /"pnl_net_of_fees_per_contract"/);
   assert.match(csv, /https:\/\/kalshi\.com\/docs\/kalshi-fee-schedule\.pdf/);
   assert.match(csv, /https:\/\/docs\.kalshi\.com\/getting_started\/fee_rounding/);
+});
+
+/* ---- live paper trader + settled universe regressions (session df162a93) -- */
+
+test("paperEntryFromSwing enforces the tradeability screen (swing.pick)", () => {
+  const unscreened = {
+    ticker: "T-1", eventTicker: "E-1", eventTitle: "Test", topicKey: "crypto",
+    dir: "up", from: 0.4, to: 0.6, delta: 0.2, basis: "live poll", pick: false
+  };
+  assert.equal(paperEntryFromSwing(unscreened), null);
+  assert.equal(paperEntryFromSwing({ ...unscreened, pick: true, to: NaN }), null);
+});
+
+test("paperEntryFromSwing uses reciprocal 1 - YES entry cost for NO swings and settles accurately", async () => {
+  const upEntry = paperEntryFromSwing({
+    ticker: "T-UP", eventTicker: "E-1", eventTitle: "Up move", topicKey: "crypto",
+    dir: "up", from: 0.4, to: 0.72, delta: 0.32, basis: "live poll", pick: true
+  });
+  assert.equal(upEntry.side, "yes");
+  assert.equal(upEntry.entry_price, 0.72);
+  assert.equal(upEntry.yes_price_at_entry, 0.72);
+
+  const downEntry = paperEntryFromSwing({
+    ticker: "T-DOWN", eventTicker: "E-2", eventTitle: "Down move", topicKey: "crypto",
+    dir: "down", from: 0.8, to: 0.2, delta: -0.6, basis: "live poll", pick: true
+  });
+  assert.equal(downEntry.side, "no");
+  assert.ok(Math.abs(downEntry.entry_price - 0.8) < 1e-9, `expected NO cost 0.80, got ${downEntry.entry_price}`);
+  assert.equal(downEntry.yes_price_at_entry, 0.2);
+
+  // Verify Paper.settle() scores NO win (+0.20) and NO loss (-0.80) using complement cost.
+  const store = new Map();
+  const prevStorage = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem: k => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v))
+  };
+  const origGet = api.get;
+  try {
+    Paper.save([
+      { ...downEntry, id: "no-win", ticker: "T-NO-WIN" },
+      { ...downEntry, id: "no-loss", ticker: "T-NO-LOSS" }
+    ]);
+    api.get = async path => {
+      if (path.includes("T-NO-WIN")) return { market: { result: "no", settlement_value_dollars: "0.0000" } };
+      return { market: { result: "yes", settlement_value_dollars: "1.0000" } };
+    };
+    const settled = await Paper.settle();
+    const won = settled.find(p => p.id === "no-win");
+    const lost = settled.find(p => p.id === "no-loss");
+    assert.equal(won.payout_per_contract, 1);
+    assert.ok(Math.abs(won.pnl_per_contract - 0.2) < 1e-9, `NO win P&L should be +0.20, got ${won.pnl_per_contract}`);
+    assert.equal(lost.payout_per_contract, 0);
+    assert.ok(Math.abs(lost.pnl_per_contract + 0.8) < 1e-9, `NO loss P&L should be -0.80, got ${lost.pnl_per_contract}`);
+  } finally {
+    api.get = origGet;
+    globalThis.localStorage = prevStorage;
+  }
+});
+
+test("loadSettledUniverse avoids duplicate limit param and classifies via series category", async () => {
+  clearSeriesCategoryCache();
+  const calls = [];
+  const origGet = api.get;
+  try {
+    api.get = async path => {
+      calls.push(path);
+      if (path.startsWith("/markets?")) {
+        return {
+          markets: [{
+            ticker: "KXSER-1", event_ticker: "EV-SER", result: "yes",
+            settlement_value_dollars: "1.0000"
+          }],
+          cursor: ""
+        };
+      }
+      if (path.startsWith("/historical/markets")) {
+        return { markets: [], cursor: "" };
+      }
+      if (path === "/events/EV-SER") {
+        // Deprecated event.category intentionally blank — series record carries Crypto.
+        return { event: { event_ticker: "EV-SER", title: "Settled test", category: "", series_ticker: "KXSER" } };
+      }
+      if (path === "/series/KXSER") {
+        return { series: { ticker: "KXSER", category: "Crypto", categories: ["Crypto"] } };
+      }
+      return {};
+    };
+    const rows = await loadSettledUniverse({ limit: 5, maxPages: 1 });
+    const histCalls = calls.filter(c => c.startsWith("/historical/markets"));
+    assert.equal(histCalls.length, 1);
+    assert.equal(histCalls[0].match(/limit=/g)?.length, 1, `duplicate limit param in ${histCalls[0]}`);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].topic, "crypto");
+    assert.equal(rows[0].category_basis, "series");
+  } finally {
+    api.get = origGet;
+    clearSeriesCategoryCache();
+  }
 });
