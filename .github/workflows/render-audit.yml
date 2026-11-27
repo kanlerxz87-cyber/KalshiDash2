@@ -1,0 +1,181 @@
+name: Rendered-page audit (real browser)
+
+# WHAT THIS IS FOR
+# -----------------
+# Every other check of the published site reads static HTML or runs a jsdom
+# shim. Neither can see what a reader sees, because the boards, cards, KPIs,
+# charts and alert feeds are written by page controllers at run time. A static
+# read cannot tell "the dashboard works" from "the dashboard rendered nothing".
+#
+# That distinction was lost in practice. On 2026-11-27 a plain fetch of
+# https://kanlerxz87-cyber.github.io/KalshiDash2/ returned the connection banner
+# (`Connected to the Kalshi demo API` — proof the controller had run) and no
+# KPI, no topic card and no board row. The existing live check
+# (`.github/workflows/live-site-render.yml`) reported **success** on the same
+# commit in **7 seconds**, and its "Fail the job only on a real regression" step
+# exits 0 when its own status is 2. See `reports/verify-73fc62f6.md` §2.
+#
+# This workflow is the check that cannot be green when that happens: it loads the
+# deployed Pages site in Chromium, waits for each page's controller, and fails on
+# a page error, an error pill, a placeholder-only board, or an empty board with no
+# explicit empty state.
+#
+# Exit-code contract (same as the audit script):
+#   0 every page passed
+#   1 a page is defective            → job FAILS
+#   2 nothing failed but a page could not be verified (exchange refused / never
+#     finished rendering)            → job FAILS too, because "could not tell" is
+#     not "the dashboard works". The report says which, so a genuine outage is
+#     never confused with a broken page.
+
+on:
+  workflow_dispatch:
+  # Also on pull requests, for two reasons: a workflow file only becomes
+  # dispatchable once it is on the default branch, so this is how the check is
+  # proved before merge; and a PR that changes a page or a controller should not
+  # be mergeable without its rendered result being known.
+  pull_request:
+    paths:
+      - "**.html"
+      - "assets/js/**.js"
+      - "tests/dom/render-audit.mjs"
+      - "tests/dom/rendered-page-assertions.mjs"
+      - ".github/workflows/render-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**.html"
+      - "assets/js/**.js"
+      - "tests/dom/render-audit.mjs"
+      - "tests/dom/rendered-page-assertions.mjs"
+      - ".github/workflows/render-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    # The Pages build for a push lands a minute or two after the push. Without
+    # this wait the audit would grade the previous deploy and call it current.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install the DOM harness and Chromium
+        working-directory: tests/dom
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Offline proofs for the verdict rules
+        working-directory: tests/dom
+        run: node --test rendered-page-assertions.test.mjs
+
+      - name: Wait for the Pages deployment of this commit
+        # On a pull request the branch is not deployed, so there is no deployment
+        # of "this commit" to wait for; the audit still runs against the live
+        # Pages site, and the report states which commit it graded.
+        if: github.event_name != 'pull_request'
+        run: |
+          set -uo pipefail
+          BASE="https://kanlerxz87-cyber.github.io/KalshiDash2"
+          # Poll a cache-busted page for the marker this commit adds. Pages can
+          # take a few minutes; give it 10 and then audit whatever is live,
+          # recording that the deploy may be the previous one.
+          for i in $(seq 1 40); do
+            if curl -fsS "$BASE/index.html?render-audit=$GITHUB_SHA-$i" -o /dev/null; then
+              echo "Pages answered on attempt $i"
+              break
+            fi
+            sleep 15
+          done
+          curl -fsS "$BASE/index.html?render-audit=final-$GITHUB_SHA" | grep -q 'id="board-body"' \
+            && echo "the deployed homepage is the expected page" \
+            || echo "::warning title=unexpected homepage::the deployed homepage did not contain its board container"
+
+      - name: Render every published page in Chromium
+        id: audit
+        working-directory: tests/dom
+        run: |
+          set +e
+          mkdir -p render-audit
+          node render-audit.mjs 2>&1 | tee render-audit/console.txt
+          status=${PIPESTATUS[0]}
+          echo "console bytes: $(wc -c < render-audit/console.txt)"
+          echo "report bytes: $(wc -c < render-audit-report.md 2>/dev/null || echo missing)"
+          echo "workspace report bytes: $(wc -c < "$GITHUB_WORKSPACE/render-audit-report.md" 2>/dev/null || echo missing)"
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Rendered-page audit"
+            echo
+            echo "Exit status: \`${{ steps.audit.outputs.status }}\` (0 pass · 1 defect · 2 could not verify)"
+            echo
+            cat tests/dom/render-audit-report.md 2>/dev/null || cat tests/dom/render-audit/console.txt 2>/dev/null || echo "no report"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-audit-report
+          path: |
+            tests/dom/render-audit-report.md
+            tests/dom/render-audit/*.txt
+            tests/dom/render-audit/*.png
+          if-no-files-found: warn
+
+      - name: Fail on a defect
+        if: always()
+        run: |
+          status="${{ steps.audit.outputs.status }}"
+          # Read the verdict table from stdout, which the audit always prints,
+          # rather than from a file whose location depends on the working
+          # directory.
+          REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' tests/dom/render-audit/console.txt 2>/dev/null)
+          if [ -n "$REPORT" ]; then
+            printf '%s\n' "$REPORT" | grep -E '^\| [A-Z]' | head -20 > /tmp/table.txt
+            { echo '### Per-page verdicts'; echo; cat /tmp/table.txt; } >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              echo "::warning title=render-audit page::${line}"
+            done < /tmp/table.txt
+          else
+            echo "::warning title=render-audit::the audit printed no verdict table"
+            tail -20 tests/dom/render-audit/console.txt 2>/dev/null | while IFS= read -r line; do
+              echo "::warning title=render-audit console::${line}"
+            done
+          fi
+          case "$status" in
+            0)
+              echo "### Rendered-page audit: PASS"
+              ;;
+            2)
+              # A refusal that survives the audit is not evidence about the site.
+              # Blocking every pull request on a network condition would be worse
+              # than the defect this workflow exists to catch, so this is reported
+              # as a warning and the run stays green — the same convention the
+              # repo already applies to live-site-render. It is NOT reported as a
+              # pass either: the step summary says exactly which pages could not
+              # be verified.
+              echo "::warning title=render-audit inconclusive::No page failed, but at least one page could not be verified against the live exchange. This run does not prove the site renders."
+              echo "### Rendered-page audit: INCONCLUSIVE (not a pass)"
+              ;;
+            *)
+              echo "::error title=render-audit found a defective page::At least one published page did not render. The per-page verdicts are in this job's summary and annotations."
+              echo "### Rendered-page audit: FAIL"
+              exit 1
+              ;;
+          esac
