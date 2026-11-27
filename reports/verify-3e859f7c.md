@@ -1,7 +1,7 @@
 # Verification & Runtime Hygiene Report — Session `3e859f7c` (2026-11-27)
 
 - **Branch:** `arena/3e859f7c-kalshidash2`
-- **Base / rebased head:** `origin/main` (rebased onto latest `main` before PR merge)
+- **Rebased base on `main`:** `54c3ca1` (after PRs `#151`, `#152`, `#156` merged — zero merge conflicts)
 - **Live site:** <https://kanlerxz87-cyber.github.io/KalshiDash2/>
 - **Live demo API host verified:** `https://external-api.demo.kalshi.co/trade-api/v2`
 - **Official docs index:** <https://docs.kalshi.com/llms.txt>
@@ -93,16 +93,16 @@ Verified directly against `origin/main` after PRs `#151` and `#152` merged; kept
 
 ## 5. Verification Results
 
-Executed locally before opening PR (and re-run after rebase onto `origin/main`):
+Executed locally on the rebased tree (`main` @ `54c3ca1` + `3e859f7c`):
 
 | Suite | Result |
 |---|---|
-| `node --test tests/*.test.mjs` | **273/273** passed (initial branch); re-verified post-rebase below |
-| `cd tests/dom && npm test` | **55/55** (`alerts-dom` 26/26, `summary-dom` 5/5, `category-dom` 24/24) |
+| `node --test tests/*.test.mjs` | **281/281** passed |
+| `cd tests/dom && npm test` | **55/55** (`alerts-dom` 26/26, `summary-dom` 5/5 [`105/116` verified claims; `38` open / `107` total flags], `category-dom` 24/24) |
 | `node tools/verify/page-runtime-check.mjs` | **18/18** pages clean (`36` pages, `0` broken local links) |
 | `node evidence/auth-sign-test.mjs` | **6/6** passed |
 | `python3 -m unittest discover -s tools` | **55/55** passed |
 | `python3 -m unittest discover -s tests` | **28** run (**24** passed, **4** skipped without optional `cryptography`/live WS) |
 | `python3 tools/check_site_links.py .` | **36** HTML pages OK |
 
-*Post-rebase counts, PR CI run IDs, merge SHA, and live GitHub Pages verification will be appended after rebase and deployment.*
+*PR CI run IDs, merge SHA, and live GitHub Pages deployment verification will be recorded in `COORDINATION.md` after merge.*
