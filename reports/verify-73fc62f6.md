@@ -321,3 +321,36 @@ is never lost from the report.
 
 The first four all failed in this session's own added code, before the site was ever graded. That is the
 strongest available evidence that the check can fail: it did, repeatedly, for reasons that were real.
+
+### 10.1 Second conclusive run, with the retry: four of five category boards verified
+
+Run [`156e85e`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/) — the same audit after the
+bounded retry — reached a verdict for more pages:
+
+| Page | Verdict |
+| --- | --- |
+| `/` Overview | **pass** |
+| `/alerts.html` Live alerts | **pass** |
+| `/categories/gas.html` | **pass** |
+| `/categories/elections.html` | **pass** |
+| `/categories/culture.html` | **pass** |
+| `/categories/crypto.html` | **pass** |
+| `/summary.html` Executive summary | **pass** |
+| `/flagged.html` Flagged for review | **pass** |
+| `/categories/golf.html` | inconclusive — `429 too_many_requests` on both attempts |
+
+Two findings from this run that were not knowable before it:
+
+- **The Gas board renders, with a real event.** The topic that Flagged **F4** recorded as empty in the demo
+  environment on 2026-11-20 now renders in a browser with rows. That is a *live-state* observation, not a
+  change to the register: F4 remains the record of what was observed then, and this line records what was
+  observed now, with its run.
+- **The 429 is a request-rate collision, not a page defect.** Golf is the fifth `open events` scan in a row, and
+  both attempts hit the demo API's limit on the same cursor chain — the demo API's limit applies to the
+  unauthenticated budget the whole audit spends (Flag **F3**: the budget has no published number). The audit
+  reports it as inconclusive rather than as a failure, which is the correct verdict for "the exchange would not
+  answer", and the page's own error pill names the refusal.
+
+**Consequence for the gate:** a page can be marked inconclusive by the audit for a reason that is not about the
+page. That is why the workflow fails the job on a defect and only *warns* on inconclusive — and why the warning
+text says the run does not prove the site renders. Neither is reported as a pass.
