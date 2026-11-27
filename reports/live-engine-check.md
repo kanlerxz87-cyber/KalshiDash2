@@ -1,6 +1,6 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-27T22:45:01.538Z
+- Run at: 2026-11-27T23:01:26.949Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
@@ -12,12 +12,12 @@
 
 _No swing met the threshold in this scan. The demo exchange is quiet at the time of writing._
 
-- Markets with a readable previous price: 2749
-- Largest single move against the exchange's previous price: +0.14 on `KXTVSEASONRELEASETHELASTOFUS-26-APR`
+- Markets with a readable previous price (status active or open): 2741
+- Excluded from that count: 8 market(s) with a readable previous price whose status is outside active/open — the engine does not scan them, so they are listed here rather than in the move table.
+- Largest single move against the exchange's previous price: 0.00 on `KXNEXTNATOSECGEN-99-KIOH`
 
 | Market | previous_price_dollars | last_price_dollars | Δ |
 | --- | --- | --- | --- |
-| `KXTVSEASONRELEASETHELASTOFUS-26-APR` | 0.70 | 0.84 | +0.14 |
 | `KXNEXTNATOSECGEN-99-KIOH` | 0.02 | 0.02 | 0.00 |
 | `KXNEXTNATOSECGEN-99-KKAL` | 0.15 | 0.15 | 0.00 |
 | `KXNEXTNATOSECGEN-99-BWAL` | 0.11 | 0.11 | 0.00 |
@@ -27,14 +27,15 @@ _No swing met the threshold in this scan. The demo exchange is quiet at the time
 | `KXNEXTNATOSECGEN-99-ASTU` | 0.13 | 0.13 | 0.00 |
 | `KXNEXTNATOSECGEN-99-KSTA` | 0.23 | 0.23 | 0.00 |
 | `KXNEWPOPE-70-PPIZ` | 0.10 | 0.10 | 0.00 |
+| `KXNEWPOPE-70-PPAR` | 0.54 | 0.54 | 0.00 |
 
 ## 2 · Strategy tester
 
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 10
-- History requests that failed: 2
+- Markets with usable one-minute history: 12
+- History requests that failed: 0
 - Simulated trades produced: 0
 
 _No strategy fired in this universe._
