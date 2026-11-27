@@ -98,6 +98,10 @@ await browser.close();
 const summary = summarise(results);
 console.log(`\n${summary.pass} passed, ${summary.fail} failed, ${summary.inconclusive} could not be verified`);
 
+/* Everything that can throw is reported on STDOUT as well as the usual stack on
+ * stderr, because the workflow captures stdout through `tee`: a crash that only
+ * reaches stderr leaves a failing run with no readable cause. */
+try {
 /* Emit the verdict table as annotations, so a failing run is diagnosable from
  * the API without downloading an artifact (the artifact blob host is not
  * reachable from every environment that reviews these runs). */
@@ -138,6 +142,12 @@ console.log(report);
 console.log("=== RENDER-AUDIT REPORT END ===");
 try { writeFileSync("render-audit-report.md", report); } catch { /* stdout already carries it */ }
 try { writeFileSync(`${process.env.GITHUB_WORKSPACE || "."}/render-audit-report.md`, report); } catch { /* same */ }
+} catch (err) {
+  console.log("=== RENDER-AUDIT CRASHED ===");
+  console.log(err && err.stack ? err.stack : String(err));
+  console.log("=== RENDER-AUDIT CRASHED ===");
+  process.exitCode = 1;
+}
 /* `process.exit()` can truncate buffered stdout, which is exactly how the first
  * version of this script lost its per-page annotations. Set the code and let
  * Node flush. */

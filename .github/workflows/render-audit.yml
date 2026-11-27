@@ -107,8 +107,11 @@ jobs:
         run: |
           set +e
           mkdir -p render-audit
-          node render-audit.mjs | tee render-audit/console.txt
+          node render-audit.mjs 2>&1 | tee render-audit/console.txt
           status=${PIPESTATUS[0]}
+          echo "console bytes: $(wc -c < render-audit/console.txt)"
+          echo "report bytes: $(wc -c < render-audit-report.md 2>/dev/null || echo missing)"
+          echo "workspace report bytes: $(wc -c < "$GITHUB_WORKSPACE/render-audit-report.md" 2>/dev/null || echo missing)"
           set -e
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
@@ -149,6 +152,7 @@ jobs:
           # directory. (The first version of this step read only the file and
           # produced a run with no per-page detail at all.)
           REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' tests/dom/render-audit/console.txt 2>/dev/null)
+          [ -n "$REPORT" ] || REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' "$GITHUB_WORKSPACE/render-audit-report.md" 2>/dev/null)
           if [ -n "$REPORT" ]; then
             TABLE=$(printf '%s\n' "$REPORT" | grep -E '^\| ' | head -25)
             printf '%s\n' "$TABLE" > /tmp/table.txt
