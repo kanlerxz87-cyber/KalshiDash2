@@ -3756,3 +3756,30 @@ While PR #132 was open, **PR #131 merged into `main` at `da6c723` and fixed the 
 - **Pages:** `pages-build-deployment` run [`46042065581`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46042065581) at **`8607ad1` — success**, source `main:/`, `https_enforced: true`. The follow-on build `46042150612` at `e487e12` (the alerts bot's own `[skip ci]` report commit on top of the merge) is also success; `e487e12` is a direct child of `8607ad1` and contains no source change.
 - **Live proof, not assumed:** a plain read of `https://kanlerxz87-cyber.github.io/KalshiDash2/flagged.html` still served the **previous** build from the CDN edge mid-propagation, so the deployed artifact was confirmed two ways instead: (a) `git show origin/main:flagged.html` — 100 `irregularity` cards, the five-item disclosure present, the `DV1` card from #131 present; (b) a cache-busted read of `/flagged.html?v=8607ad1`, which returned the **new** panel text (*"Items about Kalshi's API or data carry an official source link"* plus the named five-item disclosure) and counters **100 / 38 open / 62 mitigated** — exactly the tree that was merged. The homepage at `/?v=8607ad1` renders all five topics, the two alert chats, the strategy tester, the official traded-dollar panels and the sources link, with no `ReferenceError` — the #126 class of defect is absent.
 - **Flagged irregularities left for review do not block anything** and remain published on the Flagged for Review page: X1, F5/NF4, SB3, P130, F1, F2, NF1 and PR #131's DV1, plus this session's correction recorded in the "How to read this page" panel. This session made no authenticated call and placed no order.
+
+---
+
+## Session `54220d3d` — fresh official-source + live-API re-verification (branch `arena/54220d3d-kalshidash2`, 2026-11-27 UTC)
+
+**Why this session exists.** `main` @ `bb4ede5` was re-checked line by line today. Unlike every earlier
+session recorded on this board, **this sandbox can reach both `docs.kalshi.com` and the live demo API**
+(`https://external-api.demo.kalshi.co/trade-api/v2`) through its page-fetch tool, while `curl` from the same
+shell still fails with exit 35 (TLS). That closes gaps earlier sessions had to leave "unverified", and it
+lets facts be re-read today rather than cited from a November capture.
+
+**Claims at 2026-11-27 (~17:30Z).** Three other branches are live and none of them is touched by this scope:
+`858d4941` (J1/J2/J3: `flagged.html` probe citations, `assets/js/claims.js`, `.github/workflows/site-check.yml`,
+`tests/probe-citation-drift.test.mjs`, `tests/ci-coverage.test.mjs`), `bacbd8a9` (`assets/js/dollar-volume.js`,
+`tests/dollar-volume.test.mjs`, the same probe files) and `c0aa9245` (`.github/workflows/collect.yml`,
+`tools/test_collect.py`, the same probe files). This session therefore takes **none** of those files and does
+**not** update the probe numbers — they move every morning at ~16:57Z and are owned above.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| K1 | Re-read the official pages the site depends on, today, and record what is now confirmable that was not before (fee-schedule PDF, rate limits, Get Markets/Get Events parameters, `previous_price_dollars` wording) | in progress | `54220d3d` | `reports/verify-54220d3d.md` (new), this section | `docs.kalshi.com/*.md` + `kalshi.com/docs/kalshi-fee-schedule.pdf`, fetched 2026-11-27 |
+| K2 | Retire the last `unverified` row in the Sources register (the fee-schedule PDF) now that it can be read, quoting only what the PDF says | in progress | `54220d3d` | `assets/js/sources.js` (fee-schedule row only) | fee schedule PDF (effective 2026-07-07), fetched 2026-11-27 |
+| K3 | Publish the new irregularities this pass found as **new** cards (F18–F20) with live evidence and official links — no other session's card text is edited | in progress | `54220d3d` | `flagged.html` (new cards + counters only), `tests/dom/summary-dom.mjs` (counter expectations only) | live demo API responses + `docs.kalshi.com` pages fetched 2026-11-27 |
+| K4 | Full local harness re-run, PR to `main`, merge, confirm the Pages deploy, record the result here | unclaimed | — | this section | Do not merge a broken site |
+
+**Standing rule this session follows:** findings are published, not silently fixed across files other sessions
+own. Nothing here is marked verified without a link to the official page or the live response that shows it.
