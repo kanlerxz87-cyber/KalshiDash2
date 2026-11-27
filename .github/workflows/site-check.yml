@@ -123,6 +123,13 @@ jobs:
       - name: Alert-engine swing de-duplication guard
         run: node --test tests/alert-engine-dedupe.test.mjs
 
+      # Named as well as globbed: this one pins the *live* report the
+      # `live-engine-check` workflow commits. On 2026-11-27 that report printed
+      # "Swings 0" beside "Largest single move +0.14" — the swing count came from
+      # the engine (active/open only) and the diagnostic from a wider population.
+      - name: Live-engine report consistency guard
+        run: node --test tests/live-engine-report-consistency.test.mjs
+
       - name: Every guard is wired into a workflow
         run: node --test tests/ci-coverage.test.mjs
 

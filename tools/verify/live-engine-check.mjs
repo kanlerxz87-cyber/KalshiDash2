@@ -50,6 +50,13 @@ if (engine.errors.length) {
   console.error(engine.errors[engine.errors.length - 1].message);
   process.exit(1);
 }
+/* The population the engine actually scans. The diagnostic table further down
+ * is built independently and must not be counted over a wider set of markets,
+ * or this report contradicts itself: on 2026-11-27 it printed "Swings 0" beside
+ * "Largest single move +0.14", and the market carrying the +0.14 was one the
+ * engine had deliberately skipped. */
+const ENGINE_STATUSES = ["active", "open"];
+
 log(`- Events scanned: ${engine.scanned}`);
 log(`- Markets in the five topics: ${engine.markets}`);
 log(`- Swings of $${ALERT.defaultThreshold.toFixed(2)} or more detected: ${swings.length}`);
@@ -70,8 +77,12 @@ if (swings.length) {
 
 /* A swing may legitimately be zero: the threshold is high relative to the
  * sample of markets read in one scan. Record the highest observed move so the
- * report still carries evidence that the comparison works. */
+ * report still carries evidence that the comparison works.
+ *
+ * Scoped to the same markets the engine scans (`active`/`open`), so this table
+ * can never show a move the swing count above it would have had to report. */
 const observed = [];
+const skippedByStatus = [];
 {
   const { classifyEvent, num } = await import(path.join(ROOT, "assets/js/market.js"));
   for (const ev of engine.lastEvents) {
@@ -79,13 +90,19 @@ const observed = [];
     for (const m of ev.markets || []) {
       const last = num(m.last_price_dollars), prev = num(m.previous_price_dollars);
       if (last === null || prev === null) continue;
+      if (!ENGINE_STATUSES.includes(m.status)) { skippedByStatus.push(m.ticker); continue; }
       observed.push({ ticker: m.ticker, last, prev, d: Number((last - prev).toFixed(4)) });
     }
   }
   observed.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
 }
 log();
-log(`- Markets with a readable previous price: ${observed.length}`);
+log(`- Markets with a readable previous price (status ${ENGINE_STATUSES.join(" or ")}): ${observed.length}`);
+if (skippedByStatus.length) {
+  log(`- Excluded from that count: ${skippedByStatus.length} market(s) with a readable previous price whose ` +
+      `status is outside ${ENGINE_STATUSES.join("/")} — the engine does not scan them, so they are listed here ` +
+      `rather than in the move table.`);
+}
 log(`- Largest single move against the exchange's previous price: ` +
     (observed.length ? `${observed[0].d > 0 ? "+" : ""}${observed[0].d.toFixed(2)} on \`${observed[0].ticker}\`` : "none"));
 log();
