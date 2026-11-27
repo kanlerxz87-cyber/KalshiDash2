@@ -151,4 +151,10 @@ try { writeFileSync(`${process.env.GITHUB_WORKSPACE || "."}/render-audit-report.
 /* `process.exit()` can truncate buffered stdout, which is exactly how the first
  * version of this script lost its per-page annotations. Set the code and let
  * Node flush. */
-process.exitCode = summary.exitCode === EXIT.PASS ? 0 : summary.exitCode === EXIT.FAIL ? 1 : 2;
+/* An unexpected non-zero exit must never be rounded to "inconclusive": that is
+ * the exact masking this whole check exists to remove. 1 = defect,
+ * 2 = could not verify, anything else = defect. */
+process.exitCode = summary.exitCode === EXIT.PASS ? 0
+  : summary.exitCode === EXIT.INCONCLUSIVE ? 2
+  : 1;
+console.log(`exit code set to ${process.exitCode} (audit verdict ${summary.exitCode})`);
