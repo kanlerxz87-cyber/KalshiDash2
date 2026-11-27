@@ -588,7 +588,10 @@ const SETTLED_STATUSES = ["settled", "closed", "finalized", "determined"];
 export function isSettledMarket(market, nowMs = Date.now()) {
   if (!market) return false;
   const result = String(market.result || "").toLowerCase();
-  if (result === "yes" || result === "no") return true;
+  /* `result` is an enum of "yes", "no", "scalar", or "" (Get Market / Get Settlements).
+   * Any non-empty documented outcome means the market settled and is eligible for
+   * the historical candlestick fallback if the live tier returns no periods. */
+  if (result === "yes" || result === "no" || result === "scalar") return true;
   const status = String(market.status || "").toLowerCase();
   if (SETTLED_STATUSES.includes(status)) return true;
   const close = Date.parse(market.close_time || "");
@@ -665,7 +668,7 @@ export async function fetchCandles(market, { seconds, interval, endTs, allowHist
       rawCount: live.rawCount,
       via: "live",
       historicalError: null,
-      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+      source: `${DEMO.rest}/series/${encodeURIComponent(series || "")}/markets/${encodeURIComponent(market.ticker)}/candlesticks`
     };
   }
 
@@ -681,7 +684,7 @@ export async function fetchCandles(market, { seconds, interval, endTs, allowHist
       rawCount: hist.rawCount,
       via: "historical",
       historicalError: null,
-      source: `${DEMO.rest}/historical/markets/${market.ticker}/candlesticks`
+      source: `${DEMO.rest}/historical/markets/${encodeURIComponent(market.ticker)}/candlesticks`
     };
   } catch (e) {
     if (liveError) throw liveError;
@@ -693,7 +696,7 @@ export async function fetchCandles(market, { seconds, interval, endTs, allowHist
       rawCount: live.rawCount,
       via: "live",
       historicalError: e.message,
-      source: `${DEMO.rest}/series/${series}/markets/${market.ticker}/candlesticks`
+      source: `${DEMO.rest}/series/${encodeURIComponent(series || "")}/markets/${encodeURIComponent(market.ticker)}/candlesticks`
     };
   }
 }
@@ -888,8 +891,13 @@ export function analyseFills(fills, { topicResolver } = {}) {
     const yesPrice = num(f.yes_price_dollars);
     const noPrice = num(f.no_price_dollars);
     const fee = num(f.fee_cost_dollars ?? f.fee_cost);
-    const side = f.outcome_side || f.side || null;
-    const price = side === "no" ? noPrice : yesPrice;
+    const rawSide = f.outcome_side || f.side;
+    const side = rawSide ? String(rawSide).toLowerCase() : null;
+    /* Only value a fill when the exchange actually reported a recognised side.
+     * Falling back to yesPrice when side is missing silently prices an unsided
+     * row as a YES fill instead of leaving price/cost null and counting it in
+     * totals.missingPrice. (https://docs.kalshi.com/api-reference/portfolio/get-fills) */
+    const price = side === "yes" ? yesPrice : side === "no" ? noPrice : null;
     const cost = count !== null && price !== null ? count * price : null;
     /* No `notional` field is derived here. Kalshi defines notional_value_dollars
      * as the settlement value of ONE contract, and it is not always $1 (scalar

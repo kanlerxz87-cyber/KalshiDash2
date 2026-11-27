@@ -162,6 +162,7 @@ function sourcesLine(res) {
     if (!t || t.includes(",")) continue;
     const rec = seriesCategoriesFor(t);
     for (const s of (rec && rec.sources) || []) {
+      if (!s.url || !/^https?:\/\//i.test(s.url)) continue;
       if (!seen.has(s.url)) seen.set(s.url, { ...s, series: t });
     }
   }
@@ -515,7 +516,7 @@ async function renderJumps(market, jumps, res) {
     <td class="num">$${j.to.toFixed(2)}</td>
     <td class="num" style="color:${j.dir === "up" ? "var(--ok)" : "var(--bad)"}">${j.delta > 0 ? "+" : ""}${j.delta.toFixed(2)}</td>
     <td class="small nowrap">
-      <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(market.ticker)}" target="_blank" rel="noopener noreferrer">market ↗</a>
+      <a class="src-link" href="${esc(`${DEMO.rest}/markets/${encodeURIComponent(market.ticker)}`)}" target="_blank" rel="noopener noreferrer">market ↗</a>
     </td>
   </tr>`).join("");
 
@@ -525,8 +526,9 @@ async function renderJumps(market, jumps, res) {
       <tbody>${rows}</tbody>
     </table>
     <div class="table-note">
-      ${int(jumps.length)} move(s) of $${ALERT.defaultThreshold.toFixed(2)} or more between consecutive
-      official candle closes in this window. ${src(res.source, "candles ↗")}
+      ${int(jumps.length)} move(s) of $${ALERT.defaultThreshold.toFixed(2)} or more inside official candles in this
+      window (comparing each candle close against its <code>price.previous_dollars</code> when present, else the
+      prior priced candle close). ${src(res.source, "candles ↗")}
       ${src(SOURCES.candles, "endpoint docs")}
     </div>
   </div>
@@ -540,12 +542,14 @@ async function renderJumps(market, jumps, res) {
     const box = document.querySelector("#chart-sources");
     if (!box) return;
     if (!ctx.sources.length) {
-      box.innerHTML = `This event returned no <code>settlement_sources</code> entry. ${src(SOURCES.events, "events API")}`;
+      box.innerHTML = `This event returned no <code>settlement_sources</code> entry. ${src(SOURCES.getEvent, "event API")}`;
       return;
     }
     box.innerHTML = `<strong>Where this market is decided</strong> — Kalshi's settlement sources for this event: ` +
-      ctx.sources.slice(0, 10).map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${esc(s.name || s.url)} ↗</a>`).join(" · ") +
-      `. ${src(SOURCES.events, "events API")}`;
+      ctx.sources.slice(0, 10).map(s => /^https?:\/\//i.test(s.url)
+        ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name || s.url)} ↗</a>`
+        : `<span>${esc(s.name || s.url)}</span>`).join(" · ") +
+      `. ${src(SOURCES.getEvent, "event API")}`;
   } catch (e) {
     const box = document.querySelector("#chart-sources");
     if (box) box.innerHTML = `Settlement sources unavailable: ${esc(e.message)}.`;

@@ -4103,6 +4103,7 @@ checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
 | A1 | Fix `AlertEngine` swing de-duplication: the key `ticker\|from\|to` ignores time and basis, so a market that moves A→B, B→A, A→B is reported once. The simulator's **live paper trader** consumes this engine, so repeat moves (and therefore repeat paper entries) were silently dropped. Shipped in PR #149 at `6a54db8`. | done | `bc28428d` | `assets/js/alert-engine.js`, `tests/alert-engine-dedupe.test.mjs` (new), `tests/ci-coverage.test.mjs` (only if the new test needs registering) | Reproduced against the real module with a mocked `fetch` (4 real swings in, 2 delivered out) before any change; the documented API contract used is [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`last_price_dollars`, `previous_price_dollars`), which is what the engine compares |
+| A4 | Fix the **live-engine report self-contradiction** found while checking A3: `reports/live-engine-check.md` printed "Swings 0" beside "Largest single move +0.14" because the swing count is over `active`/`open` markets only while the diagnostic loop had no status filter. | done | `bc28428d` | `tools/verify/live-engine-check.mjs`, `tests/live-engine-report-consistency.test.mjs` (new), `.github/workflows/site-check.yml` (named step), `reports/verify-bc28428d.md` §6 | Reproduced against the real `AlertEngine` (skipped market → no swing; identical move on an `active` market → swing reported); the official field it compares is documented at [Get Market](https://docs.kalshi.com/api-reference/market/get-market). `reports/live-engine-check.md` is deliberately **not** hand-edited — the workflow regenerates it. | 
 | A2 | Line-by-line re-verification of the published arithmetic/contracts that this session could check offline: `alert-engine` vs `alerts-core` move detection, register counters (claims 102/9/3; flags 40 open / 66 mitigated / 106), order body vs [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2), fee model claims vs the official schedule | done | `bc28428d` | `reports/verify-bc28428d.md` (new) | Official docs fetched 2026-11-27; register figures recomputed from `assets/js/claims.js` and `flagged.html` by script |
 | A3 | Final integration: full local suite, PR to `main`, merge without waiting, confirm Pages build, record here | done | `bc28428d` | this section, `reports/verify-bc28428d.md` | GitHub Actions run IDs + Pages API |
 
@@ -4198,6 +4199,41 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 
 ---
 
+---
+
+## Session `3e859f7c` — line-by-line verification, runtime/hygiene fixes & source-register elevation (branch `arena/3e859f7c-kalshidash2`, 2026-11-27 UTC)
+
+**Claimed:** 2026-11-27 UTC, base `main` @ `b726dd8` (rebased cleanly onto latest `origin/main`).
+**Zero overlap with active open PRs:** does **not** touch files owned by PR #152 (`index.html`, `flagged.html`, `assets/js/claims.js`, `assets/js/exchange-status.js`, `tests/exchange-status.test.mjs`, `tests/official-wording.test.mjs`, `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`), PR #151 (`flagged.html`, `summary.html`, `assets/js/claims.js`, `tests/dom/summary-dom.mjs`), PR #154 (`.github/workflows/render-audit.yml`, `tests/dom/render-audit*`), PR #153, PR #147, or PR #141. Findings in those files are logged below as cross-scope handoff notes.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| V1 | Fix `assets/js/market.js` runtime/data-integrity bugs (`isSettledMarket` scalar parity, `analyseFills` unsided-fill price must stay `null` rather than defaulting to `yesPrice`, `fetchCandles` URL encoding) + regression tests | done | `3e859f7c` | `assets/js/market.js`, `tests/result-semantics.test.mjs` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Settlements](https://docs.kalshi.com/api-reference/portfolio/get-settlements), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) (fetched verbatim 2026-11-27) |
+| V2 | Fix `assets/js/category.js` jump panel (`esc(s.url)` & name-only `settlement_sources`, `DEMO.rest` host constant, accurate candle jump basis description) + jsdom check | done | `3e859f7c` | `assets/js/category.js`, `tests/dom/category-dom.mjs` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Get Event](https://docs.kalshi.com/api-reference/events/get-event) (fetched verbatim 2026-11-27) |
+| V3 | Fix `portfolio.html` `Forget key` state wipe (`#fills-body`, `#fills-status`, `#order-result`, `#order-status`, `window.__fills`, late `fills()` request guard, non-stacking `#o-price` snap note) + `event.html` / `resolved.html` (`null` `expiration_value` → `n/a`, `GetEventResponse` top-level `markets` fallback) + tests | done | `3e859f7c` | `portfolio.html`, `tests/portfolio-page.test.mjs`, `event.html`, `resolved.html` | [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2) (fetched verbatim 2026-11-27) |
+| V4 | Update stale prose on `questions.html` (Q2 Golf `series.tags`, Q13 live deploy checks, Q15 candle jump basis) and `suggestions.html` (S8 multi-session coordination) + promote 15 verbatim-read official `.md` pages in `assets/js/sources.js` from `index` → `fetched` | done | `3e859f7c` | `questions.html`, `suggestions.html`, `assets/js/sources.js` | 15 `docs.kalshi.com/*.md` pages fetched verbatim 2026-11-27 + live demo API spot-checks (`external-api.demo.kalshi.co/trade-api/v2`) |
+| V5 | Full local test suites, verification report, PR to `main`, green CI, merge, live GitHub Pages verification & final board record | done | `3e859f7c` | `reports/verify-3e859f7c.md` (new), this section | PR [#159](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/159) merged at `2c594ea`; all CI & Pages green; live deployed pages fetched |
+
+### `3e859f7c` — final record: PR #159 merged, all post-merge checks green, live Pages verified by fetch (2026-11-27T22:45Z)
+
+- **PR:** [#159](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/159) — *fix(3e859f7c): market/category/portfolio runtime hygiene, doc sync, and 15 verbatim source verifications* — **merged** into `main` at **`2c594ea`** (`2c594ea4c42421e28bb79b5a2f3a6088b9e622bb`, `2026-11-27T22:44:50Z`) via `gh pr merge 159 --merge`.
+- **Conflict log:** rebased cleanly onto `origin/main` (`54c3ca1`, after PRs `#151`, `#152`, `#156` merged) with **zero merge conflicts** on any file.
+- **Branch checks before merge (`b362547`):** `check` (`140771389791`, `140771370549`) **success**, `dom` (`140771389513`, `140771370803`) **success**, `verify` (`140771370797`) **success**. Local suites on rebased tree: `node --test tests/*.test.mjs` **281/281**, DOM **55/55** (`alerts-dom` 26/26, `summary-dom` 5/5, `category-dom` 24/24), `page-runtime-check.mjs` **18/18**, `auth-sign-test.mjs` **6/6**, Python `tools` **55/55**, Python `tests` **28** run (**24** pass, **4** skip), `check_site_links.py` **36/36**.
+- **Post-merge checks on `main` (`2c594ea`):** `Static site link check` (`46078484932`) **success**, `verify-alerts` (`46078484962`) **success**, `verify-live-site` (`46078484989`) **success**, `live-site-render` (`46078484991`) **success**, `live-engine-check` (`46078484915`) **success**.
+- **Pages deployment & live verification:** `pages-build-deployment` (`46078513206`) **success** on descendant commit `ca7d5e3719895963ef8876c90422c589bdb46e84` (`2c594ea` confirmed ancestor via `git merge-base --is-ancestor`), `GET /pages/builds/latest` → `status: "built"`, `error: null`. Confirmed live by cache-busted fetch of `https://kanlerxz87-cyber.github.io/KalshiDash2/`:
+  - `sources.html?v=3e859f7c` & `assets/js/sources.js?v=3e859f7c` render **49** sources, **29** read in full (`fetched`), **0** unverified, with the 15 newly elevated 2026-11-27 entries live.
+  - `questions.html?v=3e859f7c` renders updated `Q2` (`series.tags` / `KXDPWORLDTOURR2LEAD`), `Q13`, and `Q15`.
+  - `suggestions.html?v=3e859f7c` renders updated `S8`.
+  - `index.html?v=3e859f7c` renders connected to `external-api.demo.kalshi.co` (active on default shard 0).
+- **Not verified, not claimed:** no authenticated call executed and no demo order placed (`F1` / `F2` remain open); no live market numbers transcribed into static pages or registers.
+
+**Cross-scope handoff notes (verified here, NOT edited to respect active PRs #151 & #152):**
+- **`index.html` (PR #152):** `Resolved` KPI filters `state.events` (all scanned exchange topics) while `Events in scope`, `Volume × price proxy`, and `Open now` filter `allRanked` (five tracked topics only); `#mover-note` similarly prints `state.events.length` while `movers` iterates over `allRanked`.
+- **`flagged.html` (PR #151 / #152):** Line 1624 opens `<div class="card">` without closing it before line 1802's `<div class="card">`, nesting 6 sections inside one `.card` through line 2348; `What is not flagged` sits before the last section instead of at the end; `#DR2` (fixed PR #139 `090d84f`) and `#F19` (fixed PR #143 `a4c24b8`) still show `open`; `#F7` is fixed in published root `portfolio.html` (old label remains only in retired `docs/portfolio.html:21`).
+- **`assets/js/claims.js` (PR #151 / #152):** Two mismatched `flag` cross-references: `"Prior site's order menu mislabelled sides"` links `flag: "F6"` (should be `"F7"`), and `"A candlestick bucket with no trades still carries its quote legs"` links `flag: "K2"` (should be `"DR1"`).
+- **`summary.html` (PR #151):** `<h2>8 · Requirement traceability</h2>` appears above `<h2>7 · Method</h2>`; §5 Decision #2 `Blocked by` cell says `Q1 / F7` instead of `Q1 / A11`; §2 bullet 5 can add `F20` YES-leg request quoting (also requested by `df162a93`); §3 still lists already-mitigated `F4`/`F10`/`A10` alongside open items.
+
+
 
 ### `8299bffe` — final record: PR #152 merged, all post-merge checks green, fix confirmed on the live site (2026-11-27T22:35Z)
 
@@ -4243,9 +4279,11 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
   `poll|…|pollSeq` / `ref|…` key are all present on the deployed file. The fix is live, not just committed.
 - **Live API evidence (from the workflows, since this sandbox cannot reach `*.kalshi.co`):**
   `reports/live-engine-check.md` (run 22:31:01Z) → 1,200 events scanned, **2,741** markets in the five topics,
-  2,749 markets with a readable previous price, largest move against the exchange reference
-  **+0.14** on `KXTVSEASONRELEASETHELASTOFUS-26-APR`, **0** poll-to-poll swings ≥$0.10 in that scan
-  (a quiet window — not a zero result for the rule). `reports/alerts-live-check.md` → `GET /events` HTTP **200**,
+  **0** swings ≥$0.10 reported by the engine, while the same section printed a largest move of **+0.14** on
+  `KXTVSEASONRELEASETHELASTOFUS-26-APR`. **Those two figures came from different populations and the report
+  contradicted itself** — see task A4 below and `reports/verify-bc28428d.md` §6, which is the correction.
+  (An earlier draft of this record repeated the contradiction without noticing it; it was rewritten, not left
+  standing.) `reports/alerts-live-check.md` → `GET /events` HTTP **200**,
   2,107 markets `active`, batch read 25/25 returned, `settlement_sources` present (11 entries on `KXERUPTSUPER-0`),
   0 moves ≥$0.10 across two polls 20s apart.
   **Neither report is treated as proof that an alert fires** — the rule is proved by the unit and DOM
@@ -4280,3 +4318,35 @@ another session's branch, so it does **not** take over #141: it takes over only 
 **File scope is exclusive to this session** and excludes `assets/js/claims.js`, `assets/js/sources.js`,
 `data/probe/**`, `.github/workflows/**` and the five `categories/*.html` boards — no other live session owns them
 either, but nothing here needs them.
+
+---
+
+### `032f1ca5` — final record: PR #151 merged, Pages build confirmed by cache-busted fetch (2026-11-27)
+
+- **PR:** [#151](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/151) — *fix(round 12): count the status word,
+  measure DR3's history, restate the suite counts* — **merged** into `main` at **`f133510`** via
+  `gh pr merge 151 --merge`, no review wait, per the standing rule.
+- **Post-merge checks on `main` at `f133510`:** `Static site link check` `46077921987` **success**,
+  `verify-live-site` `46077921967` **success**, `live-site-render` `46077922094` **success**,
+  `verify-alerts` `46077922095` **success**; `pages-build-deployment` `46077976352` **success**
+  (`GET /pages/builds/latest` → `status: built`, `error: null`).
+- **Deploy verified by reading the served page, not the diff:** `flagged.html?v=032f1ca5` returns the
+  four-status legend, the `§11c` pointer, and a KPI block reading **107 items · 38 open · 69 closed
+  (30 mitigated · 38 fixed · 1 corrected)** — i.e. the deployed page computes its own counts from the cards.
+- **Conflict log (required):** four rebases, because four sibling sessions merged while this round was open —
+  `46f45a35` (#148), `bc28428d` (#149), `69ad6634` (#150), `8299bffe` (#152, #156). Every `COORDINATION.md`
+  conflict was append/append and was resolved by keeping **both** sections separated by `---`; `EXECUTIVE_SUMMARY.md`
+  conflicted once on the Python-test sentence and `README.md`/`VERIFICATION.md` on the register totals — those keep
+  the merged, re-measured values. `flagged.html`'s only conflict was the `DR3` card, where another session's
+  wording (pointing at merge commit `1a30722` as the root) was replaced by this round's measurement
+  (root `6081bb7`, `/commits?path=site` → 0); that difference is itself published as `DR4`. Nothing from another
+  session was discarded or reworded.
+- **Counts are now pinned, not typed bare.** Two sessions' totals collided inside one hour (266 → 270 → 278 Node
+  checks as guards landed). Every figure this round published names the revision and date it was measured on, and
+  the registers carry the command beside the number.
+- **Sibling-session note:** PR **#141** (`d3e0e9f5`) was stale and `mergeable_state: dirty` when this round started
+  and is still open; another session (`ec65b388`) has since claimed its takeover, so this round did not close it.
+  Its only substantive repair (the `DR3` wording) is already on `main` in the corrected form.
+- **Not verified, not claimed:** no authenticated call, **no order placed** (`F1` unchanged); no price, balance, fill
+  or resolution transcribed from the live reads — §5 of `reports/verify-032f1ca5.md` records field presence and
+  arithmetic on three sampled markets only, and says three markets is not a proof.

@@ -204,3 +204,27 @@ test("a NO order states the YES-leg request price and the complement cost, and n
   assert.match(f.state.confirmations[0], /NO position costs 1 − price = \$0\.3700/);
   assert.deepEqual(f.state.calls, [], "confirmation declined: no order or account requests");
 });
+
+test("forgetting the key also clears fills/order panels and blocks a late fills response", async () => {
+  const f = fixture();
+  f.state.fills = async () => ({ fills: [{
+    ticker: "KXTEST-1", count_fp: "2.00", outcome_side: "yes", is_taker: true,
+    yes_price_dollars: "0.45", no_price_dollars: "0.55", fee_cost: "0.02"
+  }], cursor: "" });
+  await f.load();
+  assert.match(f.$("#fills-body").innerHTML, /KXTEST-1/);
+  f.$("#order-result").innerHTML = "<div>previous receipt</div>";
+
+  let resolveFills;
+  f.state.fills = () => new Promise(resolve => { resolveFills = resolve; });
+  const pendingFills = f.$("#reload-fills").onclick();
+  f.$("#clear-key").onclick();
+  resolveFills({ fills: [{ ticker: "KXTEST-LATE", count_fp: "1.00", outcome_side: "yes", yes_price_dollars: "0.50", fee_cost: "0.01" }] });
+  await pendingFills;
+
+  assert.match(f.$("#fills-body").innerHTML, /No fills loaded/);
+  assert.doesNotMatch(f.$("#fills-body").innerHTML, /KXTEST-1|KXTEST-LATE/);
+  assert.equal(f.$("#order-result").innerHTML, "");
+  assert.match(f.$("#fills-status").innerHTML, /idle/);
+  assert.match(f.$("#order-status").innerHTML, /idle/);
+});
