@@ -6,11 +6,12 @@ sizes, balances, results) are **never transcribed** into this file and are fetch
 or by `scripts/kalshi_client.py`.
 
 This is the Markdown companion for the **published root site** served by GitHub Pages (`main:/`).
-The full client-side claims register lives in [`assets/js/claims.js`](assets/js/claims.js) (**114** claims:
-104 verified, 8 partially verified, 3 unverified, shown on [`verification.html`](verification.html)), the
+The full client-side claims register lives in [`assets/js/claims.js`](assets/js/claims.js) (**116** claims:
+105 verified, 8 partially verified, 3 unverified, shown on [`verification.html`](verification.html)), the
 documentation audit register lives in [`assets/js/sources.js`](assets/js/sources.js) (**49** sources,
 **49 verified / 0 unverified** on [`sources.html`](sources.html)), and the irregularity register
-(**F1–F20**, **DR1–DR3**, 38 open / 68 mitigated / 106 total items) lives on [`flagged.html`](flagged.html).
+(**F1–F20**, **DR1–DR4**, 38 open / 69 closed — 30 mitigated, 38 fixed, 1 corrected — 107 total items) lives on
+[`flagged.html`](flagged.html).
 `docs/flagged.html` remains historical only.
 
 ## Table
@@ -53,6 +54,7 @@ documentation audit register lives in [`assets/js/sources.js`](assets/js/sources
 | 34 | Demo = mock funds, separate credentials | stated by Kalshi | https://docs.kalshi.com/getting_started/demo_env | verified |
 | 35 | Official traded-dollar volume | Σ(`count_fp` × price of taker's recorded `taker_outcome_side`) over `GET /markets/trades`, withholding partial totals when pages fail | https://docs.kalshi.com/api-reference/market/get-trades | verified (`tests/dollar-volume.test.mjs`) |
 | 36 | Series list response size is point-in-time only | Committed captures record 16,643 rows (2026-11-20), 16,653 rows (2026-11-21), and **16,698 rows** (`data/probe/api_surface_2026-11-24.json`), while scheduled `data/probe/api_surface.json` rotates independently | https://docs.kalshi.com/api-reference/market/get-series-list | partially verified (`F5`, `C1` — point-in-time response sizes, not asserted as total exchange catalogue) |
+| 38 | Market objects carry their own two-sided quotes | `yes_bid_dollars`, `yes_ask_dollars`, `no_bid_dollars`, `no_ask_dollars`; on every market sampled the reciprocals `yes_bid + no_ask = 1.0000` and `no_bid + yes_ask = 1.0000` held, so the category pages' derived implied YES ask (`1 − best NO bid`) is the exchange's own `yes_ask_dollars` | https://docs.kalshi.com/api-reference/market/get-market | verified as *field presence + arithmetic on three sampled live markets* (2026-11-27T22:47Z); a sample, not a proof |
 | 37 | Historical (archived) demo tier | `GET /historical/cutoff`, `/historical/markets`, `/historical/markets/{ticker}/candlesticks` respond unauthenticated; archived candles omit `_dollars`/`_fp` suffixes | https://docs.kalshi.com/api-reference/historical/get-historical-markets + https://docs.kalshi.com/api-reference/historical/get-historical-market-candlesticks | verified (`tests/historical-tier.test.mjs`) |
 | — | Exact price / volume / balance / resolution **values** | *(blank)* | — | **not transcribed by design** — fetched live, never committed |
 | — | "High-ROI" watch and volume × price ranking | *(derived conventions, not exchange facts)* | — | **not facts** — labelled as a screen and as a proxy (`A1`, `A11`) |
