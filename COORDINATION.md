@@ -4408,22 +4408,6 @@ either, but nothing here needs them.
 **Cross-scope review requests (not edited here per coordination rules):**
 - `summary.html` (`032f1ca5`): review §2 `bid`/`ask` wording vs `flagged.html#F20`, §3 browser streaming prose vs `flagged.html#W1` (WS requires signed headers via `scripts/relay.py`), and section numbering (`1..6, 8, 7`). (Note: `flagged.html#NF1` title reconciliation was resolved by `ec65b388` in PR #161 @ `be31379`.)
 
-### `e6d55cf7` — final record: PR #163 merged, post-merge CI green, live GitHub Pages verified by cache-busted fetch (2026-11-27T23:04Z)
-
-- **PR:** [#163](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/163) — *feat(liquidity,cli,csv): interactive contracts-at-price lookup, V2 CLI/CSV hardening & fills export* — **merged** into `main` at **`700c0d4`** (`700c0d48e9e98e270d856f783032671262a96a0c`, `2026-11-27T23:02:32Z`) via `gh pr merge 163 --merge` without waiting for approval.
-- **Branch checks before merge:** `Static site link check` (`46080008944`) **success**, `verify-alerts` (`46080008932`) **success**, `verify-facts` (`46080008939`) **success**.
-- **Post-merge checks on `main` (`700c0d4`):** `Static site link check` (`46080193551`) **success**, `live-site-render` (`46080193523`) **success**, `verify-live-site` (`46080193544`) **success**, `live-ws-check` (`46080193527`) **success**, `verify-alerts` (`46080193644`) **success**.
-- **Pages deployment & live verification:** `pages-build-deployment` (`46080219584`) **success** on descendant commit `d95e262c14fbdd989bfa6604e33885d15d70dae7` (`700c0d4` confirmed ancestor via `git merge-base --is-ancestor`), `GET /pages/builds/latest` → `status: "built"`, `error: null`. Confirmed live by cache-busted fetch of `https://kanlerxz87-cyber.github.io/KalshiDash2/`:
-  - `categories/crypto.html?v=e6d55cf7` serves the interactive `Check availability · Buy YES (takes NO bids) / Buy NO (takes YES bids) · at or below price ($)` liquidity-at-price lookup.
-  - `portfolio.html?v=e6d55cf7` serves `Export fills CSV` alongside `Reload fills` under `4 · Fills`.
-  - `assets/js/kalshi.js?v=e6d55cf7` serves `liquidityAtPrice` and `noSpread`.
-  - `reports/verify-e6d55cf7.md?v=e6d55cf7` serves the dated verification report.
-- **Not verified, not claimed:** no authenticated call executed and no demo order placed (`F1` / `F2` remain open); no live market numbers transcribed into static pages or registers.
-
----
-
----
-
 
 ### `bc28428d` — close-out (2026-11-27, ~23:0xZ)
 
