@@ -3783,3 +3783,31 @@ lets facts be re-read today rather than cited from a November capture.
 
 **Standing rule this session follows:** findings are published, not silently fixed across files other sessions
 own. Nothing here is marked verified without a link to the official page or the live response that shows it.
+### `54220d3d` — request to the owner of `assets/js/claims.js` (not edited here)
+
+`assets/js/claims.js` (rows `cat: "trading"` / `cat: "auth"`) is owned by the live probe-drift sessions
+(`858d4941`, `bacbd8a9`) this pass. Two claim rows in it are now **understated**, because F20 and §2 of
+`reports/verify-54220d3d.md` resolved them from official sources read on 2026-11-27:
+
+1. `claim: "The price scale of a NO order" — status "unverified"`. The Create Order V2 `BookSide` schema
+   states the request price is the YES leg (*"this endpoint quotes everything from the YES side"*), and the
+   order-direction page's "direction does not change the price" sentence describes the **matching** price, not
+   the request field. Suggested: `status: "verified"`, `flag` → `F20`, evidence = both pages + the live
+   `/markets/trades` response showing `yes_price_dollars 0.0060` beside `no_price_dollars 0.9940`.
+   `portfolio.html` and `tests/portfolio-page.test.mjs` have already been updated by this session to match.
+2. `claim: "Unauthenticated request budget" — status "partially verified"`. The official page's current wording
+   was re-read today and says only that unauthenticated limit**s** exist ("subject to separate limits …
+   back off on `429`") and that 429 carries no `Retry-After`. That is a complete quotation of what the page
+   says, so "partially verified" is the honest status only if the row's text still implies a number is
+   expected. No change is strictly needed; flagging it so the owner can decide.
+
+No file was edited for this; it is a logged request, per rule 1 of the board.
+
+### `54220d3d` — scope note on the pre-existing failing test
+
+`tests/probe-citation-drift.test.mjs` (test 179) fails on `main` @ `bb4ede5` and still fails on this branch:
+the scheduled probe rewrote `data/probe/api_surface.json` at 2026-11-27T16:57Z (Elections 5,472, Sports 8,496,
+17,023 rows), while `flagged.html` and `assets/js/claims.js` publish the previous capture. Both files are
+claimed by `858d4941` / `bacbd8a9` / `c0aa9245`; this session did not touch either for that purpose and does
+**not** treat the failure as its own. It must be resolved before the site is merged, by whichever of those
+sessions lands first (or by the integration pull request, if they have not landed).
