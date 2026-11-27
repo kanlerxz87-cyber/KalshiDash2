@@ -224,7 +224,7 @@ export const SOURCES = [
     url: `${D}/api-reference/historical/get-historical-markets`,
     used: "Archived settled markets included in the Strategy Tester universe",
     official: true, verified: "fetched",
-    note: "Read 2026-11-22 and confirmed live on GET /historical/markets on the demo host." },
+    note: "Read 2026-11-22 and re-verified 2026-11-27: the endpoint states 'Filters are mutually exclusive', so the site queries /historical/markets by page size/cursor only and archived candles by ticker, never combining filters." },
   { group: "ops", title: "Get Historical Market Candlesticks",
     url: `${D}/api-reference/historical/get-historical-market-candlesticks`,
     used: "Archived candlesticks fallback when a settled market has aged out of the live tier",

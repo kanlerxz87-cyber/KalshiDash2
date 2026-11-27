@@ -70,6 +70,7 @@ Usage:
   python3 scripts/kalshi_ws.py --ticker-file tickers.txt
 """
 import argparse
+import asyncio
 import base64
 import datetime
 import json
@@ -77,13 +78,15 @@ import os
 import random
 import ssl
 import sys
-import time
 
 try:
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 except ImportError:
+    hashes = None
+    padding = None
+    Ed25519PrivateKey = None
     serialization = None  # only needed for authenticated commands
 
 DEFAULT_WS_URL = "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2"
@@ -118,18 +121,21 @@ def sign_ws_request(private_key, timestamp, method, path):
     From https://docs.kalshi.com/getting_started/quick_start_websockets:
       "Create the message to sign: timestamp + "GET" + "/trade-api/ws/v2""
     Ed25519 signs the raw message; RSA uses RSA-PSS with SHA-256, MGF1-SHA256
-    and a salt length equal to the digest length.
+    and a salt length equal to the digest length (message first, matching
+    https://docs.kalshi.com/getting_started/api_keys).
     """
     path_without_query = path.split("?")[0]
     message = f"{timestamp}{method}{path_without_query}".encode("utf-8")
-    if isinstance(private_key, Ed25519PrivateKey):
+    if Ed25519PrivateKey is not None and isinstance(private_key, Ed25519PrivateKey):
         signature = private_key.sign(message)
     else:
+        if padding is None or hashes is None:
+            raise RuntimeError("RSA-PSS signing needs the 'cryptography' package")
         signature = private_key.sign(
+            message,
             padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                         salt_length=padding.PSS.DIGEST_LENGTH),
             hashes.SHA256(),
-            message,
         )
     return base64.b64encode(signature).decode("utf-8")
 
@@ -219,7 +225,6 @@ async def run(args, key_id, private_key):
     url = args.ws_url
     ensure_demo(url)
 
-    headers = ws_auth_headers(private_key, key_id, url)
     market_tickers = list(args.ticker or [])
     if args.ticker_file:
         with open(args.ticker_file, "r", encoding="utf-8") as f:
@@ -231,10 +236,17 @@ async def run(args, key_id, private_key):
     backoff = 1.0
     attempt = 0
     cmd_id = 1
+    ticker_count = 0
+    max_messages = int(args.max_messages or 0)
     ssl_ctx = ssl.create_default_context()
 
     while True:
         try:
+            # Regenerate signed handshake headers on every connect attempt:
+            # Kalshi enforces a 30-second timestamp tolerance and rejects stale
+            # timestamps with 401 header_timestamp_expired
+            # (https://docs.kalshi.com/getting_started/api_keys).
+            headers = ws_auth_headers(private_key, key_id, url)
             async with websockets.connect(
                 url,
                 additional_headers=headers,
@@ -265,8 +277,10 @@ async def run(args, key_id, private_key):
                             sys.exit(f"WebSocket rejected the key (error code 9): {text}")
                         continue
                     print(json.dumps(rec), flush=True)
-                    if args.max_messages and args.max_messages <= 0:
-                        return
+                    if rec.get("type") == "ticker":
+                        ticker_count += 1
+                        if max_messages > 0 and ticker_count >= max_messages:
+                            return
         except websockets.exceptions.ConnectionClosed as e:
             print(json.dumps({"type": "closed", "code": e.code, "reason": e.reason}),
                   flush=True)
@@ -277,7 +291,7 @@ async def run(args, key_id, private_key):
         attempt += 1
         # Exponential backoff with jitter, capped, as the docs recommend.
         delay = min(backoff, 60.0) + random.uniform(0, 0.25)
-        time.sleep(delay)
+        await asyncio.sleep(delay)
         backoff = min(backoff * 2, 60.0)
 
 
@@ -299,23 +313,15 @@ def main():
                  "KALSHI_PRIVATE_KEY_PATH). Create demo keys at "
                  "https://demo.kalshi.co (Account & security -> API Keys). "
                  "No key is stored in this repository.")
-    if args.max_messages:
-        # Count only ticker frames.
-        global _COUNTER
-        _COUNTER = args.max_messages
 
     ensure_demo(args.ws_url)
     key_id = args.key_id.strip()
     private_key = load_private_key(args.private_key_file)
 
     try:
-        import asyncio
         asyncio.run(run(args, key_id, private_key))
     except KeyboardInterrupt:
         print(json.dumps({"type": "stopped"}), flush=True)
-
-
-_COUNTER = 0
 
 
 if __name__ == "__main__":

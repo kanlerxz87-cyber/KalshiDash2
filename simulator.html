@@ -194,9 +194,10 @@
           <tr><td>Yes/no outcome and settlement value</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">GET /markets/{ticker} ↗</a></td>
             <td class="mono small">result, settlement_value_dollars</td></tr>
-          <tr><td>Series ticker and category</td>
-            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a></td>
-            <td class="mono small">series_ticker, category</td></tr>
+          <tr><td>Series ticker and category (series-level first, falling back to deprecated event category)</td>
+            <td><a class="src-link" href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">GET /events/{event_ticker} ↗</a> ·
+            <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series" target="_blank" rel="noopener noreferrer">GET /series/{ticker} ↗</a></td>
+            <td class="mono small">series_ticker, series.category / categories</td></tr>
           <tr><td>Price history (live tier)</td>
             <td><a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">GET candlesticks ↗</a></td>
             <td class="mono small">price.close_dollars, price.previous_dollars, volume_fp</td></tr>
@@ -225,7 +226,7 @@ import { STRATEGIES, TRADE_SCREEN, ALERT } from "./assets/js/config.js";
 import {
   loadSettledUniverse, loadHistory, toSeries, replayAll, replayRandomControl,
   aggregate, aggregateBreakdowns, tradesToCsv, RANDOM_CONTROL, marketSourceUrl,
-  eventSourceUrl, Paper
+  eventSourceUrl, paperEntryFromSwing, Paper
 } from "./assets/js/simulator.js";
 import { api, getAll, classifyEvent, num, screenMarket } from "./assets/js/market.js";
 import { AlertEngine, topicLabel } from "./assets/js/alert-engine.js";
@@ -337,17 +338,17 @@ function renderKpis() {
     $("#kpis").innerHTML = [
       { k: "Markets scored", v: "—", m: "run a backtest" },
       { k: "Simulated trades", v: "—", m: "one per market per strategy" },
-      { k: "Best strategy", v: "—", m: "by total P&L" },
+      { k: "Best strategy", v: "—", m: "by P&L after fees" },
       { k: "History requests", v: "—", m: "1-minute candles" }
     ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
     return;
   }
-  const agg = aggregate(lastRun.trades).filter(g => g.n > 0).sort((a, b) => b.pnl - a.pnl);
+  const agg = aggregate(lastRun.trades).filter(g => g.n > 0).sort((a, b) => b.pnlNet - a.pnlNet);
   const best = agg[0];
   $("#kpis").innerHTML = [
     { k: "Markets scored", v: int(lastRun.withHistory), m: `of ${lastRun.universe} finalized` },
     { k: "Simulated trades", v: int(lastRun.trades.length), m: "one per market per strategy" },
-    { k: "Best strategy", v: best ? esc(best.name) : `<span class="unv">n/a</span>`, m: best ? `${money(best.pnl)} per contract` : "no strategy fired" },
+    { k: "Best strategy", v: best ? esc(best.name) : `<span class="unv">n/a</span>`, m: best ? `${money(best.pnlNet)} after fees / contract` : "no strategy fired" },
     { k: "History requests", v: int(lastRun.historyRequests), m: "1-minute candles" }
   ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
 }
@@ -460,21 +461,11 @@ $("#paper-start").addEventListener("click", () => {
     pollMs: ALERT.defaultPollMs,
     maxEventsPerPoll: ALERT.maxEventsPerPoll,
     onMessage: (swing) => {
-      const side = swing.dir === "up" ? "yes" : "no";
+      const entry = paperEntryFromSwing(swing);
+      if (!entry) return;
       const list = Paper.all();
-      if (list.some(p => p.ticker === swing.ticker && !p.closed)) return;
-      Paper.add({
-        ticker: swing.ticker,
-        event_ticker: swing.eventTicker,
-        event_title: swing.eventTitle,
-        topic: swing.topicKey,
-        side,
-        entry_price: swing.to,
-        entry_basis: swing.basis,
-        screen_score: swing.screen ? swing.screen.score : null,
-        delta: swing.delta,
-        strategy: "Live momentum (buy the side that moved)"
-      });
+      if (list.some(p => p.ticker === entry.ticker && !p.closed)) return;
+      Paper.add(entry);
       renderPaper();
     },
     onState: (st) => {

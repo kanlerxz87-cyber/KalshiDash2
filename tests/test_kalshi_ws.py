@@ -217,6 +217,174 @@ class TestSigning(unittest.TestCase):
         b = sign_ws_request(key, ts, "GET", "/trade-api/ws/v3")
         self.assertNotEqual(a, b)
 
+    def test_rsa_pss_signing_passes_message_first_even_without_cryptography(self):
+        # Regression guard for the argument-order bug in sign_ws_request:
+        # RSAPrivateKey.sign expects (data, padding, algorithm), matching
+        # https://docs.kalshi.com/getting_started/api_keys.
+        import base64
+        import types
+        from unittest import mock
+        import kalshi_ws
+
+        calls = []
+
+        class FakeRsaKey:
+            def sign(self, data, pad, alg):
+                calls.append((data, pad, alg))
+                return b"fake-rsa-sig"
+
+        class FakePSS:
+            DIGEST_LENGTH = "DIGEST_LEN"
+
+            def __init__(self, mgf, salt_length):
+                self.mgf = mgf
+                self.salt_length = salt_length
+
+        fake_padding = types.SimpleNamespace(
+            PSS=FakePSS,
+            MGF1=lambda h: ("MGF1", h),
+        )
+        fake_hashes = types.SimpleNamespace(SHA256=lambda: "SHA256")
+
+        with mock.patch.object(kalshi_ws, "padding", fake_padding), \
+             mock.patch.object(kalshi_ws, "hashes", fake_hashes), \
+             mock.patch.object(kalshi_ws, "Ed25519PrivateKey", None):
+            sig_b64 = kalshi_ws.sign_ws_request(
+                FakeRsaKey(), "1700000000000", "GET", "/trade-api/ws/v2?ignored=1"
+            )
+
+        self.assertEqual(base64.b64decode(sig_b64), b"fake-rsa-sig")
+        self.assertEqual(len(calls), 1)
+        data, pad, alg = calls[0]
+        self.assertIsInstance(data, bytes)
+        self.assertEqual(data, b"1700000000000GET/trade-api/ws/v2")
+        self.assertIsInstance(pad, FakePSS)
+        self.assertEqual(pad.mgf, ("MGF1", "SHA256"))
+        self.assertEqual(pad.salt_length, "DIGEST_LEN")
+        self.assertEqual(alg, "SHA256")
+
+    def test_rsa_pss_signature_verifies_with_real_key_when_available(self):
+        try:
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.asymmetric import padding, rsa
+        except ImportError:
+            self.skipTest("cryptography is not installed")
+        import base64
+        from kalshi_ws import sign_ws_request
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        ts = "1700000000000"
+        sig = base64.b64decode(sign_ws_request(key, ts, "GET", WS_SIGN_PATH))
+        message = f"{ts}GET{WS_SIGN_PATH}".encode("utf-8")
+        key.public_key().verify(
+            sig,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.DIGEST_LENGTH,
+            ),
+            hashes.SHA256(),
+        )
+
+
+class RunLoopTests(unittest.TestCase):
+    def test_reconnect_refreshes_auth_headers_uses_async_sleep_and_honors_max_messages(self):
+        import asyncio
+        import io
+        import json
+        import types
+        from unittest import mock
+        import kalshi_ws
+
+        frames = [
+            json.dumps({"type": "subscribed", "sid": 1}),
+            json.dumps({"type": "ticker", "sid": 1, "msg": {"market_ticker": "M-1", "price_dollars": "0.5000"}}),
+            json.dumps({"type": "ticker", "sid": 1, "msg": {"market_ticker": "M-2", "price_dollars": "0.6000"}}),
+            json.dumps({"type": "ticker", "sid": 1, "msg": {"market_ticker": "M-3", "price_dollars": "0.7000"}}),
+        ]
+
+        class FakeConnClosed(Exception):
+            def __init__(self, code=1006, reason="drop"):
+                super().__init__(reason)
+                self.code = code
+                self.reason = reason
+
+        class FakeWS:
+            def __init__(self):
+                self.sent = []
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+            async def send(self, payload):
+                self.sent.append(json.loads(payload))
+
+            def __aiter__(self):
+                self._iter = iter(frames)
+                return self
+
+            async def __anext__(self):
+                try:
+                    return next(self._iter)
+                except StopIteration:
+                    raise StopAsyncIteration
+
+        connect_headers = []
+        attempts = {"n": 0}
+        ws_instance = FakeWS()
+
+        def fake_connect(url, additional_headers=None, **kwargs):
+            attempts["n"] += 1
+            connect_headers.append(additional_headers)
+            if attempts["n"] == 1:
+                raise FakeConnClosed(1006, "first attempt dropped")
+            return ws_instance
+
+        fake_websockets = types.SimpleNamespace(
+            connect=fake_connect,
+            exceptions=types.SimpleNamespace(ConnectionClosed=FakeConnClosed),
+        )
+
+        header_seq = iter([
+            {"KALSHI-ACCESS-TIMESTAMP": "1700000000001"},
+            {"KALSHI-ACCESS-TIMESTAMP": "1700000040002"},
+        ])
+        sleeps = []
+
+        async def fake_sleep(delay):
+            sleeps.append(delay)
+
+        args = types.SimpleNamespace(
+            ws_url=DEFAULT_WS_URL,
+            ticker=["M-1"],
+            ticker_file=None,
+            max_messages=2,
+        )
+
+        buf = io.StringIO()
+        with mock.patch.dict(sys.modules, {"websockets": fake_websockets}), \
+             mock.patch.object(kalshi_ws, "ws_auth_headers", side_effect=lambda *a: next(header_seq)), \
+             mock.patch.object(kalshi_ws.asyncio, "sleep", side_effect=fake_sleep), \
+             mock.patch.object(sys, "stdout", buf):
+            asyncio.run(kalshi_ws.run(args, "key-id", object()))
+
+        # Auth headers were regenerated on reconnect (fresh timestamp per attempt).
+        self.assertEqual(len(connect_headers), 2)
+        self.assertNotEqual(
+            connect_headers[0]["KALSHI-ACCESS-TIMESTAMP"],
+            connect_headers[1]["KALSHI-ACCESS-TIMESTAMP"],
+        )
+        # Backoff awaited asyncio.sleep rather than blocking time.sleep.
+        self.assertEqual(len(sleeps), 1)
+        self.assertGreaterEqual(sleeps[0], 1.0)
+        # Exactly 2 ticker messages printed (M-3 was never read; subscribed did not consume quota).
+        records = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
+        tickers = [r["market_ticker"] for r in records if r.get("type") == "ticker"]
+        self.assertEqual(tickers, ["M-1", "M-2"])
+
 
 if __name__ == "__main__":
     unittest.main()

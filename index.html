@@ -181,7 +181,7 @@
 <script type="module">
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
 import { DEMO, TOPICS, RANKING_MODES, SOURCES } from "./assets/js/config.js";
-import { api, getAll, rankEvents, classifyEvent, num } from "./assets/js/market.js";
+import { api, getAll, rankEvents, classifyEventWithBasis, fetchSeriesCategories, num } from "./assets/js/market.js";
 
 mountChrome({ page: "index.html", title: "Overview" });
 
@@ -265,10 +265,16 @@ async function loadBoard({ auto = false } = {}) {
       if (rows.__capped) capped.push(`${status} (${rows.__pages} pages)`);
       dupes += rows.__duplicateRows || 0;
     }
+    /* Prefer the series-level category (Get Events marks event.category
+     * deprecated: https://docs.kalshi.com/api-reference/events/get-events).
+     * One cached GET /series/{ticker} per distinct series, capped per scan;
+     * events beyond the cap fall back to event.category and are disclosed. */
+    const seriesCoverage = await fetchSeriesCategories(events.map(e => e.series_ticker), { cap: 30 });
     state.events = events;
     state.perStatus = perStatus;
     state.capped = capped;
     state.duplicateRows = dupes;
+    state.seriesCoverage = seriesCoverage;
     state.loadedAt = new Date();
     pill($("#board-status"), "live", `live · ${events.length} events scanned${capped.length ? " (partial)" : ""}`);
     render();
@@ -282,10 +288,12 @@ async function loadBoard({ auto = false } = {}) {
 
 function render() {
   const byTopic = {};
+  const basisTally = { series: 0, event: 0, none: 0 };
   for (const ev of state.events) {
-    const t = classifyEvent(ev);
-    if (!t) continue;
-    (byTopic[t] = byTopic[t] || []).push(ev);
+    const verdict = classifyEventWithBasis(ev);
+    basisTally[verdict.basis] = (basisTally[verdict.basis] || 0) + 1;
+    if (!verdict.topic) continue;
+    (byTopic[verdict.topic] = byTopic[verdict.topic] || []).push(ev);
   }
 
   /* topic cards */
@@ -388,10 +396,15 @@ function render() {
        deduplicated by their own ticker, as its paging note directs, and the scan is
        marked partial if the exchange restarted the listing mid-way.`
     : "";
+  const cov = state.seriesCoverage;
+  const taxonomy = cov
+    ? ` Classification: ${int(basisTally.series)} event(s) via series record (${int(cov.fetched + cov.cached)}/${int(cov.requested)} series resolved),
+       ${int(basisTally.event)} via deprecated event category${basisTally.none ? `, ${int(basisTally.none)} uncategorised` : ""}.`
+    : "";
   $("#board-note").innerHTML = `Ranked by <strong>${esc(mode.label)}</strong> —
     ${esc(mode.formula)}. Top 25 shown. Scanned ${int(state.events.length)} events at
     ${esc(state.loadedAt ? state.loadedAt.toLocaleTimeString() : "—")} (${int(state.perStatus?.open ?? 0)} open ·
-    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeats} ${src(SOURCES.events, "GET /events")}`;
+    ${int(state.perStatus?.closed ?? 0)} closed).${partial}${repeats}${taxonomy} ${src(SOURCES.events, "GET /events")} ${src(SOURCES.series, "GET /series")}`;
 }
 
 $("#rank-mode").addEventListener("click", (e) => {

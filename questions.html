@@ -155,12 +155,12 @@ const Q = [
     sources: [`${D}/getting_started/quick_start_market_data`, "evidence/evidence-cors-taxonomy.md"]
   },
   {
-    id: "Q7", cat: "trading", confidence: "answered",
+    id: "Q7", cat: "trading", confidence: "partly answered",
     q: "Which order endpoint is current, and what do its fields mean?",
-    know: "POST /portfolio/events/orders is the V2 route. The legacy POST /portfolio/orders returns 410 deprecated_v1_order_endpoint. side is bid (buy YES) or ask (buy NO).",
-    dontknow: "Nothing — both behaviours were reproduced live.",
-    answer: "The site posts to the V2 route and asks the user to choose buying YES or NO, mapping to bid/ask internally so the label can never contradict the payload.",
-    action: "None.",
+    know: "POST /portfolio/events/orders is the V2 route (401 unauthenticated); legacy POST /portfolio/orders returned 410 deprecated_v1_order_endpoint. Create Order (V2) specifies that side quotes the YES leg (bid = buy YES at price, ask = sell YES at price, economically buying NO at 1 − price), which aligns with Order Direction (bid ≡ yes, ask ≡ no, matched at the same price p — Flagged F20, closing NF1).",
+    dontknow: "Whether an authenticated live demo order accepts and fills end-to-end with a real key, because no authenticated order has been submitted from this repository (Flagged F1).",
+    answer: "The site posts to the V2 route, maps YES/NO to bid/ask, labels the price field as the YES-leg quote (showing NO cost as 1 − price in confirmation, matching F20), and makes no claim that an authenticated fill has been observed.",
+    action: "Place one 1-contract demo order with a real demo key and inspect the returned fill to close F1.",
     sources: [`${D}/api-reference/orders/create-order-v2`, `${D}/getting_started/order_direction`]
   },
   {
@@ -220,10 +220,10 @@ const Q = [
   {
     id: "Q14", cat: "ops", confidence: "answered",
     q: "Who owns the shared outputs while several sessions work here?",
-    know: "Seven arena/* branches exist and main advanced during this session. The brief says shared outputs are changed only by a final integration session.",
-    dontknow: "Which session will perform that integration.",
-    answer: "This session confined itself to its own tree and logged the overlap in COORDINATION.md instead of editing files owned elsewhere.",
-    action: "Name one integration owner before merging, then merge once.",
+    know: "Parallel arena/* sessions coordinate through COORDINATION.md by claiming exclusive file scopes before editing, logging cross-scope change requests instead of colliding, and rebasing onto main before opening a PR.",
+    dontknow: "Whether another session will claim additional unclaimed files after a given PR merges.",
+    answer: "Each session confines edits to its claimed files in COORDINATION.md, never discards another session's work on conflict, and records every PR and merge result in the shared log.",
+    action: "Check COORDINATION.md and open PRs before claiming new files.",
     sources: ["https://github.com/kanlerxz87-cyber/KalshiDash2/branches"]
   },
   {
@@ -238,8 +238,8 @@ const Q = [
   {
     id: "Q16", cat: "analysis", confidence: "partly answered",
     q: "Does the model shortlist identify profitable trades?",
-    know: "The shortlist is a transparent sum of six documented fields, and the Strategy Tester replays each rule over settled demo markets, printing its hit rate next to the average price the rule paid.",
-    dontknow: "Whether the screen holds up out of sample, on production data, or after the fee schedule is subtracted.",
+    know: "The shortlist is a transparent sum of six documented fields, and the Strategy Tester replays each rule over settled demo markets, printing its hit rate, official-schedule fees, and net-of-fee P&L next to the average entry price.",
+    dontknow: "Whether the screen holds up out of sample, on production data, or after spread and slippage are subtracted.",
     answer: "No profitability claim is made. The screen is a tradeability filter, and the measured hit rate on the demo's finalized markets is published rather than summarised away. The demo environment is explicitly not production, so the number is evidence about the demo, not a forecast.",
     action: "Re-run the Strategy Tester over a larger finalized sample, and again against production data once a key is available.",
     sources: ["https://docs.kalshi.com/api-reference/market/get-market", "https://docs.kalshi.com/getting_started/market_settlement", "https://docs.kalshi.com/getting_started/demo_env"]
@@ -247,11 +247,11 @@ const Q = [
   {
     id: "Q17", cat: "analysis", confidence: "answered",
     q: "Are the simulated trades realistic?",
-    know: "Every simulated fill uses the trade-close price of the candle that fired the signal, and every outcome uses the market's own settlement_value_dollars.",
-    dontknow: "The cost of crossing the spread, the fee actually charged, and whether the size was available at that price.",
-    answer: "They are optimistic. Fees, spread and slippage are not applied, so every simulated P&L on the Strategy Tester page is better than a live trade would be. The assumption is printed above every result and the official fee schedule is linked from it.",
-    action: "Re-price the same signals against the live order book instead of the candle close, and subtract the fee schedule before quoting any expected value.",
-    sources: ["https://kalshi.com/docs/kalshi-fee-schedule.pdf", "https://docs.kalshi.com/getting_started/orderbook_responses"]
+    know: "Every simulated fill uses the trade-close price of the candle that fired the signal, official-schedule taker fees are subtracted (reproducing all 42 published values in the July 2026 fee table), and every outcome uses the market's own settlement_value_dollars.",
+    dontknow: "The cost of crossing the spread, queue position, slippage, and whether the fee matches a live authenticated fill on the demo host.",
+    answer: "They are still optimistic. Official-schedule fees are now modelled on Strategy Tester replays (F15), while spread, slippage, and live paper-trade fees are not applied, so simulated P&L looks better than a live trade would be. The assumption is printed above every result and the official fee schedule and fee-rounding rules are linked from it.",
+    action: "Re-price the same signals against historical/live order-book depth instead of candle close, and compare modelled fees against a real authenticated demo fill.",
+    sources: ["https://kalshi.com/docs/kalshi-fee-schedule.pdf", "https://docs.kalshi.com/getting_started/fee_rounding", "https://docs.kalshi.com/getting_started/orderbook_responses"]
   }
 ];
 
