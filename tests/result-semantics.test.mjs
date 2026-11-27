@@ -18,7 +18,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { rankEvents, applyMarketToWatchEntry, marketResultState } from "../assets/js/market.js";
+import { rankEvents, applyMarketToWatchEntry, marketResultState, isSettledMarket, analyseFills } from "../assets/js/market.js";
 import { updateTrade } from "../assets/js/alerts-core.js";
 
 const market = (ticker, result, extra = {}) => ({
@@ -166,4 +166,27 @@ test("strategies.html testable rules table carries an Official source column on 
   const html = readFileSync(join(process.cwd(), "strategies.html"), "utf8");
   assert.match(html, /<th>Where to run it<\/th><th>Official source<\/th>/);
   assert.match(html, /SOURCES\.candles[\s\S]*SOURCES\.marketSettlement/);
+});
+
+test("isSettledMarket treats scalar results as settled even without terminal status or past close_time", () => {
+  assert.equal(isSettledMarket({ result: "scalar" }), true);
+  assert.equal(isSettledMarket({ result: "SCALAR", status: "active" }), true);
+  assert.equal(isSettledMarket({ result: "", status: "active" }), false);
+});
+
+test("analyseFills leaves price and cost null for unsided fills instead of defaulting to yes_price_dollars", () => {
+  const analysis = analyseFills([
+    { ticker: "KXTEST-1", count_fp: "4.00", yes_price_dollars: "0.6000", no_price_dollars: "0.4000", fee_cost: "0.02" },
+    { ticker: "KXTEST-2", outcome_side: "yes", count_fp: "2.00", yes_price_dollars: "0.5500", no_price_dollars: "0.4500", fee_cost: "0.01" },
+    { ticker: "KXTEST-3", outcome_side: "no", count_fp: "3.00", yes_price_dollars: "0.5500", no_price_dollars: "0.4500", fee_cost: "0.01" }
+  ]);
+  assert.equal(analysis.rows[0].side, null);
+  assert.equal(analysis.rows[0].price, null);
+  assert.equal(analysis.rows[0].cost, null);
+  assert.equal(analysis.rows[1].price, 0.55);
+  assert.equal(analysis.rows[1].cost, 1.1);
+  assert.equal(analysis.rows[2].price, 0.45);
+  assert.equal(analysis.rows[2].cost, 1.35);
+  assert.equal(analysis.totals.missingPrice, 1);
+  assert.ok(Math.abs(analysis.totals.premium - 2.45) < 1e-9);
 });

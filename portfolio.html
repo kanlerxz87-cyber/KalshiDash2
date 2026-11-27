@@ -194,15 +194,21 @@ $("#load-key").onclick = () => {
 $("#clear-key").onclick = () => {
   accountRequest++;
   api.clearCredentials();
+  window.__fills = [];
   $("#keyId").value = "";
   $("#pem").value = "";
   pill($("#key-status"), "idle", "no key loaded");
+  $("#key-detail").innerHTML = `The key type is detected from the parsed key, because a PKCS#8 RSA key and a PKCS#8 Ed25519 key share the same PEM header. <a href="${SOURCES.apiKeys}" target="_blank" rel="noopener noreferrer">Why ↗</a>`;
   pill($("#acct-status"), "idle", "idle");
+  pill($("#fills-status"), "idle", "idle");
+  pill($("#order-status"), "idle", "idle");
   $("#acct-stats").innerHTML = "";
   $("#perf-stats").innerHTML = "";
   $("#perf-note").innerHTML = "";
   $("#acct-error").innerHTML = "";
   $("#pos-body").innerHTML = emptyRow(6, "No positions loaded.");
+  $("#fills-body").innerHTML = emptyRow(9, "No fills loaded.");
+  $("#order-result").innerHTML = "";
 };
 
 /* ------------------------------- account ---------------------------------- */
@@ -262,7 +268,7 @@ $("#load-account").onclick = async () => {
       $("#pos-body").innerHTML = emptyRow(6, "Positions unavailable: " + positionError.message);
       pill($("#acct-status"), "warn", "balance loaded · positions unavailable");
     }
-    await loadFills();
+    await loadFills(request);
   } catch (e) {
     if (request !== accountRequest) return;
     pill($("#acct-status"), "err", e.message);
@@ -276,11 +282,13 @@ $("#load-account").onclick = async () => {
 };
 
 /* ------------------------------- fills ----------------------------------- */
-async function loadFills() {
+async function loadFills(req = accountRequest) {
   if (!api.hasCredentials()) return;
+  const request = req;
   pill($("#fills-status"), "warn", "loading…");
   try {
     const j = await api.fills();
+    if (request !== accountRequest) return;
     const fills = j.fills || [];
     window.__fills = fills;
     $("#fills-body").innerHTML = fills.length ? fills.slice(0, 300).map(f => `<tr>
@@ -300,29 +308,33 @@ async function loadFills() {
     pill($("#fills-status"), "live", `${fills.length} fills · saved for analysis`);
     localStorage.setItem("kalshiDash.fills", JSON.stringify({ at: new Date().toISOString(), fills }));
   } catch (e) {
+    if (request !== accountRequest) return;
     pill($("#fills-status"), "err", e.message);
     $("#fills-body").innerHTML = emptyRow(9, "Fills request failed: " + e.message);
   }
 }
-$("#reload-fills").onclick = loadFills;
+$("#reload-fills").onclick = () => loadFills();
 
 /* ------------------------------- order form ------------------------------ */
 let marketInfo = null;
+let gridBaseHtml = "";
 
 /* Read the market's own price grid so the price we submit is valid. */
 $("#o-ticker").addEventListener("change", async () => {
   const t = $("#o-ticker").value.trim();
   $("#grid-note").innerHTML = "";
   marketInfo = null;
+  gridBaseHtml = "";
   if (!t) return;
   try {
     const j = await api.get(`/markets/${encodeURIComponent(t)}`);
     marketInfo = j.market || j;
     const ranges = marketInfo.price_ranges || [];
-    $("#grid-note").innerHTML = `<strong>${esc(marketInfo.title || t)}</strong> ·
+    gridBaseHtml = `<strong>${esc(marketInfo.title || t)}</strong> ·
       status <span class="tag">${esc(marketInfo.status || "")}</span> ·
       best YES bid ${money4(marketInfo.yes_bid_dollars)} · best YES ask ${money4(marketInfo.yes_ask_dollars)} ·
       valid price grid: ${ranges.map(r => `${esc(r.start)}–${esc(r.end)} step ${esc(r.step)}`).join(", ") || "not returned"}`;
+    $("#grid-note").innerHTML = gridBaseHtml;
     const mid = (num(marketInfo.yes_bid_dollars) !== null && num(marketInfo.yes_ask_dollars) !== null)
       ? (num(marketInfo.yes_bid_dollars) + num(marketInfo.yes_ask_dollars)) / 2 : null;
     if (mid !== null) $("#o-price").value = snapToGrid(mid, ranges).value;
@@ -335,9 +347,11 @@ $("#o-price").addEventListener("change", () => {
   if (!marketInfo) return;
   const g = snapToGrid($("#o-price").value, marketInfo.price_ranges);
   if (g.snapped) {
-    $("#grid-note").innerHTML += `<div class="small" style="color:var(--warn);margin-top:4px">
-      Price snapped to ${g.value} to match this market's published grid (step ${g.step}).</div>`;
+    $("#grid-note").innerHTML = gridBaseHtml + `<div class="small" style="color:var(--warn);margin-top:4px">
+      Price snapped to ${esc(g.value)} to match this market's published grid (step ${esc(g.step)}).</div>`;
     $("#o-price").value = g.value;
+  } else {
+    $("#grid-note").innerHTML = gridBaseHtml;
   }
 });
 

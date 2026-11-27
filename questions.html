@@ -114,7 +114,7 @@ const Q = [
     q: "Do the five requested topics map onto Kalshi's own categories?",
     know: "Categories observed in the 2026-11-20 live capture (1,000 events): Elections (740), Sports (71), Economics (61), Politics (42), Entertainment (28), Crypto (2), Social (1). A separate series capture (data/probe/api_surface.json) also lists a category named Culture (4 series).",
     dontknow: "No quantity is published for how much of \"culture\" each category covers, and \"Gas prices\" is not a category value.",
-    answer: "Elections and Crypto are exact category matches. Culture maps to the categories Culture + Entertainment + Social. Golf sits inside Sports and is narrowed by golf series/titles. Gas has no category at all and is matched on gas-price series and titles.",
+    answer: "Elections and Crypto are exact category matches. Culture maps to the categories Culture + Entertainment + Social. Golf sits inside Sports and matches on series.tags containing Golf first (covering series such as KXDPWORLDTOURR2LEAD whose title omits golf keywords), then falls back to golf series/title patterns. Gas has no category at all and is matched on gas-price series and titles.",
     action: "Accept the mapping as documented on each category page, or supply an explicit ticker list.",
     sources: [`${D}/getting_started/terms`, `${D}/api-reference/events/get-events`]
   },
@@ -211,10 +211,10 @@ const Q = [
   {
     id: "Q13", cat: "ops", confidence: "partly answered",
     q: "Is the published site reachable and correct from the public URL?",
-    know: "GitHub Pages is enabled with source main at /, the build succeeds, and the deploy workflow completes.",
-    dontknow: "A rendered end-to-end check against the live URL could not be run from the build sandbox, which has no route to github.io.",
-    answer: "The site is verified structurally (link resolution, module parsing, lint for undefined references, and execution of every page against a simulated DOM with live-shaped fixtures). A human click-through on the public URL is still the final confirmation.",
-    action: "Open the published URL and confirm the overview board populates.",
+    know: "GitHub Pages is enabled with source main at /, HTTPS is enforced, and automated workflows (verify-live-site and live-site-render) fetch the published URL and render the live pages against the Kalshi demo API on pushes to main.",
+    dontknow: "Authenticated portfolio and order-execution views cannot be exercised end to end in CI without a real demo API key (see Q8 / F1).",
+    answer: "All public pages are verified structurally (links, module syntax, undefined-identifier guards, jsdom DOM suites) and checked live against the published GitHub Pages URL and demo API in CI. Authenticated account views remain dependent on the owner's demo key.",
+    action: "Keep the CI live-site workflows green; verify authenticated views manually with a demo key when closing F1.",
     sources: ["https://docs.github.com/en/pages"]
   },
   {
@@ -231,7 +231,7 @@ const Q = [
     q: "How is a $0.10 swing detected when Kalshi publishes no swing field?",
     know: "Every market carries previous_price_dollars and last_price_dollars, and every candle carries price.previous_dollars next to price.close_dollars.",
     dontknow: "What actually moved the price. The API publishes no news feed and no causal link between an event and a price change.",
-    answer: "The alert feed compares last_price_dollars with previous_price_dollars — and the gap between two of its own consecutive polls — and posts a message when the absolute difference reaches the threshold, $0.10 by default, in either direction. The category charts apply the same test to consecutive official candle closes and mark the jump on the price line.",
+    answer: "The alert feed compares last_price_dollars with previous_price_dollars — and the gap between two of its own consecutive polls — and posts a message when the absolute difference reaches the threshold, $0.10 by default, in either direction. The category charts apply the same test inside official candles (comparing each candle close against its price.previous_dollars when present, else the prior priced candle close) and mark each jump on the price line.",
     action: "Nothing further is needed for detection. Attributing a move to a cause would need a news source Kalshi does not publish, so only the sources that decide the market are shown — see flag F14.",
     sources: ["https://docs.kalshi.com/api-reference/market/get-market", "https://docs.kalshi.com/api-reference/market/get-market-candlesticks"]
   },
