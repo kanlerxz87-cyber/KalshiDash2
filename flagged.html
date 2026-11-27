@@ -1880,7 +1880,13 @@
     </p>
 
     <div class="irregularity" id="NF1">
-      <h3>NF1 — The official pages disagree on the price scale of a NO order <span class="tag warn">open</span></h3>
+      <h3>NF1 — The official pages disagree on the price scale of a NO order <span class="tag yes">mitigated</span></h3>
+      <p class="callout info" style="margin:8px 0"><strong>Mitigated 2026-11-27 — see <a href="#F20">F20</a>.</strong>
+        Read in full, the two pages answer different questions rather than disagree: the Create Order V2
+        <code>BookSide</code> schema fixes the <em>request</em> price to the YES leg, and the order-direction
+        sentence describes the <em>matching</em> price, which is equal on both sides. A NO order is submitted
+        at the YES-leg price <code>p</code> and the NO contract costs <code>1 − p</code>. The panel below is
+        kept as the record of the open question, not as the site's current position.</p>
       <p><strong>What was found:</strong> ordering a NO position takes <code>side: "ask"</code>, and the two
         official pages that define what <code>price</code> then means do not agree. This matters because the
         two readings differ by <code>1 - price</code>, i.e. by up to a dollar per contract.</p>
