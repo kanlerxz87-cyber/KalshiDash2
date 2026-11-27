@@ -21,16 +21,18 @@
     <h3>How to read this page</h3>
     <p style="margin:0 0 6px">
       Every item has an ID and the evidence that produced it. Items about Kalshi&rsquo;s API or data carry an
-      official source link; items marked
-      <span class="tag warn">open</span> are unresolved; <span class="tag yes">mitigated</span> means the site
-      handles the problem explicitly rather than hiding it.
+      official source link. Four status words are used, and every count on this page is taken from the word
+      in each card&rsquo;s own heading: <span class="tag warn">open</span> — unresolved;
+      <span class="tag yes">mitigated</span> — the site handles the problem explicitly rather than hiding it;
+      <span class="tag yes">fixed</span> — the defect was repaired, and the repair names what it changed;
+      <span class="tag yes">corrected</span> — a statement on the site was wrong and is now corrected.
     </p>
     <p style="margin:0" class="small">Two items (F6, F7) describe defects in the previously published version
       of this site, found by re-checking it line by line. They are recorded here rather than deleted, because
       the record of a fix is itself evidence. <strong>Their status is a statement about the code, and the code
       moves:</strong> F6 was published as <em>open</em> for three days after the defect it describes had already
       been repaired, and it named a directory that does not exist. It was re-checked against the revision it is
-      true of (<code>424190e</code>) and is now <em>fixed</em> — see §11 <code>DR3</code>. A card that accuses code
+      true of (<code>424190e</code>) and is now <em>fixed</em> — see §11c <code>DR3</code>. A card that accuses code
       should name the revision, not just the file.</p>
     <p style="margin:6px 0 0" class="small"><strong>Five items (A2, R2, Y9, Y10, Y11) are process findings
       about this repository, not claims about Kalshi</strong> &mdash; how the alert loop is hosted, how parallel
@@ -503,7 +505,7 @@
     </div>
 
     <div class="irregularity" id="A9">
-      <h3>A9 — Two status vocabularies: the filter list and the mapping are on different pages <span class="tag warn">open</span></h3>
+      <h3>A9 — Two status vocabularies: the filter list and the mapping are on different pages <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the Market Lifecycle page lists the object statuses returned by
         <code>GET /markets</code> and <code>GET /markets/{ticker}</code> — <code>initialized, active,
         inactive, closed, determined, disputed, amended, finalized</code> — and gives a five-value filter
@@ -528,10 +530,25 @@
         returned 2,157 and 14 (<code>reports/alerts-live-check.md</code> §1). The page treats
         <code>active</code> and <code>open</code> as live and skips the rest, so an <code>inactive</code>
         (paused) market is not watched and produces no alert while it is paused.</p>
-      <p><strong>Still unverified:</strong> which page is authoritative for the filter, and whether the
-        exchange accepts <code>status=paused</code>. No such request has been run from a verifiable runner,
-        so it is not asserted. The site never sends <code>status=paused</code> — it asks for
-        <code>status=open</code> — so no behaviour depends on the answer.</p>
+      <p><strong>Resolved 2026-11-27 (session <code>8299bffe</code>) — both open questions are now measured.</strong>
+        The Get Markets page itself is not ambiguous in its OpenAPI block: the
+        <code>MarketStatusQuery</code> parameter's schema is
+        <code>enum: [unopened, open, paused, closed, settled]</code>, five values including
+        <code>paused</code>. (The four-value sentence this card quotes is that page's prose description, and the
+        two are inconsistent — that defect stands and is not papered over.) The demo host <em>accepts</em>
+        <code>GET /markets?status=paused</code>: on 2026-11-27T22:3xZ it answered HTTP 200 with a market whose
+        object status was <code>inactive</code>, which is exactly the Market Lifecycle mapping
+        <code>paused</code> → <code>inactive</code>. So the filter vocabulary is five values and the mapping is
+        real on the live exchange; the site's caution about <code>status=paused</code> is no longer needed for
+        that question, though the page's two wordings still disagree and a reader should cite the enum, not the
+        prose.</p>
+      <p><strong>A second, narrower fact worth recording:</strong> the Market Lifecycle FAQ says the
+        <em>event</em> filter is four values — "<code>GET /events</code> supports a <code>status</code> filter with
+        values <code>unopened</code>, <code>open</code>, <code>closed</code>, and <code>settled</code>" — so the
+        five-value and four-value lists are not the same filter on different endpoints, and neither list may be
+        copied onto the other endpoint. This page tracks markets (not events) for its alerts.</p>
+      <p><strong>Behaviour, unchanged:</strong> the site never sends <code>status=paused</code>; it asks for
+        <code>status=open</code>, so nothing the dashboard does depends on the dispute.</p>
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> (four filter values) · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a> (five-value mapping + object statuses)</p>
     </div>
 
@@ -1694,7 +1711,7 @@
         <a class="src-link" href="reports/verify-0acc711d.md">verification report §D</a></p>
     </div>
 
-    <h2>9 · Deployment record (session <code>c33971c1</code>, added 2026-11-21)</h2>
+    <h2>9b · Deployment record (session <code>c33971c1</code>, added 2026-11-21)</h2>
     <p class="sub">Found while confirming that this session's merge actually reached the live site.</p>
 
     <div class="irregularity" id="Z3">
@@ -1800,7 +1817,7 @@
     </div>
 
   <div class="card">
-    <h2>11 · Final integration re-verification (session <code>e7931fe7</code>, added 2026-11-22)</h2>
+    <h2>11a · Final integration re-verification (session <code>e7931fe7</code>, added 2026-11-22)</h2>
     <p class="sub" style="margin-bottom:8px">A line-by-line pass over the merged site, checked against the official
       reference pages and the site's own tests. The demo endpoints below were re-read on
       <a class="src-link" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Test In The Demo Environment ↗</a>,
@@ -2112,7 +2129,7 @@
       </p>
     </div>
 
-    <h2>11 · Live round against the demo exchange (session <code>8f3c331c</code>, added 2026-11-22)</h2>
+    <h2>11b · Live round against the demo exchange (session <code>8f3c331c</code>, added 2026-11-22)</h2>
     <p class="sub" style="margin-bottom:8px">This session could reach <code>external-api.demo.kalshi.co</code>
       from its own HTTP reader, which no earlier session could: <code>curl</code> from the same sandbox still
       fails at the TLS handshake, so every capture below is labelled with its method and its URL. The full
@@ -2214,7 +2231,7 @@
     </p>
 
     <div class="irregularity" id="F18">
-      <h3>F18 — The exchange is sharded and the site reports one status line <span class="tag warn">open</span></h3>
+      <h3>F18 — The exchange is sharded and the site reports one status line <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> on 2026-11-27 the demo host answered
         <code>GET /exchange/status</code> with <code>exchange_active: true</code>,
         <code>trading_active: true</code> <em>and</em> a four-entry
@@ -2228,10 +2245,24 @@
         therefore says "trading active" for the whole exchange while an individual shard could be paused.
         It is one line of text, not a wrong price, but it is a status claim the site cannot support at
         shard level.</p>
-      <p><strong>What the site does about it:</strong> nothing is invented. The Overview keeps reading only
-        the flags it can defend (the documented 200-only rule it already follows for 5xx), and this card records
-        that the per-shard breakdown exists and is not read. A fix would print one line per
-        <code>exchange_index</code> and re-read rather than treat a lone <code>false</code> as a halt.</p>
+      <p><strong>What the site does about it:</strong> <strong>fixed 2026-11-27 (session
+        <code>8299bffe</code>)</strong> — the Overview now reads <code>exchange_index_statuses</code> from the
+        same 200 response and prints one row per shard (index, description, exchange/trading/transfers flags, and
+        whether the row agrees with the top-level flags). The reference's own rule is applied rather than
+        paraphrased: a shard that reads <code>false</code> after this tab has already confirmed it trading is
+        labelled <em>re-read required</em>, never "paused", and the strip's one-line summary says so
+        (e.g. "trading active on the default index · 1 of 4 shards report false — re-read, not treated as a
+        pause"). An absent breakdown is stated as the schema documents it ("absent when the per-index breakdown
+        is unavailable") instead of inventing shards, unusable array entries are skipped and counted, and a
+        <code>0</code> row that disagrees with the top-level fields is shown as a disagreement rather than
+        silently resolved in either direction. The AC1 rule is untouched: flags are still read only from an HTTP
+        200, and a 503/504 still renders "status unavailable" and keeps the last good rows marked as such.
+        <span class="small muted">Evidence: <code>assets/js/exchange-status.js</code>,
+        <code>tests/exchange-status.test.mjs</code> (11 checks, 8 of them F18-specific), and the
+        shard-assignment table quoted on the Overview's environment card. Live check 2026-11-27T22:2xZ: the demo
+        host answered with a four-row breakdown (<code>Default</code>, <code>Demo shard 1</code>,
+        <code>Demo shard 2</code>, blank description) and all four read
+        <code>trading_active: true</code>.</span></p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">Exchange sharding ↗</a>
@@ -2326,6 +2357,68 @@
         <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/trades?limit=2" target="_blank" rel="noopener noreferrer">live trades response ↗</a></p>
     </div>
 
+    <h2>13 · Register-count precision and published suite counts (session <code>032f1ca5</code>, added 2026-11-27)</h2>
+    <p class="sub" style="margin-bottom:14px">
+      Found by reading this page and the three Markdown registers next to it, then re-running the suites they
+      describe. Nothing here is a claim about Kalshi; every figure below is a count taken from this repository
+      today, with the command that produced it.
+    </p>
+
+    <div class="irregularity" id="DR4">
+      <h3>DR4 — Counts described the wrong set, and the published suite counts had drifted again <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found (2026-11-27, session <code>032f1ca5</code>):</strong></p>
+      <ul class="small" style="margin:0 0 10px;padding-left:20px;line-height:1.8">
+        <li><em>A tile labelled with one status counted four.</em> The counts at the top of this page and the
+          Summary headline were taken from the tag&rsquo;s CSS class (<code>.tag.yes</code>), not from its word, so
+          &ldquo;Mitigated&rdquo; read <strong>66</strong> while only <strong>28</strong> cards said
+          <em>mitigated</em> — the other 38 were <strong>37 fixed</strong> and <strong>1 corrected</strong>
+          (measured on <code>main</code> @ <code>db91232</code>, 106 cards). The legend defines
+          &ldquo;mitigated&rdquo; as one specific state, so the tile contradicted the page under it. Card counts
+          move whenever a session adds one; the rule does not — a tile named for a status counts that status.</li>
+        <li><em>The published suite counts drifted again</em> — the same defect <code>X5</code> recorded on
+          2026-11-22. <code>README.md</code> and <code>EXECUTIVE_SUMMARY.md</code> restated
+          <strong>263/263</strong> Node tests and <strong>20 run / 17 passed / 3 skipped</strong> Python tests;
+          the Node suite measured <strong>266/266</strong> on <code>main</code> @ <code>db91232</code> and
+          <strong>270/270</strong> after session <code>bc28428d</code>'s alert-engine guard landed
+          (<code>6a54db8</code>) — the same hour, a different true number. Each figure here is pinned to the
+          revision it was measured on, because a total typed into prose is stale as soon as another session
+          lands. Python: <strong>28 run / 24 passed / 4 skipped</strong> (3 live-socket opt-ins plus the crypto
+          test when <code>cryptography</code> is absent).</li>
+        <li><em>Three headings shared two numbers.</em> Section <code>9</code> appeared twice
+          (<code>0acc711d</code>, <code>c33971c1</code>) and section <code>11</code> three times
+          (<code>e7931fe7</code>, <code>8f3c331c</code>, <code>d3e0e9f5</code>), so &ldquo;see §11&rdquo; in the
+          note at the top of this page named three places at once.</li>
+        <li><em>A pending wording change cited the wrong revision.</em> PR
+          <a href="https://github.com/kanlerxz87-cyber/KalshiDash2/pull/141">#141</a> proposed to replace
+          <code>DR3</code>&rsquo;s unmeasured &ldquo;at any revision&rdquo; with a measurement, and named
+          <code>1a30722</code> as <em>the root commit</em>. That SHA is the merge commit of PR #130
+          (2026-11-25T13:06:13Z) and has two parents; the root commit is <code>6081bb7</code>
+          (&ldquo;Initial commit&rdquo;, 2026-11-20T10:57:48Z), whose tree holds one file: <code>README.md</code>.
+          The conclusion was right and the citation was not, so the repair was re-derived here and attributed to
+          the commit that is actually the root.</li>
+      </ul>
+      <p><strong>Repaired:</strong> both counters now read the <em>word</em> in each card&rsquo;s own
+        <code>h3</code> tag and break the closed items out by status
+        (<code>flagged.html</code> counts script; <code>summary.html</code> headline detail). The three duplicate
+        headings are now <code>9b</code>, <code>11a</code>, <code>11b</code>, <code>11c</code> — the suffix
+        convention this page already used for <code>1b</code>/<code>1c</code>/<code>1d</code> — and the
+        &ldquo;see §11&rdquo; pointer resolves to <code>11c</code>. The three registers now carry the counts
+        measured today, each next to the command that produces it, so the next drift is a diff rather than a
+        discovery.</p>
+      <p><strong>What would have caught these sooner:</strong> a harness assertion that a status tile equals the
+        number of cards carrying that word. That assertion now exists —
+        <code>tests/dom/summary-dom.mjs</code> checks the breakdown sums to the card count, that every card&rsquo;s
+        status is one of the four published words, and that the headline detail names each of them.</p>
+      <p class="small"><strong>Evidence:</strong> <code>node --test tests/*.test.mjs</code> (266),
+        <code>cd tests/dom &amp;&amp; npm test</code> (55), <code>python3 -m unittest discover -s tools</code> (55),
+        <code>python3 -m unittest discover -s tests</code> (28 run, 4 skipped without <code>cryptography</code>),
+        <code>python3 tools/check_site_links.py .</code> (36 pages, 0 broken),
+        <code>node tools/verify/page-runtime-check.mjs</code> (18/18). GitHub API:
+        <code>GET /git/trees/6081bb7</code>, <code>GET /commits?path=site</code> → 0,
+        <code>GET /commits/1a30722</code> → two parents. Full transcript:
+        <a href="reports/verify-032f1ca5.md">reports/verify-032f1ca5.md</a>.</p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">
@@ -2348,7 +2441,7 @@
   </div>
 
   <div class="card">
-    <h2>11 · Re-verification round, 2026-11-27 (session <code>d3e0e9f5</code>)</h2>
+    <h2>11c · Re-verification round, 2026-11-27 (session <code>d3e0e9f5</code>)</h2>
     <p class="sub">Found by re-reading the published site line by line against the official
       <code>.md</code> documentation pages and dated live demo responses. Every item below was reached
       from an official source first; the live URL is given so the check can be repeated.</p>
@@ -2412,8 +2505,12 @@
       <p><strong>Status here:</strong> F6 repaired in place (status <em>fixed</em>, revision pinned, wrong path
         quoted as a finding rather than silently swapped). The signing rule is still verified against the official
         page and is now also a register row of its own.</p>
-      <p class="small"><strong>Evidence:</strong> <code>git log -S'"spki"' -- docs/assets/app.js</code> →
-        <code>c3676e5</code>; the pre-fix blob read at <code>424190e</code> in
+      <p class="small"><strong>Evidence:</strong> the pre-fix blob was read again on 2026-11-27 through the GitHub
+        contents API — <code>GET /repos/…/contents/docs/assets/app.js?ref=424190e</code> — which returns
+        <code>importKey("spki", …)</code> and <code>ts + method.toUpperCase() + path</code>. Reading it that way is
+        deliberate: this checkout is a <em>shallow</em> clone (<code>git rev-parse --is-shallow-repository</code> →
+        <code>true</code>, root <code>6081bb7</code> absent locally), so neither <code>git log -S</code> nor
+        <code>git cat-file</code> here can see <code>424190e</code> or <code>c3676e5</code> at all. Full record:
         <a href="reports/verify-d3e0e9f5.md">reports/verify-d3e0e9f5.md</a> §3.
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated requests ↗</a></p>
     </div>
@@ -2427,9 +2524,21 @@ mountChrome({ page: "flagged.html", title: "Flagged for review" });
 const cards = [...document.querySelectorAll(".irregularity")];
 /* The status tag lives in the card's own <h3>. Reading it from the whole card
  * counted a nested card's tag as its parent's: Z3 was left unclosed, so SC1 and
- * SC2 rendered inside it and the totals read 88 tags for 87 items (Z8). */
-const open = cards.filter(c => c.querySelector("h3 .tag.warn")).length;
-const mitigated = cards.filter(c => c.querySelector("h3 .tag.yes")).length;
+ * SC2 rendered inside it and the totals read 88 tags for 87 items (Z8).
+ *
+ * The count must also read the WORD in that tag, not its class. `tag.warn` and
+ * `tag.yes` collapse four statuses into two, so this tile used to say
+ * "Mitigated 66" while 28 cards said mitigated — the other 38 were 37 fixed and
+ * 1 corrected. A tile labelled with one status must count that status (DR4,
+ * session 032f1ca5). */
+const FLAG_STATUSES = ["open", "mitigated", "fixed", "corrected"];
+const statusOf = card => (card.querySelector("h3 .tag")?.textContent || "").trim().toLowerCase();
+const byStatus = Object.fromEntries(
+  FLAG_STATUSES.map(status => [status, cards.filter(card => statusOf(card) === status).length])
+);
+const unlabelled = cards.filter(card => !FLAG_STATUSES.includes(statusOf(card))).length;
+const open = byStatus.open;
+const closed = cards.length - open;
 const defects = [...document.querySelectorAll("#F6,#F7,#F8")].length;
 const unverified = [...document.querySelectorAll("#F1,#F2,#F3,#F4,#F5,#F10,#F13,#F14,#F15,#F16")].length;
 const fixedNow = [...document.querySelectorAll("#Y1,#Y2,#Y3,#Y4,#Y5,#Y6,#Y7")].length;
@@ -2442,7 +2551,7 @@ const nfCards = NF_IDS.map(id => document.querySelector("#" + id)).filter(Boolea
 $("#counts").innerHTML = [
   { k: "Items on this page", v: int(cards.length), m: "each with evidence" },
   { k: "Open", v: int(open), m: "needs a decision" },
-  { k: "Mitigated", v: int(mitigated), m: "handled explicitly by the site" },
+  { k: "Closed", v: int(closed), m: `${byStatus.mitigated} mitigated · ${byStatus.fixed} fixed · ${byStatus.corrected} corrected${unlabelled ? ` · ${unlabelled} unlabelled` : ""}` },
   { k: "Defects in prior site", v: int(defects), m: "found by line-by-line review" },
   { k: "Fixed by this session", v: int(fixedNow), m: "Y1–Y7, each with its source" },
   { k: "Found against the live API", v: int(nfCards.length), m: "section 10, 2026-11-22" }
