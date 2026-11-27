@@ -4234,6 +4234,7 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 - **`assets/js/claims.js` (PR #151 / #152):** Two mismatched `flag` cross-references: `"Prior site's order menu mislabelled sides"` links `flag: "F6"` (should be `"F7"`), and `"A candlestick bucket with no trades still carries its quote legs"` links `flag: "K2"` (should be `"DR1"`).
 - **`summary.html` (PR #151):** `<h2>8 · Requirement traceability</h2>` appears above `<h2>7 · Method</h2>`; §5 Decision #2 `Blocked by` cell says `Q1 / F7` instead of `Q1 / A11`; §2 bullet 5 can add `F20` YES-leg request quoting (also requested by `df162a93`); §3 still lists already-mitigated `F4`/`F10`/`A10` alongside open items.
 
+---
 
 
 ### `8299bffe` — final record: PR #152 merged, all post-merge checks green, fix confirmed on the live site (2026-11-27T22:35Z)
@@ -4440,3 +4441,38 @@ either, but nothing here needs them.
   not another session's work. Nothing from another session or bot was discarded.
 - **Still open, deliberately:** F1/F2 (no authenticated order — no demo key exists here); the transient
   live-check condition above; every pre-existing `flagged.html` item.
+
+---
+
+---
+
+## Session `73fc62f6` (branch `arena/73fc62f6-kalshidash2`, base `main` @ `db91232`, 2026-11-27 22:2xZ)
+
+**Claim time:** 2026-11-27T22:30Z. **Open PRs at claim time:** one — [#141](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/141)
+(`d3e0e9f5`; touches `COORDINATION.md`, `flagged.html`, `reports/alerts-live-check.md`, `reports/verify-d3e0e9f5.md`;
+last commit 18:00Z, no checks on it, no commits for ~4h). `ghi pr list` reports **no** other open branch claims today.
+**Because #141 owns `flagged.html`, this session does not edit it** — the new irregularity cards found below are
+recorded here and in this session's report, and a request is logged for the next owner of that file (§*Cross-scope
+request* at the end of this section).
+
+**What this session could and could not reach** (bounds every row below):
+
+| Reachability from this sandbox | Verified how |
+|---|---|
+| `https://docs.kalshi.com/**` (`.md` variants) | Yes — page-fetch tool |
+| `https://external-api.demo.kalshi.co/trade-api/v2/**` | Yes — page-fetch tool, unauthenticated GETs only |
+| `https://kanlerxz87-cyber.github.io/KalshiDash2/**` (deployed site) | Yes — page-fetch tool, **HTML only, no JavaScript execution** |
+| `fetch`/`curl` to `*.kalshi.co` from the sandbox shell | **No** — `TLS socket disconnected` (same limit every prior session recorded) |
+| Any authenticated endpoint | **No** — no key exists in the repo and none was requested. No order placed. |
+| GitHub Actions **artifacts** | **No** — the artifact blob host fails with `EOF`, so a run's report cannot be read from here (see H2) |
+
+**Disjoint scope (`73fc62f6`):**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| R1 | Publish an official-source register of what the **deployed** Pages build actually renders to a client with JavaScript disabled, and diagnose every gap it exposes | in progress | `73fc62f6` | `reports/verify-73fc62f6.md` (new) | docs.kalshi.com `.md` pages + deployed-page fetches, 2026-11-27 |
+| R2 | Give the repository a check that renders the **deployed** site in a real browser (Chromium) and records what a user sees, instead of trusting an exit code that cannot fail | in progress | `73fc62f6` | `.github/workflows/render-audit.yml` (new), `tests/dom/rendered-page-assertions.mjs` (new), `tests/dom/rendered-page-assertions.test.mjs` (new) | Playwright against `https://kanlerxz87-cyber.github.io/KalshiDash2/` |
+| R3 | Full local suites, PR → `main`, merge without waiting for review, confirm the Pages build, record the PR link and merge result here | unclaimed | — | this section | Do not merge a broken site |
+
+**Rule this session kept:** an exit code that is *masked* is not evidence. Every row below names the command or
+URL that produced it so it can be re-run.
