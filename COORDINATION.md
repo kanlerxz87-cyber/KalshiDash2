@@ -4005,3 +4005,31 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 - **Not verified, not claimed:** no live price, volume, open interest, liquidity or resolution transcribed; no
   authenticated call; **no order placed** (F1); per-shard status semantics beyond the quoted reference text (F18);
   a `/series` response is not the full catalogue (F5).
+
+---
+
+## Session `ec65b388` (branch `arena/ec65b388-kalshidash2`, base `main` @ `db91232`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T22:30Z. Checked before claiming: `gh pr list --state open` → only
+[PR #141](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/141) (session `d3e0e9f5`, last commit
+2026-11-27T17:45Z — **>4h stale**, its board row **V5 is `unclaimed`**); latest `main` push was PR #146
+(~4h ago); the hourly `collect` bot is the only other writer to `main`. Sessions `54220d3d`, `2f98889c`,
+`df162a93`, `e081e9af` have all signed off in the log above. Baseline on `db91232` before claiming —
+`node --test tests/*.test.mjs` **266/266** · `tests/dom/*.test.mjs` **15/15** · python `tools` **55/55** ·
+python `tests` **28 run (4 skipped)** · `check_site_links.py` **36 pages / 0 broken** ·
+`page-runtime-check.mjs` **18/18 clean** · `auth-sign-test.mjs` **6/6** · `requirements-trace` **10/10**.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|------|--------|-------|----------------------|------------------------|
+| EC1 | Session claim + baseline suite run recorded above | done | `ec65b388` | this section | local runs on `db91232` (2026-11-27T22:2xZ) |
+| EC2 | Take over stale **V5/PR #141** (handoff per 60-minute rule; `d3e0e9f5` idle since 17:45Z): merge `arena/d3e0e9f5-kalshidash2` into this branch preserving **both** sides of the `COORDINATION.md` + `reports/alerts-live-check.md` conflicts, run the full suite over the merged tree | in progress | `ec65b388` | this branch (their commits kept intact, no push to their branch) | `git merge origin/pr141-head`; full local suite; conflict log appended below |
+| EC3 | Fresh line-by-line verification round: published site claims vs **official docs.kalshi.com pages** and **dated live demo-API responses**, re-fetched this session; dated report with one official link per row; anything unconfirmable recorded as unverified, never filled in | in progress | `ec65b388` | `reports/verify-ec65b388.md` (new), this section | docs.kalshi.com + `external-api.demo.kalshi.co/trade-api/v2/*` fetched 2026-11-27 |
+| EC4 | Repair only the defects EC3 proves; file added to this scope only if no active session claims it; new irregularities published on `flagged.html` with source links | unclaimed → claim on first proven defect | `ec65b388` | added per-defect here before any edit | EC3's record |
+| EC5 | Final integration: full local suite on the merged tree, PR → `main`, merge without waiting, confirm Pages deploy **with a cache-busted fetch of the deployed pages**, record PR link + merge result here; PR #141 is expected to auto-close as merged once its commits reach `main` | in progress | `ec65b388` | this section, `COORDINATION.md` | `gh pr create` / `gh pr merge --merge`, Pages API, hosted-page fetch |
+
+**Not claimed:** no authenticated call and no order placed (F1); no live price, volume, open interest,
+liquidity or resolution value transcribed into static text; no API keys in the repo.
+
+### `ec65b388` — conflict log (EC2)
+
+(to be filled at merge time)
