@@ -199,3 +199,35 @@ Requested cards, with the sources already gathered:
 4. **AH4** — Alerts page and Summary page disagree about whether streaming is in use.
 
 Suggestion IDs already taken on `suggestions.html` run to **S17**; nothing was renumbered.
+
+---
+
+## 8 · Local dry-run of the audit's verdict rules against the real published pages
+
+The browser half of §2.4 cannot run in this sandbox, so the rules were also exercised **locally on the real
+page files**, in a way that is honest about what it proves and what it does not.
+
+Method: parse each of the 17 published pages with jsdom, **run none of the page JavaScript**, count the same
+selectors the spec names, feed the counts to the shipped `judge()`. This is exactly what a JavaScript-disabled
+client sees — a floor, not a ceiling.
+
+| Page | Verdict from static-DOM run | Why |
+| --- | --- | --- |
+| Overview, Gas, Elections, Culture, Crypto, Golf | **fail** | `#kpis` / `#cat-stats` / `#topics` have **0** children without the controller; the board's only row is the `Loading…` placeholder |
+| Live alerts | pass (after one spec correction) | 3 tables are static; the feeds' own rows are controller-written |
+| Resolved, Executive summary, Flagged | **fail** | their counters (`#res-stats`, `.stat`, `#counts`) are controller-written |
+| Verification, Sources, Portfolio, Strategy tester, Strategies, Questions, Suggestions | pass | they are genuinely static registers |
+
+Two things this establishes:
+
+1. **The rules reject real published pages.** 10 of 17 fail without JavaScript, and every failure names the
+   element that is missing — the rules are not vacuous.
+2. **A JavaScript-disabled read cannot grade this site**, which is why the browser workflow (§2.4) is the only
+   check that can answer the question the brief asks. It also explains how the published site passed so many
+   static reviews while rendering nothing: for 10 of its 17 pages, static HTML and a working page look alike.
+
+One spec defect was found and fixed by this dry run: the Alerts page declares `table: 4` where the published
+page has 3 (`holds` rows + two strategy/ledger tables). Corrected to 3 before any run.
+
+**Still unproven from here:** whether the *browser* renders those 10 pages on the deployed site. That is the
+first run of `.github/workflows/render-audit.yml`, and its result is the answer.

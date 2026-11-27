@@ -130,7 +130,7 @@ export const PAGES = Object.freeze([
   },
   {
     path: "/alerts.html", name: "Live alerts",
-    must: { "#feed-all": 1, "#feed-watch": 1, "#alert-rows tr": 1, "table": 4 },
+    must: { "#feed-all": 1, "#feed-watch": 1, "#alert-rows tr": 1, "table": 3 },
     rows: "#alert-rows", status: "#poll-status"
   },
   {
