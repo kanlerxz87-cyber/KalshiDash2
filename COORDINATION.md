@@ -3937,13 +3937,13 @@ history — ask the API for the revision before calling a card wrong.**
 | M1 | Fix logged 5-col vs 6-col `#yes-book`/`#no-book` error row width bug + clear stale `#book-summary` on error; extend DOM & static table-width guards | done | `2f98889c` | `assets/js/category.js`, `tests/dom/category-dom.mjs`, `tests/table-shape.test.mjs` | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook), [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses); `COORDINATION.md` logged request |
 | M2 | Fulfill `54220d3d` §4 handoff: store `series.tags` in `fetchSeriesCategories`/`primeSeriesCategories`, add Golf `tagPatterns: [/^Golf$/i]` before title/series patterns, and pin `KXDPWORLDTOURR2LEAD` + `KXMLBGAME` in taxonomy tests | done | `2f98889c` | `assets/js/config.js`, `assets/js/market.js`, `tests/taxonomy.test.mjs` | [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), `reports/verify-54220d3d.md` §3–4 |
 | M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | done | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
-| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR #143 to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
+| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR #143 to `main`, merge, verify Pages deployment & live site, record result | done | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
 
-**Conflict log (`2f98889c`):** merged `origin/main` (`f6bad4f`, `32b7992`, `b4bc153`) cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`) plus this session's section verbatim.
+**Conflict log (`2f98889c`):** merged `origin/main` (`f6bad4f`, `32b7992`, `b4bc153`, `090d84f`) cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`, `df162a93`) plus this session's section verbatim.
 
 ---
 
-## Session df162a93 (branch `arena/df162a93-kalshidash2`, 2026-11-27)
+## Session `df162a93` (branch `arena/df162a93-kalshidash2`, 2026-11-27)
 
 Line-by-line runtime, simulation, taxonomy, and doc-accuracy audit over unclaimed files (zero overlap with merged PR #132/#135 or open PR #134).
 
@@ -3960,3 +3960,13 @@ Line-by-line runtime, simulation, taxonomy, and doc-accuracy audit over unclaime
 - **Conflict reconciliation log:** Rebased onto `origin/main` (`a084c41`, after PRs #132/#135/#136 merged). Kept all merged `COORDINATION.md` entries and kept session `54220d3d`'s `verified: "fetched"` fee-schedule row in `assets/js/sources.js` intact while keeping our additive `"Filters are mutually exclusive"` note on `Get Historical Markets`. Withdrew our local `summary.html` edit to avoid colliding with open PR #134 (`d3e0e9f5`). Nothing from another session was discarded.
 - **Cross-scope note for next owner of `summary.html`:** Section 2 (`"Order side uses book vocabulary — bid is yes, ask is no"`) can be updated to note `F20`'s YES-leg request quoting (`Create Order (V2)` quotes `price` on the YES leg, so `ask` sells YES / buys NO at `1 − price`, matching `portfolio.html`).
 - **Not verified, not claimed:** no live authenticated order or account fill (F1/F2 remain open); no live market numbers transcribed into static text.
+
+### `2f98889c` — final record: PR #143 merged, Pages built, checks green (2026-11-27)
+
+- **PR:** [#143](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/143) — *fix(2f98889c): book 6-col error guard, golf series.tags taxonomy, event parity, and doc sync* — **merged** into `main` at **`a4c24b8`** (2026-11-27T17:48:36Z) via `gh pr merge 143 --merge`.
+- **Checks on PR #143 (`fe9eb23`) and merge SHA (`a4c24b8`):**
+  - PR check: `Static site link check` `46044690904` **success** (`check` + `dom`), `verify-alerts` `46044437037` **success**.
+  - Post-merge on `main`: `Static site link check` `46044771822` **success**, `live-site-render` `46044771643` **success**, `verify-live-site` `46044771660` **success**, `live-engine-check` `46044771870` **success**, `verify-alerts` `46044771887` **success**.
+  - Pages: `pages-build-deployment` `46044807006` **success**; Pages API reports `status: "built"`, `error: null`, `commit: "2433bf9bcad515b9e2b0b64869d4481599b8833a"` (`2026-11-27T17:50:04Z`), `build_type: "legacy"`, `source: "main:/"`, `https_enforced: true`.
+- **Local suite on merged head:** `node --test tests/*.test.mjs` **263/263**; jsdom DOM suites **55/55** (alerts 26/26, summary 5/5, category 24/24); Python `tools` **55/55**; Python `tests` **20** ran (**17** passed, **3** skipped live-WS); `check_site_links.py` **36** pages / `0` broken; `auth-sign-test.mjs` **6/6**; `page-runtime-check.mjs` **18/18** pages clean (`0` errors).
+- **Not claimed:** no authenticated demo order was placed (`F1`); live prices, balances, and fills are read in the browser and never transcribed.
