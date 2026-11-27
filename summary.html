@@ -192,6 +192,27 @@
   </div>
 
   <div class="card">
+    <h2>8 · Requirement traceability — measured, not asserted</h2>
+    <p class="sub">The brief's requirements, each traced to the page or module that answers it. The
+      <strong>Evidence</strong> column is produced by <em>running</em> that module
+      (<code>assets/js/trace.js</code>) against fixtures and the shipped files, not by describing it:
+      the threshold below is the value the alert engine actually uses, the windows are the ones the
+      chart actually offers, and a renamed export fails the row instead of ageing in prose. No exchange
+      fact is asserted here — those live in the <a href="verification.html">claim register</a> with their
+      official sources. This is the machine half of the title row 15 of the matrix above; the repo-side
+      twin is <code>tests/requirements-trace.test.mjs</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>What the brief asks for</th><th>Where it is delivered</th><th>State</th><th>Evidence — measured from the module</th></tr></thead>
+        <tbody id="trace-body">
+          <tr><td colspan="5"><div class="empty">Measuring the shipped modules…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" id="trace-note"></p>
+  </div>
+
+  <div class="card">
     <h2>7 · Method</h2>
     <p class="small">
       Facts were captured from the official API by CI, because the build sandbox cannot open TLS connections
@@ -210,6 +231,13 @@
 <script type="module">
 import { mountChrome, $, esc } from "./assets/js/ui.js";
 import { CLAIMS } from "./assets/js/claims.js";
+import * as config from "./assets/js/config.js";
+import * as alertsCore from "./assets/js/alerts-core.js";
+import * as market from "./assets/js/market.js";
+import * as kalshi from "./assets/js/kalshi.js";
+import * as simulator from "./assets/js/simulator.js";
+import * as ui from "./assets/js/ui.js";
+import { traceRows } from "./assets/js/trace.js";
 mountChrome({ page: "summary.html", title: "Executive summary" });
 
 /* These figures are derived from their source registers, not a separately
@@ -246,6 +274,35 @@ $("#headline").innerHTML = [
   { k: "Open flags", v: FLAG_COUNTS.open ?? "—", m: flagMeta },
   { k: "Orders executed", v: EXECUTED_ORDERS, m: "no key available — F1" }
 ].map(s => `<div class="stat"><div class="k">${esc(s.k)}</div><div class="v">${s.v}</div><div class="m">${esc(s.m)}</div></div>`).join("");
+
+/* ---- 8 · traceability, measured from the modules that do the work ---- */
+{
+  /* The published pages, read from the navigation list plus the files the
+   * matrix names. `files` is a list, not a fetch: every page in PAGES is a real
+   * sibling file, and the link checker independently proves they resolve. */
+  const published = [
+    ...ui.PAGES.map(p => p.href),
+    "categories/gas.html", "categories/elections.html", "categories/culture.html",
+    "categories/crypto.html", "categories/golf.html"
+  ];
+  const rows = traceRows({
+    config, alertsCore, market, kalshi, simulator, ui,
+    files: [...new Set(published)],
+    claims: { CLAIMS }
+  });
+  const pass = rows.filter(r => r.ok).length;
+  $("#trace-body").innerHTML = rows.map(r => `<tr>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td>${esc(r.brief)}</td>
+    <td class="small">${esc(r.artefact)}</td>
+    <td>${r.ok ? '<span class="tag yes">wired</span>' : '<span class="tag no">gap</span>'}</td>
+    <td class="small">${esc(r.measured)}</td>
+  </tr>`).join("");
+  $("#trace-note").textContent =
+    `${pass} of ${rows.length} requirements are wired to a passing check in this build; ` +
+    `a "gap" row is a defect this page is reporting, not a claim of completeness. ` +
+    `Measured ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC from the modules loaded by this page.`;
+}
 </script>
 </body>
 </html>

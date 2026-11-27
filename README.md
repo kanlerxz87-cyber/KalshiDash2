@@ -22,8 +22,9 @@ Official docs: <https://docs.kalshi.com> · demo site: <https://demo.kalshi.co>.
 
 **Sources & Claims registers:** [`sources.html`](sources.html) (`assets/js/sources.js`, 49 sources verified,
 0 unverified) lists every documentation source used; [`verification.html`](verification.html)
-(`assets/js/claims.js`, 109 claims) links every technical claim to an official page or probe;
-[`flagged.html`](flagged.html) records open defects, design limits, and verified irregularities (`F1–F20`).
+(`assets/js/claims.js`, 114 claims: 102 verified, 9 partially verified, 3 unverified) links every technical
+claim to an official page or probe; [`flagged.html`](flagged.html) records open defects, design limits, and
+verified irregularities (**F1–F20**, **DR1–DR3**, 40 open / 66 mitigated / 106 total).
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
 (Σ `count_fp` × price of the taker's recorded `taker_outcome_side`), alongside the ranking column's
@@ -96,7 +97,7 @@ Full local verification matches `.github/workflows/site-check.yml`:
 ```bash
 node evidence/auth-sign-test.mjs            # 6/6 Web Crypto signing checks
 node tools/verify/page-runtime-check.mjs    # 18/18 published pages execute cleanly + 36-page link check
-node --test tests/*.test.mjs                # 249/249 Node unit, CI-coverage, taxonomy, table-shape & simulator tests
+node --test tests/*.test.mjs                # 259/259 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape & simulator tests
 (cd tests/dom && npm ci && npm test)        # 51/51 jsdom checks (alerts 22, summary 5, category 24)
 python3 -m unittest discover -s tools       # 55/55 link-checker & probe-collector tests
 python3 -m unittest discover -s tests       # Python relay/ws/trade-analyzer unit tests

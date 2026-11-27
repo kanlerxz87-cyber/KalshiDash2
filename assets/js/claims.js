@@ -527,5 +527,35 @@ export const CLAIMS = [
     detail: "Pages is build_type legacy with source main:/, so the repository root is what goes live; .github/workflows/pages.yml is workflow_dispatch-only and used to upload path: docs, i.e. the superseded generation. It now uploads the root, so a maintainer running it publishes what visitors already see instead of replacing it",
     source: "https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages",
     ev: "Pages configuration record read 2026-11-22; the workflow file and the README deployment section carry the same statement. Flagged AC3 closed by this change",
-    status: "verified", flag: "AC3" }
+    status: "verified", flag: "AC3" },
+
+  // ---- live re-verification round, session d3e0e9f5 (2026-11-27) ----
+  /* Every row below was checked against the official .md page AND a dated live
+   * demo response on 2026-11-27. The live URLs are re-runnable; none of the
+   * values is transcribed into the site. */
+  { cat: "api", claim: "A candlestick bucket with no trades still carries its quote legs",
+    detail: "In a 16-bucket hourly response for one open market, 15 buckets had volume_fp 0.00 and only price.previous_dollars (no OHLC, no mean_dollars), while yes_bid and yes_ask carried full open/high/low/close. So \"no trade\" is visible from the volume, not from an absent candle: a chart that reads yes_bid.close_dollars as the traded price would plot a quote as a trade",
+    source: `${D}/api-reference/market/get-market-candlesticks`,
+    ev: "Live, 2026-11-27: GET /series/KXAAAGASW/markets/KXAAAGASW-26NOV30-3.5000/candlesticks?start_ts=1795713600&end_ts=1795800000&period_interval=60 — buckets 1795734000…1795773600 carry volume_fp \"0.00\" with price keys limited to previous_dollars. assets/js/market.js parseCandle reads only price.* for the traded line and maps yes_bid/yes_ask separately",
+    status: "verified", flag: "K2" },
+  { cat: "api", claim: "The signed pre-sign text keeps the API prefix and drops the query string",
+    detail: "RSA-PSS with SHA-256 (Ed25519 for Ed25519 keys) over timestamp + METHOD + full path from the API root, e.g. /trade-api/v2/portfolio/balance, with no query",
+    source: `${D}/getting_started/quick_start_websockets`,
+    ev: "Read 2026-11-27 for the WebSocket path (timestamp + \"GET\" + \"/trade-api/ws/v2\"); assets/js/kalshi.js:153-154 builds the REST path as signBase + path.split(\"?\")[0]. Flagged F6 re-examined against revision 424190e, where both rules were broken",
+    status: "verified", flag: "F6" },
+  { cat: "api", claim: "A candle response older than the request window is not an error",
+    detail: "A request whose start_ts precedes the market's first trade returns fewer buckets than the window, and a window with no buckets returns an empty candlesticks array rather than 400. The site must therefore say \"no candles in this window\" instead of \"request failed\"",
+    source: `${D}/api-reference/market/get-market-candlesticks`,
+    ev: "Live, 2026-11-27: the same market with start_ts=1795798200&end_ts=1795800000 (a 30-minute window that closes with no trade) answered 200 {\"candlesticks\":[],\"ticker\":\"KXAAAGASW-26NOV30-3.5000\"}. assets/js/category.js distinguishes an empty series from a failed read",
+    status: "verified" },
+  { cat: "limits", claim: "Every client call that follows a cursor is inside the documented page maximum",
+    detail: "GET /markets maximum 1000, GET /markets/trades maximum 1000, GET /events maximum 200 — the shared default of 200 is valid for all three, and the settled-market scan asks for 200 against a 1000 maximum",
+    source: `${D}/api-reference/events/get-events`,
+    ev: "Limits re-read 2026-11-27 on all three pages. Live shape check: GET /events answered limit<=200 (the request with the largest allowed page and a cursor). assets/js/market.js getAll() default is 200 and no caller raises it",
+    status: "verified" },
+  { cat: "limits", claim: "The ticker payload names dollar_volume as whole dollars, unlike volume_fp",
+    detail: "The documented ticker fields include dollar_volume (integer, signed whole-dollar cumulative traded notional) and dollar_open_interest beside volume_fp and open_interest_fp (2-decimal contract counts). The site's alert rows show contract counts, so a dollar figure is never mixed into a count column",
+    source: `${D}/websockets/market-ticker`,
+    ev: "Payload table read 2026-11-27; assets/js/live-core.js maps the ticker message to the same field names the REST object uses",
+    status: "verified", flag: "W3" }
 ];

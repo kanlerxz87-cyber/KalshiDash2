@@ -108,6 +108,13 @@ jobs:
       - name: Probe-citation drift guard + page-identifier guard
         run: node --test tests/probe-citation-drift.test.mjs tests/page-identifiers.test.mjs
 
+      # Named as well as globbed, because this one audits the other guards' wiring:
+      # it fails when a `tests/*.test.mjs` file no workflow names, and when the
+      # requirement matrix in summary.html §8 stops agreeing with the shipped
+      # modules (a renamed export, a changed threshold, a deleted page).
+      - name: Requirement traceability (summary §8 agrees with the modules)
+        run: node --test tests/requirements-trace.test.mjs
+
       - name: Every guard is wired into a workflow
         run: node --test tests/ci-coverage.test.mjs
 

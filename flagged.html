@@ -27,7 +27,11 @@
     </p>
     <p style="margin:0" class="small">Two items (F6, F7) describe defects in the previously published version
       of this site, found by re-checking it line by line. They are recorded here rather than deleted, because
-      the record of a fix is itself evidence.</p>
+      the record of a fix is itself evidence. <strong>Their status is a statement about the code, and the code
+      moves:</strong> F6 was published as <em>open</em> for three days after the defect it describes had already
+      been repaired, and it named a directory that does not exist. It was re-checked against the revision it is
+      true of (<code>424190e</code>) and is now <em>fixed</em> — see §11 <code>DR3</code>. A card that accuses code
+      should name the revision, not just the file.</p>
     <p style="margin:6px 0 0" class="small"><strong>Five items (A2, R2, Y9, Y10, Y11) are process findings
       about this repository, not claims about Kalshi</strong> &mdash; how the alert loop is hosted, how parallel
       sessions collided, a dead module, a duplicate site generation, and the scope of the &ldquo;High-ROI&rdquo;
@@ -46,7 +50,30 @@
       documentation, then reproducing each rule in a deterministic test.</p>
 
     <div class="irregularity" id="F6">
-      <h3>F6 — Authenticated requests could never have succeeded <span class="tag warn">open</span></h3>
+      <h3>F6 — Authenticated requests could never have succeeded <span class="tag yes">fixed</span></h3>
+      <p><strong>Status corrected 2026-11-27 (session <code>d3e0e9f5</code>):</strong> this card was published as
+        <em>open</em>, and its status line pointed at <code>site/assets/js/kalshi.js</code> — a <code>site/</code>
+        directory that has never existed in this repository (<code>git ls-tree</code> finds no path under
+        <code>site/</code>; the fix lives in <code>assets/js/kalshi.js</code>). Worse, it was <em>unfixable as
+        written</em>: the legacy file it accuses had already been repaired, so a reader following the card could
+        only conclude the claim was wrong. It was not — it was three days stale. Sourcing the revision, not the
+        current file, is what settles it.</p>
+      <p><strong>The revision the claim is true of:</strong>
+        <code>424190e</code> (2026-11-20T11:04:59Z, <em>"Build Kalshi demo dashboard site (docs/) + exec summary…"</em>).
+        At that commit <code>docs/assets/app.js</code> line 101 reads
+        <code>crypto.subtle.importKey("spki", pemToArrayBuffer(privateKeyPem), …)</code> and line 104 signs
+        <code>ts + method + path</code>, where <code>path</code> is the bare route (e.g. <code>/portfolio/balance</code>)
+        with no <code>/trade-api/v2</code> prefix. Both are wrong: a private key PEM is PKCS#8, and the pre-sign
+        text is <code>timestamp + METHOD + /trade-api/v2/&lt;path&gt;</code>.</p>
+      <p><strong>Where it was fixed:</strong> <code>c3676e5</code> (2026-11-20T11:23:37Z, <em>"Fix verified-against-docs
+        bugs: pkcs8 key import, /trade-api/v2 signing path, …"</em>). The shipped
+        <code>docs/assets/app.js</code> today imports <code>"pkcs8"</code> and builds the signed path with
+        <code>new URL(DEMO_BASE + path).pathname</code>, which includes the prefix and drops the query.</p>
+      <p><strong>What the earlier version of this card got wrong</strong> (kept here rather than deleted, because
+        the mistake is the lesson): it described "the earlier <code>docs/assets/app.js</code>" while citing the
+        current one; it named a <code>site/</code> directory that does not exist; and it stayed <em>open</em>
+        after the code had been fixed. The signing rule itself is still verified against the official page — see
+        the sources below — and the register row below is the one the site now keys on.</p>
       <p><strong>What was found:</strong> the earlier <code>docs/assets/app.js</code> made two mistakes in
         request signing:</p>
       <ol>
@@ -61,7 +88,7 @@
         shortened path does not verify.</p>
       <p><strong>Impact:</strong> balance, positions, fills and every order would have returned HTTP 401 on
         the published site, so portfolio tracking and trade execution could not work.</p>
-      <p><strong>Status here:</strong> fixed in <code>site/assets/js/kalshi.js</code> — the key is imported as
+      <p><strong>Status here:</strong> fixed in <code>assets/js/kalshi.js</code> — the key is imported as
         PKCS#8 (or PKCS#1, wrapped appropriately), and the signed path is
         <code>/trade-api/v2</code> + path with the query stripped.</p>
       <p class="small"><strong>Sources:</strong>
@@ -2318,6 +2345,76 @@
         24-hour window can legitimately come back with one bucket in it. The chart plots by returned timestamp
         on a time-scaled axis, so nothing is invented for the empty hours (report §2, item 4).</li>
     </ul>
+  </div>
+
+  <div class="card">
+    <h2>11 · Re-verification round, 2026-11-27 (session <code>d3e0e9f5</code>)</h2>
+    <p class="sub">Found by re-reading the published site line by line against the official
+      <code>.md</code> documentation pages and dated live demo responses. Every item below was reached
+      from an official source first; the live URL is given so the check can be repeated.</p>
+
+    <div class="irregularity" id="DR1">
+      <h3>DR1 — One live response is quoted under two different shapes in claims.js <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> the register carries two rows built on the same 2026-11-22 candlestick
+        probe, and they disagree about what an untraded bucket contains. One row says
+        <em>"every <code>price.*</code> field is null"</em>; the other says the bucket carries
+        <em>"no OHLC"</em> — i.e. the keys are absent, not present-and-null. Both cannot describe one response,
+        and the difference matters to any reader checking <code>parseCandle</code>, whose <code>??</code> chain
+        returns <code>null</code> for a missing key but would pass a literal <code>null</code> through the same
+        way — so the site is unaffected either way, but the register is not internally consistent.</p>
+      <p><strong>Re-measured 2026-11-27:</strong> a 16-bucket hourly response for one open market had
+        <strong>15 buckets with <code>volume_fp "0.00"</code></strong> whose <code>price</code> object held
+        <strong>only <code>previous_dollars</code></strong> — no <code>open_dollars</code>, no
+        <code>high_dollars</code>, no <code>close_dollars</code>, while <code>yes_bid</code> and
+        <code>yes_ask</code> were fully populated. That is the <em>absent-key</em> reading, on this capture.</p>
+      <p><strong>Why it is not patched here:</strong> the 2026-11-22 response itself is not in the repository —
+        only prose about it — so the older wording cannot be checked, and rewriting another session's dated
+        evidence from today's capture would be exactly the substitution this page exists to avoid. The
+        discrepancy and today's measurement are published together; whoever holds the 2026-11-22 capture can
+        settle it in one read.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks (MarketCandlestick schema) ↗</a>
+        · live: <code>GET /series/KXAAAGASW/markets/KXAAAGASW-26NOV30-3.5000/candlesticks?start_ts=1795713600&amp;end_ts=1795800000&amp;period_interval=60</code></p>
+    </div>
+
+    <div class="irregularity" id="DR2">
+      <h3>DR2 — The settled-market scan sends <code>limit</code> twice in one URL <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>assets/js/simulator.js</code> builds its archived-market path with
+        <code>/historical/markets?limit=100</code> and then hands it to <code>getAll()</code>, which
+        appends its own <code>limit</code>. The request that actually leaves the page is
+        <code>/historical/markets?limit=100&amp;limit=100</code>. Reproduced against a stubbed transport on
+        2026-11-27 (<code>new URL(...).searchParams.getAll("limit")</code> → <code>["100","100"]</code>).</p>
+      <p><strong>Why it is low-severity, and still reported:</strong> the two values are equal and the documented
+        parser takes the last one, so today's behaviour is right by accident. It is the shape of defect that turns
+        into a wrong page size the moment one of the two numbers is edited. It is published rather than patched
+        because <code>simulator.js</code> is inside another session's recently merged scope
+        (<code>H1</code>) and the user's standing rule is to request, not take over, a file another session owns.
+        Fix is one line: drop the <code>${HISTORICAL_UNIVERSE.limit}</code> from the path.</p>
+      <p class="small"><strong>Official source:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/historical/get-historical-markets" target="_blank" rel="noopener noreferrer">Get Historical Markets ↗</a> · <code>limit</code> documented once, as a single query parameter</p>
+    </div>
+
+    <div class="irregularity" id="DR3">
+      <h3>DR3 — Flagged F6 was three days stale and cited a directory that never existed <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> card F6 was published as <em>open</em> and said the fix lived in
+        <code>site/assets/js/kalshi.js</code> — there is no <code>site/</code> directory in this repository at any
+        revision. The claim it makes is nonetheless <strong>true of revision <code>424190e</code></strong>
+        (2026-11-20T11:04:59Z): <code>docs/assets/app.js</code> line 101 imported the private key as
+        <code>"spki"</code> and line 104 signed the bare route. It was repaired 19 minutes later in
+        <code>c3676e5</code>. The card outlived the defect, so the site was reporting an open bug that no longer
+        existed in a file that does not exist.</p>
+      <p><strong>Root cause, and why it matters to the whole page:</strong> a card that accuses code needs to name
+        a <em>revision</em>, because the file it names is edited by other sessions. Every card that describes past
+        state without a commit SHA has the same expiry date. This repair pins the revision and keeps the original
+        reasoning, so the history is still auditable.</p>
+      <p><strong>Status here:</strong> F6 repaired in place (status <em>fixed</em>, revision pinned, wrong path
+        quoted as a finding rather than silently swapped). The signing rule is still verified against the official
+        page and is now also a register row of its own.</p>
+      <p class="small"><strong>Evidence:</strong> <code>git log -S'"spki"' -- docs/assets/app.js</code> →
+        <code>c3676e5</code>; the pre-fix blob read at <code>424190e</code> in
+        <a href="reports/verify-d3e0e9f5.md">reports/verify-d3e0e9f5.md</a> §3.
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated requests ↗</a></p>
+    </div>
   </div>
 </main>
 

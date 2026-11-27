@@ -1,8 +1,8 @@
 # Verification Report — Session `2f98889c`
 
-- **Branch:** `arena/2f98889c-kalshidash2` (synced to `origin/main` @ `996a598`, after PR #135)
+- **Branch:** `arena/2f98889c-kalshidash2` (synced to `origin/main` @ `f6bad4f`, after PR #134, PR #135, and PR #137)
 - **Date (UTC):** 2026-11-27
-- **Scope basis:** Disjoint file scope claimed and pushed in [`COORDINATION.md`](../COORDINATION.md) (`M1–M4`) with zero overlap across active sibling branches (`d3e0e9f5` PR #134, `df162a93`, `e081e9af`, `c0aa9245`).
+- **Scope basis:** Disjoint file scope claimed and pushed in [`COORDINATION.md`](../COORDINATION.md) (`M1–M4`) with zero overlap across active sibling branches (`d3e0e9f5`, `df162a93`, `e081e9af` PR #138, `c0aa9245`).
 
 ## Changes Delivered
 
@@ -27,13 +27,13 @@
 - **Change (`M3`):**
   - `event.html`: extracted `resultTag(m)` using `marketResultState(m)` so `#ev-resolution` matches `#ev-markets` (`yes`, `no`, `scalar`, `awaiting result` for closed/determined/finalized markets without `result`, and `unresolved` for active markets) instead of hardcoding `"not resolved"`.
   - `assets/js/ui.js`: refreshed `BUILD_DATE` from `"2026-11-21"` to `"2026-11-27"`.
-  - Synced stale root markdown files (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) to match canonical site pages (`questions.html` `Q1–Q17`, `suggestions.html` `S1–S17`, `sources.html` `49/49` verified, `flagged.html` `F1–F20`, `data/probe/api_surface_2026-11-24.json`).
+  - Synced stale root markdown files (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) to match canonical site pages (`questions.html` `Q1–Q17`, `suggestions.html` `S1–S17`, `sources.html` `49/49` verified, `verification.html` `114` claims, `flagged.html` `F1–F20` + `DR1–DR3`, `summary.html` `17/17` trace rows, `data/probe/api_surface_2026-11-24.json`).
 
 ## Local Verification Results (2026-11-27)
 
 | Check command | Scope | Outcome |
 |---|---|---|
-| `node --test tests/*.test.mjs` | All Node unit, CI-coverage, taxonomy, table-shape, wording, simulator, dollar-volume & sources guards | **249/249 passed** |
+| `node --test tests/*.test.mjs` | All Node unit, CI-coverage, requirements-trace, taxonomy, table-shape, wording, simulator, dollar-volume & sources guards | **259/259 passed** |
 | `cd tests/dom && npm test` | jsdom integration suites (`alerts-dom.mjs`, `summary-dom.mjs`, `category-dom.mjs`) | **22/22 + 5/5 + 24/24 passed (51/51)** |
 | `python3 -m unittest discover -s tools` | Link checker & probe collector Python tests | **55/55 passed** |
 | `python3 -m unittest discover -s tests` | Python relay, WS & trade analyzer tests | **20 ran (17 passed, 3 skipped live-WS)** |

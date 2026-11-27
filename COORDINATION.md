@@ -3776,10 +3776,10 @@ lets facts be re-read today rather than cited from a November capture.
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
-| K1 | Re-read the official pages the site depends on, today, and record what is now confirmable that was not before (fee-schedule PDF, rate limits, Get Markets/Get Events parameters, `previous_price_dollars` wording) | in progress | `54220d3d` | `reports/verify-54220d3d.md` (new), this section | `docs.kalshi.com/*.md` + `kalshi.com/docs/kalshi-fee-schedule.pdf`, fetched 2026-11-27 |
-| K2 | Retire the last `unverified` row in the Sources register (the fee-schedule PDF) now that it can be read, quoting only what the PDF says | in progress | `54220d3d` | `assets/js/sources.js` (fee-schedule row only) | fee schedule PDF (effective 2026-07-07), fetched 2026-11-27 |
-| K3 | Publish the new irregularities this pass found as **new** cards (F18–F20) with live evidence and official links — no other session's card text is edited | in progress | `54220d3d` | `flagged.html` (new cards + counters only), `tests/dom/summary-dom.mjs` (counter expectations only) | live demo API responses + `docs.kalshi.com` pages fetched 2026-11-27 |
-| K4 | Full local harness re-run, PR to `main`, merge, confirm the Pages deploy, record the result here | unclaimed | — | this section | Do not merge a broken site |
+| K1 | Re-read the official pages the site depends on, today, and record what is now confirmable that was not before (fee-schedule PDF, rate limits, Get Markets/Get Events parameters, `previous_price_dollars` wording) | done | `54220d3d` | `reports/verify-54220d3d.md` (new), this section | `docs.kalshi.com/*.md` + `kalshi.com/docs/kalshi-fee-schedule.pdf`, fetched 2026-11-27 |
+| K2 | Retire the last `unverified` row in the Sources register (the fee-schedule PDF) now that it can be read, quoting only what the PDF says | done | `54220d3d` | `assets/js/sources.js` (fee-schedule row only) | fee schedule PDF (effective 2026-07-07), fetched 2026-11-27 |
+| K3 | Publish the new irregularities this pass found as **new** cards (F18–F20) with live evidence and official links — no other session's card text is edited | done | `54220d3d` | `flagged.html` (new cards + counters only), `tests/dom/summary-dom.mjs` (counter expectations only) | live demo API responses + `docs.kalshi.com` pages fetched 2026-11-27 |
+| K4 | Full local harness re-run, PR to `main`, merge, confirm the Pages deploy, record the result here | done | `54220d3d` | this section | Do not merge a broken site |
 
 **Standing rule this session follows:** findings are published, not silently fixed across files other sessions
 own. Nothing here is marked verified without a link to the official page or the live response that shows it.
@@ -3814,10 +3814,94 @@ sessions lands first (or by the integration pull request, if they have not lande
 
 ---
 
-## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `996a598`, 2026-11-27 UTC)
+## Session `d3e0e9f5` (branch `arena/d3e0e9f5-kalshidash2`, base `main` @ `956e704`, 2026-11-27 UTC)
 
-**Claim time:** 2026-11-27T17:37Z. Checked active siblings and open PRs before claiming:
-PR #135 (`54220d3d`) is merged on `main`; PR #134 (`d3e0e9f5`: `flagged.html`, `assets/js/claims.js`, `summary.html`, `assets/js/trace.js`, `tests/requirements-trace.test.mjs`, `tests/dom/summary-dom.mjs`) is open; `df162a93` claims `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `summary.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`; `e081e9af` claims `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs`, `suggestions.html`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
+**Claim time:** 2026-11-27T17:2xZ. **No open PR** at claim time (`gh pr list --state open` → empty). Sessions
+active today, all accounted for: `858d4941` (probe-citation drift + CI guard wiring — merged by its owner as
+**PR #132**), `bacbd8a9` (traded-dollar completeness — both tasks **done**), `54220d3d` (fresh official-source +
+live-API round; it closed **NF1** as **F20** and repaired the **DV1** card — merged as **PR #135** while this
+session was open) and the alerts-refresh bot. The probe figures are pinned per capture
+(`data/probe/api_surface_2026-11-24.json`), and `node --test tests/*.test.mjs` was **240/240 green** on
+`956e704`. No file in this session's scope overlaps any of them.
+
+**Scope amended after `54220d3d` merged (2026-11-27T17:4xZ), recorded rather than quietly absorbed.** That
+session's PR #135 *closed* `NF1` (the NO-order price-scale question), which this session's brief included
+("verify every row"). Nothing is duplicated: `flagged.html`'s NF1 card and the matching `claims.js` row are
+`54220d3d`'s work and were **not edited here**. What this session re-checked independently is the *reading* of
+the two official pages, and it reached the same substance from
+[Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) — `BookSide` is YES-leg only,
+`ask` = "sell YES … economically equivalent to buying NO at `1 - price`". The two sessions agree; neither
+overwrote the other.
+
+**This session's job:** the brief's *verification* leg — re-read the published site's own statements line by line
+against official sources and **live demo responses**, repair what the live API contradicts, publish what cannot be
+confirmed, then integrate. Third-party URLs are **not fetched twice** (logged below): a session's own tool output is
+not an independent check, so re-fetching a URL a previous session already cited would only re-cite that session.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| V1 | Line-by-line re-verification of published API-contract claims against the official `.md` documentation pages **and** dated live demo responses; record every check with its URL | done | `d3e0e9f5` | `reports/verify-d3e0e9f5.md` (new), this section | docs.kalshi.com `.md` pages + `external-api.demo.kalshi.co` responses fetched 2026-11-27 |
+| V2 | Repair the defects V1 proves (stale file paths, contradicted premises); no claim is corrected without the contradicting source quoted | done — F6 pinned to `424190e`/`c3676e5`; `DR1`–`DR3` published | `d3e0e9f5` | `flagged.html` (existing cards' text only), `assets/js/claims.js` (affected rows only), `tests/` (new guard only) | V1's record |
+| V3 | Add the requirement-traceability matrix the brief calls "line by line" to the Summary page, derived from the repository (no hand-typed counts) | done — 17/17 rows wired, `tests/requirements-trace.test.mjs` (10 checks) + a summary-DOM assertion | `d3e0e9f5` | `summary.html`, `assets/js/trace.js` (new), `tests/requirements-trace.test.mjs` (new), `tests/dom/summary-dom.mjs` (assertion only) | brief requirement list; repo paths |
+| V4 | Re-verify the *deployed* Pages build matches the merged `main` and that its own checks are green | in progress | `d3e0e9f5` | this section | Pages API, Actions run IDs, hosted-page fetches |
+| V5 | Full local suite (node, python tools, DOM ×3, page-runtime, link check), PR → `main`, merge without waiting, confirm Pages deploy, record PR link + result here | unclaimed | — | this section | Do not merge a broken site |
+
+**Correction to this session's own claim, kept visible (2026-11-27T17:5xZ).** The claim above first read that
+F6's premise was "contradicted by the code … at any revision", on the strength of `git log -S'"spki"'` and
+logical reasoning over the tree the sandbox holds. That conclusion was **wrong, and the mistake is worth
+recording because it is the one this page exists to prevent**: this checkout is a **shallow** clone
+(`git rev-parse --is-shallow-repository` → `true`, four commits), so a history search over it cannot see the
+repository's first revisions, and a negative result from `git log -S` was treated as evidence of absence.
+Reading the actual first blob through the API
+(`gh api repos/…/contents/docs/assets/app.js?ref=424190e`) shows the claim **was true at `424190e`**: line 101
+imports `"spki"`, line 104 signs `ts + method + path` with no `/trade-api/v2` prefix. It was fixed 19 minutes
+later at `c3676e5`. So the card was **stale, not false** — three days stale, and pointing at a `site/` directory
+that has never existed. Both halves of that sentence are the finding; `reports/verify-d3e0e9f5.md` §3 is where
+the two revisions are pinned. Lesson for the board: **`git log -S` over a shallow clone proves nothing about
+history — ask the API for the revision before calling a card wrong.**
+
+### `54220d3d` — final record: PR #135 merged, Pages built, live pages verified (2026-11-27)
+
+- **PR:** [#135](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/135) — *verify: read the official fee schedule
+  + live demo API directly — retire the last unverified source, publish F18/F19/F20 (closes NF1)* — **merged** into
+  `main` at **`565fde8`** (2026-11-27T17:35:20Z) via `gh pr merge 135 --merge`, without waiting for review, per the
+  standing rule. Branch head at merge: `e28f2de`, rebased onto `main` @ `a38c1c5` after PRs #131/#132/#133 landed
+  in the same hour.
+- **Checks before merge (branch, at `e28f2de`):** `Static site link check` `46042902083` **success** (both jobs:
+  `check`, `dom`), `verify-alerts` `46042877191` success. Local: `node --test tests/*.test.mjs` **246/246**,
+  python tools **55/55**, python tests 20 (3 skipped), DOM **22 · 23 · 23** checks, `page-runtime-check` **18/18**
+  pages / 36 pages / 0 broken links, `check_site_links.py` 36 pages / 0 broken.
+- **Checks after merge (on `main` at `565fde8`):** `verify-live-site` `46043027645` **success**,
+  `live-site-render` `46043027632` **success** (the live render probe against the real demo API).
+- **Pages:** latest build `status=built`, `error=none`, triggering commit `addresses 565fde8`. Hosted content
+  re-fetched after the build: `assets/js/sources.js` carries the new fee-schedule note and the `tags` notes
+  (`…?v=1735`), and `flagged.html` serves sections 12 with F18, F19 and F20 (the last chunk of the page renders
+  the F20 card and the "What is not flagged" list). No broken local link on any of the 36 pages.
+- **What shipped:** the Sources register's unverified count 1 → 0 (the fee-schedule PDF was read in full);
+  Flagged **F20 (mitigated)** which closes **NF1** — the NO-order request price is the YES leg, so the NO
+  contract costs `1 − price`; `claims.js`'s "price scale of a NO order" row → `verified`; Flagged **F18 (open)**
+  exchange sharding vs a single status line; Flagged **F19 (open)** a Golf-tagged series the Golf topic cannot
+  see, with the proposed `series.tags` fix and the live fixture. Counters now **39 open / 64 mitigated /
+  103 total**; claims **97/109 verified, 9 partial, 3 unverified**.
+- **Defect this PR introduced and fixed in-PR:** keeping both sides of the `flagged.html` conflict hunk dropped
+  the DV1 card's closing `</div>`, nesting three cards. The summary DOM harness (which pins "no card may nest
+  another card", Z8) caught it; fixed in a separate commit (`f392b06`) before the PR was opened.
+- **Conflict log (required by the standing rules):** three rebases, all append/append on `COORDINATION.md` and
+  card-list/text on `flagged.html`. Every resolution kept **both** sides: main's PR #131/#132/#133 sections and
+  cards, plus this session's section 12. Nothing from another session was discarded, reverted or reworded, and no
+  other session's card text was edited (NF1's original panel is retained as the record of the open question; only
+  its status tag changed, with F20 linked).
+- **Not verified, not claimed:** any live price, volume, open interest, liquidity or resolution (read in the
+  browser, never transcribed); acceptance of an order or any P&L (no credentials, no authenticated call, **no
+  order placed**); that a `/series` response is the full catalogue (F5); the per-shard status semantics beyond the
+  quoted reference text (F18).
+
+---
+
+## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `f6bad4f`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:37Z (synced after PR #134, PR #135, and PR #137 landed on `main` @ `f6bad4f`; PR #138 open for `e081e9af`). Checked active siblings and open PRs before claiming and re-verified zero overlap after syncing:
+PR #134 (`d3e0e9f5`), PR #135 (`54220d3d`), and PR #137 (`54220d3d` follow-up) are merged on `main`; PR #138 (`e081e9af`: `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs`, `suggestions.html`) is open; `df162a93` claims `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `summary.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
 
 **Disjoint scope (`2f98889c`) — zero overlap with all active branches above:**
 
@@ -3828,3 +3912,4 @@ PR #135 (`54220d3d`) is merged on `main`; PR #134 (`d3e0e9f5`: `flagged.html`, `
 | M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | done | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
 | M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
 
+**Conflict log (`2f98889c`):** merged `origin/main` @ `f6bad4f` cleanly with zero source conflicts; the append-only conflict at the tail of `COORDINATION.md` kept both `d3e0e9f5`/`54220d3d` (`origin/main`) and this session's section verbatim.

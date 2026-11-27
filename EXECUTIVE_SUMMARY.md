@@ -28,7 +28,7 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 - **Live alerts (`alerts.html`) & WebSocket relay (`scripts/relay.py`):** compares `last_price_dollars` across consecutive readings and against `previous_price_dollars` for ≥$0.10 swings in either direction, plus a rule-based **High-ROI watch** filter (a transparent tradeability filter, not predicted ROI) and four automatic browser-local paper strategies. Supports an optional same-origin SSE relay (`scripts/relay.py`) over Kalshi's `ticker` channel (1s coalesced flush; server-side signing flagged `W1–W4`); falls back to 15s REST polling when no relay runs.
 - **Strategy tester (`simulator.html`):** replays strategy rules over official 1-minute candlesticks scored against `settlement_value_dollars`, modelling official fee-schedule rounding (`kalshi.com/docs/kalshi-fee-schedule.pdf`, `Fee Rounding`) while omitting spread and slippage (`F15`), with a seeded random-control baseline, topic/direction breakdowns, and CSV export (`tests/simulator-core.test.mjs`).
 - **Portfolio and demo trading (`portfolio.html`, `strategies.html`):** client-side Web Crypto RSA-PSS / Ed25519 request signing (`evidence/auth-sign-test.mjs`), `Create Order V2` (`POST /portfolio/events/orders`) with `price_ranges[]` snapping and explicit YES-side request quoting (`F20`), plus fill/position categorization by topic, side, and maker/taker role.
-- **Decision and audit registers (`summary.html`, `suggestions.html`, `questions.html`, `verification.html`, `sources.html`, `flagged.html`):** 20 requirement areas, 109 claims (`97` verified, `9` partially verified, `3` unverified), 49 audited documentation sources (**49 verified, 0 unverified** after retiring the fee-schedule PDF), and Flagged items **F1–F20** plus historical cross-references.
+- **Decision and audit registers (`summary.html`, `suggestions.html`, `questions.html`, `verification.html`, `sources.html`, `flagged.html`):** 20 requirement areas + 17/17 requirement-traceability rows (`assets/js/trace.js`), 114 claims (`102` verified, `9` partially verified, `3` unverified), 49 audited documentation sources (**49 verified, 0 unverified** after retiring the fee-schedule PDF), and Flagged items **F1–F20** and **DR1–DR3** (**40 open, 66 mitigated, 106 total**) plus historical cross-references.
 
 ## Key coverage boundaries and limitations
 
@@ -39,9 +39,9 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 
 ## Local verification snapshot (2026-11-27 UTC)
 
-Re-verified on branch `arena/2f98889c-kalshidash2` after syncing with `main` @ `996a598` (`PR #135` merged):
+Re-verified on branch `arena/2f98889c-kalshidash2` after syncing with `main` @ `f6bad4f` (`PR #134`, `PR #135`, and `PR #137` merged):
 
-- **Node unit & static suites (`node --test tests/*.test.mjs`):** **249/249 passed** across all test files (including `ci-coverage`, `probe-citation-drift`, `table-shape`, `taxonomy`, `sources-page`, `simulator-core`, `dollar-volume`, `alerts-core`, `live-core`).
+- **Node unit & static suites (`node --test tests/*.test.mjs`):** **259/259 passed** across all test files (including `ci-coverage`, `probe-citation-drift`, `requirements-trace`, `table-shape`, `taxonomy`, `sources-page`, `simulator-core`, `dollar-volume`, `alerts-core`, `live-core`).
 - **jsdom DOM suites (`cd tests/dom && npm test`):** alerts **22/22**, summary **5/5**, category **24/24** (**51/51** passed).
 - **Python unit tests:** `tools` **55/55** passed; `tests` **20** ran (**17** passed, **3** skipped live-socket opt-in tests).
 - **Site link, signing & runtime checks:** `tools/check_site_links.py` (**36** HTML pages, `0` broken links), `evidence/auth-sign-test.mjs` (**6/6**), and `tools/verify/page-runtime-check.mjs` (**18/18** pages executed cleanly, `0` errors).
