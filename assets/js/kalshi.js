@@ -271,7 +271,7 @@ export function snapToGrid(priceDollars, priceRanges) {
 
 /* Best bid / best ask derived from an orderbook, using the reciprocal rule
  * documented in orderbook_responses: only bids are returned; a NO bid at y
- * implies a YES ask at 1 − y. */
+ * implies a YES ask at 1 − y, and a YES bid at x implies a NO ask at 1 − x. */
 export function deriveQuote(book) {
   const yes = (book?.orderbook_fp?.yes_dollars || book?.orderbook?.yes || []).map(([p, c]) => ({ p: Number(p), c: Number(c) }));
   const no = (book?.orderbook_fp?.no_dollars || book?.orderbook?.no || []).map(([p, c]) => ({ p: Number(p), c: Number(c) }));
@@ -284,6 +284,77 @@ export function deriveQuote(book) {
     bestNoBid,
     bestYesAsk: bestNoBid === null ? null : Number((1 - bestNoBid).toFixed(4)),
     bestNoAsk: bestYesBid === null ? null : Number((1 - bestYesBid).toFixed(4)),
-    yesSpread: bestYesBid !== null && bestNoBid !== null ? Number((1 - bestNoBid - bestYesBid).toFixed(4)) : null
+    yesSpread: bestYesBid !== null && bestNoBid !== null ? Number((1 - bestNoBid - bestYesBid).toFixed(4)) : null,
+    noSpread: bestYesBid !== null && bestNoBid !== null ? Number((1 - bestYesBid - bestNoBid).toFixed(4)) : null
+  };
+}
+
+/* Compute how many contracts are available to buy at a given limit price from a
+ * derived orderbook quote, using ONLY the documented reciprocal relationship in
+ * https://docs.kalshi.com/getting_started/orderbook_responses:
+ *   - Buying YES takes resting NO bids y at implied YES ask = 1 − y (fillable when 1 − y <= limitPrice).
+ *   - Buying NO takes resting YES bids x at implied NO ask = 1 − x (fillable when 1 − x <= limitPrice).
+ * Contract quantities (`count_fp`) support 0.01 granularity per
+ * https://docs.kalshi.com/getting_started/fixed_point_migration, so sums are
+ * rounded to hundredths of a contract rather than truncated to integers.
+ * Pre-fee resting notional only; taker fees and simultaneous queue changes are
+ * not inferred. */
+export function liquidityAtPrice(quote, { side = "yes", limitPrice } = {}) {
+  if (side !== "yes" && side !== "no") {
+    return { valid: false, reason: 'Side must be "yes" or "no".' };
+  }
+  const raw = limitPrice === "" || limitPrice === null || limitPrice === undefined ? NaN : Number(limitPrice);
+  if (!Number.isFinite(raw) || !(raw > 0 && raw < 1)) {
+    return { valid: false, reason: "Enter a limit price strictly between $0.00 and $1.00." };
+  }
+  const target = Number(raw.toFixed(4));
+  const oppositeBids = side === "yes" ? (quote?.no || []) : (quote?.yes || []);
+  const askLevels = oppositeBids
+    .filter(l => Number.isFinite(l.p) && Number.isFinite(l.c) && l.c > 0)
+    .map(l => ({
+      bidPrice: Number(l.p.toFixed(4)),
+      askPrice: Number((1 - l.p).toFixed(4)),
+      contracts: Math.round(l.c * 100) / 100
+    }))
+    .sort((a, b) => a.askPrice - b.askPrice);
+
+  let exactUnits = 0;
+  let fillableUnits = 0;
+  let totalOfferedUnits = 0;
+  let totalCostDollars = 0;
+  let levelsMatched = 0;
+
+  for (const lvl of askLevels) {
+    const units = Math.round(lvl.contracts * 100);
+    totalOfferedUnits += units;
+    if (Math.abs(lvl.askPrice - target) < 1e-9) {
+      exactUnits += units;
+    }
+    if (lvl.askPrice <= target + 1e-9) {
+      fillableUnits += units;
+      totalCostDollars += (units / 100) * lvl.askPrice;
+      levelsMatched++;
+    }
+  }
+
+  const exactContracts = exactUnits / 100;
+  const fillableContracts = fillableUnits / 100;
+  const totalOfferedContracts = totalOfferedUnits / 100;
+  const cost = Number(totalCostDollars.toFixed(4));
+  const vwapDollars = fillableContracts > 0 ? Number((totalCostDollars / fillableContracts).toFixed(4)) : null;
+
+  return {
+    valid: true,
+    side,
+    oppositeSide: side === "yes" ? "no" : "yes",
+    limitPrice: target,
+    bestAsk: askLevels.length ? askLevels[0].askPrice : null,
+    exactContracts,
+    fillableContracts,
+    totalOfferedContracts,
+    levelsMatched,
+    totalLevels: askLevels.length,
+    totalCostDollars: cost,
+    vwapDollars
   };
 }

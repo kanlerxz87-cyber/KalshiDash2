@@ -4,15 +4,24 @@
  * in `data-topic` on <body>. Contains the live board, the price chart with the
  * requested time windows, and the liquidity (order-book depth) view.
  */
-import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src, lineChart } from "./ui.js";
+import { mountChrome, esc, money, money4, int, dec, dt, pill, $, emptyRow, src, lineChart } from "./ui.js";
 import { DEMO, TOPICS, WINDOWS, SOURCES, CANDLE, ALERT } from "./config.js";
 import {
   api, discoverTopic, rankEvents, num, getOrderbook, fetchCandles,
   bucketCandles, LiveSampler, Watchlist, getEvent, eventContext,
   detectJumps, jumpMarkers, seriesCategoriesFor
 } from "./market.js";
-import { deriveQuote } from "./kalshi.js";
+import { deriveQuote, liquidityAtPrice } from "./kalshi.js";
 import { rankByTradedDollars, LIMITS as TRADE_LIMITS, TRADES_SOURCE, TRADES_PATH as TRADE_PATH, missingNote } from "./dollar-volume.js";
+
+/* Contract quantities (`count_fp`) are fixed-point strings with 0.01 granularity
+ * (https://docs.kalshi.com/getting_started/fixed_point_migration). Keep whole
+ * contract counts compact while preserving fractional hundredths without rounding. */
+function qty(v) {
+  const n = num(v);
+  if (n === null) return int(null);
+  return Math.abs(n - Math.round(n)) < 1e-9 ? int(Math.round(n)) : dec(n, 2);
+}
 
 const topicKey = document.body.dataset.topic;
 const topic = TOPICS.find(t => t.key === topicKey);
@@ -36,7 +45,10 @@ const state = {
   candles: null,
   jumps: [],
   live: null,
-  samplerTimer: null
+  samplerTimer: null,
+  quote: null,
+  orderbookUrl: "",
+  priceTouched: false
 };
 
 /* ------------------------------------------------------------------ board */
@@ -357,6 +369,8 @@ $("#dollar-run")?.addEventListener("click", measureTradedDollars);
 async function selectMarket(market) {
   state.selected = market;
   state.candles = null;
+  state.quote = null;
+  state.priceTouched = false;
   stopLive();
   $("#chart-ticker").value = market.ticker;
   $("#chart-meta").innerHTML = `
@@ -612,6 +626,39 @@ function drawWindowDebounced() {
 }
 
 /* ------------------------------------------------------------- liquidity */
+function renderLiquidityCheck() {
+  const box = $("#book-check-result");
+  if (!box) return;
+  if (!state.quote) {
+    box.innerHTML = "";
+    return;
+  }
+  const side = $("#book-check-side")?.value === "no" ? "no" : "yes";
+  const rawPrice = $("#book-check-price")?.value;
+  const check = liquidityAtPrice(state.quote, { side, limitPrice: rawPrice });
+  const sideLabel = side === "yes" ? "YES" : "NO";
+  const oppLabel = side === "yes" ? "NO" : "YES";
+  if (!check.valid) {
+    box.innerHTML = `<div class="callout warn" style="margin:0"><p class="small" style="margin:0">${esc(check.reason)}</p></div>`;
+    return;
+  }
+  const vwapNote = check.vwapDollars !== null ? ` · avg implied ask ${money4(check.vwapDollars)}` : "";
+  const bestNote = check.bestAsk !== null
+    ? `Best implied ${sideLabel} ask on this book: ${money4(check.bestAsk)}.`
+    : `No resting ${oppLabel} bids on this book, so 0 ${sideLabel} contracts are currently offered.`;
+  box.innerHTML = `<div class="callout info" style="margin:0">
+    <p class="small" style="margin:0">
+      <strong>At ${money4(check.limitPrice)} (${sideLabel} buyer):</strong>
+      <strong>${qty(check.fillableContracts)}</strong> contract(s) immediately fillable at or below ${money4(check.limitPrice)}
+      (${qty(check.exactContracts)} at exact ${money4(check.limitPrice)}; ${int(check.levelsMatched)}/${int(check.totalLevels)} resting ${oppLabel}-bid level(s);
+      pre-fee resting notional ${money(check.totalCostDollars)}${vwapNote}).
+      ${bestNote}
+      <a href="${esc(state.orderbookUrl)}" target="_blank" rel="noopener noreferrer">Orderbook API ↗</a> ·
+      ${src(SOURCES.orderbook, "Orderbook Responses")}
+    </p>
+  </div>`;
+}
+
 async function loadBook(ticker) {
   if (!ticker) return;
   pill($("#book-status"), "warn", "loading…");
@@ -619,6 +666,8 @@ async function loadBook(ticker) {
     const book = await getOrderbook(ticker, 20);
     const q = deriveQuote(book);
     const orderbookUrl = `${DEMO.rest}/markets/${encodeURIComponent(ticker)}/orderbook?depth=20`;
+    state.quote = q;
+    state.orderbookUrl = orderbookUrl;
     /* A NO bid at y is a YES ask at 1 − y (official reciprocal rule), and that
      * ask is the price at which a buyer can actually take YES liquidity — which
      * is what the panel heading promises. The implied column is shown next to
@@ -627,7 +676,7 @@ async function loadBook(ticker) {
     const row = (l, kind) => {
       const impliedYesAsk = kind === "no" ? Number((1 - l.p).toFixed(4)) : null;
       return `<tr><td class="num">${money4(l.p)}</td>
-      <td class="num">${int(l.c)}</td>
+      <td class="num">${qty(l.c)}</td>
       <td class="num">${money(l.p * l.c)}</td>
       <td class="num">${impliedYesAsk === null ? `<span class="muted small">—</span>` : money4(impliedYesAsk)}</td>
       <td><span class="tag ${kind === "yes" ? "yes" : "no"}">${kind === "yes" ? "YES bid" : "NO bid"}</span></td>
@@ -641,27 +690,53 @@ async function loadBook(ticker) {
 
     const yesDepth = yesRows.reduce((a, l) => a + l.c, 0);
     const yesNotional = yesRows.reduce((a, l) => a + l.p * l.c, 0);
+    const noDepth = noRows.reduce((a, l) => a + l.c, 0);
     $("#book-summary").innerHTML = `
       <div class="grid cols-4">
         <div class="stat"><div class="k">Best YES bid</div><div class="v">${money4(q.bestYesBid)}</div><div class="m">highest resting YES bid</div></div>
         <div class="stat"><div class="k">Implied YES ask</div><div class="v">${money4(q.bestYesAsk)}</div><div class="m">1 − best NO bid</div></div>
         <div class="stat"><div class="k">YES spread</div><div class="v">${q.yesSpread === null ? `<span class="unv">n/a</span>` : (q.yesSpread * 100).toFixed(1) + "¢"}</div><div class="m">ask − bid</div></div>
-        <div class="stat"><div class="k">YES bid depth (contracts)</div><div class="v">${int(yesDepth)}</div><div class="m">resting bids to buy YES @ ${money(yesNotional)}</div></div>
+        <div class="stat"><div class="k">YES bid depth (contracts)</div><div class="v">${qty(yesDepth)}</div><div class="m">resting YES bids @ ${money(yesNotional)} · ${qty(noDepth)} YES ask offered</div></div>
       </div>`;
+
+    if (!state.priceTouched && $("#book-check-price")) {
+      const side = $("#book-check-side")?.value === "no" ? "no" : "yes";
+      const defaultAsk = side === "yes" ? q.bestYesAsk : q.bestNoAsk;
+      if (defaultAsk !== null) $("#book-check-price").value = defaultAsk.toFixed(4).replace(/00$/, "");
+    }
+    renderLiquidityCheck();
+
+    const emptyAmbiguity = (!yesRows.length && !noRows.length)
+      ? ` Empty <code>yes_dollars</code> and <code>no_dollars</code> arrays are returned with HTTP 200 both when a market has no resting orders and when a ticker is unknown or archived; verify the market record via <a href="${esc(`${DEMO.rest}/markets/${encodeURIComponent(ticker)}`)}" target="_blank" rel="noopener noreferrer">GET /markets/${esc(ticker)} ↗</a>.`
+      : "";
     pill($("#book-status"), "live", `live · ${yesRows.length + noRows.length} levels`);
     $("#book-src").innerHTML = `Order book returns <strong>bids only</strong>; a NO bid at <em>y</em> implies a
-      YES ask at <em>1 − y</em> — the <strong>Implied YES ask</strong> column is that price, so a buyer can read
-      how many contracts are offered at the price they would pay. The contract counts are resting size:
-      YES-bid rows are demand to <strong>buy</strong> YES (sell into them); NO-bid rows are the size a YES buyer
-      can take at the implied ask. ${src(SOURCES.orderbook, "order-book docs")}`;
+      YES ask at <em>1 − y</em> (and a YES bid at <em>x</em> implies a NO ask at <em>1 − x</em>) — the
+      <strong>Implied YES ask</strong> column shows the price a YES buyer pays, and the lookup bar above sums
+      resting opposite-side bids up to any chosen limit price. Contract counts preserve fixed-point
+      <code>count_fp</code> fractional precision.${emptyAmbiguity} ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
+    state.quote = null;
     pill($("#book-status"), "err", e.message);
     $("#book-summary").innerHTML = "";
+    if ($("#book-check-result")) $("#book-check-result").innerHTML = "";
     $("#yes-book").innerHTML = emptyRow(6, "Order book unavailable.");
     $("#no-book").innerHTML = emptyRow(6, "Order book unavailable.");
   }
 }
 $("#book-refresh").addEventListener("click", () => loadBook(state.selected?.ticker));
+$("#book-check-side")?.addEventListener("change", () => {
+  if (!state.priceTouched && state.quote && $("#book-check-price")) {
+    const side = $("#book-check-side").value === "no" ? "no" : "yes";
+    const defaultAsk = side === "yes" ? state.quote.bestYesAsk : state.quote.bestNoAsk;
+    if (defaultAsk !== null) $("#book-check-price").value = defaultAsk.toFixed(4).replace(/00$/, "");
+  }
+  renderLiquidityCheck();
+});
+$("#book-check-price")?.addEventListener("input", () => {
+  state.priceTouched = true;
+  renderLiquidityCheck();
+});
 
 /* ------------------------------------------------------------------ init */
 loadBoard();
