@@ -1,6 +1,6 @@
 # Orderbook liquidity-at-price, CLI/CSV hardening & live demo verification — session `e6d55cf7`
 
-Checked **2026-11-27 UTC**. Branch: `arena/e6d55cf7-kalshidash2`.
+Checked **2026-11-27 UTC**. Branch: `arena/e6d55cf7-kalshidash2`. PR: [#163](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/163) (merged at `700c0d4`).
 
 ## Scope and boundaries
 
