@@ -1,208 +1,111 @@
 # KalshiDash2
 
 Live dashboard for the **Kalshi demo** exchange: highest-dollar live events in gas prices, elections,
-culture, crypto and golf — tracked until they resolve (yes/no), with a live price-alert stream,
-automated simulated trades, demo trading, trade categorization and performance analysis.
+culture, crypto and golf — tracked until they resolve (`yes` / `no` / `scalar`), with a live price-alert
+stream, candle-replay strategy tester, paper trading, guarded demo order entry, trade categorization and
+audit registers.
 
-> **Two site generations live in this repository, and both are reachable.**
+> **Two site generations live in this repository:**
 >
-> * **root `index.html` + `categories/`, `assets/`, `evidence/`** — the verified rebuild documented
->   below. GitHub Pages source is `main:/`, so this is what
->   <https://kanlerxz87-cyber.github.io/KalshiDash2/> serves. It fixes three defects the
->   `docs/` generation still carries (see `flagged.html` F6–F8).
-> * **`docs/`** — the earlier generation, still reachable at `/docs/` because the legacy `main:/`
->   build publishes the whole repository. Its separate deploy workflow
->   (`.github/workflows/pages.yml`) has been manual-only since PR #17 ended the two-deployer race
->   (see `COORDINATION.md`, task P1), so nothing under `docs/` is auto-deployed any more. Nothing
->   in it was deleted or edited by the merge that brought the rebuild in. Since 2026-11-21 its
->   landing page (`docs/index.html`) redirects to the root site (Flagged Y10, mitigated), so
->   visitors no longer land on the defective generation; subpages remain for historical reference.
+> * **Root `index.html` + `categories/`, `assets/`, `evidence/`** — the canonical site served by GitHub Pages
+>   (<https://kanlerxz87-cyber.github.io/KalshiDash2/>, source `main:/`, `build_type: legacy`).
+> * **`docs/`** — the earlier generation retained for history; `docs/index.html` redirects to the root site,
+>   and `.github/workflows/pages.yml` is manual-only (uploading `path: .`, the repository root) so nothing
+>   under `docs/` auto-deploys over `main:/`.
 >
-> `COORDINATION.md` records which session owns what.
+> [`COORDINATION.md`](COORDINATION.md) coordinates parallel sessions.
 
 **Data:** `https://external-api.demo.kalshi.co/trade-api/v2` (public market data needs no key).
-Trading needs your own demo API key, entered in the browser only (or via `scripts/kalshi_client.py`)
-— never commit keys. Official docs: https://docs.kalshi.com · demo site: https://demo.kalshi.co
+Trading needs your own demo API key, entered in `portfolio.html` (kept in the browser tab) or passed to
+`scripts/kalshi_client.py` / `scripts/relay.py` — never commit keys.
+Official docs: <https://docs.kalshi.com> · demo site: <https://demo.kalshi.co>.
 
-**Sources register:** `sources.html` (data in `assets/js/sources.js`, tests in
-`tests/sources-page.test.mjs`) lists every official page the site depends on, what each is used for, and how it was
-checked — read in full, matched against the official <https://docs.kalshi.com/llms.txt> index, or left unverified
-and flagged.
+**Sources & Claims registers:** [`sources.html`](sources.html) (`assets/js/sources.js`, 49 sources verified,
+0 unverified) lists every documentation source used; [`verification.html`](verification.html)
+(`assets/js/claims.js`, 109 claims) links every technical claim to an official page or probe;
+[`flagged.html`](flagged.html) records open defects, design limits, and verified irregularities (`F1–F20`).
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
-(Σ `count_fp` × the price of the side the taker bought) — the real dollar figure, beside the volume × price proxy
-that the ranking column still uses. The taker's own recorded side selects which price applies: a trade with no
-recorded side, or no price on the side taken, is excluded and counted rather than valued by assumption, and a market
-whose pages cannot all be read withholds the topic total instead of contributing zero. Each market measured carries
-its own response link. Logic in `assets/js/dollar-volume.js`, tests in `tests/dollar-volume.test.mjs` and the
-category page suite in `tests/dom/`.
+(Σ `count_fp` × price of the taker's recorded `taker_outcome_side`), alongside the ranking column's
+labelled `volume_fp × last_price_dollars` proxy. Incomplete/untagged trades are counted and excluded, and any
+market read failure withholds the topic total (`n/a`). See `assets/js/dollar-volume.js` and `tests/dollar-volume.test.mjs`.
 
-**Repo-side tools:** `scripts/kalshi_client.py` (verified demo API client: markets, orderbook,
-candlesticks, balance, positions, fills, guarded order placement; supports RSA + Ed25519;
-hard-locked to the demo host), `scripts/analyze_trades.py` (categorize fills by trade
-type/topic/direction), `data/trades_template.csv` (header-only template in official Get Fills
-field names), `evidence/auth-sign-test.mjs` (6-check signing-rule self-test, no network needed),
-`tools/verify/page-runtime-check.mjs` (executes every published page against a DOM shim).
+**Repo-side Python & CLI tools:** `scripts/kalshi_client.py` (demo-locked REST client with RSA/Ed25519 signing),
+`scripts/relay.py` & `scripts/kalshi_ws.py` (demo-locked WebSocket `ticker` stream & SSE relay),
+`scripts/collect.py` (API surface probe writer), `scripts/analyze_trades.py` (fill categorizer),
+`data/trades_template.csv`, `evidence/auth-sign-test.mjs` (6 signing checks), and
+`tools/verify/page-runtime-check.mjs` (executes all 18 root/category pages against a DOM shim).
 
-**Docs in repo:** `EXECUTIVE_SUMMARY.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `VERIFICATION.md`,
-`COORDINATION.md` (shared task board for parallel sessions).
-
-**Verification rule:** every table row links an official source; values that can't be confirmed
-are left blank and flagged on the Flagged for Review page — never inferred. Live values are
-fetched in the browser and never transcribed into the repo.
+**Docs in repo:** [`EXECUTIVE_SUMMARY.md`](EXECUTIVE_SUMMARY.md), [`QUESTIONS.md`](QUESTIONS.md),
+[`SUGGESTIONS.md`](SUGGESTIONS.md), [`VERIFICATION.md`](VERIFICATION.md), [`COORDINATION.md`](COORDINATION.md).
 
 ## What it does
 
-- **Overview** — every live event in the five topics, ranked by a clearly labelled volume × last YES-price proxy, open interest or
-  contract volume, with the formula for each shown inline. The volume-price figure is not actual dollars traded; the dashboard flags this limitation. It also shows the biggest $0.10+ swings in
-  the current scan.
-- **Live alerts** — two scrolling chats: every contract-price swing of **$0.10 or more in either
-  direction**, and a **High-ROI watch** of the moves that pass a transparent rule set (a
-  placeholder for a model, not an edge). Swings are detected two ways — against the exchange's own
-  `previous_price_dollars` and between two consecutive readings — and every message is labelled with
-  the comparison that produced it. A table view of the same events carries one official API link
-  per row. Four paper strategies run automatically on the alerts; no orders are placed.
-  The feed has two possible sources and the status pill always names the one that is running:
-  the Kalshi **WebSocket `ticker` channel** (about one flush per second, reached through
-  `scripts/relay.py`) or the REST poll. A browser cannot open a Kalshi socket itself — the
-  handshake needs headers a page cannot set — so the relay opens it server-side and republishes
-  the frames. Without the relay the page falls back to polling and says so.
-- **Strategy tester** — strategy rules replayed over official one-minute candlesticks. Every
-  simulated trade is scored against the market's own `settlement_value_dollars`, with YES and NO
-  entry prices handled as complements and the assumptions (official-schedule fees modelled; no spread,
-  no slippage) stated
-  above the results. Includes a reproducible seeded random-control baseline, rollups by topic and
-  YES/NO direction, CSV export of the simulated ledger, and a live paper-trading book driven by the
-  same alert engine as the Live alerts page. The random baseline is a comparison, not a prediction
-  or statistical significance test; historical NO-side results from before the correction are flagged
-  on the Flagged for Review page.
-- **Category pages** (gas, elections, culture, crypto, golf) — the live board for that topic,
-  a price chart with 10s → 7d windows, markers on every ≥$0.10 jump inside the official candle
-  series, and order-book depth showing how many contracts rest at each price.
-- **Event detail** — every market in an event with prices, sizes, rules and the exchange's
-  reported resolution.
-- **Resolved** — markets tracked until the API reports `result` as `yes` or `no`, plus a live
-  scan of recently settled markets.
-- **Portfolio** — demo balance, positions and fills, and V2 order placement with prices snapped
-  to each market's own published price grid. The API key stays in the browser tab.
-- **Strategies** — fills categorised by topic, side and maker/taker role, plus a catalogue of
-  fill-based rules and the six history-based rules the Strategy Tester can already score.
-- **Suggestions · Questions · Verification · Flagged** — the decision register: what is proven,
-  what is not, what to decide next, and every source link.
+- **Overview (`index.html`)** — live events across Gas, Elections, Culture, Crypto, and Golf, ranked by the
+  clearly labelled `volume_fp × last_price_dollars` proxy, open interest, or contract volume, plus current ≥$0.10 swings.
+- **Live alerts (`alerts.html`)** — scrolling **All alerts** (≥$0.10 swings via `previous_price_dollars` and
+  consecutive polls) and rule-screened **High-ROI watch**, plus four browser-local paper strategies. Runs on
+  REST polling by default and supports Kalshi's WebSocket `ticker` stream (~1s flush) via optional local
+  same-origin `scripts/relay.py`.
+- **Strategy tester (`simulator.html`)** — strategy replay over official 1-minute candlesticks scored against
+  `settlement_value_dollars`, modelling official fee-schedule rounding while omitting spread/slippage, with
+  seeded random-control baseline, topic/direction rollups, CSV export, and live paper-book integration.
+- **Category pages (`categories/{gas,elections,culture,crypto,golf}.html`)** — topic event boards (including
+  series `category`, `categories[]`, and `tags[]` taxonomy matching such as `tags: ["Golf"]`), 10s–7d price
+  charts marking ≥$0.10 jumps, 6-column bid order books with implied YES asks (`1 − best NO bid`), and
+  on-demand `GET /markets/trades` dollar-volume sampling.
+- **Event detail (`event.html`) & Resolved (`resolved.html`)** — per-market prices, sizes, settlement status
+  (`marketResultState`), rules, and resolution watchlist tracking.
+- **Portfolio (`portfolio.html`) & Strategies (`strategies.html`)** — demo balance, positions, fills, V2 order
+  entry (`POST /portfolio/events/orders` with `price_ranges[]` grid snapping), and fill breakdown.
+- **Summary · Suggestions · Questions · Verification · Sources · Flagged** — requirement coverage, decision
+  board (`S1–S17`, `Q1–Q17`), claim audit (`VERIFICATION.md`), source audit, and flagged issues (`F1–F20`).
 
 ## Ground rules this site follows
 
-- No value is inferred. A field the API did not return renders as `n/a`, never as `$0.00`.
-- Computed figures name their formula; API figures name the endpoint that produced them.
-- A "model" that cannot be measured is labelled as a screen, not an edge.
-- Every claim on the **Verification** page links an official Kalshi source, and where possible
-  a captured live response committed under `evidence/`.
-- Anything unconfirmed is listed on **Flagged for review** with the evidence that would close it.
-
-## Layout
-
-```
-index.html                overview board            <- published site root (Pages: main:/)
-  summary.html            executive summary
-  alerts.html             live alerts: $0.10+ swings, High-ROI watch, paper strategies
-  simulator.html          strategy tester (backtest over official candles)
-  categories/*.html       one page per topic
-  event.html              single-event detail
-  resolved.html           resolution tracking
-  portfolio.html          demo account + order entry
-  strategies.html         trade analysis + strategy catalogue
-  suggestions.html        decision board
-  questions.html          questions, information, answers
-  verification.html       claim register with official sources
-  sources.html            source register: every official page, its use and how it was checked
-  flagged.html            irregularities + unverified items
-  assets/js/*.js          client, market data, chart, alerts, simulator, UI (ES modules)
-  assets/css/app.css
-  evidence/               captured API evidence + signing self-test
-reports/                  raw CI captures of the demo API
-tools/verify/             auditable verification harness
-COORDINATION.md           shared task board for parallel sessions
-```
-
-## Deployment — which deployer is authoritative
-
-**GitHub Pages publishes from `main:/` with `build_type: legacy`** (verified against the
-`gh api repos/kanlerxz87-cyber/KalshiDash2/pages` record, 2026-11-22). That builder runs on
-every push to `main` and publishes the **repository root**, which is why `docs/`, `reports/` and
-`COORDINATION.md` are reachable on the live host as well as the pages themselves.
-
-`.github/workflows/pages.yml` is a **manual fallback for the same tree**: it has no push trigger (PR #17
-ended the two-deployer race) and since PR #126 it uploads `path: .` — the repository
-root — instead of the old `path: docs`, which would have published the superseded generation. The flag
-that recorded the mismatch is [Flagged AC3](flagged.html#AC3); the workflow is kept so there is still a
-manual path that publishes the right tree.
-
-If Pages' source is ever switched from "deploy from a branch" to "GitHub Actions", `pages.yml` becomes
-the deployer; nothing else needs changing, and the push-triggered legacy build must be turned off so the
-two do not race again.
+- No value is inferred: missing API fields render as `n/a`, never `$0.00`.
+- Computed figures name their formula; API figures link to their endpoint or documentation source.
+- Screens and proxies (`High-ROI watch`, `volume_fp × last_price_dollars`) are labelled as filters/proxies, not edge or actual cash turnover.
+- Unconfirmed behaviour stays blank or logged on [`flagged.html`](flagged.html).
 
 ## Running locally
 
-Any static server works; ES modules require HTTP, not `file://`:
+Any static HTTP server works for REST-polled pages (ES modules require HTTP, not `file://`):
 
 ```bash
 python3 -m http.server 8080
 ```
 
-### With the live WebSocket ticker feed (optional)
+### With the optional live WebSocket ticker relay
 
-The plain static server above gives the REST-polled alerts page. To get the
-exchange's own per-second ticker flush instead, run the relay. It needs a
-**demo** API key — create one at <https://demo.kalshi.co> (Account & security →
-API Keys). The key is never written to disk and never sent to the browser.
+To stream Kalshi's `ticker` channel into `alerts.html` via `/live/stream`, supply a demo API key (`demo.kalshi.co`)
+to the local relay (both `scripts/relay.py` and `scripts/kalshi_ws.py` are hard-locked to the demo host):
 
 ```bash
 pip install websockets cryptography requests
-
 export KALSHI_KEY_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 export KALSHI_PRIVATE_KEY_PATH=./kalshi-demo-key.pem
-
 python3 scripts/relay.py --port 8080 --auto-universe
-# then open http://localhost:8080/alerts.html
+# open http://localhost:8080/alerts.html
 ```
-
-The relay serves the site on the same origin and republishes the Kalshi
-WebSocket frames to the page as Server-Sent Events on `/live/stream`. Without
-it, the page falls back to the REST poll and the status pill says which source
-is running.
-
-To watch the raw ticker stream without the site:
-
-```bash
-python3 scripts/kalshi_ws.py --ticker KXHIGHNY-26NOV20-T74.5
-```
-
-Both scripts are hard-locked to the demo hosts and refuse to talk to production.
 
 ## Verification
 
+Full local verification matches `.github/workflows/site-check.yml`:
+
 ```bash
-node evidence/auth-sign-test.mjs          # 6/6 signing-rule checks
-node tools/verify/page-runtime-check.mjs  # every published page executes cleanly + local link check
-node --test tests/alerts-core.test.mjs    # alert engine + contract-link rules (28)
-node --test tests/live-core.test.mjs      # live-feed field mapping and $0.10 threshold tests (23)
-node --test tests/taxonomy.test.mjs       # topic taxonomy + combo classifier (17)
-node --test tests/result-semantics.test.mjs # yes / no / scalar settlement labels (11)
-node --test tests/chart-axis.test.mjs     # X-axis labels for seconds → days windows (10)
-node --test tests/simulator-core.test.mjs # simulator P&L, random baseline, rollup, CSV tests
-node --test tests/dollar-volume.test.mjs  # official traded-dollar volume (Get Trades) + incompleteness rules
-node --test tests/sources-page.test.mjs   # Sources register: links, checks, no transcribed values
-(cd tests/dom && npm ci && npm test)      # alerts, summary and category pages end-to-end with fixtures
-python3 tools/check_site_links.py .       # local links and anchors in the published site
-python3 -m unittest discover -s tools     # link-checker tests
+node evidence/auth-sign-test.mjs            # 6/6 Web Crypto signing checks
+node tools/verify/page-runtime-check.mjs    # 18/18 published pages execute cleanly + 36-page link check
+node --test tests/*.test.mjs                # 249/249 Node unit, CI-coverage, taxonomy, table-shape & simulator tests
+(cd tests/dom && npm ci && npm test)        # 51/51 jsdom checks (alerts 22, summary 5, category 24)
+python3 -m unittest discover -s tools       # 55/55 link-checker & probe-collector tests
+python3 -m unittest discover -s tests       # Python relay/ws/trade-analyzer unit tests
+python3 tools/check_site_links.py .         # 36 HTML pages, 0 broken local links or anchors
 ```
 
-The live-API checks run on GitHub runners, because the build sandbox cannot open TLS to
-Kalshi hosts: `verify-alerts` writes `reports/alerts-live-check.md`, and `live-engine-check`
-writes `reports/live-engine-check.md`.
+Live API workflows run on GitHub Actions runners (`verify-alerts.yml` → `reports/alerts-live-check.md`,
+`verify-facts.yml`, `live-site-render.yml`, `collect.yml`). See [`verification.html`](verification.html),
+[`flagged.html`](flagged.html), and [`reports/verify-2f98889c.md`](reports/verify-2f98889c.md).
 
-See `verification.html` for the full claim register and `flagged.html` for everything
-that could not be confirmed.
-
-Demo environment only: funds are mock, and demo prices may not reflect production markets.
+Demo environment only: funds are mock, and demo prices may differ from production markets.
 Not affiliated with or endorsed by Kalshi.

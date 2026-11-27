@@ -134,7 +134,12 @@ export async function classifyMultivariate(ev, legEventLookup) {
  * page life and capped per scan, because public reads are rate-limited and a
  * series lookup is one extra request per distinct series.
  */
-const SERIES_CATEGORIES = new Map(); // series_ticker -> { cats, primary, failed }
+const SERIES_CATEGORIES = new Map(); // series_ticker -> { cats, tags, primary, sources, failed }
+
+function normalizeTags(raw) {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter(t => typeof t === "string").map(t => t.trim()).filter(Boolean))];
+}
 
 /* Seed the cache (also used by tests and by callers that already hold a series
  * record, so a page never re-requests what it has). */
@@ -156,9 +161,11 @@ export function primeSeriesCategories(entries) {
   for (const [ticker, value] of Object.entries(entries || {})) {
     if (!ticker) continue;
     const cats = Array.isArray(value) ? value : (value && value.cats) || [];
+    const tags = Array.isArray(value) ? [] : normalizeTags(value && value.tags);
     const primary = Array.isArray(value) ? null : (value && value.primary) || null;
     SERIES_CATEGORIES.set(String(ticker), {
       cats: [...new Set([...cats, primary].filter(Boolean))],
+      tags,
       primary,
       /* A primed record may carry the sources directly; otherwise none. Nothing
        * is fetched here, so an absent field stays absent rather than guessed. */
@@ -170,7 +177,7 @@ export function primeSeriesCategories(entries) {
 
 export function clearSeriesCategoryCache() { SERIES_CATEGORIES.clear(); }
 
-/* Resolve the series-level categories for a set of series tickers.
+/* Resolve the series-level categories and tags for a set of series tickers.
  * Returns { requested, fetched, cached, failed, capped } so the caller can
  * disclose how many events were classified from the series record versus the
  * deprecated event field, instead of implying full coverage. */
@@ -196,9 +203,11 @@ export async function fetchSeriesCategories(tickers, { cap = 30, fetcher } = {})
       const json = await get(`/series/${encodeURIComponent(ticker)}`);
       const series = (json && json.series) || json || {};
       const cats = Array.isArray(series.categories) ? series.categories : [];
+      const tags = normalizeTags(series.tags);
       const primary = series.category || null;
       SERIES_CATEGORIES.set(ticker, {
         cats: [...new Set([...cats, primary].filter(Boolean))],
+        tags,
         primary,
         sources: seriesSourcesFrom(series),
         failed: false
@@ -207,7 +216,7 @@ export async function fetchSeriesCategories(tickers, { cap = 30, fetcher } = {})
     } catch {
       /* A failed lookup is not a category. Leave the event to the documented
        * fallback rather than guessing. */
-      SERIES_CATEGORIES.set(ticker, { cats: [], primary: null, sources: [], failed: true });
+      SERIES_CATEGORIES.set(ticker, { cats: [], tags: [], primary: null, sources: [], failed: true });
       failed += 1;
     }
   }
@@ -223,19 +232,25 @@ export function seriesCategoriesFor(ticker) {
 export function classifyEventWithBasis(ev) {
   if (!ev) return { topic: null, basis: "none", categories: [] };
   const series = seriesCategoriesFor(ev.series_ticker);
-  const useSeries = !!(series && series.cats && series.cats.length);
-  const cats = useSeries ? series.cats : [ev.category].filter(Boolean);
+  const hasSeriesCats = !!(series && series.cats && series.cats.length);
+  const hasSeriesTags = !!(series && series.tags && series.tags.length);
+  const useSeries = hasSeriesCats || hasSeriesTags;
+  const cats = hasSeriesCats ? series.cats : [ev.category].filter(Boolean);
+  const tags = hasSeriesTags ? series.tags : normalizeTags(ev.tags);
   return {
-    topic: classifyEvent(ev, useSeries ? cats : null),
-    basis: useSeries ? "series" : (cats.length ? "event" : "none"),
+    topic: classifyEvent(ev, hasSeriesCats ? cats : null, hasSeriesTags ? tags : null),
+    basis: useSeries ? "series" : (cats.length || tags.length ? "event" : "none"),
     categories: cats
   };
 }
 
-export function classifyEvent(ev, seriesCats) {
+export function classifyEvent(ev, seriesCats, seriesTags) {
   if (!ev) return null;
-  const resolved = seriesCats || seriesCategoriesFor(ev.series_ticker)?.cats;
-  const cats = (resolved && resolved.length ? resolved : [ev.category]).filter(Boolean);
+  const cached = seriesCategoriesFor(ev.series_ticker);
+  const resolvedCats = seriesCats || cached?.cats;
+  const resolvedTags = seriesTags || cached?.tags;
+  const cats = (resolvedCats && resolvedCats.length ? resolvedCats : [ev.category]).filter(Boolean);
+  const tags = resolvedTags && resolvedTags.length ? resolvedTags : normalizeTags(ev.tags);
   const titles = [ev.title, ev.sub_title].filter(Boolean);
   const series = [ev.series_ticker].filter(Boolean);
 
@@ -243,17 +258,21 @@ export function classifyEvent(ev, seriesCats) {
     const byCat = testAny(topic.categoryPatterns, cats);
     if (byCat) {
       // A category match is authoritative, except for broad categories
-      // (Sports) that are narrowed by series/title.
+      // (Sports) that are narrowed by series tags / series / title.
       if (topic.key !== "golf" && !excluded(topic, cats, titles, series)) return topic.key;
     }
   }
   const golf = TOPICS.find(t => t.key === "golf");
   if (!excluded(golf, cats, titles, series) &&
-      (testAny(golf.seriesPatterns, series) || testAny(golf.titlePatterns, titles))) return "golf";
+      ((Array.isArray(golf.tagPatterns) && testAny(golf.tagPatterns, tags)) ||
+       testAny(golf.seriesPatterns, series) ||
+       testAny(golf.titlePatterns, titles))) return "golf";
 
   const gas = TOPICS.find(t => t.key === "gas");
   if (!excluded(gas, cats, titles, series) &&
-      (testAny(gas.seriesPatterns, series) || testAny(gas.titlePatterns, titles))) return "gas";
+      ((Array.isArray(gas.tagPatterns) && testAny(gas.tagPatterns, tags)) ||
+       testAny(gas.seriesPatterns, series) ||
+       testAny(gas.titlePatterns, titles))) return "gas";
 
   return null;
 }

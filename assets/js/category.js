@@ -652,8 +652,9 @@ async function loadBook(ticker) {
       can take at the implied ask. ${src(SOURCES.orderbook, "order-book docs")}`;
   } catch (e) {
     pill($("#book-status"), "err", e.message);
-    $("#yes-book").innerHTML = emptyRow(5, "Order book unavailable.");
-    $("#no-book").innerHTML = emptyRow(5, "Order book unavailable.");
+    $("#book-summary").innerHTML = "";
+    $("#yes-book").innerHTML = emptyRow(6, "Order book unavailable.");
+    $("#no-book").innerHTML = emptyRow(6, "Order book unavailable.");
   }
 }
 $("#book-refresh").addEventListener("click", () => loadBook(state.selected?.ticker));

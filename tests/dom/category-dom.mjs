@@ -113,6 +113,8 @@ function weeklyCandles() {
 
 /* Which market's trades request should fail, for the n/a assertion below. */
 let tradesFailure = null;
+/* Whether the orderbook request should fail, for the 6-column error-row check. */
+let bookFailure = false;
 
 const ORDERBOOK = {
   orderbook_fp: {
@@ -181,6 +183,7 @@ async function mockFetch(url) {
   }
   if (path === "/markets/KXBTC-1/orderbook") {
     assert.equal(u.searchParams.get("depth"), "20");
+    if (bookFailure) return reply(500, { error: { code: "fixture_book_failure" } });
     return reply(200, ORDERBOOK);
   }
   return reply(404, { error: { code: "not_mocked", path } });
@@ -363,6 +366,22 @@ check("an unreadable market withholds the headline total AND that row's figure",
   assert.match(text("#dollar-kpis"), /Traded dollars\s*n\/a/, "no partial sum is shown as the total");
   assert.match(text("#dollar-rows"), /n\/a/, "the affected event shows n/a");
   assert.ok(!/\$8\.00/.test(text("#dollar-rows")), "the earlier total is replaced, not left behind");
+});
+
+bookFailure = true;
+$("#book-refresh").click();
+await until(() => text("#book-status").includes("500"));
+check("an orderbook error spans all six columns on both sides and clears stale summary KPIs", () => {
+  assert.equal(text("#book-summary"), "", "stale summary KPIs are cleared on error");
+  for (const sel of ["#yes-book", "#no-book"]) {
+    const header = $$(`#${sel.replace("#", "")}`)[0].closest("table").querySelectorAll("thead th");
+    assert.equal(header.length, 6, `${sel} header has six columns`);
+    const rows = $$(`${sel} tr`);
+    assert.equal(rows.length, 1, `${sel} renders one error row`);
+    assert.equal(rows[0].cells.length, 1, `${sel} error row has one spanning cell`);
+    assert.equal(rows[0].cells[0].colSpan, 6, `${sel} error row must span 6 columns, not 5`);
+    assert.match(rows[0].textContent, /Order book unavailable\./);
+  }
 });
 
 /* 6. hygiene */

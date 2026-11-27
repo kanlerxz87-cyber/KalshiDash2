@@ -1,9 +1,8 @@
 /* Offline markup regression for the canonical root + categories site.
  * Checks static placeholders and explicit inline `.innerHTML = ... emptyRow(N)`
- * assignments, including ternaries. The alerts controller's local `body` aliases
- * are checked separately. This is not a general JavaScript/HTML parser and does
- * not claim coverage of all external controllers (category-book error rows are
- * logged to their owner). The page-runtime harness checks execution, not widths.
+ * assignments, including ternaries. External controllers (`alerts.js` and
+ * `category.js`) are checked separately against their published table widths.
+ * The page-runtime harness checks execution, not widths.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -158,6 +157,18 @@ test("alert and paper-trade controller aliases use the table's actual width", ()
   const mutant = code.replace('emptyRow(10, "No swing', 'emptyRow(9, "No swing');
   assert.ok(checkCode("mutant", mutant, widths).some(p => p.includes("#alert-rows")),
     "the regression guard must fail when the original nine-column defect is restored");
+});
+
+test("category controller empty rows match the published six-column and nine-column table widths", () => {
+  const code = read("assets/js/category.js");
+  for (const topic of ["gas", "elections", "culture", "crypto", "golf"]) {
+    const widths = tableWidths(read(`categories/${topic}.html`));
+    assert.deepEqual(checkCode(`assets/js/category.js (${topic})`, code, widths), []);
+  }
+  const widths = tableWidths(read("categories/crypto.html"));
+  const mutant = code.replace('emptyRow(6, "Order book unavailable.")', 'emptyRow(5, "Order book unavailable.")');
+  assert.ok(checkCode("mutant", mutant, widths).some(p => p.includes("#yes-book")),
+    "the regression guard must fail when the 5-column book-error width defect is restored");
 });
 
 test("the five category pages retain chart, book and traded-dollar targets", () => {

@@ -156,7 +156,7 @@ export function mountChrome({ page, title, depth = 0 }) {
   document.body.append(footer);
 }
 
-export const BUILD_DATE = "2026-11-21";
+export const BUILD_DATE = "2026-11-27";
 
 /* X-axis tick label for a chart window.
  *
