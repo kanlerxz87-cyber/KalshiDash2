@@ -4,10 +4,36 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
 from scripts import collect
+
+
+class WorkflowSummaryTests(unittest.TestCase):
+    def test_workflow_summary_runs_on_current_snapshot_schema(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / '.github/workflows/collect.yml').read_text()
+        start = workflow.index("          python3 - <<'PY'\n") + len("          python3 - <<'PY'\n")
+        end = workflow.index("          PY\n", start)
+        script = textwrap.dedent(workflow[start:end])
+        snapshot = {
+            '_meta': {'generated_at': 'fixture', 'api_calls': 1, 'errors': []},
+            'topics': {'gas': {'series_rows_kept_for_topic': 2, 'events': [],
+                               'markets': [], 'rule': 'fixture'}},
+            'orderbooks': [], 'candles': [],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp) / 'data'
+            data.mkdir()
+            (data / 'snapshot.json').write_text(json.dumps(snapshot))
+            result = subprocess.run([sys.executable, '-c', script], cwd=tmp,
+                                    capture_output=True, text=True, check=True)
+        self.assertIn('series_rows_kept_for_topic=   2', result.stdout)
 
 
 class FakeClient:

@@ -59,7 +59,7 @@ jobs:
           print("api_calls:", m["api_calls"])
           print("errors:", len(m["errors"]))
           for k, t in d["topics"].items():
-              print(f"  {k:10s} series={t['series_count']:4d} events={len(t['events']):4d} markets={len(t['markets']):4d}  ({t['rule']})")
+              print(f"  {k:10s} series_rows_kept_for_topic={t['series_rows_kept_for_topic']:4d} events={len(t['events']):4d} markets={len(t['markets']):4d}  ({t['rule']})")
           print("orderbooks:", len(d["orderbooks"]), "candles:", len(d["candles"]))
           for e in m["errors"][:5]:
               print("  ERR", e[:160])
