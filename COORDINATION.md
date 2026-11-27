@@ -3707,3 +3707,11 @@ requested and left broken. Nothing else from #126 was touched.
 - Bot note: the scheduled alerts-refresh bot kept committing `reports/alerts-live-check.md` to this branch
   (`57a6dd2`, `cdff991`, both `[skip ci]`, 7–10 lines each). Each was fast-forwarded/kept, never discarded.
 
+
+## Session `c0aa9245` — collector workflow regression (2026-11-27 UTC)
+
+| Task | Status | Owner | Exclusive scope | Sources / verification |
+|---|---|---|---|---|
+| Repair collector workflow summary after snapshot field rename; add regression coverage; verify and integrate | in progress | `c0aa9245` | `.github/workflows/collect.yml`, `tools/test_collect.py`, this section of `COORDINATION.md` | Compare summary with `scripts/collect.py` and generated snapshot; run local tests and site checks. Official collector API basis: https://docs.kalshi.com/api-reference/market/get-series-list |
+
+The existing site is already published; this is a focused integration review, not a claim that all historical source assertions have been freshly checked. Current environment cannot directly reach Kalshi hosts.
