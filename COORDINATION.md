@@ -3817,11 +3817,22 @@ sessions lands first (or by the integration pull request, if they have not lande
 
 ## Session `d3e0e9f5` (branch `arena/d3e0e9f5-kalshidash2`, base `main` @ `956e704`, 2026-11-27 UTC)
 
-**Claim time:** 2026-11-27T17:2xZ. **No open PR** (`gh pr list --state open` → empty). The three sessions that
-pushed today are accounted for: `858d4941` (probe-citation drift), `bacbd8a9` (traded-dollar completeness) and the
-alerts-refresh bot. `858d4941`'s claim (J1–J3) was merged by its owner as **PR #131**; `bacbd8a9` records both its
-tasks **done**; the probe figures are now pinned per capture (`data/probe/api_surface_2026-11-24.json`), and
-`node --test tests/*.test.mjs` is **240/240 green** on `956e704`. Nothing below overlaps an open claim.
+**Claim time:** 2026-11-27T17:2xZ. **No open PR** at claim time (`gh pr list --state open` → empty). Sessions
+active today, all accounted for: `858d4941` (probe-citation drift + CI guard wiring — merged by its owner as
+**PR #132**), `bacbd8a9` (traded-dollar completeness — both tasks **done**), `54220d3d` (fresh official-source +
+live-API round; it closed **NF1** as **F20** and repaired the **DV1** card — merged as **PR #135** while this
+session was open) and the alerts-refresh bot. The probe figures are pinned per capture
+(`data/probe/api_surface_2026-11-24.json`), and `node --test tests/*.test.mjs` was **240/240 green** on
+`956e704`. No file in this session's scope overlaps any of them.
+
+**Scope amended after `54220d3d` merged (2026-11-27T17:4xZ), recorded rather than quietly absorbed.** That
+session's PR #135 *closed* `NF1` (the NO-order price-scale question), which this session's brief included
+("verify every row"). Nothing is duplicated: `flagged.html`'s NF1 card and the matching `claims.js` row are
+`54220d3d`'s work and were **not edited here**. What this session re-checked independently is the *reading* of
+the two official pages, and it reached the same substance from
+[Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) — `BookSide` is YES-leg only,
+`ask` = "sell YES … economically equivalent to buying NO at `1 - price`". The two sessions agree; neither
+overwrote the other.
 
 **This session's job:** the brief's *verification* leg — re-read the published site's own statements line by line
 against official sources and **live demo responses**, repair what the live API contradicts, publish what cannot be
