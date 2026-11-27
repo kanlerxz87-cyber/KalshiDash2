@@ -3896,3 +3896,21 @@ history — ask the API for the revision before calling a card wrong.**
   browser, never transcribed); acceptance of an order or any P&L (no credentials, no authenticated call, **no
   order placed**); that a `/series` response is the full catalogue (F5); the per-shard status semantics beyond the
   quoted reference text (F18).
+
+## Session `e081e9af` (branch `arena/e081e9af-kalshidash2`, base `main` @ `e487e12`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:4xZ. Checked before claiming: `gh pr list --state open` → empty (PRs #131/#132 merged); active siblings `54220d3d` (sources.js fee row, flagged F18–F20), `d3e0e9f5` (claims.js, flagged existing cards, summary.html, trace.js), `df162a93` (simulator/kalshi_ws/index/resolved/questions/verification/sources/analyze_trades), `c0aa9245` (collect.yml — its collect fix is superseded by merged PR #132's stricter version). None of the files below is in an active claim.
+
+**Stale-claim handoff (60-minute rule):** `869f5339`'s board rows for `alerts.html` / `assets/js/alerts.js` are from 2026-11-20, last commit that day, and their alerts work was merged in PR #23 (`dd5e36b`). That session is not live; this session takes the alerts UX files for the scope below only.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| E1 | S15 — permalink for every recorded swing + a filterable transcript over both chats and the table view | in progress | `e081e9af` | `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | Project UX feature (no exchange fact asserted); suggestion S15 on `suggestions.html` |
+| E2 | S16 — per-topic mute for the feeds + an opt-in sound cue when the High-ROI watch gets a message | in progress | `e081e9af` | same as E1 | Project UX feature; suggestion S16 on `suggestions.html`; topics already defined in `config.js` |
+| E1 | S15 — permalink for every recorded swing + a filterable transcript over both chats and the table view | done | `e081e9af` | `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | Project UX feature (no exchange fact asserted); suggestion S15 on `suggestions.html` |
+| E2 | S16 — per-topic mute for the feeds + an opt-in sound cue when the High-ROI watch gets a message | done | `e081e9af` | same as E1 | Project UX feature; suggestion S16 on `suggestions.html`; topics already defined in `config.js` |
+| E3 | Update S15/S16 status on the suggestions page once E1/E2 are green; full local suite; PR → `main`, merge, confirm Pages | done | `e081e9af` | `suggestions.html` (S15/S16 status lines only), this section | `node --test` **250/250**; DOM alerts **26/26**, summary **23/23**, category **23/23**; page-runtime **18/18**, 36 pages 0 broken; link check 36/0; tools unittest **55/55**; tests unittest 20 (3 skipped); auth-sign **6/6** |
+
+**Sources / verification for E1–E2 (project features, not exchange facts):** helpers in `assets/js/alerts-core.js` (`swingPermalink`, `parseSwingHash`, `matchesTranscriptQuery`, `isTopicMuted`, `visibleAlert`, `watchIds`, `newWatchIds`) unit-tested in `tests/alerts-core.test.mjs` (+4 tests, 32 total); DOM end-to-end in `tests/dom/alerts-dom.mjs` (+4 checks, 26 total): permalink anchors on every message, filter input wired, five mute chips toggle and persist to `kalshiDash.mute.v1`, sound checkbox defaults off and persists to `kalshiDash.watchSound.v1`. `tests/table-shape.test.mjs` mutant string updated to the reworded `emptyRow` call (same 10-column guard). **No Kalshi API field, price, or claim was added or changed.** No authenticated call, no order.
+
+**Not claimed:** any probe/collector/claims/flagged/summary/simulator file; any authenticated call or order (none possible from here).

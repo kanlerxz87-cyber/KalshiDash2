@@ -314,3 +314,65 @@ test("the series record may arrive wrapped, as GET /series returns it", () => {
   assert.equal(links.length, 1);
   assert.equal(links[0].url, "https://assets.kalshi.com/contract_terms/GAS.pdf");
 });
+
+/* ---- S15/S16 transcript UX helpers ---- */
+
+test("swing permalink round-trips through a URL fragment", async () => {
+  const { swingPermalink, parseSwingHash } = await import("../assets/js/alerts-core.js");
+  const id = "KXPRES-A-1@1700000000000";
+  const hash = swingPermalink(id);
+  assert.equal(hash, "#swing=KXPRES-A-1%401700000000000");
+  assert.equal(parseSwingHash(hash), id);
+  assert.equal(parseSwingHash("#other-anchor"), null);
+  assert.equal(parseSwingHash(""), null);
+  assert.equal(parseSwingHash(null), null);
+});
+
+test("transcript query matches ticker, title and topic; empty matches all", async () => {
+  const { matchesTranscriptQuery } = await import("../assets/js/alerts-core.js");
+  const label = k => ({ gas: "Gas Prices", crypto: "Crypto" }[k] || k);
+  const a = { ticker: "KXGAS-1", title: "AA national average", topic: "gas", basis: "between two polls" };
+  assert.equal(matchesTranscriptQuery(a, "", label), true);
+  assert.equal(matchesTranscriptQuery(a, "   ", label), true);
+  assert.equal(matchesTranscriptQuery(a, "kxgas", label), true);
+  assert.equal(matchesTranscriptQuery(a, "national", label), true);
+  assert.equal(matchesTranscriptQuery(a, "gas prices", label), true);
+  assert.equal(matchesTranscriptQuery(a, "bitcoin", label), false);
+  assert.equal(matchesTranscriptQuery(null, "x", label), false);
+});
+
+test("per-topic mute and the combined visibility gate", async () => {
+  const { isTopicMuted, visibleAlert } = await import("../assets/js/alerts-core.js");
+  const muted = new Set(["golf", "culture"]);
+  assert.equal(isTopicMuted(muted, "golf"), true);
+  assert.equal(isTopicMuted(muted, "crypto"), false);
+  assert.equal(isTopicMuted(null, "golf"), false);
+  assert.equal(isTopicMuted(["golf"], "golf"), true);
+
+  const golf = { ticker: "KXPG-1", topic: "golf", title: "Tour winner" };
+  const btc = { ticker: "KXBT-1", topic: "crypto", title: "BTC above 100k" };
+  assert.equal(visibleAlert(golf, { muted }), false, "muted topic is hidden");
+  assert.equal(visibleAlert(btc, { muted }), true);
+  assert.equal(visibleAlert(btc, { topic: "golf" }), false, "topic selector still applies");
+  assert.equal(visibleAlert(btc, { topic: "all", muted, query: "btc" }), true);
+  assert.equal(visibleAlert(btc, { topic: "all", muted, query: "100k" }), true);
+  assert.equal(visibleAlert(btc, { topic: "all", muted, query: "zzz" }), false);
+});
+
+test("watch cue reports only shortlist ids not already cued", async () => {
+  const { watchIds, newWatchIds } = await import("../assets/js/alerts-core.js");
+  const alerts = [
+    { id: "A@1", topic: "crypto" },
+    { id: "B@1", topic: "golf" },
+    { id: "C@1", topic: "gas" }
+  ];
+  const watch = new Map([
+    ["A@1", { pass: true }],
+    ["B@1", { pass: false }],
+    ["C@1", { pass: true }]
+  ]);
+  assert.deepEqual(watchIds(alerts, watch), ["A@1", "C@1"]);
+  assert.deepEqual(newWatchIds([], ["A@1", "C@1"]), ["A@1", "C@1"]);
+  assert.deepEqual(newWatchIds(["A@1"], ["A@1", "C@1"]), ["C@1"]);
+  assert.deepEqual(newWatchIds(["A@1", "C@1"], ["A@1", "C@1"]), []);
+});

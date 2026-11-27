@@ -93,8 +93,22 @@
           <option value="golf">Golf</option>
         </select>
       </label>
+      <label class="inline small">Filter transcript
+        <input type="search" id="transcript-filter" class="sel" placeholder="ticker, title, topic…"
+               aria-label="Filter the transcript by ticker, title or topic" autocomplete="off">
+      </label>
       <span class="spacer"></span>
       <span class="small muted" id="universe-note"></span>
+    </div>
+    <div class="toolbar mute-bar" style="margin:8px 0 0">
+      <span class="small muted">Mute topics</span>
+      <span id="mute-chips" class="mute-chips" role="group" aria-label="Mute topics in the feeds"></span>
+      <span class="spacer"></span>
+      <label class="inline small" title="Play a short tone when the High-ROI watch chat receives a message. Off by default; the browser must allow audio.">
+        <input type="checkbox" id="watch-sound" aria-label="Sound cue for the High-ROI watch chat">
+        Watch chat sound
+      </label>
+      <span class="small muted" id="cue-status" aria-live="polite"></span>
     </div>
   </div>
 
@@ -102,7 +116,8 @@
     <section class="card" aria-labelledby="h-all">
       <h2 id="h-all">All alerts</h2>
       <p class="sub">Every move of ≥ $0.10 between two polls. Newest at the bottom, in a
-        fixed-height log that scrolls; it stays where you scrolled if you are reading older rows.</p>
+        fixed-height log that scrolls; it stays where you scrolled if you are reading older rows.
+        Each message has a <strong>permalink</strong>; open it to jump straight to that swing.</p>
       <div class="chat" id="feed-all" role="log" aria-live="polite" aria-label="All alerts"></div>
       <p class="small muted" style="margin:8px 0 0">
         Each message lists the official API response and the event's settlement sources.
@@ -113,7 +128,8 @@
     </section>
     <section class="card" aria-labelledby="h-watch">
       <h2 id="h-watch">High-ROI watch</h2>
-      <p class="sub">Only the alerts that pass every rule below. Newest at the bottom.</p>
+      <p class="sub">Only the alerts that pass every rule below. Newest at the bottom.
+        Turn on <strong>Watch chat sound</strong> above for an audible cue when a new pick lands here.</p>
       <div class="chat" id="feed-watch" role="log" aria-live="polite" aria-label="High-ROI watch"></div>
       <p class="small muted" style="margin:8px 0 0">
         Rules: two-sided quote · spread ≤ $0.05 · price after the move between $0.10 and $0.90 · open interest ≥ 1 contract.
