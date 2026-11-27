@@ -4371,3 +4371,35 @@ either, but nothing here needs them.
 
 **Cross-scope review requests (not edited here per coordination rules):**
 - `summary.html` (`032f1ca5`): review §2 `bid`/`ask` wording vs `flagged.html#F20`, §3 browser streaming prose vs `flagged.html#W1` (WS requires signed headers via `scripts/relay.py`), and section numbering (`1..6, 8, 7`). (Note: `flagged.html#NF1` title reconciliation was resolved by `ec65b388` in PR #161 @ `be31379`.)
+
+### `bc28428d` — close-out (2026-11-27, ~23:0xZ)
+
+| PR | Merged at | Fixed |
+|---|---|---|
+| [#149](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/149) | `6a54db8` 22:30:52Z | `AlertEngine` reported a price pair only once per page life (A1) |
+| [#157](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/157) | `97eda74` 22:48:18Z | the live-engine report counted its move diagnostic over a wider population than the engine scans (A4) |
+| [#162](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/162) | `2069daa` 22:59:38Z | the live-engine workflow skipped its own report-commit step on failure (A5) |
+
+- **A4 proven against live data, not only a test.** The `live-engine-check` run at **23:01:26Z** regenerated
+  `reports/live-engine-check.md` on `main` with the fixed script: *2,741* markets in the five topics and
+  *2,741* with a readable previous price (**exactly equal**, where the old report printed 2,749 against 2,741),
+  the **8** markets excluded by status now counted and disclosed, and the "largest single move" down to
+  **0.00** — a market the engine actually scans. The `Swings: 0` / `+0.14` contradiction is gone from the live
+  report.
+- **The §7 failure did not recur and is not claimed as diagnosed.** The two red runs at 22:52:49Z and 22:54:03Z
+  were followed by a **passing** run at 23:01:17Z on the same merged tree, so the cause was transient
+  (exchange- or runner-side). What this session fixed is what it could prove: the report is now committed even
+  on a red run, so a recurrence will leave evidence. Recorded as transient, not dressed up as a diagnosis.
+- **Deploy:** Pages `status: built`, `error: null` after each merge; `verify-alerts`, `verify-live-site`,
+  `live-site-render` and `Static site link check` green on `main`; the deployed `assets/js/alert-engine.js`
+  re-read over HTTPS serves the fixed module.
+- **Suite at close:** `node --test tests/*.test.mjs` **290/290**; DOM 55/55; Python `tools` 55/55; `tests` 28 run
+  (4 network-gated skips); link check 36/0; runtime 18/18; signing 6/6; all workflow YAML parses.
+- **Conflict log (rule 6), full list for this session:** five separate `COORDINATION.md` add/add conflicts
+  (PRs #148, #150, #151/#158, #160 and the `ec65b388` merge) — each resolved by keeping **both** sessions'
+  sections; three bot commits landed on this branch mid-flight (`live alerts check` ×2, `verified facts v3`) and
+  were **merged, never force-pushed over**; one `reports/alerts-live-check.md` conflict between two bot runs of
+  the same job and the same day was resolved to the **newer** run (22:56:37Z), which is a superseded duplicate,
+  not another session's work. Nothing from another session or bot was discarded.
+- **Still open, deliberately:** F1/F2 (no authenticated order — no demo key exists here); the transient
+  live-check condition above; every pre-existing `flagged.html` item.
