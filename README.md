@@ -97,7 +97,7 @@ Full local verification matches `.github/workflows/site-check.yml`:
 ```bash
 node evidence/auth-sign-test.mjs            # 6/6 Web Crypto signing checks
 node tools/verify/page-runtime-check.mjs    # 18/18 published pages execute cleanly + 36-page link check
-node --test tests/*.test.mjs                # 278/278 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape, alert-engine & simulator tests (measured 2026-11-27 on `bd464b8` + this branch)
+node --test tests/*.test.mjs                # 281/281 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape, alert-engine, report-consistency & simulator tests (measured 2026-11-27)
 (cd tests/dom && npm ci && npm test)        # 55/55 jsdom checks (alerts 26, summary 5, category 24)
 python3 -m unittest discover -s tools       # 55/55 link-checker & probe-collector tests
 python3 -m unittest discover -s tests       # Python relay/ws/trade-analyzer unit tests

@@ -4030,6 +4030,7 @@ checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
 | A1 | Fix `AlertEngine` swing de-duplication: the key `ticker\|from\|to` ignores time and basis, so a market that moves A→B, B→A, A→B is reported once. The simulator's **live paper trader** consumes this engine, so repeat moves (and therefore repeat paper entries) were silently dropped. Shipped in PR #149 at `6a54db8`. | done | `bc28428d` | `assets/js/alert-engine.js`, `tests/alert-engine-dedupe.test.mjs` (new), `tests/ci-coverage.test.mjs` (only if the new test needs registering) | Reproduced against the real module with a mocked `fetch` (4 real swings in, 2 delivered out) before any change; the documented API contract used is [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`last_price_dollars`, `previous_price_dollars`), which is what the engine compares |
+| A4 | Fix the **live-engine report self-contradiction** found while checking A3: `reports/live-engine-check.md` printed "Swings 0" beside "Largest single move +0.14" because the swing count is over `active`/`open` markets only while the diagnostic loop had no status filter. | done | `bc28428d` | `tools/verify/live-engine-check.mjs`, `tests/live-engine-report-consistency.test.mjs` (new), `.github/workflows/site-check.yml` (named step), `reports/verify-bc28428d.md` §6 | Reproduced against the real `AlertEngine` (skipped market → no swing; identical move on an `active` market → swing reported); the official field it compares is documented at [Get Market](https://docs.kalshi.com/api-reference/market/get-market). `reports/live-engine-check.md` is deliberately **not** hand-edited — the workflow regenerates it. | 
 | A2 | Line-by-line re-verification of the published arithmetic/contracts that this session could check offline: `alert-engine` vs `alerts-core` move detection, register counters (claims 102/9/3; flags 40 open / 66 mitigated / 106), order body vs [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2), fee model claims vs the official schedule | done | `bc28428d` | `reports/verify-bc28428d.md` (new) | Official docs fetched 2026-11-27; register figures recomputed from `assets/js/claims.js` and `flagged.html` by script |
 | A3 | Final integration: full local suite, PR to `main`, merge without waiting, confirm Pages build, record here | done | `bc28428d` | this section, `reports/verify-bc28428d.md` | GitHub Actions run IDs + Pages API |
 
@@ -4192,9 +4193,11 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
   `poll|…|pollSeq` / `ref|…` key are all present on the deployed file. The fix is live, not just committed.
 - **Live API evidence (from the workflows, since this sandbox cannot reach `*.kalshi.co`):**
   `reports/live-engine-check.md` (run 22:31:01Z) → 1,200 events scanned, **2,741** markets in the five topics,
-  2,749 markets with a readable previous price, largest move against the exchange reference
-  **+0.14** on `KXTVSEASONRELEASETHELASTOFUS-26-APR`, **0** poll-to-poll swings ≥$0.10 in that scan
-  (a quiet window — not a zero result for the rule). `reports/alerts-live-check.md` → `GET /events` HTTP **200**,
+  **0** swings ≥$0.10 reported by the engine, while the same section printed a largest move of **+0.14** on
+  `KXTVSEASONRELEASETHELASTOFUS-26-APR`. **Those two figures came from different populations and the report
+  contradicted itself** — see task A4 below and `reports/verify-bc28428d.md` §6, which is the correction.
+  (An earlier draft of this record repeated the contradiction without noticing it; it was rewritten, not left
+  standing.) `reports/alerts-live-check.md` → `GET /events` HTTP **200**,
   2,107 markets `active`, batch read 25/25 returned, `settlement_sources` present (11 entries on `KXERUPTSUPER-0`),
   0 moves ≥$0.10 across two polls 20s apart.
   **Neither report is treated as proof that an alert fires** — the rule is proved by the unit and DOM
