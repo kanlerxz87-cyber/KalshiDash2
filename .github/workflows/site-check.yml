@@ -115,6 +115,14 @@ jobs:
       - name: Requirement traceability (summary §8 agrees with the modules)
         run: node --test tests/requirements-trace.test.mjs
 
+      # Named as well as globbed: `AlertEngine` is the engine the Strategy Tester's
+      # live paper trader drives, and it used to de-duplicate swings on
+      # `ticker|from|to` with no time component — so 0.40→0.55→0.40→0.55 reported
+      # two moves instead of four, silently dropping the round trips a strategy is
+      # tested on. This guard pins the four-move behaviour and the two-basis split.
+      - name: Alert-engine swing de-duplication guard
+        run: node --test tests/alert-engine-dedupe.test.mjs
+
       - name: Every guard is wired into a workflow
         run: node --test tests/ci-coverage.test.mjs
 

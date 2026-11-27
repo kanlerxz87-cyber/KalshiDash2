@@ -4019,3 +4019,21 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 | K3 | Full local suite run + PR to `main`, merge, verify Pages deployment & live site | in progress | `46f45a35` | this section | `reports/verify-46f45a35.md` | — |
 
 **Cross-scope request (not edited here — `flagged.html` owned by PR #141):** `flagged.html#NF1`'s title and body still say the official pages "disagree / do not agree" under a *mitigated* tag whose callout says they answer different questions (already noted by `54220d3d`). Owner of `flagged.html` should reconcile the title/body wording with the F20 resolution.
+
+---
+## Session `bc28428d` — alert-engine dedupe defect + independent re-verification (branch `arena/bc28428d-kalshidash2`, 2026-11-27 UTC)
+
+**Claimed:** 2026-11-27 UTC, base `main` @ `db91232` (this Arena branch, synced to `main`; no divergence).
+**Not claimed / not touched:** `assets/js/alerts.js` and `alerts.html` are **not** in this scope — they were
+checked and found correct (see A2). `data/**`, `scripts/**`, `.github/workflows/**` untouched.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| A1 | Fix `AlertEngine` swing de-duplication: the key `ticker\|from\|to` ignores time and basis, so a market that moves A→B, B→A, A→B is reported once. The simulator's **live paper trader** consumes this engine, so repeat moves (and therefore repeat paper entries) were silently dropped. | in progress → done | `bc28428d` | `assets/js/alert-engine.js`, `tests/alert-engine-dedupe.test.mjs` (new), `tests/ci-coverage.test.mjs` (only if the new test needs registering) | Reproduced against the real module with a mocked `fetch` (4 real swings in, 2 delivered out) before any change; the documented API contract used is [Get Market](https://docs.kalshi.com/api-reference/market/get-market) (`last_price_dollars`, `previous_price_dollars`), which is what the engine compares |
+| A2 | Line-by-line re-verification of the published arithmetic/contracts that this session could check offline: `alert-engine` vs `alerts-core` move detection, register counters (claims 102/9/3; flags 40 open / 66 mitigated / 106), order body vs [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2), fee model claims vs the official schedule | done | `bc28428d` | `reports/verify-bc28428d.md` (new) | Official docs fetched 2026-11-27; register figures recomputed from `assets/js/claims.js` and `flagged.html` by script |
+| A3 | Final integration: full local suite, PR to `main`, merge without waiting, confirm Pages build, record here | in progress | `bc28428d` | this section, `reports/verify-bc28428d.md` | GitHub Actions run IDs + Pages API |
+
+**Standing constraint observed:** this sandbox cannot reach `*.kalshi.co` (TLS handshake is refused by the
+outbound proxy — `curl: (35) SSL_ERROR_SYSCALL`), so no live market figure is transcribed here. Live checks
+are delegated to the repo's own Actions workflows (`live-site-render`, `verify-live-site`, `verify-alerts`,
+`live-engine-check`), which is how every prior session handled the same constraint.

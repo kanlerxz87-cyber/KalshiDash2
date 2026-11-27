@@ -41,7 +41,7 @@ Official references: [Demo environment](https://docs.kalshi.com/getting_started/
 
 Re-verified on branch `arena/46f45a35-kalshidash2` @ `db91232` (== `main` at claim time; independent re-fetch of 20 official doc claims, see [`reports/verify-46f45a35.md`](reports/verify-46f45a35.md)). Previous snapshot: branch `arena/2f98889c-kalshidash2` after syncing with `main` @ `32b7992` (`PR #134`, `PR #135`, `PR #137`, and `PR #138` merged):
 
-- **Node unit & static suites (`node --test tests/*.test.mjs`):** **266/266 passed** across all test files (including `ci-coverage`, `probe-citation-drift`, `requirements-trace`, `table-shape`, `taxonomy`, `sources-page`, `simulator-core`, `dollar-volume`, `alerts-core`, `live-core`).
+- **Node unit & static suites (`node --test tests/*.test.mjs`):** **270/270 passed** across all test files (including `ci-coverage`, `alert-engine-dedupe`, `probe-citation-drift`, `requirements-trace`, `table-shape`, `taxonomy`, `sources-page`, `simulator-core`, `dollar-volume`, `alerts-core`, `live-core`).
 - **jsdom DOM suites (`cd tests/dom && npm test`):** alerts **26/26**, summary **5/5**, category **24/24** (**55/55** passed).
 - **Python unit tests:** `tools` **55/55** passed; `tests` **28** ran (**24** passed, **4** skipped without `cryptography` installed locally — CI installs it).
 - **Site link, signing & runtime checks:** `tools/check_site_links.py` (**36** HTML pages, `0` broken links), `evidence/auth-sign-test.mjs` (**6/6**), and `tools/verify/page-runtime-check.mjs` (**18/18** pages executed cleanly, `0` errors).
