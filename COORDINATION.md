@@ -3914,3 +3914,12 @@ history — ask the API for the revision before calling a card wrong.**
 **Sources / verification for E1–E2 (project features, not exchange facts):** helpers in `assets/js/alerts-core.js` (`swingPermalink`, `parseSwingHash`, `matchesTranscriptQuery`, `isTopicMuted`, `visibleAlert`, `watchIds`, `newWatchIds`) unit-tested in `tests/alerts-core.test.mjs` (+4 tests, 32 total); DOM end-to-end in `tests/dom/alerts-dom.mjs` (+4 checks, 26 total): permalink anchors on every message, filter input wired, five mute chips toggle and persist to `kalshiDash.mute.v1`, sound checkbox defaults off and persists to `kalshiDash.watchSound.v1`. `tests/table-shape.test.mjs` mutant string updated to the reworded `emptyRow` call (same 10-column guard). **No Kalshi API field, price, or claim was added or changed.** No authenticated call, no order.
 
 **Not claimed:** any probe/collector/claims/flagged/summary/simulator file; any authenticated call or order (none possible from here).
+
+### `e081e9af` — final record: PR #138 merged, Pages built, checks green (2026-11-27)
+
+- **PR:** [#138](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/138) — *feat(alerts): S15 swing permalinks + transcript filter; S16 per-topic mute + watch sound* — **merged** into `main` at **`d519352`** (2026-11-27T17:43:59Z) via `gh pr merge 138 --merge`, without waiting for review, per the standing rules.
+- **Checks on the merge SHA `d519352`:** `Static site link check` success · `verify-alerts` success · `verify-live-site` success · `live-engine-check` success · `live-site-render` (workflow_dispatch) **success**. A concurrent `live-site-render` push run was cancelled in favour of the dispatch run; not a failure.
+- **Pages:** `pages-build-deployment` for the merge and the follow-on bot commit reached **`built`** (`build_type: legacy`, source `main:/`, `https_enforced: true`) at `https://kanlerxz87-cyber.github.io/KalshiDash2/`.
+- **Local suite at merge:** `node --test tests/*.test.mjs` **260/260** after rebase onto `main` @ `f6bad4f` (sibling PRs #134/#137 had landed); DOM alerts **26/26**; page-runtime 18/18; link check 36/0; tools 55/55; auth-sign 6/6.
+- **Flagged irregularities:** none added by this PR. Existing open flags remain on the Flagged for Review page and do not block the merge.
+
