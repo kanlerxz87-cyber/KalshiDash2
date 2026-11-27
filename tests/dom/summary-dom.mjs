@@ -75,6 +75,23 @@ const stat = name => {
 };
 
 assert.ok(requirements > 0, "requirement matrix has rows");
+
+/* §8 is produced by executing assets/js/trace.js against the shipped modules.
+ * This harness already runs the real page, so it is the only place that can see
+ * whether the table actually rendered — a module that throws would leave the
+ * "Measuring…" placeholder in place and every other assertion would still pass. */
+const traceRows = [...window.document.querySelectorAll("#trace-body tr")];
+assert.ok(traceRows.length >= 17, `trace matrix must render every requirement (got ${traceRows.length})`);
+assert.ok(!window.document.querySelector("#trace-body .empty"),
+  "trace matrix must replace its placeholder, not leave it");
+for (const row of traceRows) {
+  assert.equal(row.cells.length, 5, "each trace row states id, requirement, artefact, state and measured evidence");
+  const state = row.cells[3].textContent.trim();
+  assert.ok(["wired", "gap"].includes(state), `trace state must be wired or gap, got "${state}"`);
+}
+const gaps = traceRows.filter(r => r.cells[3].textContent.trim() === "gap");
+assert.equal(gaps.length, 0, `no requirement may render as a gap in a shipped build: ${gaps.map(g => g.cells[0].textContent).join(", ")}`);
+assert.match(window.document.querySelector("#trace-note").textContent, /of 17 requirements are wired|requirements are wired/);
 assert.equal(stat("Requirement areas").value, String(requirements));
 assert.equal(sourceRows.length, requirementRows.length + 3 + 5,
   "requirement, defect, and decision matrices are included in the source audit");

@@ -3812,6 +3812,55 @@ claimed by `858d4941` / `bacbd8a9` / `c0aa9245`; this session did not touch eith
 **not** treat the failure as its own. It must be resolved before the site is merged, by whichever of those
 sessions lands first (or by the integration pull request, if they have not landed).
 
+---
+
+
+## Session `d3e0e9f5` (branch `arena/d3e0e9f5-kalshidash2`, base `main` @ `956e704`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:2xZ. **No open PR** at claim time (`gh pr list --state open` → empty). Sessions
+active today, all accounted for: `858d4941` (probe-citation drift + CI guard wiring — merged by its owner as
+**PR #132**), `bacbd8a9` (traded-dollar completeness — both tasks **done**), `54220d3d` (fresh official-source +
+live-API round; it closed **NF1** as **F20** and repaired the **DV1** card — merged as **PR #135** while this
+session was open) and the alerts-refresh bot. The probe figures are pinned per capture
+(`data/probe/api_surface_2026-11-24.json`), and `node --test tests/*.test.mjs` was **240/240 green** on
+`956e704`. No file in this session's scope overlaps any of them.
+
+**Scope amended after `54220d3d` merged (2026-11-27T17:4xZ), recorded rather than quietly absorbed.** That
+session's PR #135 *closed* `NF1` (the NO-order price-scale question), which this session's brief included
+("verify every row"). Nothing is duplicated: `flagged.html`'s NF1 card and the matching `claims.js` row are
+`54220d3d`'s work and were **not edited here**. What this session re-checked independently is the *reading* of
+the two official pages, and it reached the same substance from
+[Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2) — `BookSide` is YES-leg only,
+`ask` = "sell YES … economically equivalent to buying NO at `1 - price`". The two sessions agree; neither
+overwrote the other.
+
+**This session's job:** the brief's *verification* leg — re-read the published site's own statements line by line
+against official sources and **live demo responses**, repair what the live API contradicts, publish what cannot be
+confirmed, then integrate. Third-party URLs are **not fetched twice** (logged below): a session's own tool output is
+not an independent check, so re-fetching a URL a previous session already cited would only re-cite that session.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| V1 | Line-by-line re-verification of published API-contract claims against the official `.md` documentation pages **and** dated live demo responses; record every check with its URL | done | `d3e0e9f5` | `reports/verify-d3e0e9f5.md` (new), this section | docs.kalshi.com `.md` pages + `external-api.demo.kalshi.co` responses fetched 2026-11-27 |
+| V2 | Repair the defects V1 proves (stale file paths, contradicted premises); no claim is corrected without the contradicting source quoted | done — F6 pinned to `424190e`/`c3676e5`; `DR1`–`DR3` published | `d3e0e9f5` | `flagged.html` (existing cards' text only), `assets/js/claims.js` (affected rows only), `tests/` (new guard only) | V1's record |
+| V3 | Add the requirement-traceability matrix the brief calls "line by line" to the Summary page, derived from the repository (no hand-typed counts) | done — 17/17 rows wired, `tests/requirements-trace.test.mjs` (10 checks) + a summary-DOM assertion | `d3e0e9f5` | `summary.html`, `assets/js/trace.js` (new), `tests/requirements-trace.test.mjs` (new), `tests/dom/summary-dom.mjs` (assertion only) | brief requirement list; repo paths |
+| V4 | Re-verify the *deployed* Pages build matches the merged `main` and that its own checks are green | in progress | `d3e0e9f5` | this section | Pages API, Actions run IDs, hosted-page fetches |
+| V5 | Full local suite (node, python tools, DOM ×3, page-runtime, link check), PR → `main`, merge without waiting, confirm Pages deploy, record PR link + result here | unclaimed | — | this section | Do not merge a broken site |
+
+**Correction to this session's own claim, kept visible (2026-11-27T17:5xZ).** The claim above first read that
+F6's premise was "contradicted by the code … at any revision", on the strength of `git log -S'"spki"'` and
+logical reasoning over the tree the sandbox holds. That conclusion was **wrong, and the mistake is worth
+recording because it is the one this page exists to prevent**: this checkout is a **shallow** clone
+(`git rev-parse --is-shallow-repository` → `true`, four commits), so a history search over it cannot see the
+repository's first revisions, and a negative result from `git log -S` was treated as evidence of absence.
+Reading the actual first blob through the API
+(`gh api repos/…/contents/docs/assets/app.js?ref=424190e`) shows the claim **was true at `424190e`**: line 101
+imports `"spki"`, line 104 signs `ts + method + path` with no `/trade-api/v2` prefix. It was fixed 19 minutes
+later at `c3676e5`. So the card was **stale, not false** — three days stale, and pointing at a `site/` directory
+that has never existed. Both halves of that sentence are the finding; `reports/verify-d3e0e9f5.md` §3 is where
+the two revisions are pinned. Lesson for the board: **`git log -S` over a shallow clone proves nothing about
+history — ask the API for the revision before calling a card wrong.**
+
 ### `54220d3d` — final record: PR #135 merged, Pages built, live pages verified (2026-11-27)
 
 - **PR:** [#135](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/135) — *verify: read the official fee schedule
