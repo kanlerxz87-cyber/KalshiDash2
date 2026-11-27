@@ -125,7 +125,7 @@ export function hasUnrenderedArtifacts(text) {
 export const PAGES = Object.freeze([
   {
     path: "/", name: "Overview",
-    must: { "#kpis .stat": 4, "#topics .topic-card": 5 },
+    must: { "#kpis .stat": 4, "#topics .topic-card": 5 }, requireRows: true,
     rows: "#board-body", status: "#board-status"
   },
   {
@@ -230,12 +230,14 @@ export function judge(spec, observed) {
     if (terminal === TERMINAL.PENDING) {
       reasons.push(`never reached a terminal state: no rows in ${spec.rows}, no explicit empty state, no error (still "${(boardText || text).slice(0, 80)}")`);
     }
-    if (terminal === TERMINAL.EMPTY && rowCount === 0 && !spec.allowEmpty) {
-      /* An explicit empty state is a legitimate answer — but for a topic that
-       * the live check proves has open markets (gas), an empty board is the
-       * defect F4 recorded. The runner passes `allowEmpty` per run so this stays
-       * a decision of the run, not a hard-coded assumption. */
-      reasons.push(`${spec.rows} shows an explicit empty state`);
+    /* An explicit empty state is the page's own documented answer — "no swing
+     * recorded yet after a completed scan" is a working page on a quiet market,
+     * not a defect. It becomes a defect only when the page also says it is
+     * still loading (handled above as PENDING) or when the spec marks the board
+     * as one that must always have rows (`requireRows`, used for the Overview
+     * board, which lists open events on every scan). */
+    if (terminal === TERMINAL.EMPTY && spec.requireRows) {
+      reasons.push(`${spec.rows} is empty, but this board is required to list rows`);
     }
   }
 

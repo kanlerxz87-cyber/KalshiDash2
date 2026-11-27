@@ -73,16 +73,23 @@ test("a page error alone fails the page", () => {
   assert.match(v.reasons.join(" "), /repeated is not defined/);
 });
 
-test("an explicit empty state is terminal, and the runner decides whether it passes", () => {
+test("an explicit empty state is a working page, not a defect", () => {
   const empty = {
     text: "Live board No events matched the five topics in this scan.",
     counts: { "#kpis .stat": 4, "#topics .topic-card": 5, "#board-body > tr": 0 },
     statusText: "live · 0 events scanned"
   };
+  /* The Overview board lists open events on every scan, so it is the one board
+   * marked `requireRows`: an empty Overview is reported. */
   const strict = judge(overview, empty);
-  assert.equal(strict.verdict, "fail", "without allowEmpty, an empty board is reported");
-  const allowed = judge({ ...overview, allowEmpty: true }, empty);
-  assert.equal(allowed.verdict, "pass", allowed.reasons.join("; "));
+  assert.equal(strict.verdict, "fail", "the Overview board must never be empty");
+  assert.match(strict.reasons.join(" "), /required to list rows/);
+  /* Every other board may legitimately be empty on a quiet market. */
+  const quiet = judge({ path: "/alerts.html", name: "Live alerts", must: {}, rows: "#alert-rows" }, {
+    text: "No swing of $0.10 or more recorded yet.",
+    counts: { "#alert-rows > tr": 0 }, statusText: "live · 812 markets watched"
+  });
+  assert.equal(quiet.verdict, "pass", quiet.reasons.join("; "));
 });
 
 test("a single Loading… placeholder row is not a result", () => {

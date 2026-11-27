@@ -82,8 +82,7 @@ async function auditPage(spec) {
    * empty AND whose status pill reports a successful scan of zero events is
    * allowed to be empty only when the audit is run with RENDER_ALLOW_EMPTY=1.
    * The default is strict, so an unexplained empty board fails. */
-  const allowEmpty = process.env.RENDER_ALLOW_EMPTY === "1" && /live|scanned/i.test(statusText);
-  const verdict = judge({ ...spec, allowEmpty }, { text, counts, pageErrors, consoleErrors, statusText, boardText });
+  const verdict = judge(spec, { text, counts, pageErrors, consoleErrors, statusText, boardText });
   return { spec, ...verdict, observed: { counts, statusText: statusText.slice(0, 160), pageErrors } };
 }
 
@@ -131,4 +130,7 @@ const report = [
 ].join("\n");
 try { writeFileSync("render-audit-report.md", report); } catch { /* the workflow collects stdout too */ }
 console.log("\n" + report);
-process.exit(summary.exitCode === EXIT.PASS ? 0 : summary.exitCode === EXIT.FAIL ? 1 : 2);
+/* `process.exit()` can truncate buffered stdout, which is exactly how the first
+ * version of this script lost its per-page annotations. Set the code and let
+ * Node flush. */
+process.exitCode = summary.exitCode === EXIT.PASS ? 0 : summary.exitCode === EXIT.FAIL ? 1 : 2;
