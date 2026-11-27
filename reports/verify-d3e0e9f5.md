@@ -172,6 +172,19 @@ revisions*, and this repository is edited by several sessions a day, so a card w
 a false statement about the current tree. The repair pins the revision, keeps the original reasoning, and quotes
 the wrong path as part of the finding rather than quietly swapping it out.
 
+**And how this session nearly published the opposite error — recorded because it is the same mistake.**
+Mid-session the F6 claim was written down as *"contradicted by the code at any revision"*, on the strength of
+`git log -S'"spki"' -- docs/assets/app.js` returning nothing old and of reasoning that the file could not have
+shipped with a failing signing path. Both were wrong. This checkout is **shallow**
+(`git rev-parse --is-shallow-repository` → `true`, four commits), so `git log -S` searched four commits and
+found nothing — and a negative result over a truncated history was read as evidence of absence. The tree also
+did not require the contradiction: `docs/` is not the published generation, so a bug there shipping is entirely
+plausible. The claim was corrected by **asking the API for the first blob** (`…/contents/docs/assets/app.js?ref=424190e`)
+rather than by reasoning. The board entry keeps the retraction in place of the original sentence.
+
+**Rule this adds to the board:** on a shallow clone, `git log -S`/`git blame` prove nothing about history.
+Fetch the revision through `gh api …/contents/…?ref=<sha>` or deepen the clone before calling a card wrong.
+
 ---
 
 ## 4 · Flagged-page numbering and counts
