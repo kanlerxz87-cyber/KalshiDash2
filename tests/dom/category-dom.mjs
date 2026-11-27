@@ -146,7 +146,11 @@ async function mockFetch(url) {
     return reply(200, {
       event: {
         ...EVENT,
-        settlement_sources: [{ name: "Fixture settlement source", url: "https://example.org/btc-fixing" }]
+        settlement_sources: [
+          { name: "Fixture settlement source", url: "https://example.org/btc-fixing" },
+          { name: "Name-only filing reference", url: "" },
+          { name: "Unsafe scheme entry", url: "javascript:alert(1)" }
+        ]
       }
     });
   }
@@ -279,6 +283,9 @@ check("the jump is linked to the official candle endpoint and the event's settle
   assert.match(text("#chart-jumps"), /Fixture settlement source/);
   const link = $("#chart-jumps a[href='https://example.org/btc-fixing']");
   assert.ok(link, "settlement source is a link, not prose");
+  assert.match(text("#chart-jumps"), /Name-only filing reference/);
+  assert.equal($$("#chart-sources a[href='']").length, 0, "name-only source must not emit an empty href link");
+  assert.equal($$("#chart-sources a[href^='javascript:']").length, 0, "non-http(s) settlement source URL must not become a link");
 });
 check("chart labels are framed as data, not as a cause", () => {
   assert.ok(!/caused by/i.test($("#chart-jumps").textContent));

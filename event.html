@@ -65,9 +65,8 @@
 
 <script type="module">
 import { mountChrome, esc, money, money4, int, dt, pill, $, emptyRow, src } from "./assets/js/ui.js";
-import { DEMO, SOURCES } from "./assets/js/config.js";
+import { DEMO, SOURCES, TOPICS } from "./assets/js/config.js";
 import { api, num, classifyEventWithBasis, fetchSeriesCategories, marketResultState, Watchlist } from "./assets/js/market.js";
-import { TOPICS } from "./assets/js/config.js";
 
 mountChrome({ page: "event.html", title: "Event" });
 
@@ -88,7 +87,7 @@ async function load() {
   try {
     const j = await api.get(`/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`);
     const ev = j.event || j;
-    const markets = ev.markets || [];
+    const markets = ev.markets || j.markets || [];
     if (ev.series_ticker) {
       await fetchSeriesCategories([ev.series_ticker], { cap: 1 });
     }
@@ -161,7 +160,7 @@ async function load() {
         <td class="mono small">${esc(m.ticker)}</td>
         <td>${tag}</td>
         <td class="num">${money4(m.settlement_value_dollars)}</td>
-        <td class="num">${m.expiration_value === "" || m.expiration_value === undefined ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
+        <td class="num">${m.expiration_value == null || m.expiration_value === "" ? `<span class="unv">n/a</span>` : esc(m.expiration_value)}</td>
         <td class="nowrap small">${dt(m.close_time)}</td>
         <td class="small">${esc(m.rules_primary || "")}</td>
         <td><a href="${esc(`${DEMO.rest}/events/${encodeURIComponent(eventTicker)}?with_nested_markets=true`)}" target="_blank" rel="noopener noreferrer">API response ↗</a></td>
