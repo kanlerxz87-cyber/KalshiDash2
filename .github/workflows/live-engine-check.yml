@@ -42,7 +42,14 @@ jobs:
       - name: Run the live engine check
         run: node tools/verify/live-engine-check.mjs reports/live-engine-check.md
 
+      # The header comment of this workflow promises that "the report is committed
+      # even when the check fails, so a red run still leaves evidence behind".
+      # That promise was not kept: without `if: always()` the step is SKIPPED on a
+      # failed run, so two red runs on 2026-11-27 (46079257668, 46079375710) left
+      # no evidence at all — and the job's logs are not readable from the build
+      # sandbox, which turned a diagnosable failure into a blind one.
       - name: Commit the report
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
