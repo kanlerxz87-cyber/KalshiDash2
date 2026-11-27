@@ -30,6 +30,17 @@ name: Rendered-page audit (real browser)
 
 on:
   workflow_dispatch:
+  # Also on pull requests, for two reasons: a workflow file only becomes
+  # dispatchable once it is on the default branch, so this is how the check is
+  # proved before merge; and a PR that changes a page or a controller should not
+  # be mergeable without its rendered result being known.
+  pull_request:
+    paths:
+      - "**.html"
+      - "assets/js/**.js"
+      - "tests/dom/render-audit.mjs"
+      - "tests/dom/rendered-page-assertions.mjs"
+      - ".github/workflows/render-audit.yml"
   push:
     branches: [main]
     paths:
@@ -69,6 +80,10 @@ jobs:
         run: node --test rendered-page-assertions.test.mjs
 
       - name: Wait for the Pages deployment of this commit
+        # On a pull request the branch is not deployed, so there is no deployment
+        # of "this commit" to wait for; the audit still runs against the live
+        # Pages site, and the report states which commit it graded.
+        if: github.event_name != 'pull_request'
         run: |
           set -uo pipefail
           BASE="https://kanlerxz87-cyber.github.io/KalshiDash2"
