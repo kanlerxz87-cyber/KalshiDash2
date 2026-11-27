@@ -396,3 +396,20 @@ test("rankByTradedDollars counts the HTTP requests it spends", async () => {
   assert.equal(res.requests, calls);
   assert.equal(res.requests, 2);
 });
+
+test("a malformed successful Get Trades response cannot confirm a dollar total", async () => {
+  for (const response of [null, {}, { trades: {}, cursor: "" }, { trades: [] }, { trades: [], cursor: null }]) {
+    const result = await collectTrades(async () => response, "T");
+    assert.equal(result.stopped, "invalid");
+    assert.equal(result.summary.complete, false);
+    assert.equal(result.summary.dollars, null);
+    assert.match(result.summary.note, /required trades array and string cursor/);
+  }
+});
+
+test("a malformed later page suppresses previously observed dollars", async () => {
+  const pages = [{ trades: [trade()], cursor: "more" }, { trades: [] }];
+  const result = await collectTrades(async () => pages.shift(), "T");
+  assert.equal(result.summary.pagesRead, 1);
+  assert.equal(result.summary.dollars, null);
+});

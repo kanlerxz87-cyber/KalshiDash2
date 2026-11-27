@@ -80,7 +80,7 @@
       <h3>F8 — Topic matching was applied to a truncated series list, and gas had no category <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the earlier dashboard discovered topics by substring-matching
         keywords against <code>GET /series</code>. One response from that list returned over sixteen
-        thousand series (16,698 rows in <code>data/probe/api_surface.json</code>, capture 2026-11-24T18:14Z), so a
+        thousand series (16,698 rows in <code>data/probe/api_surface_2026-11-24.json</code>, capture 2026-11-24T18:14Z), so a
         keyword scan is both incomplete and noisy: "gas" matched <code>KXNBALASVEGAS</code> (Las Vegas) and
         "golf" matched <code>KXTRUMPGOLFD</code> (a Politics market), while no <code>category</code> value
         covers gasoline at all.</p>
@@ -1275,16 +1275,14 @@
       <p><strong>Fixed:</strong> the three rows now cite <em>Get Series List</em> (the page that defines the
         <code>category</code> field and is the page the captured vocabulary was read from) and name
         <em>Get Tags for Series Categories</em> as the official category-to-tag map. The observed values are
-        unchanged and come from the committed capture <code>data/probe/api_surface.json</code>:
+        unchanged and come from the <a href="data/probe/api_surface_2026-11-24.json">pinned capture</a>:
         Elections 5,430 · Entertainment 5,257 · Social 100 · Crypto 642 · Sports 8,492 series, in the
         2026-11-24T18:14Z probe capture.</p>
       <p><strong>Drift found 2026-11-25 (session <code>74b579c8</code>):</strong> this card previously published
         <em>Elections 5,420 · Sports 8,486</em> while the committed file it cites holds <em>5,430</em> and
         <em>8,492</em>. The old figures were accurate for an earlier capture — <code>data/probe/api_surface.json</code>
         is rewritten every few days by <code>.github/workflows/probe.yml</code>, and the page did not carry a
-        capture date, so the numbers aged without any test noticing. The card now quotes the capture time
-        beside the figure. A capture-time check (below) now fails the build if a
-        <code>data/probe/api_surface.json</code> figure is published without one.</p>
+        capture date, so the numbers aged without any test noticing. This card now links the historical capture directly. The citation check compares against that pinned file, not the rolling probe.</p>
       <p><strong>Why this class of defect is easy to miss:</strong> the link checker proves a link resolves,
         not that the linked page says what the row claims. Suggested guard in
         <a href="reports/session-review-0ecc28c2.md">reports/session-review-0ecc28c2.md</a> §4 S3.</p>
@@ -1537,7 +1535,7 @@
         volume" wording is not over-read.</p>
       <p class="small"><strong>Official sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-series-list" target="_blank" rel="noopener noreferrer">Get Series List — no ordering guarantee documented ↗</a>
-        · counts: <code>data/probe/api_surface.json</code></p>
+        · counts: <code>data/probe/api_surface_2026-11-24.json</code></p>
     </div>
 
     <div class="irregularity" id="SB4">
@@ -2157,6 +2155,12 @@
         <a class="src-link" href="https://docs.kalshi.com/api-reference/portfolio/get-fills" target="_blank" rel="noopener noreferrer">Get Fills ↗</a>
         <a class="src-link" href="reports/verify-130acb78.md">field review, corrections and tests ↗</a>
       </p>
+    </div>
+
+    <div class="irregularity" id="DV1">
+      <h3>DV1 — Malformed trade pages could appear as verified totals <span class="tag yes">mitigated</span></h3>
+      <p><strong>Mitigated:</strong> A successful response missing the required trades array or string cursor now withholds the dollar amount. An explicit empty array with an empty cursor still represents no returned trades.</p>
+      <p class="small"><strong>Official source:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades">Get Trades ↗</a></p>
     </div>
 
     <h2>What is <em>not</em> flagged</h2>

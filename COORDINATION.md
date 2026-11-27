@@ -3714,3 +3714,4 @@ requested and left broken. Nothing else from #126 was touched.
 |---|---|---|---|
 | Verify traded-dollar completeness and prevent unverifiable totals | in progress | bacbd8a9 | `assets/js/dollar-volume.js`, `tests/dollar-volume.test.mjs`, `reports/dollar-completeness-bacbd8a9.md` |
 | Final integration: pin dated evidence and repair existing citation check | in progress | bacbd8a9 | `flagged.html`, `assets/js/claims.js`, `tests/probe-citation-drift.test.mjs`, `data/probe/api_surface_2026-11-24.json` |
+| Verified and tested both claimed tasks | done | bacbd8a9 | [Review and source links](reports/dollar-completeness-bacbd8a9.md); malformed page handling published as DV1. |
