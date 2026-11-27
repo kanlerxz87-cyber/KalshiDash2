@@ -324,7 +324,7 @@ strongest available evidence that the check can fail: it did, repeatedly, for re
 
 ### 10.1 Second conclusive run, with the retry: four of five category boards verified
 
-Run [`156e85e`](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/) — the same audit after the
+The same audit after the bounded retry (commit `156e85e`) reached a verdict for more pages:
 bounded retry — reached a verdict for more pages:
 
 | Page | Verdict |
