@@ -4025,7 +4025,7 @@ python `tests` **28 run (4 skipped)** · `check_site_links.py` **36 pages / 0 br
 | EC2 | Take over stale **V5/PR #141** (handoff per 60-minute rule; `d3e0e9f5` idle since 17:45Z): merge `arena/d3e0e9f5-kalshidash2` into this branch preserving **both** sides of the `COORDINATION.md` + `reports/alerts-live-check.md` conflicts, run the full suite over the merged tree | **done** — branch merged at `6b487d1` (their commits intact); suite green (266→278 as `main` advanced); PR #141 will auto-close as merged when this branch reaches `main` | `ec65b388` | this branch (their commits kept intact, no push to their branch) | `git merge origin/pr141-head`; full local suite; conflict log appended below |
 | EC3 | Fresh line-by-line verification round: published site claims vs **official docs.kalshi.com pages** and **dated live demo-API responses**, re-fetched this session; dated report with one official link per row; anything unconfirmable recorded as unverified, never filled in | **done** — [`reports/verify-ec65b388.md`](reports/verify-ec65b388.md): 4 doc pages re-fetched, 7 live demo-API shape checks (L1–L7), 10 code checks (C1–C10), register recounts (116 claims / 107 flags), suite table; 3 irregularities EC-X1…X3, no new flag opened | `ec65b388` | `reports/verify-ec65b388.md` (new), this section | docs.kalshi.com + `external-api.demo.kalshi.co/trade-api/v2/*` fetched 2026-11-27 |
 | EC4 | Repair only the defects EC3 proves; file added to this scope only if no active session claims it; new irregularities published on `flagged.html` with source links | **done** — NF1 `<h3>` reconciled ("appeared to disagree"), commit `be31379`; EC-X2 resolved in the sync merge (kept `main`'s measured DR3 text); EC-X3 is the documented sandbox network limit | `ec65b388` | `flagged.html` (NF1 `<h3>` title line only) | defect originally: `flagged.html` NF1's `<h3>` still asserts "The official pages disagree" under a *mitigated* tag although the card's own callout (PR #152) and F20 resolve it as "different questions, not disagreement" — requested for reconciliation by `54220d3d` (sign-off note) and `46f45a35` (cross-scope request), both signed off; open PRs checked (`#147`/`#154`/`#157`/`#158`) — **none touches `flagged.html`** | `flagged.html` NF1's `<h3>` still asserts "The official pages disagree" under a *mitigated* tag although the card's own callout (PR #152) and F20 resolve it as "different questions, not disagreement" — requested for reconciliation by `54220d3d` (sign-off note) and `46f45a35` (cross-scope request), both signed off; open PRs checked (`#147`/`#154`/`#157`/`#158`) — **none touches `flagged.html`** | `flagged.html` (NF1 `<h3>` title line only) | the NF1 callout + F20 + [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2); no test pins the title (`grep -rn "NF1" tests/` → only a `flagged.html#NF1` link assertion in `tests/portfolio-page.test.mjs:190`) |
-| EC5 | Final integration: full local suite on the merged tree, PR → `main`, merge without waiting, confirm Pages deploy **with a cache-busted fetch of the deployed pages**, record PR link + merge result here; PR #141 is expected to auto-close as merged once its commits reach `main` | in progress | `ec65b388` | this section, `COORDINATION.md` | `gh pr create` / `gh pr merge --merge`, Pages API, hosted-page fetch |
+| EC5 | Final integration: full local suite on the merged tree, PR → `main`, merge without waiting, confirm Pages deploy **with a cache-busted fetch of the deployed pages**, record PR link + merge result here; PR #141 is expected to auto-close as merged once its commits reach `main` | **done** — see final record below | `ec65b388` | this section, `COORDINATION.md` | `gh pr create` / `gh pr merge --merge`, Pages API, hosted-page fetch |
 
 **Not claimed:** no authenticated call and no order placed (F1); no live price, volume, open interest,
 liquidity or resolution value transcribed into static text; no API keys in the repo.
@@ -4352,6 +4352,42 @@ either, but nothing here needs them.
   or resolution transcribed from the live reads — §5 of `reports/verify-032f1ca5.md` records field presence and
   arithmetic on three sampled markets only, and says three markets is not a proof.
 
+
+### `ec65b388` — final record: PR #161 merged, PR #141 auto-merged, Pages verified live (2026-11-27)
+
+- **PR:** [#161](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/161) — *verify(ec65b388): integrate PR #141,
+  live demo-API verification round, NF1 title reconciliation* — **merged** into `main` at **`0676925`**
+  (2026-11-27T22:56:30Z) via `gh pr merge 161 --merge`, without waiting for review, per the standing rules.
+- **PR #141 auto-closed as `merged`** at 2026-11-27T22:56:32Z — its commits were preserved by the merge, so
+  GitHub marked it merged the moment `0676925` landed. Session `d3e0e9f5`'s V5 takeover (EC2) is complete;
+  its board section, final record, `reports/verify-d3e0e9f5.md` §7 all on `main`.
+- **Checks on the merge SHA `0676925`:** `Static site link check` `46079615175` **success** ·
+  `verify-live-site` `46079615054` **success** · `pages build and deployment` `46079614817` **success**.
+  Checks on the PR head `0d819cd`: `Static site link check` `46079249941`, `verify-alerts` `46079249986`,
+  `verify-facts` `46079250027` — all **success**.
+- **Local suite on the merged tree (2026-11-27 ~22:5xZ):** `node --test tests/*.test.mjs` **284/284** ·
+  `tests/dom/*.test.mjs` **15/15** · jsdom DOM alerts **26/26**, summary **PASS**, category **24/24** ·
+  python `tools` **55/55** · python `tests` **28 run (4 skipped)** · `check_site_links.py` **36/0** ·
+  `page-runtime-check.mjs` **18/18 clean** · `auth-sign-test.mjs` **6/6** · `requirements-trace` **10/10**.
+- **Pages:** API `status: built`, `error: null`. Deployed content re-fetched cache-busted
+  (`?v=0676925`), not from the diff: `flagged.html` renders the **107 / 38 open / 69 closed** counters with
+  the breakdown summing correctly; **NF1's heading now reads "appeared to disagree"** (EC4 fix live);
+  **DR3 carries the measured `6081bb7` root text** (EC-X2 resolution live); F20↔NF1 cross-links resolve;
+  [`reports/verify-ec65b388.md`](https://kanlerxz87-cyber.github.io/KalshiDash2/reports/verify-ec65b388.md)
+  serves the full EC3 report.
+- **Conflicts resolved this session (all logged above, nothing discarded):** `COORDINATION.md` ×4
+  (append/append, both sides kept each time); `reports/alerts-live-check.md` ×4 (newest-run-wins — one
+  early resolution took the older side and was corrected in the next commit); `flagged.html` ×1
+  (DR3 hunk: kept `main`'s measured rewrite after disproving PR #141's root-SHA label against
+  `git rev-list --max-parents=0`).
+- **Observation for the board, not mine to fix:** `live-engine-check` failed twice as a `workflow_dispatch`
+  on `19853f1` (runs `46079257668`, `46079375710`) while the push-triggered run on `97eda74` was green and
+  `main`'s site checks stayed green. Session `bc28428d` diagnosed it and landed
+  [PR #162](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/162) (*commit the live-engine report even
+  when the check fails*) while this record was being written — no action needed here.
+- **Not verified, not claimed:** no authenticated call and **no order placed** (`F1`); no live price, volume,
+  open interest, liquidity or resolution transcribed into any static page; no API keys in the repo;
+  the WebSocket surface delegated to CI `live-ws-check` (last run on `main`: success).
 ---
 
 ## Session `e6d55cf7` — orderbook liquidity-at-price, CLI/CSV trade-pipeline hardening & live verification (branch `arena/e6d55cf7-kalshidash2`, 2026-11-27 UTC)
