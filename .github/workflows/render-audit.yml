@@ -139,6 +139,26 @@ jobs:
         if: always()
         run: |
           status="${{ steps.audit.outputs.status }}"
+          # The per-page table goes into an error annotation here, in this job
+          # summary and in the annotation that marks the run failed, so a failing
+          # run is diagnosable from the API alone. The artifact blob host is
+          # unreachable from some review environments, and a failure nobody can
+          # read is indistinguishable from a false alarm.
+          if [ -f tests/dom/render-audit-report.md ]; then
+            TABLE=$(grep -E '^\| ' tests/dom/render-audit-report.md | head -25)
+            printf '%s\n' "$TABLE" > /tmp/table.txt
+            {
+              echo '### Per-page verdicts'
+              echo
+              cat /tmp/table.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "render-audit status=$status"
+              echo
+              cat /tmp/table.txt
+            } > /tmp/annotation.txt
+            echo "::error title=render-audit per-page verdicts::$(tr '\n' ' ' < /tmp/annotation.txt | cut -c1-900)"
+          fi
           case "$status" in
             0) echo "### Rendered-page audit: PASS" ;;
             2) echo "::error title=render-audit could not verify the site::No page failed, but at least one page could not be verified (the exchange refused, or a page never finished rendering). This is not a pass."; exit 1 ;;
