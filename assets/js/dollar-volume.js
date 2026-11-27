@@ -282,13 +282,19 @@ export async function collectTrades(get, ticker, {
       stopped = "error";
       break;
     }
+    // Both fields are required by Get Trades. A malformed success response
+    // is not evidence of zero trades or of the end of pagination.
+    if (!Array.isArray(page?.trades) || typeof page.cursor !== "string") {
+      stopped = "invalid";
+      break;
+    }
     pages += 1;
-    const raw = page?.trades || [];
+    const raw = page.trades;
     /* Fold only the trades this walk has not already counted. */
     const fresh = guard.accept(raw);
     tally = foldTradesPage(tally, { trades: fresh });
     perPage.push(raw.length);
-    const next = typeof page?.cursor === "string" ? page.cursor : "";
+    const next = page.cursor;
     if (!next) { stopped = null; break; }
     if (raw.length > 0 && fresh.length === 0) {
       /* Every row on this page was already seen: the listing restarted, so the
@@ -309,6 +315,7 @@ export async function collectTrades(get, ticker, {
     pagesRead: pages,
     capped: stopped === "cap"
   });
+  if (stopped === "invalid") summary.note = "The trades response did not contain the required trades array and string cursor, so no dollar total is shown.";
   if (stopped === "error") summary.note = "The trades endpoint could not be read, so no dollar total is shown.";
   if (stopped === "repeat") {
     summary.note = "The exchange re-sent a page it had already returned (an undecodable cursor restarts the "

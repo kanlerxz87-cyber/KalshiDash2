@@ -3707,3 +3707,11 @@ requested and left broken. Nothing else from #126 was touched.
 - Bot note: the scheduled alerts-refresh bot kept committing `reports/alerts-live-check.md` to this branch
   (`57a6dd2`, `cdff991`, both `[skip ci]`, 7–10 lines each). Each was fast-forwarded/kept, never discarded.
 
+
+## Session bacbd8a9 (fixed Arena branch, 2026-11-27)
+
+| Task | Status | Owner | Exclusive scope |
+|---|---|---|---|
+| Verify traded-dollar completeness and prevent unverifiable totals | in progress | bacbd8a9 | `assets/js/dollar-volume.js`, `tests/dollar-volume.test.mjs`, `reports/dollar-completeness-bacbd8a9.md` |
+| Final integration: pin dated evidence and repair existing citation check | in progress | bacbd8a9 | `flagged.html`, `assets/js/claims.js`, `tests/probe-citation-drift.test.mjs`, `data/probe/api_surface_2026-11-24.json` |
+| Verified and tested both claimed tasks | done | bacbd8a9 | [Review and source links](reports/dollar-completeness-bacbd8a9.md); malformed page handling published as DV1. |
