@@ -14,7 +14,7 @@ recorded as field presence and arithmetic, not as market facts, and nothing from
 
 | Harness | Command | Result |
 |---|---|---|
-| Node unit/static | `node --test tests/*.test.mjs` | **266 pass / 0 fail** |
+| Node unit/static | `node --test tests/*.test.mjs` | **266 pass / 0 fail** on `db91232`; **270 / 0** after rebasing onto `bd464b8` (session `bc28428d` added the alert-engine dedupe guard while this round was open) |
 | jsdom DOM suites | `cd tests/dom && npm ci && npm test` | **55 pass** (alerts 26, summary 5, category 24) |
 | Python tools | `python3 -m unittest discover -s tools` | **55 pass** |
 | Python scripts | `python3 -m unittest discover -s tests` | **28 run, 24 pass, 4 skipped** (3 live-socket opt-ins + the crypto test, absent `cryptography`) |
@@ -76,6 +76,11 @@ history, and it was asserted rather than measured. Measured today, through the G
 ## 4. Register counts, restated from the runs above
 
 The same class of drift `X5` recorded on 2026-11-22 had recurred in the Markdown registers:
+
+Counts typed into prose are stale the moment another session lands: this round measured **266/266** on
+`db91232`, and the same suite reported **270/270** an hour later on `bd464b8` after `bc28428d`'s guard merged.
+Every figure below is therefore pinned to the revision it was measured on, and each register line now carries the
+command beside the number.
 
 | Register statement | Was published | Measured today |
 |---|---|---|

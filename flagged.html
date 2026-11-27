@@ -2378,8 +2378,12 @@
         <li><em>The published suite counts drifted again</em> — the same defect <code>X5</code> recorded on
           2026-11-22. <code>README.md</code> and <code>EXECUTIVE_SUMMARY.md</code> restated
           <strong>263/263</strong> Node tests and <strong>20 run / 17 passed / 3 skipped</strong> Python tests;
-          measured on <code>main</code> @ <code>db91232</code> they are <strong>266/266</strong> and
-          <strong>28 run / 24 passed / 4 skipped</strong>.</li>
+          the Node suite measured <strong>266/266</strong> on <code>main</code> @ <code>db91232</code> and
+          <strong>270/270</strong> after session <code>bc28428d</code>'s alert-engine guard landed
+          (<code>6a54db8</code>) — the same hour, a different true number. Each figure here is pinned to the
+          revision it was measured on, because a total typed into prose is stale as soon as another session
+          lands. Python: <strong>28 run / 24 passed / 4 skipped</strong> (3 live-socket opt-ins plus the crypto
+          test when <code>cryptography</code> is absent).</li>
         <li><em>Three headings shared two numbers.</em> Section <code>9</code> appeared twice
           (<code>0acc711d</code>, <code>c33971c1</code>) and section <code>11</code> three times
           (<code>e7931fe7</code>, <code>8f3c331c</code>, <code>d3e0e9f5</code>), so &ldquo;see §11&rdquo; in the
