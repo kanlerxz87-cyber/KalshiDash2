@@ -2247,6 +2247,51 @@
         <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/series/KXDPWORLDTOURR2LEAD" target="_blank" rel="noopener noreferrer">live series record ↗</a></p>
     </div>
 
+    <div class="irregularity" id="F20">
+      <h3>F20 — The NO-order price scale can now be stated from documentation: the request price is the YES-leg price <span class="tag yes">mitigated</span></h3>
+      <p><strong>What this closes:</strong> <a href="#NF1">NF1</a> recorded that two official pages appeared to disagree about what
+        <code>price</code> means on a NO order — one reading made it the NO price, the other the YES-leg price, a
+        difference of <code>1 − price</code>. That is no longer a conflict once the two pages are read together
+        in full.</p>
+      <ul class="small" style="margin:0 0 8px;padding-left:20px;line-height:1.8">
+        <li><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>,
+          <code>BookSide</code> schema, verbatim: <em>"Side of the book for an order or trade. For event markets, this
+          refers to the <strong>YES leg only</strong>: <code>bid</code> means buy YES, <code>ask</code> means sell YES.
+          (Selling YES is economically equivalent to buying NO at <code>1 - price</code>, but this endpoint
+          <strong>quotes everything from the YES side</strong>.)"</em></li>
+        <li><a href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>:
+          <em>"<code>outcome_side</code> describes directional exposure only; it does not change the order's price.
+          An order at price <code>p</code> with <code>outcome_side=no</code> is matched by an order at the same price
+          <code>p</code> with <code>outcome_side=yes</code>: both parties trade at the same price, just on opposite
+          directions."</em></li>
+      </ul>
+      <p><strong>The consistent reading:</strong> both pages say the matching price of a NO order is the same
+        <code>p</code> as the YES order it meets. The V2 page additionally fixes the <em>scale of the request
+        field</em>: it is the YES leg. So the price a NO order is submitted at is the YES-leg price for the same
+        match, and the NO contract's own cost is the complement <code>1 − p</code>. The two statements are about
+        different quantities (the match price vs the request field), not two answers to one question — which is
+        why a live order was never needed to settle it.</p>
+      <p><strong>Live corroboration of the complement, from public trades:</strong> public trade records carry both
+        legs, and on 2026-11-27 <code>GET /markets/trades?limit=1</code> returned
+        <code>yes_price_dollars: "0.0060"</code> beside <code>no_price_dollars: "0.9940"</code>
+        (and in the second record <code>0.4300</code> / <code>0.5700</code>) — the two legs sum to exactly $1.00,
+        as the reciprocal rule requires. The same response carries the canonical direction fields
+        <code>taker_outcome_side</code> and <code>taker_book_side</code> next to the deprecated
+        <code>taker_side</code>, consistent with the same page's migration table
+        (<code>bid ≡ yes</code>, <code>ask ≡ no</code>).</p>
+      <p><strong>What changed in the site, and what did not:</strong> the portfolio confirmation and the side
+        selector no longer say "price scale unverified"; they say that the entered price is the YES-leg price and
+        that a NO position costs <code>1 − price</code>. The form still sends the entered price unchanged with
+        <code>side: "ask"</code> — that was already right for the quoted scale — and it still requires an explicit
+        confirmation before any order request. <strong>No order was placed by this session</strong>, so F1 (no
+        live order executed) stands unchanged.</p>
+      <p class="small"><strong>Sources:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2) ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/order_direction" target="_blank" rel="noopener noreferrer">Order direction ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Order-book responses ↗</a>
+        <a class="src-link" href="https://external-api.demo.kalshi.co/trade-api/v2/markets/trades?limit=2" target="_blank" rel="noopener noreferrer">live trades response ↗</a></p>
+    </div>
+
     <h2>What is <em>not</em> flagged</h2>
     <p class="sub" style="margin-bottom:8px">For balance: these were checked and are correct —</p>
     <ul class="small" style="margin:0;padding-left:20px;line-height:1.9">

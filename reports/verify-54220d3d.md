@@ -108,6 +108,43 @@ Honesty note on this row: `KXGOLFCAT`'s live title is the single character `a`, 
 this section said "(blank in the API)" and listed it as unclassified; both were wrong, and the table above is
 the corrected version produced by re-running the classifier on the live records.
 
+### F20 · NF1 was resolvable from documentation — the request price is the YES-leg quote
+
+NF1 (section 10 of the Flagged page) said two official pages "do not agree" on what `price` means on a NO
+order. Read in full today, they do not conflict; they answer different questions:
+
+| Page | Text (verbatim) | What it defines |
+|---|---|---|
+| [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2), `BookSide` schema | *"Side of the book for an order or trade. For event markets, this refers to the **YES leg only**: `bid` means buy YES, `ask` means sell YES. (Selling YES is economically equivalent to buying NO at `1 - price`, but this endpoint **quotes everything from the YES side**.)"* | the **request field** — the price you send |
+| [Order direction](https://docs.kalshi.com/getting_started/order_direction) | *"`outcome_side` describes directional exposure only; it does not change the order's price. An order at price `p` with `outcome_side=no` is matched by an order at the same price `p` with `outcome_side=yes`: both parties trade at the same price, just on opposite directions."* | the **matching** price — the same on both sides |
+
+So: a NO order is sent at the YES-leg price `p` (V2 schema), it matches a YES order at the same `p`
+(order-direction page), and the NO contract's own cost is the complement `1 − p`. No live order was needed to
+settle it, which matters because no demo key exists here.
+
+Live corroboration of the complement and of the canonical direction fields, from public data only:
+
+```
+GET https://external-api.demo.kalshi.co/trade-api/v2/markets/trades?limit=2   (2026-11-27)
+{"trades":[
+ {"count_fp":"0.03","is_block_trade":false,"no_price_dollars":"0.9940",
+  "taker_book_side":"bid","taker_outcome_side":"yes","taker_side":"yes",
+  "ticker":"KXMARMAD-27-MIZZ","trade_id":"…","yes_price_dollars":"0.0060"},
+ {"count_fp":"0.68","is_block_trade":false,"no_price_dollars":"0.5700",
+  "taker_book_side":"bid","taker_outcome_side":"yes","taker_side":"yes",
+  "ticker":"KXNBAGAME-26NOV27MIANYK-MIA","trade_id":"…","yes_price_dollars":"0.4300"}]}
+```
+
+`0.0060 + 0.9940 = 1.0000` and `0.4300 + 0.5700 = 1.0000`. The canonical `taker_outcome_side` /
+`taker_book_side` fields are present beside the deprecated `taker_side` — which is what
+`assets/js/dollar-volume.js:94` already reads.
+
+**Site changes (this session):** `portfolio.html` no longer calls the scale "unverified": the side selector says
+the price is the YES-leg quote, and the confirmation states `NO position costs 1 − price`. The request is
+unchanged (entered price, `side: "ask"`) and still requires an explicit confirmation. `tests/portfolio-page.test.mjs`
+now asserts both halves, including that the old "unverified" wording cannot come back. F1 ("no live order was
+executed") stands — nothing was placed.
+
 ## 4 · Recommendation recorded, not applied (file ownership)
 
 `assets/js/config.js` (topic taxonomy) and `assets/js/market.js` (classifier) are shared controllers that other
