@@ -1,6 +1,6 @@
 # Live WebSocket check — Kalshi demo
 
-- Started: `2026-11-21T20:30:48.018653+00:00`
+- Started: `2026-11-27T17:51:28.645486+00:00`
 - Finished: `not finished`
 - WebSocket endpoint: `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`
 - REST endpoint: `https://external-api.demo.kalshi.co/trade-api/v2`
