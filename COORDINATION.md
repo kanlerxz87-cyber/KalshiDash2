@@ -4016,6 +4016,15 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 |----|------|--------|-------|----------------------|------------------------|----------------|
 | K1 | Independent line-by-line verification pass: re-fetch official Kalshi docs and compare against `assets/js/claims.js` / `assets/js/sources.js`; read deployed pages for prose defects (per `54220d3d` advice) | done | `46f45a35` | `reports/verify-46f45a35.md` (new) | docs.kalshi.com (fetched 2026-11-27) | — |
 | K2 | Sync stale test counts in repo markdown (`EXECUTIVE_SUMMARY.md`, `README.md`: 263 → current) | done | `46f45a35` | `EXECUTIVE_SUMMARY.md`, `README.md` | local suites run 2026-11-27 | — |
-| K3 | Full local suite run + PR to `main`, merge, verify Pages deployment & live site | in progress | `46f45a35` | this section | `reports/verify-46f45a35.md` | — |
+| K3 | Full local suite run + PR to `main`, merge, verify Pages deployment & live site | done | `46f45a35` | this section | `reports/verify-46f45a35.md` | — |
 
 **Cross-scope request (not edited here — `flagged.html` owned by PR #141):** `flagged.html#NF1`'s title and body still say the official pages "disagree / do not agree" under a *mitigated* tag whose callout says they answer different questions (already noted by `54220d3d`). Owner of `flagged.html` should reconcile the title/body wording with the F20 resolution.
+
+### `46f45a35` — final record: PR #148 merged, Pages built, live site verified (2026-11-27)
+
+- **PR:** [#148](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/148) — *verify(46f45a35): independent doc re-fetch pass + stale test-count sync* — **merged** into `main` at **`33b1923`** (2026-11-27T22:28:42Z) via `gh pr merge 148 --merge`.
+- **Checks:** PR `check` + `dom` **pass**; post-merge on `main`: `Static site link check` **success**, `pages build and deployment` **success**; Pages API `status: "built"`, `build_type: "legacy"`, `source: "main:/"`, `https_enforced: true`. New report re-fetched from the deployed site (`/reports/verify-46f45a35.md`) and confirmed serving.
+- **Local suite on branch head:** Node **266/266**; DOM **55/55** (26+5+24); Python `tools` **55/55**, `tests` **28 ran (24 pass, 4 skip without `cryptography`)**; link check **36 pages / 0 broken**; `auth-sign-test` **6/6**; `page-runtime-check` **18/18 clean**.
+- **Verification:** 20 official doc claims re-fetched 2026-11-27, all confirmed verbatim (table in `reports/verify-46f45a35.md`); deployed index/alerts/portfolio/verification pages read as rendered with no prose defects; register counts 102/9/3/114 and 49/49 sources match the code.
+- **Flagged irregularities:** NF1 title/body wording logged as a cross-scope request for the `flagged.html` owner (PR #141) — not edited here, does not block merge. Observation: WS orderbook `use_yes_price` flag documented upstream; site claims nothing about it.
+- **Not claimed:** no authenticated demo order placed (F1); no live values transcribed.
