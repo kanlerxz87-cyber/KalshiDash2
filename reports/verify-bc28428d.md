@@ -257,3 +257,56 @@ report's framing ("0 poll-to-poll swings … largest move +0.14") without notici
 different populations. That paragraph was rewritten to state the contradiction and to point at this section.
 Correcting my own note is the same rule as correcting a page: the claim was wrong, so it was fixed and logged,
 not left standing.
+
+---
+
+## 7 · Third defect: the live-check workflow did not keep its own promise (fixed here)
+
+### What was observed
+
+After §6 merged, `live-engine-check` on `main` at `19853f1` failed twice in a row
+(runs **46079257668** at 22:52:49Z and **46079375710** at 22:54:03Z) on the step *Run the live engine check*.
+
+The same script **succeeded at 22:48:20Z on `97eda74`**, and the only commits between the two are `COORDINATION.md`,
+`reports/verify-3e859f7c.md` and `reports/verify-facts-v3.md` — no code, yml or data file. So the failure is
+**not** attributable to the §6 change, and `main` has produced that check successfully on other commits the same
+evening. What it is attributable to could not be established from here: the job logs are not readable from this
+sandbox (`blob.core.windows.net` is outside its allowlist — `EOF` on every attempt).
+
+### The defect that made it undiagnosable
+
+The workflow's own header says:
+
+> "The report is committed even when the check fails, so a red run still leaves evidence behind."
+
+It does not. The `Commit the report` step has no `if: always()`, so GitHub **skipped** it:
+
+```
+1. Set up job → success
+2. Run actions/checkout@v4 → success
+3. Run actions/setup-node@v4 → success
+4. Run the live engine check → failure
+5. Commit the report → skipped
+```
+
+The one artefact that would have made the red run diagnosable — the partially written report, which shows how far
+the script got (alert engine done? simulator history? candles?) — was discarded by the workflow's own default. The
+comment promised the opposite, so nobody looking at the workflow would have known to check.
+
+### The fix
+
+`.github/workflows/live-engine-check.yml`: `Commit the report` now carries **`if: always()`**. The check step
+still fails the job on a real failure (no `continue-on-error`), so the run stays red; the report is committed
+alongside it, exactly as the header claims.
+
+`tests/live-engine-workflow.test.mjs` (2 checks) pins both halves: the commit step must carry `if: always()`, and
+the workflow must not neutralise a failure with `continue-on-error`. Shown to fail on the pre-fix workflow
+(`git stash` of the yml): `not ok 1 … / # pass 1 / # fail 1`.
+
+Wired into `site-check.yml` as a named step; all workflow YAML re-parsed.
+
+### What this session does not claim
+
+**This session does not claim to have fixed the live-engine failure itself.** It fixed the reason the failure
+could not be read. The next green `live-engine-check` run — which commits its report either way — will say what
+failed. That is recorded here rather than guessed at, in line with the rule against inventing a diagnosis.
