@@ -144,8 +144,13 @@ jobs:
           # run is diagnosable from the API alone. The artifact blob host is
           # unreachable from some review environments, and a failure nobody can
           # read is indistinguishable from a false alarm.
-          if [ -f tests/dom/render-audit-report.md ]; then
-            TABLE=$(grep -E '^\| ' tests/dom/render-audit-report.md | head -25)
+          # Read the verdict table from stdout, which the audit always prints,
+          # rather than from a file whose location depends on the working
+          # directory. (The first version of this step read only the file and
+          # produced a run with no per-page detail at all.)
+          REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' tests/dom/render-audit/console.txt 2>/dev/null)
+          if [ -n "$REPORT" ]; then
+            TABLE=$(printf '%s\n' "$REPORT" | grep -E '^\| ' | head -25)
             printf '%s\n' "$TABLE" > /tmp/table.txt
             {
               echo '### Per-page verdicts'
@@ -158,6 +163,9 @@ jobs:
               cat /tmp/table.txt
             } > /tmp/annotation.txt
             echo "::error title=render-audit per-page verdicts::$(tr '\n' ' ' < /tmp/annotation.txt | cut -c1-900)"
+          elif [ -f tests/dom/render-audit/console.txt ]; then
+            echo "::error title=render-audit::the audit produced no verdict table; console tail follows"
+            tail -30 tests/dom/render-audit/console.txt | while read -r line; do echo "::error title=render-audit::$line"; done
           fi
           case "$status" in
             0) echo "### Rendered-page audit: PASS" ;;

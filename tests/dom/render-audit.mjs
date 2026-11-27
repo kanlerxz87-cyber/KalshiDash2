@@ -128,8 +128,16 @@ const report = [
   "No Kalshi price, volume, size or result is asserted or recorded here; only whether the page rendered them.",
   ""
 ].join("\n");
-try { writeFileSync("render-audit-report.md", report); } catch { /* the workflow collects stdout too */ }
-console.log("\n" + report);
+/* The report goes to stdout EVERY time, and to the file (and to the job's
+ * summary/annotation path) whenever the filesystem allows it. An earlier version
+ * wrote only the file and let the workflow read it; when that write did not land
+ * where the workflow looked, the failing run carried no per-page detail at all —
+ * a failure nobody can read is indistinguishable from a false alarm. */
+console.log("\n=== RENDER-AUDIT REPORT START ===");
+console.log(report);
+console.log("=== RENDER-AUDIT REPORT END ===");
+try { writeFileSync("render-audit-report.md", report); } catch { /* stdout already carries it */ }
+try { writeFileSync(`${process.env.GITHUB_WORKSPACE || "."}/render-audit-report.md`, report); } catch { /* same */ }
 /* `process.exit()` can truncate buffered stdout, which is exactly how the first
  * version of this script lost its per-page annotations. Set the code and let
  * Node flush. */
