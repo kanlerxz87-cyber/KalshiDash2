@@ -46,7 +46,7 @@ F18 work. The independent re-fetch of 20 official doc claims made by session `46
 [`reports/verify-8299bffe.md`](reports/verify-8299bffe.md).
 
 - **Node unit & static suites (`node --test tests/*.test.mjs`):** **278/278 passed** (+8 F18 checks in `tests/exchange-status.test.mjs`; 270 before).
-- **jsdom DOM suites:** alerts **26/26**, category **24/24**, summary **all pass** (104/115 verified · 8 partial · 3 unverified; 38 open / 68 mitigated / 106 total).
+- **jsdom DOM suites:** alerts **26/26**, category **24/24**, summary **all pass** (105/116 verified · 8 partial · 3 unverified; 38 open, 69 closed (30 mitigated, 38 fixed, 1 corrected), 107 total).
 - **Python unit tests:** `tools` **55/55** passed; `tests` OK (**4** network-gated skips without `cryptography` — CI installs it).
 - **Site link, signing & runtime checks:** `tools/check_site_links.py` — **36** HTML pages, **0** broken links; `evidence/auth-sign-test.mjs` — **6/6**; `tools/verify/page-runtime-check.mjs` — **18/18** pages executed cleanly, `0` errors.
 - **Live verification with dated sources:** [`reports/verify-8299bffe.md`](reports/verify-8299bffe.md) records 12 checks against official `.md` pages and **live demo responses fetched from this session's sandbox** — the first round able to read the exchange directly. It closes `A9`'s two open questions (the Get Markets OpenAPI enum has five status values including `paused`; `GET /markets?status=paused` returns `200` with a market at `status: "inactive"`, confirming the `paused` → `inactive` mapping on the live host) and records that Get Markets' prose still contradicts its own enum.
