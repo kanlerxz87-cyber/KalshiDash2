@@ -4125,6 +4125,28 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 
 ---
 
+---
+
+## Session `3e859f7c` — line-by-line verification, runtime/hygiene fixes & source-register elevation (branch `arena/3e859f7c-kalshidash2`, 2026-11-27 UTC)
+
+**Claimed:** 2026-11-27 UTC, base `main` @ `b726dd8` (rebased cleanly onto latest `origin/main`).
+**Zero overlap with active open PRs:** does **not** touch files owned by PR #152 (`index.html`, `flagged.html`, `assets/js/claims.js`, `assets/js/exchange-status.js`, `tests/exchange-status.test.mjs`, `tests/official-wording.test.mjs`, `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`), PR #151 (`flagged.html`, `summary.html`, `assets/js/claims.js`, `tests/dom/summary-dom.mjs`), PR #154 (`.github/workflows/render-audit.yml`, `tests/dom/render-audit*`), PR #153, PR #147, or PR #141. Findings in those files are logged below as cross-scope handoff notes.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| V1 | Fix `assets/js/market.js` runtime/data-integrity bugs (`isSettledMarket` scalar parity, `analyseFills` unsided-fill price must stay `null` rather than defaulting to `yesPrice`, `fetchCandles` URL encoding) + regression tests | in progress | `3e859f7c` | `assets/js/market.js`, `tests/result-semantics.test.mjs` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Get Settlements](https://docs.kalshi.com/api-reference/portfolio/get-settlements), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills) (fetched verbatim 2026-11-27) |
+| V2 | Fix `assets/js/category.js` jump panel (`esc(s.url)` & name-only `settlement_sources`, `DEMO.rest` host constant, accurate candle jump basis description) + jsdom check | in progress | `3e859f7c` | `assets/js/category.js`, `tests/dom/category-dom.mjs` | [Get Market Candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks), [Get Event](https://docs.kalshi.com/api-reference/events/get-event) (fetched verbatim 2026-11-27) |
+| V3 | Fix `portfolio.html` `Forget key` state wipe (`#fills-body`, `#fills-status`, `#order-result`, `#order-status`, `window.__fills`, late `fills()` request guard, non-stacking `#o-price` snap note) + `event.html` / `resolved.html` (`null` `expiration_value` → `n/a`, `GetEventResponse` top-level `markets` fallback) + tests | in progress | `3e859f7c` | `portfolio.html`, `tests/portfolio-page.test.mjs`, `event.html`, `resolved.html` | [Get Event](https://docs.kalshi.com/api-reference/events/get-event), [Get Balance](https://docs.kalshi.com/api-reference/portfolio/get-balance), [Get Fills](https://docs.kalshi.com/api-reference/portfolio/get-fills), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2) (fetched verbatim 2026-11-27) |
+| V4 | Update stale prose on `questions.html` (Q2 Golf `series.tags`, Q13 live deploy checks, Q15 candle jump basis) and `suggestions.html` (S8 multi-session coordination) + promote 15 verbatim-read official `.md` pages in `assets/js/sources.js` from `index` → `fetched` | in progress | `3e859f7c` | `questions.html`, `suggestions.html`, `assets/js/sources.js` | 15 `docs.kalshi.com/*.md` pages fetched verbatim 2026-11-27 + live demo API spot-checks (`external-api.demo.kalshi.co/trade-api/v2`) |
+| V5 | Full local test suites, verification report, PR to `main`, green CI, merge, live GitHub Pages verification & final board record | in progress | `3e859f7c` | `reports/verify-3e859f7c.md` (new), this section | Local suites + GitHub Actions + Pages API + live fetch |
+
+**Cross-scope handoff notes (verified here, NOT edited to respect active PRs #151 & #152):**
+- **`index.html` (PR #152):** `Resolved` KPI filters `state.events` (all scanned exchange topics) while `Events in scope`, `Volume × price proxy`, and `Open now` filter `allRanked` (five tracked topics only); `#mover-note` similarly prints `state.events.length` while `movers` iterates over `allRanked`.
+- **`flagged.html` (PR #151 / #152):** Line 1624 opens `<div class="card">` without closing it before line 1802's `<div class="card">`, nesting 6 sections inside one `.card` through line 2348; `What is not flagged` sits before the last section instead of at the end; `#DR2` (fixed PR #139 `090d84f`) and `#F19` (fixed PR #143 `a4c24b8`) still show `open`; `#F7` is fixed in published root `portfolio.html` (old label remains only in retired `docs/portfolio.html:21`).
+- **`assets/js/claims.js` (PR #151 / #152):** Two mismatched `flag` cross-references: `"Prior site's order menu mislabelled sides"` links `flag: "F6"` (should be `"F7"`), and `"A candlestick bucket with no trades still carries its quote legs"` links `flag: "K2"` (should be `"DR1"`).
+- **`summary.html` (PR #151):** `<h2>8 · Requirement traceability</h2>` appears above `<h2>7 · Method</h2>`; §5 Decision #2 `Blocked by` cell says `Q1 / F7` instead of `Q1 / A11`; §2 bullet 5 can add `F20` YES-leg request quoting (also requested by `df162a93`); §3 still lists already-mitigated `F4`/`F10`/`A10` alongside open items.
+
+
 
 ### `8299bffe` — final record: PR #152 merged, all post-merge checks green, fix confirmed on the live site (2026-11-27T22:35Z)
 
