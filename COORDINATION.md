@@ -4165,3 +4165,30 @@ site prose; they are cited as dated observations, exactly as the frozen-snapshot
 - **Not claimed:** no authenticated call and **no order placed** (F1/F2 remain open); no price, balance,
   fill or resolution transcribed into static text from this session; the demo exchange was *quiet* during the
   window, which is reported as such rather than read as a defect.
+
+---
+
+## Session `032f1ca5` (branch `arena/032f1ca5-kalshidash2`, base `main` @ `db91232`, 2026-11-27T22:30Z)
+
+**Claim time:** 2026-11-27T22:35Z. **State of the board when claimed:** branch head equals `origin/main` (`db91232`),
+all local suites green (see R1), one open pull request (**#141**, session `d3e0e9f5`), and no live claim newer than
+the 60-minute rule allows — every other claim on this page dates from 2026-11-20/21 or from 2026-11-27T17:4xZ.
+
+**PR #141 is stale and conflicted, and is *not* merged here.** `GET /pulls/141` reports `mergeable: false`,
+`mergeable_state: "dirty"`; `compare/main...arena/d3e0e9f5-kalshidash2` reports **2 ahead / 34 behind**. Its last
+commit is 17:45Z, ~4h45m before this claim, so the 60-minute takeover rule applies. This session cannot push to
+another session's branch, so it does **not** take over #141: it takes over only the one substantive repair inside it
+(the `DR3` wording, task R2) and records two findings about #141 below. #141's owner may close it as superseded.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| R1 | Re-run the full local suite on `main` @ `db91232` and record the *measured* numbers | done | `032f1ca5` | this section, `reports/verify-032f1ca5.md` | `node --test tests/*.test.mjs` **266/266**; jsdom **55/55**; python `tools` **55/55**; python `tests` **28 run, 4 skipped**; `check_site_links.py` **36 pages / 0 broken**; `page-runtime-check` **18/18**; `auth-sign-test` **6/6** |
+| R2 | Repair `DR3`'s unmeasured universal negative ("no `site/` directory at any revision"), taking over #141's intent but **not** its citations | done | `032f1ca5` | `flagged.html` (`DR3` card only) | GitHub API: root commit `6081bb7` tree = `README.md` only; `GET /commits?path=site` → **0** of **851** commits |
+| R3 | Publish status counts that match the cards: `flagged.html` KPI and the Summary headline both labelled 66 cards "mitigated" while only **28** carry that tag (**37** `fixed`, **1** `corrected`) | done | `032f1ca5` | `flagged.html` (counts script), `summary.html` (headline detail), `tests/dom/summary-dom.mjs` | tag text read from each card's own `h3`; DOM harness asserts the breakdown sums to the card count and every status is a known value |
+| R4 | Stop the published suite counts from drifting (they drifted again after `X5`): `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md` restated **263/263** node tests and **20 run / 17 pass / 3 skip** python tests; measured today are **266/266** and **28 run / 24 pass / 4 skip** | done | `032f1ca5` | `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md` | R1's runs; every figure carries its command and date |
+| R5 | Live demo reads recorded with URL + timestamp; no value transcribed as a site fact | done | `032f1ca5` | `reports/verify-032f1ca5.md` | `GET /exchange/status`, `GET /events?status=open&with_nested_markets=true&limit=1`, `GET /markets?status=open&series_ticker=KXGAS&limit=2` (2026-11-27T22:4xZ) |
+| R6 | Integration: full suite, PR → `main`, merge without waiting, confirm the Pages deploy by cache-busted page fetch | in progress | `032f1ca5` | this section | standing rules; record PR link and result here |
+
+**File scope is exclusive to this session** and excludes `assets/js/claims.js`, `assets/js/sources.js`,
+`data/probe/**`, `.github/workflows/**` and the five `categories/*.html` boards — no other live session owns them
+either, but nothing here needs them.
