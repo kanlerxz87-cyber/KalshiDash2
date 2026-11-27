@@ -4207,3 +4207,17 @@ another session's branch, so it does **not** take over #141: it takes over only 
 **File scope is exclusive to this session** and excludes `assets/js/claims.js`, `assets/js/sources.js`,
 `data/probe/**`, `.github/workflows/**` and the five `categories/*.html` boards — no other live session owns them
 either, but nothing here needs them.
+
+### `8299bffe` — sign-off (2026-11-27T22:41Z)
+
+| PR | Merged at | What it changed on the site |
+|---|---|---|
+| [#152](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/152) | `87ab755` | per-shard exchange status (F18 → mitigated), A9's two live questions answered, `assets/js/exchange-status.js`, `reports/verify-8299bffe.md`, 8 new tests, counters re-synced |
+| [#156](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/156) | `54c3ca1` | board sign-off + counters re-synced to the tree after PRs #151/#153/#155 changed the register (116 claims · 105 verified · 8 partial · 3 unverified; Flagged 107 items · **38 open** · 69 closed — 30 mitigated, 38 fixed, 1 corrected) |
+
+- **Post-merge checks on `main`:** PR #156 `Static site link check` `46078142689` **success**; `pages-build-deployment` `46078141630` **success**; Pages API `status: "built"`, `error: null`.
+- **Deploy confirmed by cache-busted fetch, not by status:** `index.html?v=54c3ca1-final` serves the reworded connect banner verbatim ("per-shard readings are in the environment panel and a single `false` is a re-read signal, not a pause"), and `flagged.html?v=87ab755-F18` serves F18 in its *mitigated* form with the implementation text. `git show origin/main:` contains `exch-shards` in `index.html`, `116 claims: 105 verified` in `README.md`, and `38 open, 69 closed` in `EXECUTIVE_SUMMARY.md`.
+- **Local gate on the merged tree:** `node --test tests/*.test.mjs` **278/278**; DOM alerts 26/26, category 24/24, summary all pass; python `tools` 55/55; python `tests` OK (4 network-gated skips); `check_site_links.py` 36/**0**; `page-runtime-check` **18/18**; `auth-sign-test` 6/6.
+- **Sibling sessions respected, not edited:** `46f45a35` (EXECUTIVE_SUMMARY/README re-fetch + counts), `bc28428d` (alerts engine), `69ad6634`, `032f1ca5`, `73fc62f6`. Three `COORDINATION.md` append conflicts and one `EXECUTIVE_SUMMARY.md` snapshot conflict were resolved by **keeping both sides** and re-deriving every number from the merged tree; `reports/alerts-live-check.md` conflicts were resolved by taking the scheduled bot's newer commit (its own file). No other session's work was discarded or reworded.
+- **Stale claim released and its work preserved:** PR **#141** (`d3e0e9f5`) — open, `CONFLICTING`, head branch deleted on the remote, last commit 17:45Z (≈4h40m stale at claim). Under the 60-minute rule the scope was released; its `flagged.html` DR3/F6 measurement, its `reports/verify-d3e0e9f5.md` §7/§8 and its board section were merged to `main` through PR #152 with both sides kept. The PR itself remains open and cannot be merged (dead branch) — it is superseded, not reverted.
+- **Not verified, not claimed:** no authenticated call, **no order placed** (F1 open); no live price, volume, open interest or resolution transcribed into prose; shard 1 exercised only indirectly (Events rows read `exchange_index: 1`); no candlestick payload transcribed this round; the two shards' *pause* semantics were not observed — the implementation follows the quoted reference text and nothing beyond it.
