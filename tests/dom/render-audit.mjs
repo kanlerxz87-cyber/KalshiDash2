@@ -99,6 +99,15 @@ await browser.close();
 const summary = summarise(results);
 console.log(`\n${summary.pass} passed, ${summary.fail} failed, ${summary.inconclusive} could not be verified`);
 
+/* Emit the verdict table as annotations, so a failing run is diagnosable from
+ * the API without downloading an artifact (the artifact blob host is not
+ * reachable from every environment that reviews these runs). */
+for (const r of results) {
+  const line = `${r.spec.path} → ${r.verdict}: ${r.reasons.join("; ") || "ok"}`;
+  if (r.verdict === "fail") console.log(`::error title=render-audit ${r.spec.name}::${line.replace(/\n/g, " ")}`);
+  else if (r.verdict === "inconclusive") console.log(`::warning title=render-audit ${r.spec.name}::${line.replace(/\n/g, " ")}`);
+}
+
 const report = [
   "# Rendered-page audit — the deployed site in a real browser",
   "",
