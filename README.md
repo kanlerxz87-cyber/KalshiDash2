@@ -45,9 +45,9 @@ market read failure withholds the topic total (`n/a`). See `assets/js/dollar-vol
 - **Overview (`index.html`)** — live events across Gas, Elections, Culture, Crypto, and Golf, ranked by the
   clearly labelled `volume_fp × last_price_dollars` proxy, open interest, or contract volume, plus current ≥$0.10 swings.
 - **Live alerts (`alerts.html`)** — scrolling **All alerts** (≥$0.10 swings via `previous_price_dollars` and
-  consecutive polls) and rule-screened **High-ROI watch**, plus four browser-local paper strategies. Runs on
-  REST polling by default and supports Kalshi's WebSocket `ticker` stream (~1s flush) via optional local
-  same-origin `scripts/relay.py`.
+  consecutive polls) and rule-screened **High-ROI watch**, with swing permalinks, transcript filtering,
+  per-topic mute chips, opt-in watch sound cue, and four browser-local paper strategies. Runs on REST polling
+  by default and supports Kalshi's WebSocket `ticker` stream (~1s flush) via optional local same-origin `scripts/relay.py`.
 - **Strategy tester (`simulator.html`)** — strategy replay over official 1-minute candlesticks scored against
   `settlement_value_dollars`, modelling official fee-schedule rounding while omitting spread/slippage, with
   seeded random-control baseline, topic/direction rollups, CSV export, and live paper-book integration.
@@ -97,8 +97,8 @@ Full local verification matches `.github/workflows/site-check.yml`:
 ```bash
 node evidence/auth-sign-test.mjs            # 6/6 Web Crypto signing checks
 node tools/verify/page-runtime-check.mjs    # 18/18 published pages execute cleanly + 36-page link check
-node --test tests/*.test.mjs                # 259/259 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape & simulator tests
-(cd tests/dom && npm ci && npm test)        # 51/51 jsdom checks (alerts 22, summary 5, category 24)
+node --test tests/*.test.mjs                # 263/263 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape & simulator tests
+(cd tests/dom && npm ci && npm test)        # 55/55 jsdom checks (alerts 26, summary 5, category 24)
 python3 -m unittest discover -s tools       # 55/55 link-checker & probe-collector tests
 python3 -m unittest discover -s tests       # Python relay/ws/trade-analyzer unit tests
 python3 tools/check_site_links.py .         # 36 HTML pages, 0 broken local links or anchors

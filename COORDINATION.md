@@ -3898,12 +3898,32 @@ history — ask the API for the revision before calling a card wrong.**
 
 ---
 
-## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `f6bad4f`, 2026-11-27 UTC)
+## Session `e081e9af` (branch `arena/e081e9af-kalshidash2`, base `main` @ `e487e12`, 2026-11-27 UTC)
 
-**Claim time:** 2026-11-27T17:37Z (synced after PR #134, PR #135, and PR #137 landed on `main` @ `f6bad4f`; PR #138 open for `e081e9af`). Checked active siblings and open PRs before claiming and re-verified zero overlap after syncing:
-PR #134 (`d3e0e9f5`), PR #135 (`54220d3d`), and PR #137 (`54220d3d` follow-up) are merged on `main`; PR #138 (`e081e9af`: `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs`, `suggestions.html`) is open; `df162a93` claims `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `summary.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
+**Claim time:** 2026-11-27T17:4xZ. Checked before claiming: `gh pr list --state open` → empty (PRs #131/#132 merged); active siblings `54220d3d` (sources.js fee row, flagged F18–F20), `d3e0e9f5` (claims.js, flagged existing cards, summary.html, trace.js), `df162a93` (simulator/kalshi_ws/index/resolved/questions/verification/sources/analyze_trades), `c0aa9245` (collect.yml — its collect fix is superseded by merged PR #132's stricter version). None of the files below is in an active claim.
 
-**Disjoint scope (`2f98889c`) — zero overlap with all active branches above:**
+**Stale-claim handoff (60-minute rule):** `869f5339`'s board rows for `alerts.html` / `assets/js/alerts.js` are from 2026-11-20, last commit that day, and their alerts work was merged in PR #23 (`dd5e36b`). That session is not live; this session takes the alerts UX files for the scope below only.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| E1 | S15 — permalink for every recorded swing + a filterable transcript over both chats and the table view | in progress | `e081e9af` | `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | Project UX feature (no exchange fact asserted); suggestion S15 on `suggestions.html` |
+| E2 | S16 — per-topic mute for the feeds + an opt-in sound cue when the High-ROI watch gets a message | in progress | `e081e9af` | same as E1 | Project UX feature; suggestion S16 on `suggestions.html`; topics already defined in `config.js` |
+| E1 | S15 — permalink for every recorded swing + a filterable transcript over both chats and the table view | done | `e081e9af` | `alerts.html`, `assets/js/alerts.js`, `assets/css/app.css`, `tests/alerts-core.test.mjs`, `tests/dom/alerts-dom.mjs` | Project UX feature (no exchange fact asserted); suggestion S15 on `suggestions.html` |
+| E2 | S16 — per-topic mute for the feeds + an opt-in sound cue when the High-ROI watch gets a message | done | `e081e9af` | same as E1 | Project UX feature; suggestion S16 on `suggestions.html`; topics already defined in `config.js` |
+| E3 | Update S15/S16 status on the suggestions page once E1/E2 are green; full local suite; PR → `main`, merge, confirm Pages | done | `e081e9af` | `suggestions.html` (S15/S16 status lines only), this section | `node --test` **250/250**; DOM alerts **26/26**, summary **23/23**, category **23/23**; page-runtime **18/18**, 36 pages 0 broken; link check 36/0; tools unittest **55/55**; tests unittest 20 (3 skipped); auth-sign **6/6** |
+
+**Sources / verification for E1–E2 (project features, not exchange facts):** helpers in `assets/js/alerts-core.js` (`swingPermalink`, `parseSwingHash`, `matchesTranscriptQuery`, `isTopicMuted`, `visibleAlert`, `watchIds`, `newWatchIds`) unit-tested in `tests/alerts-core.test.mjs` (+4 tests, 32 total); DOM end-to-end in `tests/dom/alerts-dom.mjs` (+4 checks, 26 total): permalink anchors on every message, filter input wired, five mute chips toggle and persist to `kalshiDash.mute.v1`, sound checkbox defaults off and persists to `kalshiDash.watchSound.v1`. `tests/table-shape.test.mjs` mutant string updated to the reworded `emptyRow` call (same 10-column guard). **No Kalshi API field, price, or claim was added or changed.** No authenticated call, no order.
+
+**Not claimed:** any probe/collector/claims/flagged/summary/simulator file; any authenticated call or order (none possible from here).
+
+---
+
+## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `32b7992`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:37Z (resynced after PR #134, PR #135, PR #137, and PR #138 landed on `main` @ `32b7992`; PR #139 open for `df162a93`). Checked active siblings and open PRs before claiming and re-verified zero overlap after each sync:
+PR #134 (`d3e0e9f5`), PR #135 (`54220d3d`), PR #137 (`54220d3d`), and PR #138 (`e081e9af`) are merged on `main`; PR #139 (`df162a93`) touches `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`, `reports/audit-df162a93.md`, `COORDINATION.md`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
+
+**Disjoint scope (`2f98889c`) — zero overlap with PR #139 (`df162a93`) or `c0aa9245`:**
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
@@ -3912,4 +3932,4 @@ PR #134 (`d3e0e9f5`), PR #135 (`54220d3d`), and PR #137 (`54220d3d` follow-up) a
 | M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | done | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
 | M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
 
-**Conflict log (`2f98889c`):** merged `origin/main` @ `f6bad4f` cleanly with zero source conflicts; the append-only conflict at the tail of `COORDINATION.md` kept both `d3e0e9f5`/`54220d3d` (`origin/main`) and this session's section verbatim.
+**Conflict log (`2f98889c`):** merged `origin/main` @ `f6bad4f` and `32b7992` cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`) plus this session's section verbatim.

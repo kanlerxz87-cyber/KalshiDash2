@@ -154,7 +154,7 @@ test("alert and paper-trade controller aliases use the table's actual width", ()
   const code = read("assets/js/alerts.js");
   const widths = tableWidths(read("alerts.html"));
   assert.deepEqual(checkCode("assets/js/alerts.js", code, widths), []);
-  const mutant = code.replace('emptyRow(10, "No swing', 'emptyRow(9, "No swing');
+  const mutant = code.replace('emptyRow(10, S.alerts.length', 'emptyRow(9, S.alerts.length');
   assert.ok(checkCode("mutant", mutant, widths).some(p => p.includes("#alert-rows")),
     "the regression guard must fail when the original nine-column defect is restored");
 });

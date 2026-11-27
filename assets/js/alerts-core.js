@@ -518,3 +518,81 @@ export function screenMarket(market, { now = Date.now(), components } = {}) {
   const max = comps.reduce((a, c) => a + c.max, 0) || 100;
   return { score: Math.round(score), max, parts, spread, depth, hoursLeft, last, bid, ask };
 }
+
+/* ------------------------------------------------- transcript UX (S15/S16)
+ * Pure helpers for the alerts page's permalink, text filter, per-topic mute
+ * and watch-cue. No DOM, no network, no exchange facts — these only decide
+ * which already-recorded alerts a reader sees and how they link to them.
+ */
+
+/* Stable in-page permalink for one recorded swing. The id is the alert's own
+ * key (`ticker@at` or `ticker@refat`); it is encoded so any ticker character
+ * survives a URL fragment. */
+export function swingPermalink(id) {
+  if (!id) return "";
+  return `#swing=${encodeURIComponent(id)}`;
+}
+
+/* Read a swing id back out of a location.hash. Returns null when the hash is
+ * absent or is some other anchor, so callers can ignore unrelated fragments. */
+export function parseSwingHash(hash) {
+  if (!hash || typeof hash !== "string") return null;
+  const m = /^#swing=([^&]+)/.exec(hash.trim());
+  if (!m) return null;
+  try {
+    const id = decodeURIComponent(m[1]);
+    return id || null;
+  } catch {
+    return null;
+  }
+}
+
+/* Case-insensitive transcript filter over the fields a message already shows:
+ * ticker, event ticker, title, topic label and the comparison basis. An empty
+ * or whitespace-only query matches everything. */
+export function matchesTranscriptQuery(alert, query, topicLabel = k => k) {
+  if (!alert) return false;
+  const q = String(query ?? "").trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    alert.ticker,
+    alert.eventTicker,
+    alert.title,
+    alert.topic,
+    topicLabel(alert.topic),
+    alert.basis,
+    alert.direction
+  ].filter(Boolean).join(" ").toLowerCase();
+  return hay.includes(q);
+}
+
+/* Per-topic mute: a muted topic's swings are hidden from both chats and the
+ * table. `muted` is a Set of topic keys (or any iterable of strings). */
+export function isTopicMuted(muted, topic) {
+  if (!muted) return false;
+  if (typeof muted.has === "function") return muted.has(topic);
+  return Array.isArray(muted) && muted.includes(topic);
+}
+
+/* Combined gate used by both feeds and the table view: the existing single
+ * topic selector, the mute set, and the transcript query. */
+export function visibleAlert(alert, { topic = "all", muted = null, query = "", topicLabel } = {}) {
+  if (!alert) return false;
+  if (topic && topic !== "all" && alert.topic !== topic) return false;
+  if (isTopicMuted(muted, alert.topic)) return false;
+  return matchesTranscriptQuery(alert, query, topicLabel);
+}
+
+/* Ids of alerts that pass the High-ROI gate — the shortlist chat's contents. */
+export function watchIds(alerts, watch) {
+  return (alerts || [])
+    .filter(a => (watch && watch.get(a.id))?.pass)
+    .map(a => a.id);
+}
+
+/* New shortlist ids since the previous cue. Returns them sorted for stable
+ * output; used only to decide whether the opt-in sound cue should fire. */
+export function newWatchIds(prevIds, nextIds) {
+  const prev = new Set(prevIds || []);
+  return (nextIds || []).filter(id => !prev.has(id));
+}

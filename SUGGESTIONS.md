@@ -4,7 +4,7 @@
 Items are ordered by decision priority: **data trust** before **analysis insight**, **operational hardening**, and
 **presentation**.
 
-Status breakdown on `suggestions.html` (**17 total**): **3** built · **2** partly built · **12** open (**6** recommended, **10** optional, **1** later).
+Status breakdown on `suggestions.html` (**17 total**): **5** built · **2** partly built · **10** open (**6** recommended, **10** optional, **1** later).
 
 ## Priority register (S1–S17)
 
@@ -24,8 +24,8 @@ Status breakdown on `suggestions.html` (**17 total**): **3** built · **2** part
 | **S12** | UX | later | open | Add a bespoke colour theme and illustrations | Does the site feel like a product? | Nothing (competes with `S1`/`S3`) |
 | **S13** | Insight | yes | open | Deliver alerts outside the browser tab | Do I have to watch this page to catch a move? | Notification vs webhook security choice |
 | **S14** | Ops | optional | open | Rotate the event cursor instead of re-reading the first pages | Am I missing swings because of the scan bound (`F16`)? | Sustained public endpoint `429` behaviour (`Q11`) |
-| **S15** | UX | optional | open | Give every alert a permalink and a filterable transcript | Can I send a colleague the exact move I saw, with its evidence? | URL scheme & transcript text filter |
-| **S16** | UX | optional | open | Per-topic mute and a sound cue for the shortlist chat | Can I follow one topic without noise from the other four? | User preference on active topics |
+| **S15** | UX | optional | **built** | Give every alert a permalink and a filterable transcript | Can I send a colleague the exact move I saw, with its evidence? | Closed in `alerts.html` / `alerts.js` (`#swing=<id>` + filter) |
+| **S16** | UX | optional | **built** | Per-topic mute and a sound cue for the shortlist chat | Can I follow one topic without noise from the other four? | Closed in `alerts.html` / `alerts.js` (topic mute chips + opt-in sound cue) |
 | **S17** | Insight | optional | open | Rank live boards by the exchange's own whole-dollar notional | Can I sort by whole-dollar notional instead of the volume × price proxy? | Live capture verifying WS `dollar_volume` sign convention (requires relay `scripts/relay.py`) |
 
 See [`questions.html`](questions.html) (`QUESTIONS.md`) for how each missing piece can be obtained.
