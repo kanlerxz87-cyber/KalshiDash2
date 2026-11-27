@@ -139,10 +139,17 @@ test("inconclusive pages never exit 0", () => {
 
 test("every page spec names selectors this repository's pages actually define", async () => {
   /* A spec that points at a selector no page has would fail every run for the
-   * wrong reason. Pinning it here keeps the audit honest as pages change. */
+   * wrong reason. Pinning it here keeps the audit honest as pages change.
+   *
+   * The root is derived from THIS FILE's location, never from `process.cwd()`:
+   * this suite runs from `tests/dom` in CI (`cd tests/dom && node --test ...`)
+   * and from the repository root locally, and the first CI run of the
+   * `render-audit` workflow failed on exactly that difference. A path that
+   * depends on the caller's working directory is a defect, not a convention. */
   const { readFileSync } = await import("node:fs");
-  const { join } = await import("node:path");
-  const root = process.cwd();
+  const { join, dirname } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   for (const spec of PAGES) {
     const file = spec.path === "/" ? "index.html" : spec.path.replace(/^\//, "");
     const html = readFileSync(join(root, file), "utf8");

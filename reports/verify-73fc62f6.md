@@ -236,3 +236,28 @@ page has 3 (`holds` rows + two strategy/ledger tables). Corrected to 3 before an
 
 **Still unproven from here:** whether the *browser* renders those 10 pages on the deployed site. That is the
 first run of `.github/workflows/render-audit.yml`, and its result is the answer.
+
+---
+
+## 9 · The audit's first real run — and the defect it caught in itself
+
+The browser workflow ran on this PR (run
+[46078438546](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46078438546), `pull_request` event) and
+**failed at step 5, `Offline proofs for the verdict rules`** — before Chromium was ever asked to render a page.
+
+Cause, reproduced locally in one command: `rendered-page-assertions.test.mjs` derived the repository root from
+`process.cwd()`, which is the repository root when the suite is run from there and `tests/dom` when the workflow's
+`working-directory: tests/dom` applies. `cd tests/dom && node --test rendered-page-assertions.test.mjs` → **13 pass,
+1 fail**; from the repository root → **14 pass**.
+
+Fixed by deriving the root from `import.meta.url` instead of the caller's working directory, and the reason is
+recorded in the test itself. Both invocations now pass **14/14**.
+
+Two things worth keeping from this:
+
+1. **The workflow did its job on its first run.** It refused to be green while one of its own preconditions failed,
+   and it distinguished "the rules are broken" (step 5) from "the site could not be rendered" (step 7, never
+   reached). That is the behaviour `live-site-render.yml` lacks.
+2. **A check that depends on the caller's working directory is a defect**, not a convention — the same class as
+   the exit-code masking in §2.3. Both are ways for a guard's *result* to depend on something other than the
+   thing it claims to guard.
