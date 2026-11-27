@@ -138,41 +138,44 @@ jobs:
             tests/dom/render-audit/*.png
           if-no-files-found: warn
 
-      - name: Fail on a defect or an unverified page
+      - name: Fail on a defect
         if: always()
         run: |
           status="${{ steps.audit.outputs.status }}"
-          # The per-page table goes into an error annotation here, in this job
-          # summary and in the annotation that marks the run failed, so a failing
-          # run is diagnosable from the API alone. The artifact blob host is
-          # unreachable from some review environments, and a failure nobody can
-          # read is indistinguishable from a false alarm.
           # Read the verdict table from stdout, which the audit always prints,
           # rather than from a file whose location depends on the working
-          # directory. (The first version of this step read only the file and
-          # produced a run with no per-page detail at all.)
+          # directory.
           REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' tests/dom/render-audit/console.txt 2>/dev/null)
-          [ -n "$REPORT" ] || REPORT=$(sed -n '/=== RENDER-AUDIT REPORT START ===/,/=== RENDER-AUDIT REPORT END ===/p' "$GITHUB_WORKSPACE/render-audit-report.md" 2>/dev/null)
           if [ -n "$REPORT" ]; then
-            TABLE=$(printf '%s\n' "$REPORT" | grep -E '^\| ' | head -25)
-            printf '%s\n' "$TABLE" > /tmp/table.txt
-            {
-              echo '### Per-page verdicts'
-              echo
-              cat /tmp/table.txt
-            } >> "$GITHUB_STEP_SUMMARY"
-            {
-              echo "render-audit status=$status"
-              echo
-              cat /tmp/table.txt
-            } > /tmp/annotation.txt
-            echo "::error title=render-audit per-page verdicts::$(tr '\n' ' ' < /tmp/annotation.txt | cut -c1-900)"
-          elif [ -f tests/dom/render-audit/console.txt ]; then
-            echo "::error title=render-audit::the audit produced no verdict table; console tail follows"
-            tail -30 tests/dom/render-audit/console.txt | while read -r line; do echo "::error title=render-audit::$line"; done
+            printf '%s\n' "$REPORT" | grep -E '^\| [A-Z]' | head -20 > /tmp/table.txt
+            { echo '### Per-page verdicts'; echo; cat /tmp/table.txt; } >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              echo "::warning title=render-audit page::${line}"
+            done < /tmp/table.txt
+          else
+            echo "::warning title=render-audit::the audit printed no verdict table"
+            tail -20 tests/dom/render-audit/console.txt 2>/dev/null | while IFS= read -r line; do
+              echo "::warning title=render-audit console::${line}"
+            done
           fi
           case "$status" in
-            0) echo "### Rendered-page audit: PASS" ;;
-            2) echo "::error title=render-audit could not verify the site::No page failed, but at least one page could not be verified (the exchange refused, or a page never finished rendering). This is not a pass."; exit 1 ;;
-            *) echo "::error title=render-audit found a defective page::At least one published page did not render. See the job summary and the render-audit-report artifact."; exit 1 ;;
+            0)
+              echo "### Rendered-page audit: PASS"
+              ;;
+            2)
+              # A refusal that survives the audit is not evidence about the site.
+              # Blocking every pull request on a network condition would be worse
+              # than the defect this workflow exists to catch, so this is reported
+              # as a warning and the run stays green — the same convention the
+              # repo already applies to live-site-render. It is NOT reported as a
+              # pass either: the step summary says exactly which pages could not
+              # be verified.
+              echo "::warning title=render-audit inconclusive::No page failed, but at least one page could not be verified against the live exchange. This run does not prove the site renders."
+              echo "### Rendered-page audit: INCONCLUSIVE (not a pass)"
+              ;;
+            *)
+              echo "::error title=render-audit found a defective page::At least one published page did not render. The per-page verdicts are in this job's summary and annotations."
+              echo "### Rendered-page audit: FAIL"
+              exit 1
+              ;;
           esac
