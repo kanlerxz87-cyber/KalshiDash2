@@ -1,8 +1,8 @@
 # Independent requirements and deployment audit — `69ad6634`
 
 **Checked:** 2026-11-27 UTC  
-**Tree:** `arena/69ad6634-kalshidash2`, based on `main` at `db912326` (claim commit `3c71d66`, documentation refresh `e81f9e8`; final audit additions follow).  
-**Purpose:** verify that the existing root GitHub Pages site actually addresses the request, refresh stale local test-count snapshots, and document what remains conditional or unverified. This review introduced no live-market data, no credentials, and no trade.
+**Tree:** `arena/69ad6634-kalshidash2`, based on `main` at `db912326` (claim commit `3c71d66`, scope addendum `e81f9e8`; final audit additions follow).  
+**Purpose:** verify that the existing root GitHub Pages site addresses the request and document what remains conditional or unverified. This review introduced no live-market data, no credentials, and no trade. A separate open audit PR (#148) independently owns the README/executive-summary test-count refresh; this session reproduced the results but withdrew its overlapping edits.
 
 ## Executive finding
 
@@ -54,7 +54,7 @@ These are documentation checks, not a live authenticated account verification. T
 
 ## Corrections and remaining review items
 
-1. **Stale repository test snapshots fixed:** `README.md` and `EXECUTIVE_SUMMARY.md` previously reported 263 Node tests and 20 Python `tests` (17 pass / 3 skipped). This run confirms **266 Node tests** and **28 Python tests (24 pass / 4 skipped)**. README and the executive-summary verification snapshot now match the actual run.
+1. **Stale repository test snapshots found:** `README.md` and `EXECUTIVE_SUMMARY.md` at this base reported 263 Node tests and 20 Python `tests` (17 pass / 3 skipped). This run confirms **266 Node tests** and **28 Python tests (24 pass / 4 skipped)**. These edits were withdrawn after discovering open [PR #148](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/148), which already owns the README/executive-summary refresh; its owner should publish the updated counts.
 2. **No live order/account evidence:** F1 and related portfolio evidence remain unverified; this audit deliberately did not access or invent credentials. The site does not autonomously execute authenticated orders.
 3. **No causality claim:** market settlement-source links are references, not news explanations for sharp price moves. News/article discovery or causal attribution is not implemented as verified functionality.
 4. **No ROI claim:** “High-ROI” is only a rule-filtered watch label; profitability is not established. Backtest assumptions still omit spread/slippage and live queue position.
