@@ -232,7 +232,7 @@ site's prose is edited by hand.
 
 | Harness | Result |
 |---|---|
-| `node --test tests/*.test.mjs` | see §7 (re-run after the last edit) |
+| `node --test tests/*.test.mjs` | **256/256 pass**, 0 fail (re-run after the last edit, 2026-11-27T17:44Z) |
 | `python3 -m unittest discover -s tools -p 'test_*.py'` | 47/47 OK |
 | `python3 -m unittest discover -s tests -p 'test_*.py'` | 20 tests, 3 skipped (the network-gated ones) |
 | `tests/dom` `npm test` (alerts / summary / category) | 22/22 · 23/23 · 23/23 |
@@ -241,5 +241,48 @@ site's prose is edited by hand.
 | `node tools/verify/auth-sign-test.mjs` | 6/6 |
 
 The **live** suites (`live-site-render`, `verify-live-site`, `verify-alerts`, `live-engine-check`) cannot run
-from this sandbox because it cannot open TLS to `*.kalshi.co`; their state on `main` is recorded in §7 from the
+from this sandbox because it cannot open TLS to `*.kalshi.co`; their state on `main` is recorded in §7 below from the
 Actions API instead.
+
+---
+
+## 7 · Deployed-build re-verification (V4, 2026-11-27T17:39–17:45Z)
+
+The point of this section is that **a merge is not a deploy**, and a green merge commit does not prove the hosted
+page changed. Each step below is a check against GitHub's own API or a cache-busted fetch of the live host.
+
+**(a) The merge.** PR #134 merged at `0c5bf02` (`mergedAt 2026-11-27T17:39:51Z`). Pre-merge checks on the branch
+were green; post-merge runs on `main` at `0c5bf02` were green for `Static site link check`, `verify-alerts`,
+`verify-live-site` and `live-site-render`.
+
+**(b) The Pages build reported failure, and the page was nevertheless correct.** `GET /pages/builds?per_page=3`
+returned, in order:
+
+| created_at | commit | status | error |
+|---|---|---|---|
+| 2026-11-27T17:39:52Z | `0c5bf02` | `errored` | Page build failed. |
+| 2026-11-27T17:40:25Z | `a1d5605` | `errored` | Page build failed. |
+| 2026-11-27T17:41:54Z | `f6bad4f` | **`built`** | — |
+
+and `GET /pages` went `errored` → `building` → **`built`**. The two `errored` rows are *not* evidence that the
+content failed to publish: a cache-busted fetch of `summary.html?v=pagefail` taken while the status said
+`errored` already served this session's content (102/114 claims, 106 cards, the §8 trace table). The third build,
+triggered by session `54220d3d`'s PR #137, **succeeded and contains this session's merge** —
+`git merge-base --is-ancestor 0c5bf02 origin/main` → true, with `origin/main` at `f6bad4f`.
+
+**(c) The hosted page, re-fetched after the successful build.** `flagged.html?v=f6bad4f2` serves §11 (`DR1`,
+`DR2`, `DR3`) and section 12's `F20` card. Counters on the hosted page match the merged tree.
+
+**Rule this adds:** `pages.builds[].status` is a statement about *one build attempt*, not about the site. Two
+consecutive `errored` attempts were followed by a `built` one with no change to the content. Verify deployment by
+fetching the host with a cache-buster and comparing to `origin/main`, and only then report a deploy failure.
+
+**(d) DR3's strongest sentence, made checkable.** The published card said `site/` "never existed". That is now
+supported by two measurements rather than by absence-of-evidence: the tree at the root commit `1a30722` has no
+`site/` entry, and `GET /commits?path=site` returns **0** across the **816** commits the API reports for this
+repository. This distinction is deliberate — it is the exact error §3 of this report records (a negative result
+over a shallow clone read as proof). The GitHub API sees the full history; this sandbox's `git log` does not.
+
+**State at the end of this session:** branch merged; Pages `built` at `f6bad4f` serving the merged content;
+flag totals **106 cards / 40 open / 66 mitigated**; claim register **114 rows / 102 verified / 9 partial /
+3 unverified**; requirement matrix **17/17** wired.
