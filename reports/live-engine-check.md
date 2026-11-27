@@ -1,18 +1,18 @@
 # Live engine check — Kalshi demo API
 
-- Run at: 2026-11-27T17:49:17.247Z
+- Run at: 2026-11-27T22:31:01.773Z
 - API: https://external-api.demo.kalshi.co/trade-api/v2
 - Alert threshold: $0.10 · model pass mark: 55/100
 
 ## 1 · Alert engine
 
 - Events scanned: 1200
-- Markets in the five topics: 2757
+- Markets in the five topics: 2741
 - Swings of $0.10 or more detected: 0
 
 _No swing met the threshold in this scan. The demo exchange is quiet at the time of writing._
 
-- Markets with a readable previous price: 2769
+- Markets with a readable previous price: 2749
 - Largest single move against the exchange's previous price: +0.14 on `KXTVSEASONRELEASETHELASTOFUS-26-APR`
 
 | Market | previous_price_dollars | last_price_dollars | Δ |
@@ -33,7 +33,7 @@ _No swing met the threshold in this scan. The demo exchange is quiet at the time
 - Finalized markets loaded: 12
 - With a yes/no result and a settlement value: 12
 
-- Markets with usable one-minute history: 0
+- Markets with usable one-minute history: 12
 - History requests that failed: 0
 - Simulated trades produced: 0
 
