@@ -84,9 +84,9 @@ command beside the number.
 
 | Register statement | Was published | Measured today |
 |---|---|---|
-| Node suite | 263/263 (`README.md`, `EXECUTIVE_SUMMARY.md`) | **266/266** |
+| Node suite | 263/263 (`README.md`, `EXECUTIVE_SUMMARY.md`) | **266/266** at `db91232`, **278/278** on the merged tree — the register line now carries the command and the date |
 | Python scripts | 20 run / 17 passed / 3 skipped (`EXECUTIVE_SUMMARY.md`) | **28 run / 24 passed / 4 skipped** |
-| Flagged items | 40 open / 66 "mitigated" / 106 (`README.md`, `VERIFICATION.md`, `EXECUTIVE_SUMMARY.md`) | **40 open / 67 closed (28 mitigated, 38 fixed, 1 corrected) / 107** |
+| Flagged items | 40 open / 66 "mitigated" / 106 (`README.md`, `VERIFICATION.md`, `EXECUTIVE_SUMMARY.md`) | **40 open / 67 closed at `db91232`; 38 open / 69 closed (30 mitigated, 38 fixed, 1 corrected) / 107 on the merged tree**, where session `8299bffe` also closed two cards |
 | Claims | 114 (102 verified) | **115 (103 verified)** from this round's one new row; the merged tree holds **116 (105 verified, 8 partial, 3 unverified)** because session `8299bffe` added and re-graded a row in parallel |
 
 Every one of these now carries the command that produces it, so the next drift is a diff.
