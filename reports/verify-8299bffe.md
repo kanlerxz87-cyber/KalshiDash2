@@ -78,7 +78,7 @@ environment that produced the documentation. That is the capability this report 
 ## 5 · Local suite at the end of this round
 
 ```
-node --test tests/*.test.mjs              274/274 pass
+node --test tests/*.test.mjs              278/278 pass
 tests/dom/alerts-dom.mjs                   26/26 checks
 tests/dom/category-dom.mjs                 24/24 checks
 tests/dom/summary-dom.mjs                  all pass (104/115 verified, 8 partial, 3 unverified; 38 open / 68 mitigated / 106 total)
