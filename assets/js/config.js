@@ -77,9 +77,9 @@ export const SOURCES = {
  *
  * Verified against the live demo environment (see reports/verify-facts-v3.md):
  *   Elections -> category "Elections"
- *   Culture   -> category "Entertainment" / "Social"
+ *   Culture   -> category "Entertainment" / "Social" / "Culture"
  *   Crypto    -> category "Crypto"
- *   Golf      -> category "Sports" + golf-specific series/title terms
+ *   Golf      -> category "Sports" + series tag "Golf" or golf series/title terms
  *   Gas       -> NOT covered by any category; matched on gas-price series/titles
  * ------------------------------------------------------------------------- */
 export const TOPICS = [
@@ -165,9 +165,10 @@ export const TOPICS = [
     label: "Golf",
     blurb: "PGA, major championships, and tournament markets.",
     categoryPatterns: [/^Sports$/i],
+    tagPatterns: [/^Golf$/i],
     seriesPatterns: [/GOLF/i, /^KXPGA/i, /^PGA/i, /RYDER/i, /MASTERS/i],
     titlePatterns: [/golf/i, /pga/i, /ryder cup/i, /the masters/i],
-    note: "Kalshi category `Sports` narrowed to golf series and titles.",
+    note: "Kalshi category `Sports` narrowed by series `Golf` tag or golf series/title patterns.",
     verifiedCategory: "Sports",
     sources: ["events", "series"]
   }

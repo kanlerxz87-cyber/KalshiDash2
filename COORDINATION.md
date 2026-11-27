@@ -3814,7 +3814,6 @@ sessions lands first (or by the integration pull request, if they have not lande
 
 ---
 
-
 ## Session `d3e0e9f5` (branch `arena/d3e0e9f5-kalshidash2`, base `main` @ `956e704`, 2026-11-27 UTC)
 
 **Claim time:** 2026-11-27T17:2xZ. **No open PR** at claim time (`gh pr list --state open` → empty). Sessions
@@ -3897,6 +3896,8 @@ history — ask the API for the revision before calling a card wrong.**
   order placed**); that a `/series` response is the full catalogue (F5); the per-shard status semantics beyond the
   quoted reference text (F18).
 
+---
+
 ## Session `e081e9af` (branch `arena/e081e9af-kalshidash2`, base `main` @ `e487e12`, 2026-11-27 UTC)
 
 **Claim time:** 2026-11-27T17:4xZ. Checked before claiming: `gh pr list --state open` → empty (PRs #131/#132 merged); active siblings `54220d3d` (sources.js fee row, flagged F18–F20), `d3e0e9f5` (claims.js, flagged existing cards, summary.html, trace.js), `df162a93` (simulator/kalshi_ws/index/resolved/questions/verification/sources/analyze_trades), `c0aa9245` (collect.yml — its collect fix is superseded by merged PR #132's stricter version). None of the files below is in an active claim.
@@ -3923,3 +3924,19 @@ history — ask the API for the revision before calling a card wrong.**
 - **Local suite at merge:** `node --test tests/*.test.mjs` **260/260** after rebase onto `main` @ `f6bad4f` (sibling PRs #134/#137 had landed); DOM alerts **26/26**; page-runtime 18/18; link check 36/0; tools 55/55; auth-sign 6/6.
 - **Flagged irregularities:** none added by this PR. Existing open flags remain on the Flagged for Review page and do not block the merge.
 
+---
+
+## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `b4bc153`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T17:37Z (resynced after PR #134, PR #135, PR #137, PR #138, and PR #142 landed on `main` @ `b4bc153`; PRs #139/#140/#141 open for `df162a93`/`54220d3d`/`d3e0e9f5`). Zero file overlap with any open PR or active branch.
+
+**Disjoint scope (`2f98889c`):**
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|---|---|---|---|---|
+| M1 | Fix logged 5-col vs 6-col `#yes-book`/`#no-book` error row width bug + clear stale `#book-summary` on error; extend DOM & static table-width guards | done | `2f98889c` | `assets/js/category.js`, `tests/dom/category-dom.mjs`, `tests/table-shape.test.mjs` | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook), [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses); `COORDINATION.md` logged request |
+| M2 | Fulfill `54220d3d` §4 handoff: store `series.tags` in `fetchSeriesCategories`/`primeSeriesCategories`, add Golf `tagPatterns: [/^Golf$/i]` before title/series patterns, and pin `KXDPWORLDTOURR2LEAD` + `KXMLBGAME` in taxonomy tests | done | `2f98889c` | `assets/js/config.js`, `assets/js/market.js`, `tests/taxonomy.test.mjs` | [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), `reports/verify-54220d3d.md` §3–4 |
+| M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | done | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
+| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR #143 to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
+
+**Conflict log (`2f98889c`):** merged `origin/main` (`f6bad4f`, `32b7992`, `b4bc153`) cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`) plus this session's section verbatim.

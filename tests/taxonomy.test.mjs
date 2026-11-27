@@ -283,3 +283,106 @@ test("the lookup budget is spent on the series carrying the most events", async 
   assert.equal(seriesCategoriesFor("RARE"), null);
   assert.equal(classifyEvent(ev({ category: "Crypto", series_ticker: "RARE" })), "crypto");
 });
+
+/* ---------------------------------------------------------------------------
+ * Golf series `tags[]` taxonomy (Flagged F19 / reports/verify-54220d3d.md §3–4).
+ *
+ * Live Kalshi series records such as KXDPWORLDTOURR2LEAD ("DP World Tour R2
+ * Leader") carry category "Sports" and `tags: ["Golf"]` with no "golf"/"pga"
+ * token in ticker or title. `GET /series` documents `tags` on the series
+ * schema (https://docs.kalshi.com/api-reference/market/get-series), so
+ * fetchSeriesCategories stores `series.tags` and Golf matches `tagPatterns`
+ * before falling back to series/title patterns.
+ * ------------------------------------------------------------------------- */
+
+test("golf series tagged Golf classify as golf even without golf/pga in ticker or title", async () => {
+  clearSeriesCategoryCache();
+  const fetcher = async (path) => {
+    const ticker = decodeURIComponent(path.split("/series/")[1]);
+    if (ticker === "KXDPWORLDTOURR2LEAD") {
+      return {
+        series: {
+          ticker,
+          title: "DP World Tour R2 Leader",
+          category: "Sports",
+          categories: ["Sports"],
+          tags: ["Golf"]
+        }
+      };
+    }
+    if (ticker === "KXMLBGAME") {
+      return {
+        series: {
+          ticker,
+          title: "Pro Baseball Game",
+          category: "Sports",
+          categories: ["Sports"],
+          tags: []
+        }
+      };
+    }
+    if (ticker === "KXGAS") {
+      return {
+        series: {
+          ticker,
+          title: "Gas weekly",
+          category: "Economics",
+          categories: ["Economics"],
+          tags: null
+        }
+      };
+    }
+    throw new Error("unexpected ticker: " + ticker);
+  };
+
+  await fetchSeriesCategories(["KXDPWORLDTOURR2LEAD", "KXMLBGAME", "KXGAS"], { fetcher, cap: 10 });
+  assert.deepEqual(seriesCategoriesFor("KXDPWORLDTOURR2LEAD").tags, ["Golf"]);
+  assert.deepEqual(seriesCategoriesFor("KXMLBGAME").tags, []);
+  assert.deepEqual(seriesCategoriesFor("KXGAS").tags, []);
+
+  const dp = ev({
+    event_ticker: "KXDPWORLDTOURR2LEAD-26NOV27",
+    series_ticker: "KXDPWORLDTOURR2LEAD",
+    title: "DP World Tour R2 Leader",
+    category: "Sports"
+  });
+  assert.equal(classifyEvent(dp), "golf");
+  const dpVerdict = classifyEventWithBasis(dp);
+  assert.equal(dpVerdict.topic, "golf");
+  assert.equal(dpVerdict.basis, "series");
+
+  const mlb = ev({
+    event_ticker: "KXMLBGAME-26NOV27",
+    series_ticker: "KXMLBGAME",
+    title: "Pro Baseball Game",
+    category: "Sports"
+  });
+  assert.equal(classifyEvent(mlb), null, "non-golf Sports series with empty tags stays unclassified");
+});
+
+test("golf tag matching is exact (Golf) and honors primed tags and direct args", () => {
+  clearSeriesCategoryCache();
+  primeSeriesCategories({
+    KXLPGAR2LEAD: { cats: ["Sports"], tags: ["Golf"] },
+    KXDISCGOLF: { cats: ["Sports"], tags: ["Disc Golf"] }
+  });
+  assert.equal(classifyEvent(ev({
+    series_ticker: "KXLPGAR2LEAD",
+    title: "LPGA Round 2 Leader",
+    category: ""
+  })), "golf");
+  assert.equal(classifyEvent(ev({
+    series_ticker: "KXOTHER",
+    title: "Generic Sports Event",
+    category: "Sports"
+  }), ["Sports"], ["Disc Golf"]), null, "exact /^Golf$/i tag pattern must not match non-Golf tags");
+  // Tags-only primed record (no categories) still classifies and reports series basis.
+  primeSeriesCategories({ KXTAGONLY: { tags: ["Golf"] } });
+  const verdict = classifyEventWithBasis(ev({
+    series_ticker: "KXTAGONLY",
+    title: "European Tour R1 Leader",
+    category: ""
+  }));
+  assert.equal(verdict.topic, "golf");
+  assert.equal(verdict.basis, "series");
+});
