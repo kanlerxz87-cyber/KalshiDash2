@@ -93,6 +93,30 @@ for (const spec of PAGES) {
   console.log(`${r.verdict.toUpperCase().padEnd(13)} ${spec.name.padEnd(20)} ${spec.path}`);
   for (const reason of r.reasons) console.log(`   - ${reason}`);
 }
+
+/* One bounded retry for pages the exchange refused.
+ *
+ * Each category page runs its own open-event scan, so auditing five of them
+ * back-to-back reliably earns a `429 too_many_requests` on the demo API — a
+ * limit on the AUDIT's request rate, not a defect in the page. Retrying the
+ * refused pages once, after a pause and one at a time, turns most of those into
+ * real verdicts instead of "could not verify". A page that fails again still
+ * reports as inconclusive, and its reason names the refusal. */
+const RETRY_DELAY_MS = Number(process.env.RENDER_RETRY_DELAY_MS || 30000);
+const retryable = results.map((r, i) => ({ r, i })).filter(({ r }) => r.verdict === "inconclusive");
+if (retryable.length) {
+  console.log(`\nretrying ${retryable.length} refused page(s) after ${RETRY_DELAY_MS / 1000}s`);
+  await new Promise(res => setTimeout(res, RETRY_DELAY_MS));
+  for (const { i } of retryable) {
+    const again = await auditPage(PAGES[i]);
+    console.log(`${again.verdict.toUpperCase().padEnd(13)} ${PAGES[i].name.padEnd(20)} ${PAGES[i].path} (retry)`);
+    for (const reason of again.reasons) console.log(`   - ${reason}`);
+    /* Only a definite verdict replaces the first attempt; a second refusal keeps
+     * the original record so the refusal is not lost from the report. */
+    if (again.verdict !== "inconclusive") results[i] = again;
+    else results[i].reasons = [...new Set([...results[i].reasons, ...again.reasons])];
+  }
+}
 await browser.close();
 
 const summary = summarise(results);

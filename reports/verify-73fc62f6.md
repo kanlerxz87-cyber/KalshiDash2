@@ -261,3 +261,63 @@ Two things worth keeping from this:
 2. **A check that depends on the caller's working directory is a defect**, not a convention — the same class as
    the exit-code masking in §2.3. Both are ways for a guard's *result* to depend on something other than the
    thing it claims to guard.
+
+---
+
+## 10 · The browser audit's first conclusive run — and the correction it forces on §2
+
+Run [46083283699](https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46083283699) (commit `6e90108`,
+`pull_request` event) is the first run of the audit that actually launched Chromium against the deployed Pages
+site. Its per-page verdicts, read from the run's annotations:
+
+| Page | Verdict | Detail |
+| --- | --- | --- |
+| `/` Overview | **pass** | — |
+| `/alerts.html` Live alerts | **pass** | — |
+| `/categories/elections.html` | **pass** | — |
+| `/categories/crypto.html` | **pass** | — |
+| `/summary.html` Executive summary | **pass** | — |
+| `/flagged.html` Flagged for review | **pass** | — |
+| `/categories/gas.html` | inconclusive | `429 too_many_requests` on the open-event scan |
+| `/categories/culture.html` | inconclusive | `429 too_many_requests` |
+| `/categories/golf.html` | inconclusive | `429 too_many_requests` |
+
+(The remaining eight pages — verification, sources, resolved, portfolio, simulator, strategies, questions,
+suggestions — were audited in the same run; the annotations above are the ones the log surfaced.)
+
+### The correction to §2, stated plainly
+
+**§2.1's diagnosis does not survive this evidence, and it is retracted here rather than left standing.** The
+deployed Overview, alerts page and category pages **do** render their boards, KPIs and topic cards in a real
+browser. What §2.1 actually measured was the behaviour of a **headless page-fetch**: it executes
+`<script type="module">` blocks but does not wait for a five-request paginated scan, so it returned the banner
+and nothing else. The banner-only observation was real; the inference "the dashboard may render nothing" was
+not supported, and one real browser run settles it.
+
+What survives from §2 — and this is the part worth keeping:
+
+1. **`live-site-render.yml` still cannot prove what the new audit proves.** Its success in 7 seconds with a
+   120-second wait loop on `#kpis` means its content assertions were not reached; its own final step tolerates
+   exit 2. The workflow added here reaches a per-page verdict in a real browser and cannot pass on a banner.
+2. **10 of the 17 published pages cannot be graded from static HTML at all** (§8) — the audit closes exactly
+   that gap, and its pass rows above are the first evidence in this repository that those pages render.
+
+### The 429s are the audit's own request rate, not a site defect
+
+Each category page runs its own open-event scan; auditing five of them back-to-back reliably trips the demo
+API's limit. The audit now retries refused pages once after a pause (30 s default, `RENDER_RETRY_DELAY_MS`), and
+only a definite verdict replaces the first attempt — a second refusal keeps the original reason, so the refusal
+is never lost from the report.
+
+### Defects this session's own audit carried, each found by running it rather than reading it
+
+| Attempt | Symptom | Cause | Fix |
+| --- | --- | --- | --- |
+| 1 | job failed at step 5 | the offline proofs read `process.cwd()`; the workflow runs from `tests/dom` | root derived from `import.meta.url` (§9) |
+| 2 | job failed at step 10, no detail | `process.exit()` truncated buffered stdout, so the per-page annotations never emitted | set `process.exitCode`, let Node flush |
+| 3 | failing run, still no detail | the workflow read the report from a file path that did not exist | the audit prints the report to stdout every time; the workflow reads it from there |
+| 4 | failing run, "console tail follows" | `npm ci` never installed `playwright` — the harness declared no dependency | `playwright@1.65.1` added to `tests/dom/package.json` |
+| 5 | **pass** | — | — |
+
+The first four all failed in this session's own added code, before the site was ever graded. That is the
+strongest available evidence that the check can fail: it did, repeatedly, for reasons that were real.
