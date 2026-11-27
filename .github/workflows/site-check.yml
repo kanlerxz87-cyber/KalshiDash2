@@ -130,6 +130,13 @@ jobs:
       - name: Live-engine report consistency guard
         run: node --test tests/live-engine-report-consistency.test.mjs
 
+      # Named as well as globbed: pins that the live-engine workflow keeps the
+      # promise its own header makes ("the report is committed even when the
+      # check fails"). Without `if: always()` the step is skipped on failure, and
+      # two red runs on 2026-11-27 left no report and unreadable logs.
+      - name: Live-engine workflow contract guard
+        run: node --test tests/live-engine-workflow.test.mjs
+
       - name: Every guard is wired into a workflow
         run: node --test tests/ci-coverage.test.mjs
 
