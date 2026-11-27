@@ -1,1 +1,1 @@
-created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,fee_cost
+created_time,ticker,market_ticker,outcome_side,book_side,count_fp,yes_price_dollars,no_price_dollars,is_taker,fee_cost

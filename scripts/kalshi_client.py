@@ -36,17 +36,20 @@ Usage examples:
 """
 import argparse
 import base64
+import csv
 import datetime
 import json
+import math
 import os
+import re
 import sys
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 try:
     import requests
 except ImportError:
-    sys.exit("This script needs the 'requests' package: pip install requests")
+    requests = None  # checked before making HTTP calls so offline tests can import helpers
 
 try:
     from cryptography.hazmat.primitives import hashes, serialization
@@ -56,13 +59,52 @@ except ImportError:
     serialization = None  # only needed for authenticated commands
 
 DEMO_BASE = os.environ.get("KALSHI_DEMO_BASE", "https://external-api.demo.kalshi.co/trade-api/v2")
-PRODUCTION_MARKERS = ("external-api.kalshi.com", "api.elections.kalshi.com", "kalshi.com/trade-api")
+# Official demo REST Trade API hosts (https://docs.kalshi.com/getting_started/demo_env
+# and https://docs.kalshi.com/getting_started/api_environments). Strict allowlist
+# rather than a substring blocklist, so credentials and orders can never be sent
+# to production or arbitrary hosts.
+ALLOWED_DEMO_REST_HOSTS = frozenset({
+    "external-api.demo.kalshi.co",
+    "demo-api.kalshi.co",
+})
+FILL_CSV_COLUMNS = [
+    "created_time",
+    "ticker",
+    "market_ticker",
+    "outcome_side",
+    "book_side",
+    "count_fp",
+    "yes_price_dollars",
+    "no_price_dollars",
+    "is_taker",
+    "fee_cost",
+]
+_NUMERIC_CELL_RE = re.compile(r"^[+-]?\d+(?:\.\d+)?$")
 
 
-def ensure_demo():
-    if any(m in DEMO_BASE for m in PRODUCTION_MARKERS):
-        sys.exit("Refusing to run: this client is demo-only (mock funds). "
-                 "Production hosts are intentionally not supported.")
+def ensure_demo(base_url=None):
+    target = (base_url if base_url is not None else DEMO_BASE).strip().rstrip("/")
+    parsed = urlparse(target)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in ALLOWED_DEMO_REST_HOSTS
+        or parsed.path != "/trade-api/v2"
+        or parsed.params
+        or parsed.query
+        or parsed.fragment
+    ):
+        sys.exit(
+            f"Refusing to run against {target!r}: this client is locked to the official "
+            "Kalshi DEMO REST roots (https://external-api.demo.kalshi.co/trade-api/v2 "
+            "or https://demo-api.kalshi.co/trade-api/v2). Production and non-demo "
+            "hosts are intentionally rejected."
+        )
+    return target
+
+
+def _require_requests():
+    if requests is None:
+        sys.exit("This script needs the 'requests' package: pip install requests")
 
 
 def load_private_key(path):
@@ -89,9 +131,10 @@ def sign_request(private_key, timestamp, method, path):
     return base64.b64encode(signature).decode("utf-8")
 
 
-def auth_headers(private_key, key_id, method, path):
-    timestamp = str(int(datetime.datetime.now().timestamp() * 1000))  # milliseconds
-    sign_path = urlparse(DEMO_BASE + path).path  # full path from root, no query
+def auth_headers(private_key, key_id, method, path, base_url=None):
+    base = ensure_demo(base_url)
+    timestamp = str(int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000))  # milliseconds
+    sign_path = urlparse(base + path).path  # full path from root, no query
     return {
         "KALSHI-ACCESS-KEY": key_id,
         "KALSHI-ACCESS-TIMESTAMP": timestamp,
@@ -100,23 +143,29 @@ def auth_headers(private_key, key_id, method, path):
 
 
 def get_public(path, params=None):
-    r = requests.get(DEMO_BASE + path, params=params, timeout=30)
+    _require_requests()
+    base = ensure_demo()
+    r = requests.get(base + path, params=params, timeout=30)
     r.raise_for_status()
     return r.json()
 
 
 def get_auth(private_key, key_id, path, params=None):
-    qs = ("?" + "&".join(f"{k}={v}" for k, v in (params or {}).items())) if params else ""
-    headers = auth_headers(private_key, key_id, "GET", path + qs)
-    r = requests.get(DEMO_BASE + path, params=params, headers=headers, timeout=30)
+    _require_requests()
+    base = ensure_demo()
+    qs = ("?" + urlencode(params)) if params else ""
+    headers = auth_headers(private_key, key_id, "GET", path + qs, base_url=base)
+    r = requests.get(base + path, params=params, headers=headers, timeout=30)
     r.raise_for_status()
     return r.json()
 
 
 def post_auth(private_key, key_id, path, data):
-    headers = auth_headers(private_key, key_id, "POST", path)
+    _require_requests()
+    base = ensure_demo()
+    headers = auth_headers(private_key, key_id, "POST", path, base_url=base)
     headers["Content-Type"] = "application/json"
-    r = requests.post(DEMO_BASE + path, headers=headers, json=data, timeout=30)
+    r = requests.post(base + path, headers=headers, json=data, timeout=30)
     if r.status_code != 201:
         sys.exit(f"Order not accepted: HTTP {r.status_code} {r.text}")
     return r.json()
@@ -132,12 +181,73 @@ def creds(args):
     return key_id, load_private_key(key_path)
 
 
+def sanitize_csv_cell(value):
+    """Prevent spreadsheet formula injection while keeping numeric strings intact."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    text = str(value)
+    if not text:
+        return ""
+    if text[0] in ("=", "+", "-", "@", "\t", "\r") and not _NUMERIC_CELL_RE.match(text):
+        return "'" + text
+    return text
+
+
+def export_fills_csv(fills, out_path):
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=FILL_CSV_COLUMNS, extrasaction="ignore")
+        w.writeheader()
+        for fill in fills:
+            w.writerow({col: sanitize_csv_cell(fill.get(col, "")) for col in FILL_CSV_COLUMNS})
+
+
+def build_v2_order(ticker, side, count, price, client_order_id=None):
+    """Build and validate a CreateOrderV2Request body against the official schema:
+    https://docs.kalshi.com/api-reference/orders/create-order-v2
+    https://docs.kalshi.com/getting_started/fixed_point_migration
+    """
+    clean_ticker = (ticker or "").strip()
+    if not clean_ticker:
+        raise ValueError("ticker must be a non-empty string")
+    if side not in ("bid", "ask"):
+        raise ValueError("side must be 'bid' (buy YES) or 'ask' (sell YES / buy NO)")
+    if isinstance(count, bool) or not isinstance(count, (int, float)) or not math.isfinite(count) or count < 0.01:
+        raise ValueError("count must be at least 0.01 contracts")
+    hundredths = round(count * 100)
+    if abs(hundredths - count * 100) > 1e-6:
+        raise ValueError("count supports at most 2 decimal places (0.01 contract granularity)")
+    if isinstance(price, bool) or not isinstance(price, (int, float)) or not math.isfinite(price) or not (0 < price < 1):
+        raise ValueError("price must be in dollars strictly between 0.0000 and 1.0000 (e.g. 0.50)")
+    return {
+        "ticker": clean_ticker,
+        "side": side,
+        "count": f"{hundredths / 100:.2f}",
+        "price": f"{price:.4f}",
+        "time_in_force": "good_till_canceled",
+        "self_trade_prevention_type": "taker_at_cross",
+        "client_order_id": client_order_id or str(uuid.uuid4()),
+    }
+
+
+def _warn_if_truncated(payload, noun):
+    if isinstance(payload, dict) and payload.get("cursor"):
+        print(
+            f"# truncated: {noun} response returned a non-empty cursor; "
+            "additional pages exist beyond --limit "
+            "(https://docs.kalshi.com/getting_started/pagination)",
+            file=sys.stderr,
+        )
+
+
 def cmd_markets(args):
     params = {"status": args.status, "limit": args.limit}
     if args.series_ticker:
         params["series_ticker"] = args.series_ticker
     params = {k: v for k, v in params.items() if v is not None}
     out = get_public("/markets", params)
+    _warn_if_truncated(out, "markets")
     print(json.dumps(out.get("markets", []), indent=2))
 
 
@@ -150,7 +260,7 @@ def cmd_orderbook(args):
 
 
 def cmd_candlesticks(args):
-    end = int(datetime.datetime.now().timestamp())
+    end = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
     start = end - args.window_seconds
     params = {"market_tickers": args.ticker, "start_ts": start, "end_ts": end,
               "period_interval": args.minutes}
@@ -164,22 +274,19 @@ def cmd_balance(args):
 
 def cmd_positions(args):
     key_id, pk = creds(args)
-    print(json.dumps(get_auth(pk, key_id, "/portfolio/positions", {"limit": args.limit}), indent=2))
+    out = get_auth(pk, key_id, "/portfolio/positions", {"limit": args.limit})
+    _warn_if_truncated(out, "positions")
+    print(json.dumps(out, indent=2))
 
 
 def cmd_fills(args):
     key_id, pk = creds(args)
     out = get_auth(pk, key_id, "/portfolio/fills", {"limit": args.limit})
-    print(json.dumps(out.get("fills", []), indent=2))
+    _warn_if_truncated(out, "fills")
+    fills = out.get("fills", [])
+    print(json.dumps(fills, indent=2))
     if args.export_csv:
-        import csv
-        cols = ["created_time", "ticker", "market_ticker", "outcome_side", "book_side",
-                "count_fp", "yes_price_dollars", "fee_cost"]
-        with open(args.export_csv, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
-            w.writeheader()
-            for fill in out.get("fills", []):
-                w.writerow(fill)
+        export_fills_csv(fills, args.export_csv)
         print(f"# wrote {args.export_csv}", file=sys.stderr)
 
 
@@ -187,16 +294,11 @@ def cmd_place_order(args):
     if not args.confirm_demo_order:
         sys.exit("Refusing to place an order without --confirm-demo-order. "
                  "This trades DEMO (mock) funds on https://demo.kalshi.co only.")
+    try:
+        order = build_v2_order(args.ticker, args.side, args.count, args.price)
+    except ValueError as exc:
+        sys.exit(f"Invalid order parameters: {exc}")
     key_id, pk = creds(args)
-    order = {
-        "ticker": args.ticker,
-        "side": args.side,
-        "count": str(args.count),
-        "price": f"{args.price:.4f}",
-        "time_in_force": "good_till_canceled",
-        "self_trade_prevention_type": "taker_at_cross",
-        "client_order_id": str(uuid.uuid4()),
-    }
     result = post_auth(pk, key_id, "/portfolio/events/orders", order)
     print(json.dumps(result, indent=2))
     print("# 201 = accepted, not filled: check remaining_count "
@@ -222,7 +324,7 @@ def main():
         s.set_defaults(fn=fn)
     s = sub.add_parser("place-order")
     s.add_argument("--ticker", required=True); s.add_argument("--side", choices=["bid", "ask"], required=True)
-    s.add_argument("--count", type=int, required=True); s.add_argument("--price", type=float, required=True)
+    s.add_argument("--count", type=float, required=True); s.add_argument("--price", type=float, required=True)
     s.add_argument("--confirm-demo-order", action="store_true")
     s.set_defaults(fn=cmd_place_order)
 
