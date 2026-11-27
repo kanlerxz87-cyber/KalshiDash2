@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -444,3 +445,114 @@ class NoStaleScanCountsTests(unittest.TestCase):
                 continue
             with self.subTest(topic=match.group(1)):
                 self.assertIsNone(re.search(r"\d", match.group(2)))
+
+
+class WorkflowSummaryContractTests(unittest.TestCase):
+    """The `Collect demo snapshot` workflow's summary step must read real keys.
+
+    Why this exists (2026-11-27, session 858d4941): session 74b579c8 retired the
+    snapshot topic key `series_count` and renamed it `series_rows_kept_for_topic`
+    (Flagged C1 — the old name read like a catalogue size). The collector was
+    updated, the snapshot was updated, and a guard was added to stop the old key
+    coming back — but `.github/workflows/collect.yml` still formatted
+    `t['series_count']`. Every scheduled run then collected successfully and died
+    in the next step with a bare `KeyError`, four times in a row
+    (runs 45707850601, 45784496470, 45899975342, 45968392940), and the snapshot
+    never refreshed after 2026-11-25. No test read the workflow, so nothing saw it.
+
+    The rename was verified by a test; the workflow that consumed the renamed key
+    was not. These assertions close that gap.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).resolve().parents[1]
+        cls.workflow = (root / ".github" / "workflows" / "collect.yml").read_text(encoding="utf-8")
+        cls.snapshot = json.loads((root / "data" / "snapshot.json").read_text(encoding="utf-8"))
+
+    def test_summary_reads_the_key_the_collector_writes(self):
+        self.assertNotIn(
+            "t['series_count']",
+            self.workflow,
+            "collect.yml must not read the retired series_count key (Flagged C1) — "
+            "it raises KeyError and fails the run after collection already succeeded",
+        )
+        self.assertIn("series_rows_kept_for_topic", self.workflow)
+
+    def test_every_key_the_summary_reads_exists_in_the_committed_snapshot(self):
+        for key in ("generated_at", "api_calls", "errors"):
+            with self.subTest(key=key):
+                self.assertIn(key, self.snapshot["_meta"])
+        for topic, body in self.snapshot["topics"].items():
+            with self.subTest(topic=topic):
+                for needed in ("series_rows_kept_for_topic", "events", "markets", "rule"):
+                    self.assertIn(needed, body)
+        self.assertIn("orderbooks", self.snapshot)
+        self.assertIn("candles", self.snapshot)
+
+    def test_the_summary_step_runs_before_the_commit(self):
+        """A summary that cannot run must not be skippable by a later short-circuit."""
+        self.assertLess(
+            self.workflow.index("name: Summarise"),
+            self.workflow.index("name: Commit snapshot"),
+            "the summary step must run before the snapshot is committed",
+        )
+
+
+class ProbeArtifactContractTests(unittest.TestCase):
+    """A probe capture the site quotes must state when it was taken.
+
+    Two separate files matter and they must not be confused:
+
+    * `data/probe/api_surface.json` — REWRITTEN on a schedule by probe.yml.
+    * `data/probe/api_surface_2026-11-24.json` — the PINNED copy the published
+      figures actually cite (session bacbd8a9, PR #131). Pinning is the real fix:
+      a figure can only drift from a file that changes.
+
+    Until 2026-11-27 neither carried a capture-time field, so "when" was only
+    knowable from the git log, which a browser cannot read. probe.yml now writes
+    `captured_at` on every run, and both committed copies carry one.
+    """
+
+    ISO_MINUTE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
+
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).resolve().parents[1]
+        cls.root = root
+        cls.rolling = json.loads((root / "data" / "probe" / "api_surface.json").read_text(encoding="utf-8"))
+        cls.pinned = json.loads(
+            (root / "data" / "probe" / "api_surface_2026-11-24.json").read_text(encoding="utf-8")
+        )
+        cls.workflow = (root / ".github" / "workflows" / "probe.yml").read_text(encoding="utf-8")
+
+    def test_the_rolling_artifact_carries_a_capture_stamp(self):
+        stamp = self.rolling.get("captured_at")
+        self.assertIsNotNone(stamp, "data/probe/api_surface.json must carry captured_at")
+        self.assertRegex(stamp, self.ISO_MINUTE)
+
+    def test_the_pinned_artifact_carries_a_capture_stamp(self):
+        stamp = self.pinned.get("captured_at")
+        self.assertIsNotNone(stamp, "the pinned capture must carry captured_at")
+        self.assertRegex(stamp, self.ISO_MINUTE)
+        # A back-filled stamp must say so, so nobody reads a fabricated second as measured.
+        if not re.search(r"T\d{2}:\d{2}:\d{2}Z$", stamp):
+            self.assertIn("captured_at_basis", self.pinned)
+
+    def test_workflow_writes_the_stamp_on_every_refresh(self):
+        self.assertIn('"captured_at": datetime.now(timezone.utc)', self.workflow)
+        self.assertIn("from datetime import datetime, timezone", self.workflow)
+
+    def test_workflow_never_rewrites_the_pinned_capture(self):
+        self.assertNotRegex(
+            self.workflow,
+            r'open\("data/probe/api_surface_2026-11-24[^"]*"\s*,\s*"w"\)',
+            "probe.yml must never open the pinned capture for writing",
+        )
+
+    def test_artifacts_still_carry_the_vocabulary_the_site_quotes(self):
+        for name, body in (("rolling", self.rolling), ("pinned", self.pinned)):
+            for key in ("categories", "tags", "series_rows_in_single_response"):
+                with self.subTest(artifact=name, key=key):
+                    self.assertIn(key, body)
+            self.assertIsInstance(body["series_rows_in_single_response"], int)

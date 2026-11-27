@@ -88,6 +88,29 @@ jobs:
       # classification and the comma-tolerant scan count.
       - name: Live-render verifier parsing tests
         run: node --test tests/dom/live-site-assertions.test.mjs
+      # Whole-suite gate.
+      #
+      # Until 2026-11-27 this job ran a hand-written list of about twenty test files
+      # and nothing ran the rest. Two guards fell through that gap and could never
+      # fail a build: `probe-citation-drift` (session 74b579c8 — catches the probe bot
+      # rewriting figures under the published pages) and `page-identifiers` (PR #129 —
+      # catches the *class* of defect that replaced the homepage board with
+      # "ReferenceError: repeated is not defined" in production). At `bb4ede5` the tree
+      # was 237 pass / 1 fail locally while every Actions build showed green.
+      #
+      # The glob replaces the list: a new guard is covered the moment it is committed.
+      # `tests/ci-coverage.test.mjs` fails if any `tests/*.test.mjs` is ever unreferenced.
+      - name: Full JavaScript test suite (tests/*.test.mjs)
+        run: node --test tests/*.test.mjs
+
+      # Named as well as globbed: an orphan guard is the defect this pins, and a step
+      # whose name says so is legible in the workflow log.
+      - name: Probe-citation drift guard + page-identifier guard
+        run: node --test tests/probe-citation-drift.test.mjs tests/page-identifiers.test.mjs
+
+      - name: Every guard is wired into a workflow
+        run: node --test tests/ci-coverage.test.mjs
+
       - name: Page runtime and local-link check
         run: node tools/verify/page-runtime-check.mjs
 

@@ -1,4 +1,6 @@
 {
+  "captured_at": "2026-11-27T16:57:29Z",
+  "captured_at_basis": "Back-filled by session 858d4941 from GitHub Actions run 46037867319 (schedule; createdAt 2026-11-27T16:57:08Z / updatedAt 2026-11-27T16:57:29Z), the run that committed this capture. The field did not exist when the file was generated; .github/workflows/probe.yml now writes it on every run, so no future capture needs a back-fill. The published figures do NOT cite this rolling file — they cite the pinned data/probe/api_surface_2026-11-24.json (PR #131).",
   "cors": {
     "https://external-api.demo.kalshi.co/trade-api/v2": {
       "status": 200,
@@ -395,7 +397,7 @@
     "Platinum": 1,
     "Johnson & Johnson": 1,
     "Eli Lilly": 1,
-    "Pok\u00e9mon": 1,
+    "Pokémon": 1,
     "Collections": 1,
     "Degree days": 1,
     "National Book Awards": 1,

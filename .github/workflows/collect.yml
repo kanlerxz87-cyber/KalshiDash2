@@ -58,8 +58,22 @@ jobs:
           print("generated_at:", m["generated_at"])
           print("api_calls:", m["api_calls"])
           print("errors:", len(m["errors"]))
+          # `series_count` was RETIRED by session 74b579c8 (Flagged C1): it read like a
+          # catalogue size but only ever meant "rows this topic kept". The collector
+          # writes `series_rows_kept_for_topic` now. This summary kept reading the old
+          # key and raised KeyError on every run — collection itself succeeded, then the
+          # job died here — so the snapshot went stale from 2026-11-25 and four
+          # consecutive scheduled runs failed: 45707850601, 45784496470, 45899975342,
+          # 45968392940. Read the current key, and fail with a named message rather than
+          # a bare KeyError if the collector and this summary ever drift apart again.
           for k, t in d["topics"].items():
-              print(f"  {k:10s} series={t['series_count']:4d} events={len(t['events']):4d} markets={len(t['markets']):4d}  ({t['rule']})")
+              kept = t.get("series_rows_kept_for_topic")
+              if kept is None:
+                  raise SystemExit(
+                      f"topic {k!r} carries no series_rows_kept_for_topic; "
+                      "the collector and this summary have drifted apart"
+                  )
+              print(f"  {k:10s} rows_kept={kept:4d} events={len(t['events']):4d} markets={len(t['markets']):4d}  ({t['rule']})")
           print("orderbooks:", len(d["orderbooks"]), "candles:", len(d["candles"]))
           for e in m["errors"][:5]:
               print("  ERR", e[:160])

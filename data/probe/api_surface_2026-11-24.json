@@ -1,4 +1,6 @@
 {
+  "captured_at": "2026-11-24T18:14:00Z",
+  "captured_at_basis": "Session 858d4941, 2026-11-27. This pinned copy was split out of the rolling data/probe/api_surface.json by session bacbd8a9 (PR #131), which could not know the capture time from the file itself because the file never recorded one. The date is taken from session 74b579c8's own record of the commit that wrote it (reports/verify-74b579c8.md: 'last rewritten 2026-11-24T18:14Z'), preserved in every published citation on the site since. ONLY THE MINUTE IS EVIDENCED; the seconds are written 00 and must not be read as a measured value. probe.yml now records a full captured_at on every run, so no future copy needs a back-fill.",
   "cors": {
     "https://external-api.demo.kalshi.co/trade-api/v2": {
       "status": 200,
@@ -388,7 +390,7 @@
     "Republican primaries": 1,
     "AMD": 1,
     "NEAR": 1,
-    "Pok\u00e9mon": 1,
+    "Pokémon": 1,
     "ZEC": 1,
     "Federal Reserve": 1,
     "Mastercard": 1,
