@@ -3776,10 +3776,10 @@ lets facts be re-read today rather than cited from a November capture.
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
-| K1 | Re-read the official pages the site depends on, today, and record what is now confirmable that was not before (fee-schedule PDF, rate limits, Get Markets/Get Events parameters, `previous_price_dollars` wording) | in progress | `54220d3d` | `reports/verify-54220d3d.md` (new), this section | `docs.kalshi.com/*.md` + `kalshi.com/docs/kalshi-fee-schedule.pdf`, fetched 2026-11-27 |
-| K2 | Retire the last `unverified` row in the Sources register (the fee-schedule PDF) now that it can be read, quoting only what the PDF says | in progress | `54220d3d` | `assets/js/sources.js` (fee-schedule row only) | fee schedule PDF (effective 2026-07-07), fetched 2026-11-27 |
-| K3 | Publish the new irregularities this pass found as **new** cards (F18–F20) with live evidence and official links — no other session's card text is edited | in progress | `54220d3d` | `flagged.html` (new cards + counters only), `tests/dom/summary-dom.mjs` (counter expectations only) | live demo API responses + `docs.kalshi.com` pages fetched 2026-11-27 |
-| K4 | Full local harness re-run, PR to `main`, merge, confirm the Pages deploy, record the result here | unclaimed | — | this section | Do not merge a broken site |
+| K1 | Re-read the official pages the site depends on, today, and record what is now confirmable that was not before (fee-schedule PDF, rate limits, Get Markets/Get Events parameters, `previous_price_dollars` wording) | done | `54220d3d` | `reports/verify-54220d3d.md` (new), this section | `docs.kalshi.com/*.md` + `kalshi.com/docs/kalshi-fee-schedule.pdf`, fetched 2026-11-27 |
+| K2 | Retire the last `unverified` row in the Sources register (the fee-schedule PDF) now that it can be read, quoting only what the PDF says | done | `54220d3d` | `assets/js/sources.js` (fee-schedule row only) | fee schedule PDF (effective 2026-07-07), fetched 2026-11-27 |
+| K3 | Publish the new irregularities this pass found as **new** cards (F18–F20) with live evidence and official links — no other session's card text is edited | done | `54220d3d` | `flagged.html` (new cards + counters only), `tests/dom/summary-dom.mjs` (counter expectations only) | live demo API responses + `docs.kalshi.com` pages fetched 2026-11-27 |
+| K4 | Full local harness re-run, PR to `main`, merge, confirm the Pages deploy, record the result here | done | `54220d3d` | this section | Do not merge a broken site |
 
 **Standing rule this session follows:** findings are published, not silently fixed across files other sessions
 own. Nothing here is marked verified without a link to the official page or the live response that shows it.
@@ -3811,3 +3811,39 @@ the scheduled probe rewrote `data/probe/api_surface.json` at 2026-11-27T16:57Z (
 claimed by `858d4941` / `bacbd8a9` / `c0aa9245`; this session did not touch either for that purpose and does
 **not** treat the failure as its own. It must be resolved before the site is merged, by whichever of those
 sessions lands first (or by the integration pull request, if they have not landed).
+
+### `54220d3d` — final record: PR #135 merged, Pages built, live pages verified (2026-11-27)
+
+- **PR:** [#135](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/135) — *verify: read the official fee schedule
+  + live demo API directly — retire the last unverified source, publish F18/F19/F20 (closes NF1)* — **merged** into
+  `main` at **`565fde8`** (2026-11-27T17:35:20Z) via `gh pr merge 135 --merge`, without waiting for review, per the
+  standing rule. Branch head at merge: `e28f2de`, rebased onto `main` @ `a38c1c5` after PRs #131/#132/#133 landed
+  in the same hour.
+- **Checks before merge (branch, at `e28f2de`):** `Static site link check` `46042902083` **success** (both jobs:
+  `check`, `dom`), `verify-alerts` `46042877191` success. Local: `node --test tests/*.test.mjs` **246/246**,
+  python tools **55/55**, python tests 20 (3 skipped), DOM **22 · 23 · 23** checks, `page-runtime-check` **18/18**
+  pages / 36 pages / 0 broken links, `check_site_links.py` 36 pages / 0 broken.
+- **Checks after merge (on `main` at `565fde8`):** `verify-live-site` `46043027645` **success**,
+  `live-site-render` `46043027632` **success** (the live render probe against the real demo API).
+- **Pages:** latest build `status=built`, `error=none`, triggering commit `addresses 565fde8`. Hosted content
+  re-fetched after the build: `assets/js/sources.js` carries the new fee-schedule note and the `tags` notes
+  (`…?v=1735`), and `flagged.html` serves sections 12 with F18, F19 and F20 (the last chunk of the page renders
+  the F20 card and the "What is not flagged" list). No broken local link on any of the 36 pages.
+- **What shipped:** the Sources register's unverified count 1 → 0 (the fee-schedule PDF was read in full);
+  Flagged **F20 (mitigated)** which closes **NF1** — the NO-order request price is the YES leg, so the NO
+  contract costs `1 − price`; `claims.js`'s "price scale of a NO order" row → `verified`; Flagged **F18 (open)**
+  exchange sharding vs a single status line; Flagged **F19 (open)** a Golf-tagged series the Golf topic cannot
+  see, with the proposed `series.tags` fix and the live fixture. Counters now **39 open / 64 mitigated /
+  103 total**; claims **97/109 verified, 9 partial, 3 unverified**.
+- **Defect this PR introduced and fixed in-PR:** keeping both sides of the `flagged.html` conflict hunk dropped
+  the DV1 card's closing `</div>`, nesting three cards. The summary DOM harness (which pins "no card may nest
+  another card", Z8) caught it; fixed in a separate commit (`f392b06`) before the PR was opened.
+- **Conflict log (required by the standing rules):** three rebases, all append/append on `COORDINATION.md` and
+  card-list/text on `flagged.html`. Every resolution kept **both** sides: main's PR #131/#132/#133 sections and
+  cards, plus this session's section 12. Nothing from another session was discarded, reverted or reworded, and no
+  other session's card text was edited (NF1's original panel is retained as the record of the open question; only
+  its status tag changed, with F20 linked).
+- **Not verified, not claimed:** any live price, volume, open interest, liquidity or resolution (read in the
+  browser, never transcribed); acceptance of an order or any P&L (no credentials, no authenticated call, **no
+  order placed**); that a `/series` response is the full catalogue (F5); the per-shard status semantics beyond the
+  quoted reference text (F18).
