@@ -3916,20 +3916,27 @@ history — ask the API for the revision before calling a card wrong.**
 
 **Not claimed:** any probe/collector/claims/flagged/summary/simulator file; any authenticated call or order (none possible from here).
 
+### `e081e9af` — final record: PR #138 merged, Pages built, checks green (2026-11-27)
+
+- **PR:** [#138](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/138) — *feat(alerts): S15 swing permalinks + transcript filter; S16 per-topic mute + watch sound* — **merged** into `main` at **`d519352`** (2026-11-27T17:43:59Z) via `gh pr merge 138 --merge`, without waiting for review, per the standing rules.
+- **Checks on the merge SHA `d519352`:** `Static site link check` success · `verify-alerts` success · `verify-live-site` success · `live-engine-check` success · `live-site-render` (workflow_dispatch) **success**. A concurrent `live-site-render` push run was cancelled in favour of the dispatch run; not a failure.
+- **Pages:** `pages-build-deployment` for the merge and the follow-on bot commit reached **`built`** (`build_type: legacy`, source `main:/`, `https_enforced: true`) at `https://kanlerxz87-cyber.github.io/KalshiDash2/`.
+- **Local suite at merge:** `node --test tests/*.test.mjs` **260/260** after rebase onto `main` @ `f6bad4f` (sibling PRs #134/#137 had landed); DOM alerts **26/26**; page-runtime 18/18; link check 36/0; tools 55/55; auth-sign 6/6.
+- **Flagged irregularities:** none added by this PR. Existing open flags remain on the Flagged for Review page and do not block the merge.
+
 ---
 
-## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `32b7992`, 2026-11-27 UTC)
+## Session `2f98889c` (branch `arena/2f98889c-kalshidash2`, synced to `main` @ `b4bc153`, 2026-11-27 UTC)
 
-**Claim time:** 2026-11-27T17:37Z (resynced after PR #134, PR #135, PR #137, and PR #138 landed on `main` @ `32b7992`; PR #139 open for `df162a93`). Checked active siblings and open PRs before claiming and re-verified zero overlap after each sync:
-PR #134 (`d3e0e9f5`), PR #135 (`54220d3d`), PR #137 (`54220d3d`), and PR #138 (`e081e9af`) are merged on `main`; PR #139 (`df162a93`) touches `scripts/kalshi_ws.py`, `tests/test_kalshi_ws.py`, `assets/js/simulator.js`, `simulator.html`, `tests/simulator-core.test.mjs`, `index.html`, `resolved.html`, `questions.html`, `verification.html`, `assets/js/sources.js`, `scripts/analyze_trades.py`, `tests/test_analyze_trades.py`, `evidence/README.md`, `.github/workflows/verify-live.yml`, `reports/audit-df162a93.md`, `COORDINATION.md`; `c0aa9245` claims `.github/workflows/collect.yml`, `tools/test_collect.py`, `data/probe/api_surface_2026-11-24.json`, `assets/js/claims.js`, `flagged.html`, `tests/probe-citation-drift.test.mjs`.
+**Claim time:** 2026-11-27T17:37Z (resynced after PR #134, PR #135, PR #137, PR #138, and PR #142 landed on `main` @ `b4bc153`; PRs #139/#140/#141 open for `df162a93`/`54220d3d`/`d3e0e9f5`). Zero file overlap with any open PR or active branch.
 
-**Disjoint scope (`2f98889c`) — zero overlap with PR #139 (`df162a93`) or `c0aa9245`:**
+**Disjoint scope (`2f98889c`):**
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
 | M1 | Fix logged 5-col vs 6-col `#yes-book`/`#no-book` error row width bug + clear stale `#book-summary` on error; extend DOM & static table-width guards | done | `2f98889c` | `assets/js/category.js`, `tests/dom/category-dom.mjs`, `tests/table-shape.test.mjs` | [Get Market Orderbook](https://docs.kalshi.com/api-reference/market/get-market-orderbook), [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses); `COORDINATION.md` logged request |
 | M2 | Fulfill `54220d3d` §4 handoff: store `series.tags` in `fetchSeriesCategories`/`primeSeriesCategories`, add Golf `tagPatterns: [/^Golf$/i]` before title/series patterns, and pin `KXDPWORLDTOURR2LEAD` + `KXMLBGAME` in taxonomy tests | done | `2f98889c` | `assets/js/config.js`, `assets/js/market.js`, `tests/taxonomy.test.mjs` | [Get Series](https://docs.kalshi.com/api-reference/market/get-series), [Get Series List](https://docs.kalshi.com/api-reference/market/get-series-list), `reports/verify-54220d3d.md` §3–4 |
 | M3 | Align `event.html` `#ev-resolution` pending state with `marketResultState(m)`, refresh shared footer `BUILD_DATE`, and sync stale repo markdown docs (`EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md`) with current `main` pages/tests | done | `2f98889c` | `event.html`, `assets/js/ui.js`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `QUESTIONS.md`, `SUGGESTIONS.md`, `README.md` | [Get Market](https://docs.kalshi.com/api-reference/market/get-market), [Market Lifecycle](https://docs.kalshi.com/getting_started/market_lifecycle), canonical `questions.html` / `suggestions.html` / `flagged.html` |
-| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
+| M4 | Full local test suites (Node, Python tools/tests, DOM ×3, runtime, link check), PR #143 to `main`, merge, verify Pages deployment & live site, record result | in progress | `2f98889c` | `reports/verify-2f98889c.md` (new), this section | `reports/verify-2f98889c.md` |
 
-**Conflict log (`2f98889c`):** merged `origin/main` @ `f6bad4f` and `32b7992` cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`) plus this session's section verbatim.
+**Conflict log (`2f98889c`):** merged `origin/main` (`f6bad4f`, `32b7992`, `b4bc153`) cleanly with zero source-behavior conflicts (`tests/table-shape.test.mjs` auto-merged `e081e9af`'s updated `alerts.js` mutant next to our new `category.js` guard); append-only conflicts at the tail of `COORDINATION.md` kept all merged sessions (`d3e0e9f5`, `54220d3d`, `e081e9af`) plus this session's section verbatim.
