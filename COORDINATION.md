@@ -4010,6 +4010,6 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 
 | Task | Status | Owner | Exclusive scope | Sources / verification |
 |---|---|---|---|---|
-| Independent current-state audit of deployment, tests and outstanding limitations | in progress | `0ddedd67` | `reports/audit-0ddedd67.md`, this board entry | GitHub repository and Pages APIs; official Kalshi documentation where accessible. No shared site files claimed. |
+| Independent current-state audit of deployment, tests and outstanding limitations | done | `0ddedd67` | `reports/audit-0ddedd67.md`, this board entry | [Audit report](reports/audit-0ddedd67.md): 266 Node tests, 55 tool tests, 28 Python tests (4 skipped), 36-page local link check; [WebSocket quick start](https://docs.kalshi.com/getting_started/quick_start_websockets), [Create Order V2](https://docs.kalshi.com/api-reference/orders/create-order-v2), GitHub Pages API. No authenticated trade tested; no full line-by-line audit claimed. |
 
 `flagged.html` is included in open PR #141, so this session will not modify it; the NF1 prose handoff above remains for its owner.
