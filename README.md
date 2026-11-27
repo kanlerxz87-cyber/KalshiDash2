@@ -22,11 +22,9 @@ Official docs: <https://docs.kalshi.com> · demo site: <https://demo.kalshi.co>.
 
 **Sources & Claims registers:** [`sources.html`](sources.html) (`assets/js/sources.js`, 49 sources verified,
 0 unverified) lists every documentation source used; [`verification.html`](verification.html)
-(`assets/js/claims.js`, 115 claims: 104 verified, 8 partially verified, 3 unverified) links every technical
+(`assets/js/claims.js`, 116 claims: 105 verified, 8 partially verified, 3 unverified) links every technical
 claim to an official page or probe; [`flagged.html`](flagged.html) records open defects, design limits, and
-verified irregularities (**F1–F20**, **DR1–DR3**, 38 open / 68 mitigated / 106 total).
-The Overview's environment strip reads the exchange's **per-shard** breakdown, so a single shard reading `false`
-is shown as *re-read required* rather than a halt (`assets/js/exchange-status.js`, Flagged **F18**).
+verified irregularities (**F1–F20**, **DR1–DR4**, 38 open / 69 closed — 30 mitigated, 38 fixed, 1 corrected — 107 total).
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
 (Σ `count_fp` × price of the taker's recorded `taker_outcome_side`), alongside the ranking column's
@@ -99,7 +97,7 @@ Full local verification matches `.github/workflows/site-check.yml`:
 ```bash
 node evidence/auth-sign-test.mjs            # 6/6 Web Crypto signing checks
 node tools/verify/page-runtime-check.mjs    # 18/18 published pages execute cleanly + 36-page link check
-node --test tests/*.test.mjs                # 270/270 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape, alert-engine & simulator tests
+node --test tests/*.test.mjs                # 278/278 Node unit, CI-coverage, requirements-trace, taxonomy, table-shape, alert-engine & simulator tests (measured 2026-11-27 on `bd464b8` + this branch)
 (cd tests/dom && npm ci && npm test)        # 55/55 jsdom checks (alerts 26, summary 5, category 24)
 python3 -m unittest discover -s tools       # 55/55 link-checker & probe-collector tests
 python3 -m unittest discover -s tests       # Python relay/ws/trade-analyzer unit tests
