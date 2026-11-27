@@ -3814,6 +3814,7 @@ sessions lands first (or by the integration pull request, if they have not lande
 
 ---
 
+
 ## Session `d3e0e9f5` (branch `arena/d3e0e9f5-kalshidash2`, base `main` @ `956e704`, 2026-11-27 UTC)
 
 **Claim time:** 2026-11-27T17:2xZ. **No open PR** (`gh pr list --state open` → empty). The three sessions that
@@ -3829,9 +3830,9 @@ not an independent check, so re-fetching a URL a previous session already cited 
 
 | ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
 |---|---|---|---|---|---|
-| V1 | Line-by-line re-verification of published API-contract claims against the official `.md` documentation pages **and** dated live demo responses; record every check with its URL | in progress | `d3e0e9f5` | `reports/verify-d3e0e9f5.md` (new), this section | docs.kalshi.com `.md` pages + `external-api.demo.kalshi.co` responses fetched 2026-11-27 |
-| V2 | Repair the defects V1 proves (stale file paths, contradicted premises); no claim is corrected without the contradicting source quoted | in progress | `d3e0e9f5` | `flagged.html` (existing cards' text only), `assets/js/claims.js` (affected rows only), `tests/` (new guard only) | V1's record |
-| V3 | Add the requirement-traceability matrix the brief calls "line by line" to the Summary page, derived from the repository (no hand-typed counts) | in progress | `d3e0e9f5` | `summary.html`, `assets/js/trace.js` (new), `tests/requirements-trace.test.mjs` (new), `tests/dom/summary-dom.mjs` (assertion only) | brief requirement list; repo paths |
+| V1 | Line-by-line re-verification of published API-contract claims against the official `.md` documentation pages **and** dated live demo responses; record every check with its URL | done | `d3e0e9f5` | `reports/verify-d3e0e9f5.md` (new), this section | docs.kalshi.com `.md` pages + `external-api.demo.kalshi.co` responses fetched 2026-11-27 |
+| V2 | Repair the defects V1 proves (stale file paths, contradicted premises); no claim is corrected without the contradicting source quoted | done — F6 pinned to `424190e`/`c3676e5`; `DR1`–`DR3` published | `d3e0e9f5` | `flagged.html` (existing cards' text only), `assets/js/claims.js` (affected rows only), `tests/` (new guard only) | V1's record |
+| V3 | Add the requirement-traceability matrix the brief calls "line by line" to the Summary page, derived from the repository (no hand-typed counts) | done — 17/17 rows wired, `tests/requirements-trace.test.mjs` (10 checks) + a summary-DOM assertion | `d3e0e9f5` | `summary.html`, `assets/js/trace.js` (new), `tests/requirements-trace.test.mjs` (new), `tests/dom/summary-dom.mjs` (assertion only) | brief requirement list; repo paths |
 | V4 | Re-verify the *deployed* Pages build matches the merged `main` and that its own checks are green | in progress | `d3e0e9f5` | this section | Pages API, Actions run IDs, hosted-page fetches |
 | V5 | Full local suite (node, python tools, DOM ×3, page-runtime, link check), PR → `main`, merge without waiting, confirm Pages deploy, record PR link + result here | unclaimed | — | this section | Do not merge a broken site |
 
