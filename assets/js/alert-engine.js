@@ -19,8 +19,26 @@
  *                             between two consecutive polls of this page
  *
  * Both are labelled in the feed, so a reader can always see which comparison
- * produced the number. A market can therefore report both kinds; duplicates
- * of the same (ticker, from, to) pair are suppressed.
+ * produced the number. A market can therefore report both kinds.
+ *
+ * De-duplication — what is and is not a duplicate
+ * -----------------------------------------------
+ * A swing is identified by (ticker, basis, from, to, observation time). The two
+ * bases are compared against different references, so the same (ticker, from,
+ * to) pair really is two different measurements when one is the exchange's
+ * 24-hour reference and the other is this page's own poll-to-poll move; they
+ * are kept apart here, exactly as `alerts.html` keeps them apart.
+ *
+ * A repeat of the *same* series of prices is NOT a duplicate. A contract that
+ * trades 0.40 → 0.55 → 0.40 → 0.55 has moved $0.10 four times, and every one
+ * of those moves is a real, separately tradeable event. So the key includes the
+ * time at which the move was observed: a repeat that is still the same poll is
+ * collapsed (the exchange serves one price per poll), and a repeat on a later
+ * poll is reported again.
+ *
+ * Repeated polls of an unchanged exchange reference carry no new information —
+ * `previous_price_dollars` only changes when the day rolls — so a repeat of a
+ * *reference* swing is collapsed until the reference value itself changes.
  *
  * This module is the reusable half of the alerting system: it has no DOM
  * dependency, so the Strategy Tester's paper trader can drive exactly the
@@ -58,7 +76,8 @@ export class AlertEngine {
     this.onState = onState;
 
     this.lastPrice = new Map();      // ticker -> last observed last_price_dollars
-    this.seen = new Set();           // dedupe keys
+    this.seen = new Set();           // dedupe keys (see the header)
+    this.pollSeq = 0;                // increments once per completed scan
     this.eventCache = new Map();     // event_ticker -> {event, context}
     this.timer = null;
     this.running = false;
@@ -153,10 +172,17 @@ export class AlertEngine {
       }
       this.markets = marketCount;
       this.lastPollAt = new Date();
+      this.pollSeq += 1;
 
-      /* Dedupe identical (ticker, from, to) triples. */
+      /* Dedupe (see the header): poll-to-poll moves key on the poll they were
+       * observed in, so a genuine retracement is never swallowed; reference
+       * swings key on the reference pair, because that reference only moves
+       * once a day and re-reporting it every poll would flood the feed. */
       const fresh = swings.filter(s => {
-        const key = `${s.ticker}|${s.from.toFixed(2)}|${s.to.toFixed(2)}`;
+        const pair = `${s.ticker}|${s.from.toFixed(2)}|${s.to.toFixed(2)}`;
+        const key = s.basis === "observed between polls"
+          ? `poll|${pair}|${this.pollSeq}`
+          : `ref|${pair}`;
         if (this.seen.has(key)) return false;
         this.seen.add(key);
         if (this.seen.size > 5000) this.seen = new Set([...this.seen].slice(-2000));
