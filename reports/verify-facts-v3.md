@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Captured (UTC) | 2026-11-21T23:27:41Z |
+| Captured (UTC) | 2026-11-27T22:40:09Z |
 | Runner | GitHub Actions `ubuntu-latest` |
 | Base URL | `https://external-api.demo.kalshi.co/trade-api/v2` |
-| Commit | `95436e4e80c26d140b4478528ce7a45ab1fdf21e` |
+| Commit | `41ca9bbed8fdeb36fb962a32edd1516158bdf17c` |
 
 ## A. CORS on every endpoint the dashboard calls
 
@@ -15,13 +15,13 @@
 | `GET /events?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /series?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXDEMOFUTHOURLY-26NOV22H00-UP` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /markets/KXDEMOFUTHOURLY-26NOV22H00-UP/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E/orderbook` | 200 | https://kanlerxz87-cyber.github.io |
 | `GET /markets/trades?limit=1` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /events/KXDEMOFUTHOURLY-26NOV22H00` | 200 | https://kanlerxz87-cyber.github.io |
-| `GET /series/KXDEMOFUTHOURLY/markets/KXDEMOFUTHOURLY-26NOV22H00-UP/candlesticks?start_ts=1795217262&end_ts=1795303662&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /events/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO` | 200 | https://kanlerxz87-cyber.github.io |
+| `GET /series/KXMVECROSSCATEGORY/markets/KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E/candlesticks?start_ts=1795732813&end_ts=1795819213&period_interval=60` | 200 | https://kanlerxz87-cyber.github.io |
 
-**Resolved ids used above:** market `KXDEMOFUTHOURLY-26NOV22H00-UP` → event `KXDEMOFUTHOURLY-26NOV22H00` → series `KXDEMOFUTHOURLY`
+**Resolved ids used above:** market `KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E` → event `KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO` → series `KXMVECROSSCATEGORY`
 
 ## B. Market → event → series lookup path (needed for candlesticks)
 
@@ -32,12 +32,16 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "can_close_early",
   "close_time",
   "created_time",
+  "custom_strike",
   "event_ticker",
   "exchange_index",
+  "expected_expiration_time",
   "expiration_value",
   "last_price_dollars",
   "latest_expiration_time",
   "market_type",
+  "mve_collection_ticker",
+  "mve_selected_legs",
   "no_ask_dollars",
   "no_bid_dollars",
   "no_sub_title",
@@ -55,6 +59,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "settlement_bounds_type",
   "settlement_timer_seconds",
   "status",
+  "strike_type",
   "ticker",
   "title",
   "updated_time",
@@ -67,7 +72,7 @@ Does `GET /markets/{ticker}` contain `series_ticker`?
   "yes_sub_title"
  ],
  "series_ticker": null,
- "event_ticker": "KXDEMOFUTHOURLY-26NOV22H00"
+ "event_ticker": "KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO"
 }
 ```
 
@@ -87,8 +92,8 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
   "sub_title",
   "title"
  ],
- "series_ticker": "KXDEMOFUTHOURLY",
- "category": "Test"
+ "series_ticker": "KXMVECROSSCATEGORY",
+ "category": "Exotics"
 }
 ```
 
@@ -96,17 +101,17 @@ Does `GET /events/{event_ticker}` contain `series_ticker`?
 
 `period_interval=1` (minutes), last 24h:
 ```json
-{"candlesticks":[{"end_period_ts":1795302060,"open_interest_fp":"45.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5648","open_dollars":"0.5500"},"volume_fp":"135.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"0.4500","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.6500","low_dollars":"0.0000","open_dollars":"0.5500"}},{"end_period_ts":1795302120,"open_interest_fp":"25.00","price":{"close_dollars":"0.6500","high_dollars":"0.6500","low_dollars":"0.3500","mean_dollars":"0.5500",
+{"candlesticks":[{"end_period_ts":1795819200,"open_interest_fp":"100.00","price":{"close_dollars":"0.4500","high_dollars":"0.4500","low_dollars":"0.4500","mean_dollars":"0.4500","open_dollars":"0.4500"},"volume_fp":"100.00","yes_ask":{"close_dollars":"1.0000","high_dollars":"1.0000","low_dollars":"1.0000","open_dollars":"1.0000"},"yes_bid":{"close_dollars":"0.0000","high_dollars":"0.4500","low_dollars":"0.0000","open_dollars":"0.4500"}}],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
 ```
 
 `period_interval=60` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV22H00-UP"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
 ```
 
 `period_interval=1440` (minutes), last 24h:
 ```json
-{"candlesticks":[],"ticker":"KXDEMOFUTHOURLY-26NOV22H00-UP"}
+{"candlesticks":[],"ticker":"KXMVECROSSCATEGORY-S202656P2EAUXL7XYQNNO-NYYNCJR7E"}
 ```
 
 Unsupported `period_interval=5`:
@@ -117,7 +122,7 @@ HTTP 400
 
 ## D. Orderbook — resting bid depth (liquidity)
 ```json
-{"orderbook_fp":{"no_dollars":[["0.0100","1.00"]],"yes_dollars":[["0.0100","11.00"]]}}
+{"orderbook_fp":{"no_dollars":[],"yes_dollars":[["0.0100","1.00"]]}}
 ```
 
 ## E. Order write routes (unauthenticated: route existence only)
@@ -144,12 +149,12 @@ Events scanned: 1000
 
 | Kalshi category | Events |
 | --- | --- |
-| Elections | 740 |
+| Elections | 724 |
 | Sports | 71 |
 | Economics | 61 |
-| Politics | 42 |
-| Entertainment | 28 |
-| Science and Technology | 26 |
+| Politics | 54 |
+| Science and Technology | 31 |
+| Entertainment | 27 |
 | Financials | 10 |
 | Climate and Weather | 9 |
 | Companies | 7 |
@@ -161,8 +166,8 @@ Events scanned: 1000
 ### Which official categories can serve the five required topics?
 
 - **gas**: 0 events — categories: none
-- **elections**: 740 events — categories: Elections (740)
-- **culture**: 30 events — categories: Entertainment (28), Social (1), Politics (1)
+- **elections**: 724 events — categories: Elections (724)
+- **culture**: 29 events — categories: Entertainment (27), Social (1), Politics (1)
 - **crypto**: 2 events — categories: Crypto (2)
 - **golf**: 3 events — categories: Sports (3)
 
