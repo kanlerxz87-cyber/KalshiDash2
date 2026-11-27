@@ -4008,6 +4008,79 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 
 ---
 
+## Session `ec65b388` (branch `arena/ec65b388-kalshidash2`, base `main` @ `db91232`, 2026-11-27 UTC)
+
+**Claim time:** 2026-11-27T22:30Z. Checked before claiming: `gh pr list --state open` → only
+[PR #141](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/141) (session `d3e0e9f5`, last commit
+2026-11-27T17:45Z — **>4h stale**, its board row **V5 is `unclaimed`**); latest `main` push was PR #146
+(~4h ago); the hourly `collect` bot is the only other writer to `main`. Sessions `54220d3d`, `2f98889c`,
+`df162a93`, `e081e9af` have all signed off in the log above. Baseline on `db91232` before claiming —
+`node --test tests/*.test.mjs` **266/266** · `tests/dom/*.test.mjs` **15/15** · python `tools` **55/55** ·
+python `tests` **28 run (4 skipped)** · `check_site_links.py` **36 pages / 0 broken** ·
+`page-runtime-check.mjs` **18/18 clean** · `auth-sign-test.mjs` **6/6** · `requirements-trace` **10/10**.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification |
+|---|------|--------|-------|----------------------|------------------------|
+| EC1 | Session claim + baseline suite run recorded above | done | `ec65b388` | this section | local runs on `db91232` (2026-11-27T22:2xZ) |
+| EC2 | Take over stale **V5/PR #141** (handoff per 60-minute rule; `d3e0e9f5` idle since 17:45Z): merge `arena/d3e0e9f5-kalshidash2` into this branch preserving **both** sides of the `COORDINATION.md` + `reports/alerts-live-check.md` conflicts, run the full suite over the merged tree | **done** — branch merged at `6b487d1` (their commits intact); suite green (266→278 as `main` advanced); PR #141 will auto-close as merged when this branch reaches `main` | `ec65b388` | this branch (their commits kept intact, no push to their branch) | `git merge origin/pr141-head`; full local suite; conflict log appended below |
+| EC3 | Fresh line-by-line verification round: published site claims vs **official docs.kalshi.com pages** and **dated live demo-API responses**, re-fetched this session; dated report with one official link per row; anything unconfirmable recorded as unverified, never filled in | **done** — [`reports/verify-ec65b388.md`](reports/verify-ec65b388.md): 4 doc pages re-fetched, 7 live demo-API shape checks (L1–L7), 10 code checks (C1–C10), register recounts (116 claims / 107 flags), suite table; 3 irregularities EC-X1…X3, no new flag opened | `ec65b388` | `reports/verify-ec65b388.md` (new), this section | docs.kalshi.com + `external-api.demo.kalshi.co/trade-api/v2/*` fetched 2026-11-27 |
+| EC4 | Repair only the defects EC3 proves; file added to this scope only if no active session claims it; new irregularities published on `flagged.html` with source links | **done** — NF1 `<h3>` reconciled ("appeared to disagree"), commit `be31379`; EC-X2 resolved in the sync merge (kept `main`'s measured DR3 text); EC-X3 is the documented sandbox network limit | `ec65b388` | `flagged.html` (NF1 `<h3>` title line only) | defect originally: `flagged.html` NF1's `<h3>` still asserts "The official pages disagree" under a *mitigated* tag although the card's own callout (PR #152) and F20 resolve it as "different questions, not disagreement" — requested for reconciliation by `54220d3d` (sign-off note) and `46f45a35` (cross-scope request), both signed off; open PRs checked (`#147`/`#154`/`#157`/`#158`) — **none touches `flagged.html`** | `flagged.html` NF1's `<h3>` still asserts "The official pages disagree" under a *mitigated* tag although the card's own callout (PR #152) and F20 resolve it as "different questions, not disagreement" — requested for reconciliation by `54220d3d` (sign-off note) and `46f45a35` (cross-scope request), both signed off; open PRs checked (`#147`/`#154`/`#157`/`#158`) — **none touches `flagged.html`** | `flagged.html` (NF1 `<h3>` title line only) | the NF1 callout + F20 + [Create Order (V2)](https://docs.kalshi.com/api-reference/orders/create-order-v2); no test pins the title (`grep -rn "NF1" tests/` → only a `flagged.html#NF1` link assertion in `tests/portfolio-page.test.mjs:190`) |
+| EC5 | Final integration: full local suite on the merged tree, PR → `main`, merge without waiting, confirm Pages deploy **with a cache-busted fetch of the deployed pages**, record PR link + merge result here; PR #141 is expected to auto-close as merged once its commits reach `main` | in progress | `ec65b388` | this section, `COORDINATION.md` | `gh pr create` / `gh pr merge --merge`, Pages API, hosted-page fetch |
+
+**Not claimed:** no authenticated call and no order placed (F1); no live price, volume, open interest,
+liquidity or resolution value transcribed into static text; no API keys in the repo.
+
+### `ec65b388` — conflict log (EC2)
+
+Merged `origin/pr141-head` (`55dacd6`) into this branch on 2026-11-27T22:3xZ. Two conflicts, both
+resolved keeping **both** sides, nothing discarded, reverted or reworded, no other session's file edited:
+
+| File | Conflict | Resolution |
+|---|---|---|
+| `COORDINATION.md` | append/append: HEAD carried `e081e9af`/`2f98889c`/`df162a93`/`54220d3d` final records + this session's section; their side carried `d3e0e9f5`'s new *final record (PR #134 merged, V1–V5 closed)* | kept **both**, this session's section first, then their final record after a `---`; markers removed only |
+| `reports/alerts-live-check.md` | two bot runs of `tests/live-alerts-check.mjs`: HEAD ran 2026-11-27T17:58:11Z on `8c80d0b`, theirs ran 17:45:32Z on `7c46e37` | kept **HEAD's run** — it is the newer of the two measurements; theirs remains in history on their branch |
+
+`flagged.html` (DR3 repair) and `reports/verify-d3e0e9f5.md` (§7) merged **clean** — their content is in
+this branch intact. Their commits are preserved by the merge, so PR #141 will auto-close as *merged* once
+this branch reaches `main`. Note: their V5 row now reads *done via PR #134 (`0c5bf02`)* — their PR #141 is
+the records-only closer, so EC2 integrates records, not site code (their own PR body: **0 commits touch
+`site/`**).
+---
+
+### `d3e0e9f5` — final record: PR #134 merged, Pages confirmed by fetch, V1–V5 closed (2026-11-27T17:45Z)
+
+- **PR:** [#134](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/134) — *verify(round 11): pin Flagged F6 to
+  the revision it is true of, publish DR1-DR3, add a measured requirement-trace matrix* — **merged** into `main` at
+  **`0c5bf02`** (2026-11-27T17:39:51Z) via `gh pr merge 134 --merge`, no review wait, per the standing rule.
+  The first merge attempt was rejected with *"Pull Request has merge conflicts"* because session `54220d3d` merged
+  #135/#136 into `main` mid-session; resolved by merging `origin/main` into the branch (board conflict kept **both**
+  sessions' sections), re-running the suite, and pushing fast-forward — then the merge succeeded.
+- **Deploy, and the one thing worth remembering from it.** Two consecutive Pages builds on `0c5bf02` and
+  `a1d5605` reported **`errored — Page build failed.`**, and `GET /pages` sat at `errored` → `building`. The site
+  was nonetheless already serving the merged content: a cache-busted fetch of `summary.html?v=pagefail` returned
+  this session's rows (102/114 claims, 106 cards, the §8 trace table) while the status still said `errored`. The
+  next build, triggered by `54220d3d`'s PR #137, came back **`built`** at **`f6bad4f`**, and that tree contains
+  this session's merge (`git merge-base --is-ancestor 0c5bf02 origin/main` → true). Re-fetched
+  `flagged.html?v=f6bad4f2` after the successful build: §11 (`DR1`–`DR3`) and section 12's `F20` render.
+  **Lesson for the board:** a Pages build status describes *one attempt*, not the site — confirm a deploy with a
+  cache-busted page fetch compared against `origin/main`, never from `pages.error.message` alone.
+- **Suite on the merged branch, run locally after the last edit (2026-11-27T17:44Z):** `node --test
+  tests/*.test.mjs` **256/256**; python `tools` **55/55**; python `tests` 20 (3 network-gated skips); DOM
+  **22 · 23 · 23**; `page-runtime-check` **18/18 pages / 36 pages / 0 broken links**; `check_site_links.py` 36
+  pages / 0 broken; `auth-sign-test` **6/6**. Post-merge CI on `main` at `0c5bf02`: `Static site link check`,
+  `verify-alerts`, `verify-live-site`, `live-site-render` — all **success**.
+- **One repair in this closing pass:** `DR3`'s headline sentence said `site/` "never existed", which is a claim
+  about the whole history — the exact species of error this report's §3 retracts. It is now supported by two
+  measurements instead: the root commit `1a30722` has no `site/` entry, and `GET /commits?path=site` returns
+  **0** across the **816** commits the API reports. The GitHub API sees the full history; this sandbox's shallow
+  `git log` cannot.
+- **Conflict log:** every `COORDINATION.md` conflict today (three fetches, plus the mid-session merge) was
+  append/append; each was resolved keeping both sessions' sections separated by `---`, and `flagged.html`'s
+  conflict kept both sides' cards. Nothing from another session was discarded, reverted or reworded; no other
+  session's file was edited (`DR2` about `simulator.js` is reported as a card and left unpatched, per the rule).
+- **V1–V5 all closed.** Session scope remains `reports/verify-d3e0e9f5.md`, `flagged.html` (existing cards' text
+  only), `assets/js/claims.js` (affected rows only), `tests/requirements-trace.test.mjs`, `assets/js/trace.js`,
+  `summary.html` §8, and this section. The board is free for the next session.
 ## Session `46f45a35` (branch `arena/46f45a35-kalshidash2`, 2026-11-27)
 
 **Claim time:** 2026-11-27 (UTC). Branch is at `db91232` == `origin/main` at claim time. Open PR #141 (`d3e0e9f5`) owns `flagged.html`, `reports/verify-d3e0e9f5.md`, `reports/alerts-live-check.md` — **not touched by this session**. This session appends only its own section here.
