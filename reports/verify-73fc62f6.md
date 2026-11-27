@@ -31,11 +31,16 @@ Read in this order: `README.md`, `EXECUTIVE_SUMMARY.md`, `VERIFICATION.md`, `COO
   Confirmed by `GET /repos/kanlerxz87-cyber/KalshiDash2/pages` → `{"status":"built","source":{"branch":"main","path":"/"}}`
   and `GET /repos/…/pages/builds/latest` → `{"status":"built","error":null,"commit":"db9123261625c948ceb9fe89232bc92fbd5a7d68"}`
   at 2026-11-27T21:29:05Z. ✔ the deployed tree is `main`'s head.
-- **Registers agree with the tree.** Loaded directly with Node (no transcription):
-  `claims.js` → **114 claims: 102 verified, 9 partially verified, 3 unverified**;
-  `sources.js` → **49 sources (14 `fetched`, 35 `index`)**. `flagged.html` → **106 `.irregularity` cards,
-  40 open (`tag warn`) / 66 mitigated (`tag yes`)** counted statically. All three numbers match
-  `README.md`, `VERIFICATION.md`, `summary.html` and `flagged.html`'s own counters. ✔
+- **Registers agree with the tree.** Loaded directly with Node (no transcription), **as re-measured after
+  rebasing onto `main` @ `54c3ca1`** — three sibling PRs (#148, #150, #156) landed counter refreshes while this
+  session was open, so the numbers are re-measured rather than carried forward:
+  `claims.js` → **116 claims: 105 verified, 8 partially verified, 3 unverified**;
+  `sources.js` → **49 sources (14 `fetched`, 35 `index`)**. `flagged.html` → **107 `.irregularity` cards,
+  38 open (`tag warn`) / 69 mitigated (`tag yes`)** counted statically. All three agree with `README.md`,
+  `VERIFICATION.md`, `summary.html` and `flagged.html`'s own counters. ✔
+  (This session's first measurement, before the rebase, was 114 claims / 102 verified / 9 partial / 3 unverified,
+  49 sources, 106 cards / 40 open / 66 mitigated — recorded because it shows the counters agreed at **both**
+  points rather than that one number was copied.)
 - **One irregularity found while counting (not a defect):** `flagged.html` gives every card an `id` except
   `D074-1`, whose status tag is therefore counted but whose anchor cannot be linked. Recorded here, not fixed —
   `flagged.html` is in another session's open PR (see §7).
@@ -154,7 +159,7 @@ transcript.
 | **AH2** | `index.html`'s "Biggest swings right now" card cannot show a *swing*: it computes `last_price_dollars − previous_price_dollars`, and the published schema defines that second field as the price **a day ago**. A 24-hour move is labelled "right now". The alert page learned this on 2026-11-27 (`PR #140` reworded both of its descriptions); the homepage was not updated. | Get Markets: *"…a day ago…"*; `index.html:111,123,385`; `alerts.html`'s corrected copy | **open, not fixed here.** `index.html` is a shared landing page and this is a copy change with a test to write; recorded so its owner can make it, with the correction already proven. |
 | **AH3** | Block trades are included in `GET /markets/trades` by default and the traded-dollar panel does not say so. | Get Trades: *"Block trades are included in the response by default and identified by the `is_block_trade` field."*; `grep -rn "block trade" *.html assets/js/*.js` → no match | **open, not fixed here.** `categories/*.html` + `dollar-volume.js` are in no claim, but the fix spans five pages and a test; recorded with its source so whoever owns it can do it in one pass. |
 | **AH4** | The Alerts page describes its own live source as a WebSocket with an SSE relay fallback (W1), while the Summary matrix says "Streaming is unconfirmed in a browser; configurable polling is used (F10)". Both statements are on the published site. | `alerts.html` "There are two possible sources"; `summary.html` §3 bullet "Streaming is unconfirmed" | **open, not fixed here** — a copy reconciliation across two pages, same owner-request as AH2. |
-| **AH5** | `spec`/verification debt, not a site defect: `/summary.html` says it was written "2026-11-21" while its counters are current to 2026-11-27, and `flagged.html` card `D074-1` has no `id`, so it can be counted but not linked. | `summary.html` first paragraph; `flagged.html:1073` | recorded only. |
+| **AH5** | Documentation debt, not a site defect: `/summary.html` says it was written "2026-11-21" while its counters are current to 2026-11-27, and `flagged.html` card `D074-1` has no `id`, so it can be counted but not linked. | `summary.html` first paragraph; `flagged.html:1073` | recorded only. |
 
 **Nothing in this table is invented.** Each row quotes the page or the official reference that establishes
 it; none is a live value (no price, size, balance or result is transcribed anywhere in this report).
@@ -177,7 +182,7 @@ it; none is a live value (no price, size, balance or result is transcribed anywh
 
 | Harness | Command | Result |
 | --- | --- | --- |
-| JS unit suite | `node --test tests/*.test.mjs` | **266/266**, 0 fail |
+| JS unit suite | `node --test tests/*.test.mjs` | **278/278**, 0 fail (count rose from 266 as sibling PRs merged; the 14 new proofs are included) |
 | New offline proofs | `node --test tests/dom/rendered-page-assertions.test.mjs` | **14/14**, 0 fail |
 | DOM harness (bundled page controllers, fixtures) | `cd tests/dom && npm ci && npm test` | alerts **26/26** · summary **5/5** · category **24/24** |
 | Python tools | `python3 -m unittest discover -s tools` | **55/55** OK |
