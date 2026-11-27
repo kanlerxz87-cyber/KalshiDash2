@@ -4051,3 +4051,7 @@ are delegated to the repo's own Actions workflows (`live-site-render`, `verify-l
 | A2 | Run local functional, DOM, runtime, Python and internal-link checks; record exact results and any regressions | in progress | `69ad6634` | `reports/verify-69ad6634.md` (new), this section of `COORDINATION.md` | Commands/results to be recorded after execution |
 
 **Scope boundaries:** no edits to shared site pages, source/claim registers, market snapshot, workflows or other sessions' files. No authenticated account access, no orders, and no static market values will be asserted.
+
+**Audit scope addendum (2026-11-27):** the independent run found the repo-side verification snapshots in `README.md` and `EXECUTIVE_SUMMARY.md` lag the current tests (Node suite is 266, not 263; Python tests now run 28 with 4 opt-in skips). A3 is added below to refresh only those local verification snapshots from the executed results; no live API values are being added.
+
+| A3 | Synchronize repository README and executive-summary test counts with this session's executed verification results | in progress | `69ad6634` | `README.md`, `EXECUTIVE_SUMMARY.md` (verification snapshot sections only) | Local execution captured in `reports/verify-69ad6634.md`; no exchange claims added |
