@@ -28,15 +28,21 @@ test("the status claim attributes each vocabulary to its own official page", () 
   // The register entries live inside one array literal and interpolate `${D}`,
   // so brace-balanced matching is unreliable here; a window is enough to prove
   // the attribution, since the assertion is about which links the entry cites.
-  const block = claims.slice(Math.max(0, at - 200), at + 900);
+  const block = claims.slice(Math.max(0, at - 200), at + 1200);
   assert.match(block, /\/api-reference\/market\/get-markets/,
-    "the claim must cite the Get Markets reference, where the four-value list lives");
+    "the claim must cite the Get Markets reference, where the filter enum lives");
   assert.match(block, /Market Lifecycle/,
-    "the claim must name the Market Lifecycle page as the source of the paused mapping");
-  assert.match(block, /disagree/,
-    "the claim must state that the two official pages disagree");
-  assert.match(block, /unopened, open, closed, settled/,
-    "the claim must quote the four Get Markets filter values verbatim");
+    "the claim must name the Market Lifecycle page as the source of the mapping");
+  // 2026-11-27 (session 8299bffe): the enum was read directly. It lists FIVE
+  // values including `paused`; the four-value sentence is that page's prose.
+  // The register must state the enum (the stronger, machine-readable source)
+  // and must keep saying the page disagrees with itself — the defect is real
+  // and closing the card must not bury it.
+  assert.match(block, /unopened, open, paused, closed, settled/,
+    "the claim must quote the five-value OpenAPI enum verbatim");
+  assert.match(block, /prose sentence lists only four/,
+    "the claim must name the four-value sentence as the page's prose, not as the enum");
+  assert.match(block, /disagree/, "the claim must state that the official page contradicts itself");
 });
 
 test("the wrong merged statement is gone from every published page", () => {
@@ -47,15 +53,25 @@ test("the wrong merged statement is gone from every published page", () => {
   }
 });
 
-test("A9 cites both official pages and keeps the unresolved part explicit", () => {
+test("A9 cites both official pages and states what the live request proved", () => {
   const flagged = read("flagged.html");
   const card = flagged.match(/id="A9"[\s\S]*?<\/div>\s*\n\s*<div class="irregularity"/);
   assert.ok(card, "Flagged card A9 must exist");
   assert.match(card[0], new RegExp(GET_MARKETS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(card[0], new RegExp(LIFECYCLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(card[0], /Still unverified/, "the unknown must be labelled, not filled in");
   assert.match(card[0], /Correct(ed|ion)/i,
     "the retraction must be visible on the card");
+  /* 2026-11-27 (session 8299bffe): "whether the exchange accepts status=paused"
+   * stopped being unknown — GET /markets?status=paused returns 200 with a market
+   * at status "inactive". The card must carry that evidence, and must not slide
+   * back to the old "Still unverified" framing, which would now be false. */
+  assert.match(card[0], /status=paused/, "the card must name the request that settled the question");
+  assert.match(card[0], /inactive/, "the card must record the object status the live request returned");
+  assert.match(card[0], /Resolved/, "the card must say the live question was resolved");
+  assert.doesNotMatch(card[0], /Still unverified:/,
+    "the question is answered; leaving 'Still unverified' would make the card false");
+  assert.match(card[0], /unopened, open, paused, closed, settled/,
+    "the card must quote the five-value OpenAPI enum");
 });
 
 // The reference comparison is a 24-hour move. Kalshi's Get Market schema:

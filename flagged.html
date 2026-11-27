@@ -503,7 +503,7 @@
     </div>
 
     <div class="irregularity" id="A9">
-      <h3>A9 — Two status vocabularies: the filter list and the mapping are on different pages <span class="tag warn">open</span></h3>
+      <h3>A9 — Two status vocabularies: the filter list and the mapping are on different pages <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> the Market Lifecycle page lists the object statuses returned by
         <code>GET /markets</code> and <code>GET /markets/{ticker}</code> — <code>initialized, active,
         inactive, closed, determined, disputed, amended, finalized</code> — and gives a five-value filter
@@ -528,10 +528,25 @@
         returned 2,157 and 14 (<code>reports/alerts-live-check.md</code> §1). The page treats
         <code>active</code> and <code>open</code> as live and skips the rest, so an <code>inactive</code>
         (paused) market is not watched and produces no alert while it is paused.</p>
-      <p><strong>Still unverified:</strong> which page is authoritative for the filter, and whether the
-        exchange accepts <code>status=paused</code>. No such request has been run from a verifiable runner,
-        so it is not asserted. The site never sends <code>status=paused</code> — it asks for
-        <code>status=open</code> — so no behaviour depends on the answer.</p>
+      <p><strong>Resolved 2026-11-27 (session <code>8299bffe</code>) — both open questions are now measured.</strong>
+        The Get Markets page itself is not ambiguous in its OpenAPI block: the
+        <code>MarketStatusQuery</code> parameter's schema is
+        <code>enum: [unopened, open, paused, closed, settled]</code>, five values including
+        <code>paused</code>. (The four-value sentence this card quotes is that page's prose description, and the
+        two are inconsistent — that defect stands and is not papered over.) The demo host <em>accepts</em>
+        <code>GET /markets?status=paused</code>: on 2026-11-27T22:3xZ it answered HTTP 200 with a market whose
+        object status was <code>inactive</code>, which is exactly the Market Lifecycle mapping
+        <code>paused</code> → <code>inactive</code>. So the filter vocabulary is five values and the mapping is
+        real on the live exchange; the site's caution about <code>status=paused</code> is no longer needed for
+        that question, though the page's two wordings still disagree and a reader should cite the enum, not the
+        prose.</p>
+      <p><strong>A second, narrower fact worth recording:</strong> the Market Lifecycle FAQ says the
+        <em>event</em> filter is four values — "<code>GET /events</code> supports a <code>status</code> filter with
+        values <code>unopened</code>, <code>open</code>, <code>closed</code>, and <code>settled</code>" — so the
+        five-value and four-value lists are not the same filter on different endpoints, and neither list may be
+        copied onto the other endpoint. This page tracks markets (not events) for its alerts.</p>
+      <p><strong>Behaviour, unchanged:</strong> the site never sends <code>status=paused</code>; it asks for
+        <code>status=open</code>, so nothing the dashboard does depends on the dispute.</p>
       <p class="small"><strong>Sources:</strong> <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets ↗</a> (four filter values) · <a class="src-link" href="https://docs.kalshi.com/getting_started/market_lifecycle" target="_blank" rel="noopener noreferrer">Market lifecycle ↗</a> (five-value mapping + object statuses)</p>
     </div>
 
@@ -2214,7 +2229,7 @@
     </p>
 
     <div class="irregularity" id="F18">
-      <h3>F18 — The exchange is sharded and the site reports one status line <span class="tag warn">open</span></h3>
+      <h3>F18 — The exchange is sharded and the site reports one status line <span class="tag yes">mitigated</span></h3>
       <p><strong>What was found:</strong> on 2026-11-27 the demo host answered
         <code>GET /exchange/status</code> with <code>exchange_active: true</code>,
         <code>trading_active: true</code> <em>and</em> a four-entry
@@ -2228,10 +2243,24 @@
         therefore says "trading active" for the whole exchange while an individual shard could be paused.
         It is one line of text, not a wrong price, but it is a status claim the site cannot support at
         shard level.</p>
-      <p><strong>What the site does about it:</strong> nothing is invented. The Overview keeps reading only
-        the flags it can defend (the documented 200-only rule it already follows for 5xx), and this card records
-        that the per-shard breakdown exists and is not read. A fix would print one line per
-        <code>exchange_index</code> and re-read rather than treat a lone <code>false</code> as a halt.</p>
+      <p><strong>What the site does about it:</strong> <strong>fixed 2026-11-27 (session
+        <code>8299bffe</code>)</strong> — the Overview now reads <code>exchange_index_statuses</code> from the
+        same 200 response and prints one row per shard (index, description, exchange/trading/transfers flags, and
+        whether the row agrees with the top-level flags). The reference's own rule is applied rather than
+        paraphrased: a shard that reads <code>false</code> after this tab has already confirmed it trading is
+        labelled <em>re-read required</em>, never "paused", and the strip's one-line summary says so
+        (e.g. "trading active on the default index · 1 of 4 shards report false — re-read, not treated as a
+        pause"). An absent breakdown is stated as the schema documents it ("absent when the per-index breakdown
+        is unavailable") instead of inventing shards, unusable array entries are skipped and counted, and a
+        <code>0</code> row that disagrees with the top-level fields is shown as a disagreement rather than
+        silently resolved in either direction. The AC1 rule is untouched: flags are still read only from an HTTP
+        200, and a 503/504 still renders "status unavailable" and keeps the last good rows marked as such.
+        <span class="small muted">Evidence: <code>assets/js/exchange-status.js</code>,
+        <code>tests/exchange-status.test.mjs</code> (11 checks, 8 of them F18-specific), and the
+        shard-assignment table quoted on the Overview's environment card. Live check 2026-11-27T22:2xZ: the demo
+        host answered with a four-row breakdown (<code>Default</code>, <code>Demo shard 1</code>,
+        <code>Demo shard 2</code>, blank description) and all four read
+        <code>trading_active: true</code>.</span></p>
       <p class="small"><strong>Sources:</strong>
         <a class="src-link" href="https://docs.kalshi.com/api-reference/exchange/get-exchange-status" target="_blank" rel="noopener noreferrer">Get Exchange Status ↗</a>
         <a class="src-link" href="https://docs.kalshi.com/getting_started/exchange_sharding" target="_blank" rel="noopener noreferrer">Exchange sharding ↗</a>
@@ -2397,8 +2426,10 @@
     <div class="irregularity" id="DR3">
       <h3>DR3 — Flagged F6 was three days stale and cited a directory that never existed <span class="tag yes">fixed</span></h3>
       <p><strong>What was found:</strong> card F6 was published as <em>open</em> and said the fix lived in
-        <code>site/assets/js/kalshi.js</code> — there is no <code>site/</code> directory in this repository at any
-        revision. The claim it makes is nonetheless <strong>true of revision <code>424190e</code></strong>
+        <code>site/assets/js/kalshi.js</code> — and no such directory has ever existed here: the tree at the root
+        commit <code>1a30722</code> has no <code>site/</code> entry, and the GitHub commits API reports
+        <strong>0</strong> commits touching <code>site</code> across all <strong>816</strong> commits
+        (<code>GET /commits?path=site</code>). The claim it makes is nonetheless <strong>true of revision <code>424190e</code></strong>
         (2026-11-20T11:04:59Z): <code>docs/assets/app.js</code> line 101 imported the private key as
         <code>"spki"</code> and line 104 signed the bare route. It was repaired 19 minutes later in
         <code>c3676e5</code>. The card outlived the defect, so the site was reporting an open bug that no longer
