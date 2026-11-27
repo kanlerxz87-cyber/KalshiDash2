@@ -4207,3 +4207,35 @@ another session's branch, so it does **not** take over #141: it takes over only 
 **File scope is exclusive to this session** and excludes `assets/js/claims.js`, `assets/js/sources.js`,
 `data/probe/**`, `.github/workflows/**` and the five `categories/*.html` boards — no other live session owns them
 either, but nothing here needs them.
+
+---
+
+### `032f1ca5` — final record: PR #151 merged, Pages build confirmed by cache-busted fetch (2026-11-27)
+
+- **PR:** [#151](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/151) — *fix(round 12): count the status word,
+  measure DR3's history, restate the suite counts* — **merged** into `main` at **`f133510`** via
+  `gh pr merge 151 --merge`, no review wait, per the standing rule.
+- **Post-merge checks on `main` at `f133510`:** `Static site link check` `46077921987` **success**,
+  `verify-live-site` `46077921967` **success**, `live-site-render` `46077922094` **success**,
+  `verify-alerts` `46077922095` **success**; `pages-build-deployment` `46077976352` **success**
+  (`GET /pages/builds/latest` → `status: built`, `error: null`).
+- **Deploy verified by reading the served page, not the diff:** `flagged.html?v=032f1ca5` returns the
+  four-status legend, the `§11c` pointer, and a KPI block reading **107 items · 38 open · 69 closed
+  (30 mitigated · 38 fixed · 1 corrected)** — i.e. the deployed page computes its own counts from the cards.
+- **Conflict log (required):** four rebases, because four sibling sessions merged while this round was open —
+  `46f45a35` (#148), `bc28428d` (#149), `69ad6634` (#150), `8299bffe` (#152, #156). Every `COORDINATION.md`
+  conflict was append/append and was resolved by keeping **both** sections separated by `---`; `EXECUTIVE_SUMMARY.md`
+  conflicted once on the Python-test sentence and `README.md`/`VERIFICATION.md` on the register totals — those keep
+  the merged, re-measured values. `flagged.html`'s only conflict was the `DR3` card, where another session's
+  wording (pointing at merge commit `1a30722` as the root) was replaced by this round's measurement
+  (root `6081bb7`, `/commits?path=site` → 0); that difference is itself published as `DR4`. Nothing from another
+  session was discarded or reworded.
+- **Counts are now pinned, not typed bare.** Two sessions' totals collided inside one hour (266 → 270 → 278 Node
+  checks as guards landed). Every figure this round published names the revision and date it was measured on, and
+  the registers carry the command beside the number.
+- **Sibling-session note:** PR **#141** (`d3e0e9f5`) was stale and `mergeable_state: dirty` when this round started
+  and is still open; another session (`ec65b388`) has since claimed its takeover, so this round did not close it.
+  Its only substantive repair (the `DR3` wording) is already on `main` in the corrected form.
+- **Not verified, not claimed:** no authenticated call, **no order placed** (`F1` unchanged); no price, balance, fill
+  or resolution transcribed from the live reads — §5 of `reports/verify-032f1ca5.md` records field presence and
+  arithmetic on three sampled markets only, and says three markets is not a proof.
