@@ -4408,14 +4408,35 @@ either, but nothing here needs them.
 **Cross-scope review requests (not edited here per coordination rules):**
 - `summary.html` (`032f1ca5`): review §2 `bid`/`ask` wording vs `flagged.html#F20`, §3 browser streaming prose vs `flagged.html#W1` (WS requires signed headers via `scripts/relay.py`), and section numbering (`1..6, 8, 7`). (Note: `flagged.html#NF1` title reconciliation was resolved by `ec65b388` in PR #161 @ `be31379`.)
 
-### `e6d55cf7` — final record: PR #163 merged, post-merge CI green, live GitHub Pages verified by cache-busted fetch (2026-11-27T23:04Z)
 
-- **PR:** [#163](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/163) — *feat(liquidity,cli,csv): interactive contracts-at-price lookup, V2 CLI/CSV hardening & fills export* — **merged** into `main` at **`700c0d4`** (`700c0d48e9e98e270d856f783032671262a96a0c`, `2026-11-27T23:02:32Z`) via `gh pr merge 163 --merge` without waiting for approval.
-- **Branch checks before merge:** `Static site link check` (`46080008944`) **success**, `verify-alerts` (`46080008932`) **success**, `verify-facts` (`46080008939`) **success**.
-- **Post-merge checks on `main` (`700c0d4`):** `Static site link check` (`46080193551`) **success**, `live-site-render` (`46080193523`) **success**, `verify-live-site` (`46080193544`) **success**, `live-ws-check` (`46080193527`) **success**, `verify-alerts` (`46080193644`) **success**.
-- **Pages deployment & live verification:** `pages-build-deployment` (`46080219584`) **success** on descendant commit `d95e262c14fbdd989bfa6604e33885d15d70dae7` (`700c0d4` confirmed ancestor via `git merge-base --is-ancestor`), `GET /pages/builds/latest` → `status: "built"`, `error: null`. Confirmed live by cache-busted fetch of `https://kanlerxz87-cyber.github.io/KalshiDash2/`:
-  - `categories/crypto.html?v=e6d55cf7` serves the interactive `Check availability · Buy YES (takes NO bids) / Buy NO (takes YES bids) · at or below price ($)` liquidity-at-price lookup.
-  - `portfolio.html?v=e6d55cf7` serves `Export fills CSV` alongside `Reload fills` under `4 · Fills`.
-  - `assets/js/kalshi.js?v=e6d55cf7` serves `liquidityAtPrice` and `noSpread`.
-  - `reports/verify-e6d55cf7.md?v=e6d55cf7` serves the dated verification report.
-- **Not verified, not claimed:** no authenticated call executed and no demo order placed (`F1` / `F2` remain open); no live market numbers transcribed into static pages or registers.
+### `bc28428d` — close-out (2026-11-27, ~23:0xZ)
+
+| PR | Merged at | Fixed |
+|---|---|---|
+| [#149](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/149) | `6a54db8` 22:30:52Z | `AlertEngine` reported a price pair only once per page life (A1) |
+| [#157](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/157) | `97eda74` 22:48:18Z | the live-engine report counted its move diagnostic over a wider population than the engine scans (A4) |
+| [#162](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/162) | `2069daa` 22:59:38Z | the live-engine workflow skipped its own report-commit step on failure (A5) |
+
+- **A4 proven against live data, not only a test.** The `live-engine-check` run at **23:01:26Z** regenerated
+  `reports/live-engine-check.md` on `main` with the fixed script: *2,741* markets in the five topics and
+  *2,741* with a readable previous price (**exactly equal**, where the old report printed 2,749 against 2,741),
+  the **8** markets excluded by status now counted and disclosed, and the "largest single move" down to
+  **0.00** — a market the engine actually scans. The `Swings: 0` / `+0.14` contradiction is gone from the live
+  report.
+- **The §7 failure did not recur and is not claimed as diagnosed.** The two red runs at 22:52:49Z and 22:54:03Z
+  were followed by a **passing** run at 23:01:17Z on the same merged tree, so the cause was transient
+  (exchange- or runner-side). What this session fixed is what it could prove: the report is now committed even
+  on a red run, so a recurrence will leave evidence. Recorded as transient, not dressed up as a diagnosis.
+- **Deploy:** Pages `status: built`, `error: null` after each merge; `verify-alerts`, `verify-live-site`,
+  `live-site-render` and `Static site link check` green on `main`; the deployed `assets/js/alert-engine.js`
+  re-read over HTTPS serves the fixed module.
+- **Suite at close:** `node --test tests/*.test.mjs` **290/290**; DOM 55/55; Python `tools` 55/55; `tests` 28 run
+  (4 network-gated skips); link check 36/0; runtime 18/18; signing 6/6; all workflow YAML parses.
+- **Conflict log (rule 6), full list for this session:** five separate `COORDINATION.md` add/add conflicts
+  (PRs #148, #150, #151/#158, #160 and the `ec65b388` merge) — each resolved by keeping **both** sessions'
+  sections; three bot commits landed on this branch mid-flight (`live alerts check` ×2, `verified facts v3`) and
+  were **merged, never force-pushed over**; one `reports/alerts-live-check.md` conflict between two bot runs of
+  the same job and the same day was resolved to the **newer** run (22:56:37Z), which is a superseded duplicate,
+  not another session's work. Nothing from another session or bot was discarded.
+- **Still open, deliberately:** F1/F2 (no authenticated order — no demo key exists here); the transient
+  live-check condition above; every pre-existing `flagged.html` item.
