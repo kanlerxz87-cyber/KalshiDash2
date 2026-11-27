@@ -72,3 +72,73 @@ export async function loadPositions(client, { limit = 200, maxPages = 5 } = {}) 
   }
   return { positions, complete: false, pages: maxPages, nextCursor: cursor };
 }
+
+/* Official Get Fills CSV schema consumed by scripts/analyze_trades.py and
+ * data/trades_template.csv (https://docs.kalshi.com/api-reference/portfolio/get-fills).
+ * Unreturned fields stay empty strings (""); nothing is inferred or filled in. */
+export const FILL_CSV_COLUMNS = Object.freeze([
+  "created_time",
+  "ticker",
+  "market_ticker",
+  "outcome_side",
+  "book_side",
+  "count_fp",
+  "yes_price_dollars",
+  "no_price_dollars",
+  "is_taker",
+  "fee_cost"
+]);
+
+const NUMERIC_CSV_CELL_RE = /^[+-]?\d+(?:\.\d+)?$/;
+
+export function escapeCsvCell(value) {
+  if (value === null || value === undefined || value === "") return "";
+  let s = typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+  if (!s) return "";
+  if ("=+-@\t\r".includes(s[0]) && !NUMERIC_CSV_CELL_RE.test(s)) {
+    s = "'" + s;
+  }
+  if (/[",\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+export function fillsToCsv(fills = []) {
+  const lines = [FILL_CSV_COLUMNS.join(",")];
+  for (const f of Array.isArray(fills) ? fills : []) {
+    if (!f || typeof f !== "object") continue;
+    const created = f.created_time || (Number.isFinite(f.ts) ? new Date(f.ts * 1000).toISOString() : "");
+    const row = [
+      created,
+      f.ticker ?? "",
+      f.market_ticker ?? "",
+      f.outcome_side ?? "",
+      f.book_side ?? "",
+      f.count_fp ?? "",
+      f.yes_price_dollars ?? "",
+      f.no_price_dollars ?? "",
+      typeof f.is_taker === "boolean" ? f.is_taker : "",
+      f.fee_cost ?? ""
+    ];
+    lines.push(row.map(escapeCsvCell).join(","));
+  }
+  return lines.join("\n") + "\n";
+}
+
+export function downloadFillsCsv(fills = [], filename = "kalshi-demo-fills.csv") {
+  const csv = fillsToCsv(fills);
+  if (typeof document !== "undefined" && typeof Blob !== "undefined" && typeof URL !== "undefined" && URL.createObjectURL) {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return csv;
+}
