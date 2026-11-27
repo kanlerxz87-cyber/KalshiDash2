@@ -4005,3 +4005,17 @@ Everything this session shipped is on `main`, verified by re-reading the **deplo
 - **Not verified, not claimed:** no live price, volume, open interest, liquidity or resolution transcribed; no
   authenticated call; **no order placed** (F1); per-shard status semantics beyond the quoted reference text (F18);
   a `/series` response is not the full catalogue (F5).
+
+---
+
+## Session `46f45a35` (branch `arena/46f45a35-kalshidash2`, 2026-11-27)
+
+**Claim time:** 2026-11-27 (UTC). Branch is at `db91232` == `origin/main` at claim time. Open PR #141 (`d3e0e9f5`) owns `flagged.html`, `reports/verify-d3e0e9f5.md`, `reports/alerts-live-check.md` — **not touched by this session**. This session appends only its own section here.
+
+| ID | Task | Status | Owner | Exclusive file scope | Sources / verification | Irregularities |
+|----|------|--------|-------|----------------------|------------------------|----------------|
+| K1 | Independent line-by-line verification pass: re-fetch official Kalshi docs and compare against `assets/js/claims.js` / `assets/js/sources.js`; read deployed pages for prose defects (per `54220d3d` advice) | done | `46f45a35` | `reports/verify-46f45a35.md` (new) | docs.kalshi.com (fetched 2026-11-27) | — |
+| K2 | Sync stale test counts in repo markdown (`EXECUTIVE_SUMMARY.md`, `README.md`: 263 → current) | done | `46f45a35` | `EXECUTIVE_SUMMARY.md`, `README.md` | local suites run 2026-11-27 | — |
+| K3 | Full local suite run + PR to `main`, merge, verify Pages deployment & live site | in progress | `46f45a35` | this section | `reports/verify-46f45a35.md` | — |
+
+**Cross-scope request (not edited here — `flagged.html` owned by PR #141):** `flagged.html#NF1`'s title and body still say the official pages "disagree / do not agree" under a *mitigated* tag whose callout says they answer different questions (already noted by `54220d3d`). Owner of `flagged.html` should reconcile the title/body wording with the F20 resolution.
