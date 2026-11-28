@@ -24,7 +24,7 @@ Official docs: <https://docs.kalshi.com> · demo site: <https://demo.kalshi.co>.
 0 unverified) lists every documentation source used; [`verification.html`](verification.html)
 (`assets/js/claims.js`, 116 claims: 105 verified, 8 partially verified, 3 unverified) links every technical
 claim to an official page or probe; [`flagged.html`](flagged.html) records open defects, design limits, and
-verified irregularities (**F1–F20**, **DR1–DR4**, **AH1–AH6**, 42 open / 71 closed — 30 mitigated, 40 fixed, 1 corrected — 113 total).
+verified irregularities (**F1–F20**, **DR1–DR4**, **AH1–AH6**, 42 open / 71 closed — 31 mitigated, 39 fixed, 1 corrected — 113 total).
 
 **Official traded-dollar volume:** every category page can sum `GET /markets/trades` for its topic
 (Σ `count_fp` × price of the taker's recorded `taker_outcome_side`), alongside the ranking column's

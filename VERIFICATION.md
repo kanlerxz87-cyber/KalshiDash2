@@ -10,7 +10,7 @@ The full client-side claims register lives in [`assets/js/claims.js`](assets/js/
 105 verified, 8 partially verified, 3 unverified, shown on [`verification.html`](verification.html)), the
 documentation audit register lives in [`assets/js/sources.js`](assets/js/sources.js) (**49** sources,
 **49 verified / 0 unverified** on [`sources.html`](sources.html)), and the irregularity register
-(**F1–F20**, **DR1–DR4**, **AH1–AH6**, 42 open / 71 closed — 30 mitigated, 40 fixed, 1 corrected — 113 total items) lives on
+(**F1–F20**, **DR1–DR4**, **AH1–AH6**, 42 open / 71 closed — 31 mitigated, 39 fixed, 1 corrected — 113 total items) lives on
 [`flagged.html`](flagged.html).
 `docs/flagged.html` remains historical only.
 

@@ -361,7 +361,7 @@ text says the run does not prove the site renders. Neither is reported as a pass
 
 **Published on the site.** Cards **AH1–AH6** are now on `flagged.html` §13, with their evidence links, and the
 registers that count them (`README.md`, `VERIFICATION.md`, `EXECUTIVE_SUMMARY.md`) are updated to
-**113 cards — 42 open / 71 closed (30 mitigated, 40 fixed, 1 corrected)**. The five findings this session could
+**113 cards — 42 open / 71 closed (31 mitigated, 39 fixed, 1 corrected)**. The five findings this session could
 not fix in its own scope stay **open** on that page rather than being quietly dropped: AH2 (homepage
 "right now" card is a 24-hour comparison), AH3 (block trades undisclosed in the traded-dollar panel), AH4
 (alerts and summary disagree about streaming), AH5 (stale summary date; one card with no `id`). AH1 is
