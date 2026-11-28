@@ -2517,6 +2517,134 @@
         <a href="reports/verify-d3e0e9f5.md">reports/verify-d3e0e9f5.md</a> §3.
         <a class="src-link" href="https://docs.kalshi.com/getting_started/quick_start_authenticated_requests" target="_blank" rel="noopener noreferrer">Authenticated requests ↗</a></p>
     </div>
+
+  <h2 id="section-13" style="margin-top:26px">13 · Verification-probe and copy findings — session <code>73fc62f6</code> (2026-11-27)</h2>
+  <p class="small muted">Found while re-verifying the published site line by line against the official
+    <a href="https://docs.kalshi.com" target="_blank" rel="noopener noreferrer">docs.kalshi.com</a> pages and dated
+    live demo responses. Full record with every source:
+    <a href="reports/verify-73fc62f6.md">reports/verify-73fc62f6.md</a>. Nothing live is transcribed here — no price,
+    size, balance or result — and no order was placed.</p>
+  <div class="grid cols-1">
+
+    <div class="irregularity" id="AH1">
+      <h3>AH1 — The repo's live probe could not fail on a page that rendered only its banner <span class="tag yes">mitigated</span></h3>
+      <p><strong>What was found:</strong> <code>.github/workflows/live-site-render.yml</code> reported
+        <em>success</em> on <code>main</code> at <code>db91232</code> in a
+        <strong>7-second</strong> run (Actions run <code>46076646169</code>). Its Overview wait condition is
+        <code>#kpis.innerHTML.length &gt; 0</code>, which <code>render()</code> only reaches after a paginated
+        <code>GET /events</code> scan returns; 7 seconds cannot contain that scan, so the loop must have exited on
+        its own deadline with <code>#kpis</code> empty, and the run's only content assertion passed on the
+        connection banner. Its final step is <code>if [ "$status" = "1" ]; then exit 1; fi</code> — <strong>exit 2
+        passes the job</strong>.</p>
+      <p><strong>Why it matters:</strong> a guard that runs but cannot fail is the same defect class this register
+        already records for orphaned tests — a comment with a <code>.mjs</code> extension, one level up.</p>
+      <p><strong>Mitigated here:</strong> a new check,
+        <code>.github/workflows/render-audit.yml</code> + <code>tests/dom/render-audit.mjs</code>, loads all 17
+        published pages in real Chromium, waits for each controller, and fails on a page error, an error status
+        pill, a placeholder-only board, or an empty board with no explicit empty state. Its verdict rules are
+        pinned by 14 offline proofs (<code>tests/dom/rendered-page-assertions.test.mjs</code>), including the exact
+        banner-only shape. On <code>main</code> at <code>b5ddb5c</code> its first post-merge run
+        (<code>46084638269</code>) <strong>passed</strong>; on this session's PR
+        (<code>6e90108</code>, <code>156e85e</code>) it verified the Overview, alerts, gas, elections, culture and
+        crypto boards <em>rendering live data in a browser</em>, and reported golf as inconclusive on a demo-API
+        <code>429</code>. The old probe is unchanged: it still proves the code can reach the exchange from a
+        runner.</p>
+      <p><strong>Correction recorded, not hidden:</strong> an earlier reading of this evidence
+        (<code>reports/verify-73fc62f6.md</code> §2) inferred the deployed dashboard might render nothing, because
+        a headless fetch of the homepage returned only its banner. The first real browser run disproved that and
+        §10 retracts it. A headless fetch executes module scripts but does not wait for the paginated scan.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46076646169" target="_blank" rel="noopener noreferrer">run 46076646169 (7 s, success) ↗</a>
+        <a class="src-link" href="https://github.com/kanlerxz87-cyber/KalshiDash2/actions/runs/46084638269" target="_blank" rel="noopener noreferrer">first post-merge render-audit run ↗</a>
+        <a class="src-link" href="reports/verify-73fc62f6.md">reports/verify-73fc62f6.md §2, §9, §10</a></p>
+    </div>
+
+    <div class="irregularity" id="AH2">
+      <h3>AH2 — The homepage's "Biggest swings <em>right now</em>" card is a 24-hour comparison <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>index.html</code>'s card says "Contracts that moved at least $0.10
+        against the exchange's own previous price in this scan", and computes
+        <code>last_price_dollars − previous_price_dollars</code>. The official schema defines that second field
+        verbatim as <em>"Price for the last traded YES contract on this market <strong>a day ago</strong> in
+        dollars"</em>. A 24-hour move is therefore presented under a heading that reads as an immediate one.</p>
+      <p><strong>Same defect, already fixed elsewhere:</strong> the Alerts page was corrected for exactly this on
+        2026-11-27 (PR #140): every message now names the comparison that produced it, and the table note calls the
+        previous-price variant a 24-hour move. <code>tests/official-wording.test.mjs</code> pins that wording for
+        <code>alerts.html</code>. The homepage card was not covered by that fix.</p>
+      <p><strong>Not fixed in this PR:</strong> <code>index.html</code> is the shared landing page and the change
+        needs its own wording test. Recorded here with the source so its owner can make it in one pass.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets — previous_price_dollars ↗</a>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-market" target="_blank" rel="noopener noreferrer">Get Market ↗</a>
+        <code>index.html</code> lines 111, 123, 385; <code>tests/official-wording.test.mjs</code></p>
+    </div>
+
+    <div class="irregularity" id="AH3">
+      <h3>AH3 — Traded-dollar panel does not disclose that block trades are included <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> every category page computes "dollars actually traded" from
+        <code>GET /markets/trades</code> and states its inputs precisely (<code>count_fp</code> × the price of the
+        side the taker bought, seconds-based <code>min_ts</code>/<code>max_ts</code>, excluded untagged trades).
+        The official reference adds a default the pages never mention: <em>"Block trades are included in the
+        response by default and identified by the <code>is_block_trade</code> field; use the
+        <code>is_block_trade</code> query parameter to filter by block / non-block."</em> A block trade is a
+        negotiated transaction, so a reader is entitled to know it is inside the figure.</p>
+      <p><strong>Not fixed in this PR:</strong> the fix spans five category pages plus
+        <code>assets/js/dollar-volume.js</code> and a test, and none of that is in this session's claim. Recorded
+        with its source.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="https://docs.kalshi.com/api-reference/market/get-trades" target="_blank" rel="noopener noreferrer">Get Trades — block trades, is_block_trade ↗</a>
+        <code>grep -rn "block trade" *.html assets/js/*.js</code> → no match</p>
+    </div>
+
+    <div class="irregularity" id="AH4">
+      <h3>AH4 — Alerts and Summary disagree about whether streaming is in use <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> <code>alerts.html</code> describes two live sources — the Kalshi
+        WebSocket <code>ticker</code> channel reached through <code>scripts/relay.py</code>, with the REST poll as
+        the fallback — and its status pill names which one is running. <code>summary.html</code> §3 lists among
+        <em>what is not proven</em>: "Streaming is unconfirmed in a browser; configurable polling is used (F10)".
+        Both sentences are published on the same site.</p>
+      <p><strong>Reading:</strong> they are reconcilable — streaming requires a relay the visitor has not started,
+        so polling is what a default visitor gets — but the site never says so, and a reader should not have to
+        reconcile two official-looking statements themselves.</p>
+      <p><strong>Not fixed in this PR:</strong> a copy reconciliation across two shared pages; recorded for their
+        owner.</p>
+      <p class="small"><strong>Evidence:</strong> <code>alerts.html</code> ("There are two possible sources"),
+        <code>summary.html</code> §3 bullet on F10,
+        <a class="src-link" href="https://docs.kalshi.com/websockets/market-ticker" target="_blank" rel="noopener noreferrer">Market Ticker (WS) ↗</a></p>
+    </div>
+
+    <div class="irregularity" id="AH5">
+      <h3>AH5 — Register-hygiene items: a stale write date and one unlinkable card <span class="tag warn">open</span></h3>
+      <p><strong>What was found:</strong> two documentation defects, neither affecting a number:</p>
+      <ul>
+        <li><code>summary.html</code>'s opening sentence says it was "Written 2026-11-21" while its counters are
+          current to 2026-11-27 and are generated from the page at run time. The date describes the prose, not the
+          counters, and the page does not say so.</li>
+        <li>Card <code>D074-1</code> on this page has no <code>id</code> attribute, so it is counted in the totals
+          above but cannot be linked to (every other card can).</li>
+      </ul>
+      <p><strong>Not fixed in this PR:</strong> recorded only. The <code>id</code> fix is one attribute; it belongs
+        to whoever next owns this file so the card ids stay in one person's scope.</p>
+      <p class="small"><strong>Evidence:</strong> <code>summary.html</code> first paragraph;
+        <code>flagged.html</code> line 1073.</p>
+    </div>
+
+    <div class="irregularity" id="AH6">
+      <h3>AH6 — The Gas topic's board now renders a live event in a browser <span class="tag yes">fixed</span></h3>
+      <p><strong>What was found:</strong> in the render audit's first conclusive run, <code>/categories/gas.html</code>
+        was verified <strong>rendering live rows in a real browser</strong> — captured as a <code>pass</code> with
+        its board populated.</p>
+      <p><strong>What this does and does not change:</strong> Flag <strong>F4</strong> recorded the gas topic empty
+        in the demo environment's 1,000-event scan on 2026-11-20, and remains the record of what was observed then.
+        This card records what was observed on 2026-11-27 with its run, because a reader comparing the two should
+        know the state has changed rather than assume the register is stale. It is a live-state observation, not a
+        claim that the gas universe is permanently populated — the demo environment is not production.</p>
+      <p class="small"><strong>Evidence:</strong>
+        <a class="src-link" href="reports/verify-73fc62f6.md">reports/verify-73fc62f6.md §10.1</a>
+        render-audit run on commit <code>156e85e</code> (per-page verdict <code>gas.html → pass</code>);
+        topic rule in <code>assets/js/config.js</code>.</p>
+    </div>
+
+  </div>
   </div>
 </main>
 
