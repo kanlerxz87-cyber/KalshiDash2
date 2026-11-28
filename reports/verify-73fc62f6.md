@@ -354,3 +354,36 @@ Two findings from this run that were not knowable before it:
 **Consequence for the gate:** a page can be marked inconclusive by the audit for a reason that is not about the
 page. That is why the workflow fails the job on a defect and only *warns* on inconclusive — and why the warning
 text says the run does not prove the site renders. Neither is reported as a pass.
+
+---
+
+## 11 · Published for review, and the merge record
+
+**Published on the site.** Cards **AH1–AH6** are now on `flagged.html` §13, with their evidence links, and the
+registers that count them (`README.md`, `VERIFICATION.md`, `EXECUTIVE_SUMMARY.md`) are updated to
+**113 cards — 42 open / 71 closed (30 mitigated, 40 fixed, 1 corrected)**. The five findings this session could
+not fix in its own scope stay **open** on that page rather than being quietly dropped: AH2 (homepage
+"right now" card is a 24-hour comparison), AH3 (block trades undisclosed in the traded-dollar panel), AH4
+(alerts and summary disagree about streaming), AH5 (stale summary date; one card with no `id`). AH1 is
+**mitigated** by the new browser audit; AH6 records that the gas board was verified rendering live.
+
+**Merge record.**
+
+| Field | Value |
+| --- | --- |
+| PR | [#154](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/154) — *test(render-audit): a check that fails when a deployed page renders nothing* |
+| Merged | 2026-11-27T23:58:36Z, merge commit **`b5ddb5c`**, `gh pr merge 154 --merge`, without waiting for review |
+| Checks on the PR head (`07f3d3c`) | `audit` **pass** (7 m 41 s) · `check` **pass** · `dom` **pass** |
+| Checks on `main` at `b5ddb5c` | `Rendered-page audit` **pass** · `Static site link check` **pass** · `verify-alerts` **pass** |
+| Pages | `status: built`, `error: null`, build commit `820aecb` (2026-11-27T23:59:48Z), source `main:/` |
+| Workflow registration | `Rendered-page audit (real browser)` id `433222030`, state **active** on `main` |
+
+**What the audit proved about the deployed site** (not about this repository's code): in a real Chromium browser,
+`index.html`, `alerts.html`, `categories/gas.html`, `categories/elections.html`, `categories/culture.html`,
+`categories/crypto.html`, `summary.html` and `flagged.html` all reached a terminal state with their required
+structure and no page error. `categories/golf.html` was reported **inconclusive** on a demo-API
+`429 too_many_requests` after two attempts — the audit's own request rate, not a page defect — and that is the
+correct verdict for "the exchange would not answer".
+
+**Not claimed:** no live price, volume, open interest, balance or resolution is transcribed anywhere in this
+report or in the new cards; no authenticated call was made; **no order was placed** (F1 stays open).
