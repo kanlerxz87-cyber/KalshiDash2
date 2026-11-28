@@ -4476,3 +4476,36 @@ request* at the end of this section).
 
 **Rule this session kept:** an exit code that is *masked* is not evidence. Every row below names the command or
 URL that produced it so it can be re-run.
+
+### `73fc62f6` — task status and final record (2026-11-27/28 UTC)
+
+| ID | Task | Status | Verification |
+|---|---|---|---|
+| R1 | Official-source register of what the **deployed** site renders, and the probe gaps it exposes | **done** | `reports/verify-73fc62f6.md` — 16 API rows against `.md` pages, 3 dated live responses, §10 retraction |
+| R2 | A check that renders the deployed site in a **real browser** and cannot pass on a banner | **done** | `.github/workflows/render-audit.yml`, `tests/dom/render-audit.mjs`, 14 offline proofs |
+| R3 | Publish AH1–AH6 on the Flagged page, register recount, PR → `main`, merge, confirm Pages | **done** | PRs #154, #167, #168 merged; Pages `built` at `19244db` |
+
+| PR | Merged at | What it changed |
+|---|---|---|
+| [#154](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/154) | `b5ddb5c` (2026-11-27T23:58:36Z) | the render audit: rules, Chromium runner, workflow, report. Checks `audit` + `check` + `dom` all **pass** before merge; on `main` the audit's first push run **passed** |
+| [#167](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/167) | `d2cb8c5` (2026-11-28T00:1xZ) | **AH1–AH6** published on `flagged.html` §13 with evidence links; registers recounted |
+| [#168](https://github.com/kanlerxz87-cyber/KalshiDash2/pull/168) | `19244db` | corrected the register split to the page's own derivation (**31 mitigated / 39 fixed**, counted by keyword per DR4) |
+
+- **Pages:** `status: built`, `error: null`, build commit `19244db` — the §13 cards were re-read **on the deployed
+  page**, not from the diff (`flagged.html` chunk 21 renders AH1–AH6).
+- **What the audit proved:** in real Chromium the deployed `index.html`, `alerts.html`, `gas`, `elections`,
+  `culture`, `crypto`, `summary` and `flagged` pages all reached a terminal state with their required structure and
+  no page error; `golf` was **inconclusive** on a demo-API `429` after two attempts (the audit's own request rate).
+- **Correction recorded, not hidden:** this session's first reading inferred from a headless fetch that the
+  homepage might render nothing. The first browser run disproved it; `reports/verify-73fc62f6.md` §10 retracts the
+  inference and `flagged.html#AH1` says so in the card.
+- **New guards this session's own audits caught before the site was graded:** `process.cwd()`-dependent test
+  paths; truncated stdout hiding per-page verdicts; a report path that did not exist; and a `playwright`
+  dependency missing from `tests/dom/package.json`. Each is recorded in the report's §9/§10 tables.
+- **Conflict log:** `COORDINATION.md` was append/append against `46f45a35`, `bc28428d`, `69ad6634`,
+  `032f1ca5`, `8299bffe` and the alerts bot across seven rebases. Every resolution kept **both** sides verbatim;
+  nothing from another session was discarded, reverted or reworded. `reports/alerts-live-check.md` was repeatedly
+  rewritten by the scheduled bot on this branch, and each time `main`'s copy was taken instead of pushed.
+- **Not verified, not claimed:** no live price, volume, open interest, liquidity, balance or resolution is
+  transcribed; **no order was placed** and no authenticated call was made (F1/F2 stay open);
+  `flagged.html#D074-1` still has no `id`.
